@@ -44,9 +44,9 @@ JSON looks like this:
 
 - flow-c1 keys generate
 - flow-c1 accounts create --key <public key>
-- flow-c1  transactions send .\topshot\transactions\setup_collection.cdc --signer=newaccount
-- flow-c1  transactions send .\topshot\transactions\verify_collection.cdc --signer=newaccount
-- flow-c1 scripts execute .\topshot\scripts\verify.cdc 0xnewaddress
+- flow-c1  transactions send .\topshot\transactions\setup_collection.cdc --signer=justin
+- flow-c1  transactions send .\topshot\transactions\verify_collection.cdc --signer=justin
+- flow-c1 scripts execute .\topshot\scripts\verify_collection.cdc 0x179b6b1cb6755e31
 
 3. create_set (string)
   - flow-c1 transactions send ./topshot/transactions/create_set.cdc "First Set!"
@@ -66,5 +66,8 @@ or mint_moments(setID: UInt32, playID: UInt32, recipientAddr: Address)
 
 - flow-c1 transactions send ./topshot/transactions/mint_moments.cdc 1 1 5 0xf8d6e0586b0a20c7
 
-5. send_moment (recipientAddr: Address, momentID: UInt32)
- - flow-c1 transactions send .\topshot\transactions\send_moment.cdc 0x01cf0e2f2f715450 1
+5. transfer_moment (recipientAddr: Address, momentID: UInt32)
+ - flow-c1 transactions send .\topshot\transactions\transfer_moment.cdc 0x179b6b1cb6755e31 1
+
+ 6. get_collection_ids (account: Address)
+ flow-c1 scripts execute .\topshot\scripts\get_collection_ids.cdc 0x179b6b1cb6755e31 
