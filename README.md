@@ -48,10 +48,10 @@ JSON looks like this:
 - flow-c1  transactions send .\topshot\transactions\verify_collection.cdc --signer=justin
 - flow-c1 scripts execute .\topshot\scripts\verify_collection.cdc 0x179b6b1cb6755e31
 
-3. create_set (string)
-  - flow-c1 transactions send ./topshot/transactions/create_set.cdc "First Set!"
+3. create_set (string) - result: series 0, setID 1
+  - flow-c1 transactions send ./topshot/transactions/create_set.cdc "Genesis Set"
 
-4. create_plays (metadata found inside transaction)
+4. create_plays (metadata found inside transaction) - result: 18 unique playIDs starting at 1
   - flow-c1 transactions send ./topshot/transactions/create_plays.cdc
 
 5. add_play_to_set (setID: UInt32, playID: UInt32)
@@ -71,3 +71,9 @@ or mint_moments(setID: UInt32, playID: UInt32, recipientAddr: Address)
 
  6. get_collection_ids (account: Address)
  flow-c1 scripts execute .\topshot\scripts\get_collection_ids.cdc 0x179b6b1cb6755e31 
+
+
+
+
+
+
