@@ -1,76 +1,74 @@
 # Fungify
 
+## TopShot Emulator Setup
+This setup will get you started with the TopShot emulator and ready to mint moments.
+### [TopShot Emulator Commands Reference](./EMULATOR.md)
+
+1. Start the emulator
+```bash
+flow-c1 emulator start
+```
+
+2. Run the setup-flow.ps1 script. This will deploy contracts, setup a second emulator account(0x179b6b1cb6755e31) with a TopShot collection and create the sets.
+```bash
+./setup-flow.ps1
+```
+
+3. Create the plays. There are two modes, you can either create plays that do not have metadata or create plays with the exact metadata from Top Shot. Depends on your use case and creating all the metadata takes about 20 minutes compared to 4 minutes for the minimal metadata.
+
+Create a python virtual environment
+```bash
+python -m venv venv
+```
+
+Activate the Virtual environment
+
+```bash
+.\venv\Scripts\activate
+```
+
+Verbose Mode: Same Play Metadata as TopShot 
+
+```bash
+python ./topshot/tools/create_plays.py
+```
+
+Empty Play Metadata
+
+Minimal Mode: Minimal Play Metadata
+
+```bash
+python ./topshot/tools/create_plays_minimal.py
+```
+
+Add plays to sets. This is the exact mapping found on TopShot. Takes about 5 minutes. The script to generate the json that is used(play_metadata.json) is found in /topshot/tools/fetch_plays.py.
+  
+  ```bash
+python ./topshot/tools/add_plays_to_sets.py
+```
+
 ## TopShot Tiers
 
 ### Status
 
 Under review/testing. Will deploy to mainnet soon.
 
-### Commands
-
-get_tier (account, momentID)
-
-- flow-c1 scripts execute ./tiers/scripts/get_tier.cdc 0xf8d6e0586b0a20c7 1
-
-(Admin) update_default_tier (setID: UInt32, tierRawValue: UInt8)
-
-- flow-c1 transactions send ./tiers/transactions/update_default_tier.cdc 1 2
-
-(Admin) update_mixed_tier (setID: UInt32, playID: UInt32, tierRawValue: UInt8)
-
-- flow-c1 transactions send ./tiers/transactions/update_mixed_tier.cdc
-
-(Admin) remove_playid.cdc (setID: UInt32, playID: UInt32)
-
-- flow-c1 transactions send ./tiers/transactions/remove_playid.cdc 1 245
-
-  ### [Tiers Reference](./TIERS.md)
+### [Tiers Commands Reference](./TIERS.md)
 
 ## TopShot Emulator
 
-1. Deploy TopShotLocking, TopShot, TopShotTiers
+- 
+- 
+- 
+- 
+- 
+  - 
 
-JSON looks like this:
+4. 
 
-"emulator-account": [
-"TopShotLocking",
-"TopShot",
-"TopShotTiers"
-]
+5. 
 
-- flow-c1 project deploy
-
-2. (Optional) Setup second emulator user
-
-- flow-c1 keys generate
-- flow-c1 accounts create --key <public key>
-- flow-c1  transactions send .\topshot\transactions\setup_collection.cdc --signer=justin
-- flow-c1  transactions send .\topshot\transactions\verify_collection.cdc --signer=justin
-- flow-c1 scripts execute .\topshot\scripts\verify_collection.cdc 0x179b6b1cb6755e31
-
-3. create_set (string) - result: series 0, setID 1
-  - flow-c1 transactions send ./topshot/transactions/create_set.cdc "Genesis Set"
-
-4. create_plays (metadata found inside transaction) - result: 18 unique playIDs starting at 1
-  - flow-c1 transactions send ./topshot/transactions/create_plays.cdc
-
-5. add_play_to_set (setID: UInt32, playID: UInt32)
-- flow-c1 transactions send ./topshot/transactions/add_play_to_set.cdc 1 1
-- flow-c1 scripts execute .\topshot\scripts\get_plays_in_set.cdc 1
-
-5. mint_moment(setID: UInt32, playID: UInt32, recipientAddr: Address)
-
--flow-c1 transactions send ./topshot/transactions/mint_moment.cdc 1 1 0xf8d6e0586b0a20c7
-
-or mint_moments(setID: UInt32, playID: UInt32, recipientAddr: Address)
-
-- flow-c1 transactions send ./topshot/transactions/mint_moments.cdc 1 1 5 0xf8d6e0586b0a20c7
-
-5. transfer_moment (recipientAddr: Address, momentID: UInt32)
- - flow-c1 transactions send .\topshot\transactions\transfer_moment.cdc 0x179b6b1cb6755e31 1
-
- 6. get_collection_ids (account: Address)
- flow-c1 scripts execute .\topshot\scripts\get_collection_ids.cdc 0x179b6b1cb6755e31 
+- 
 
 
 
