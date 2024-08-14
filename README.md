@@ -55,22 +55,6 @@ Under review/testing. Will deploy to mainnet soon.
 
 ### [Tiers Commands Reference](./TIERS.md)
 
-## TopShot Emulator
-
-- 
-- 
-- 
-- 
-- 
-  - 
-
-4. 
-
-5. 
-
-- 
-
-
 
 
 
