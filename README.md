@@ -1,4 +1,4 @@
-# Fungify
+# Fungify!
 
 ## TopShot Emulator Setup
 This setup will get you started with the TopShot emulator and ready to mint moments.
