@@ -1,11 +1,26 @@
-import TSHOT from "TSHOT"
+import "TSHOT"
+import "FungibleToken"
 
-access(all) fun main(address: Address): Bool {
-    let account = getAccount(address)
-    
-    // Check if the Vault is linked to /public/tshotReceiver
-    let vaultPublicRef = account.capabilities.borrow<&TSHOT.Vault>(/public/tshotReceiver)
-                              ?? panic("Could not borrow reference to the Vault")
+access(all) fun main(userAddress: Address): Bool {
+    // Get the account of the user
+    let userAccount = getAccount(userAddress)
 
-    return vaultPublicRef != nil
+    // Check if the user has the Receiver capability
+    let receiverCap = userAccount
+        .capabilities
+        .borrow<&{FungibleToken.Receiver}>(TSHOT.tokenReceiverPath)
+        ?? panic("User does not have a Receiver capability at the expected path.")
+
+    // Check if the user has the Balance capability
+    let balanceCap = userAccount
+        .capabilities
+        .borrow<&{FungibleToken.Balance}>(TSHOT.tokenBalancePath)
+        ?? panic("User does not have a Balance capability at the expected path.")
+
+    // If both capabilities are valid, the vault is correctly set up
+    return receiverCap != nil && balanceCap != nil
 }
+
+
+
+
