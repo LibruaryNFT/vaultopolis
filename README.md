@@ -60,6 +60,25 @@ https://github.com/dapperlabs/nba-smart-contracts/blob/judez/NBA-2865-upgrade-fl
 This setup will get you started with the TopShot emulator and ready to mint moments.
 ### [TopShot Emulator Commands Reference](./EMULATOR.md)
 
+
+Express Setup 
+
+./setup-flow.ps1
+flow-c1 transactions send ./topshot/transactions/create_custom_plays.cdc
+flow-c1 transactions send ./topshot/transactions/add_plays_to_sets.cdc 1 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+flow-c1 transactions send ./topshot/transactions/mint_moments.cdc 1 1 5 0xf8d6e0586b0a20c7
+flow-c1 transactions send .\topshot\transactions\transfer_moment.cdc 0x179b6b1cb6755e31 1
+flow-c1 transactions send .\topshot\transactions\verify_entitlements.cdc 0x179b6b1cb6755e31
+flow-c1 scripts execute .\topshot\scripts\verify_collection.cdc 0x179b6b1cb6755e31
+
+flow-c1 transactions send ./tshot/transactions/mint_TSHOT.cdc 1 --signer=justin
+flow-c1 transactions send ./tshot/transactions/setup_vault.cdc --signer=justin
+flow-c1 scripts execute ./tshot/scripts/verify_vault.cdc 0x179b6b1cb6755e31
+flow-c1 scripts execute .\topshot\scripts\get_collection_ids.cdc 0xf8d6e0586b0a20c7
+flow-c1 scripts execute .\topshot\scripts\get_collection_ids.cdc 0x179b6b1cb6755e31
+flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0x179b6b1cb6755e31
+
+
 1. Start the emulator
 ```bash
 flow-c1 emulator start
@@ -126,12 +145,17 @@ bool
 
 ```bash
 flow-c1 scripts execute ./tshot/scripts/verify_vault.cdc 0xf8d6e0586b0a20c7
+flow-c1 scripts execute ./tshot/scripts/verify_vault.cdc 0x179b6b1cb6755e31
 ```
 
 ### Transactions
 
 ```bash
 flow-c1 transactions send ./tshot/transactions/setup_vault.cdc --signer=justin
+```
+
+```bash
+flow-c1 transactions send ./tshot/transactions/mint_TSHOT.cdc 1 --signer=justin
 ```
 
 ## TopShot Tiers

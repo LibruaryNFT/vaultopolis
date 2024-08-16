@@ -40,6 +40,7 @@
 
 ```bash
   flow-c1 scripts execute .\topshot\scripts\get_collection_ids.cdc 0x179b6b1cb6755e31
+  flow-c1 scripts execute .\topshot\scripts\get_collection_ids.cdc 0xf8d6e0586b0a20c7
 ```
 
 ## Transactions
@@ -137,5 +138,14 @@
 ```
 
 
+### verify_entitlements
+- **Description**: Verifies that a specified account has the NonFungible.Withdraw entitlement.
+- **Input Parameters**:
+  - `account: Address` - The Flow account address to verify.
+- **Example Usage**:
+
+```bash
+  flow-c1 transactions send .\topshot\transactions\verify_entitlements.cdc 0x179b6b1cb6755e31
+```
 
 

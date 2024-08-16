@@ -5,9 +5,6 @@ access(all) contract TSHOT: FungibleToken {
     // Total supply of Flow tokens in existence
     access(all) var totalSupply: UFix64
 
-    // Address of the TopShotExchange contract that is allowed to mint TSHOT tokens
-    access(all) var topShotExchangeAddress: Address
-
     // Paths
     access(all) let tokenVaultPath: StoragePath
     access(all) let tokenBalancePath: PublicPath
@@ -41,10 +38,10 @@ access(all) contract TSHOT: FungibleToken {
     // new tokens.
     access(all) resource Vault: FungibleToken.Vault {
 
-        // Holds the balance of a user's tokens
+        // holds the balance of a users tokens
         access(all) var balance: UFix64
 
-        // Initialize the balance at resource creation time
+        // initialize the balance at resource creation time
         init(balance: UFix64) {
             self.balance = balance
         }
@@ -63,7 +60,7 @@ access(all) contract TSHOT: FungibleToken {
         }
 
         access(all) view fun isSupportedVaultType(type: Type): Bool {
-            return type == self.getType()
+            if (type == self.getType()) { return true } else { return false }
         }
 
         /// Asks if the amount can be withdrawn from this vault
@@ -92,7 +89,7 @@ access(all) contract TSHOT: FungibleToken {
         // deposit
         //
         // Function that takes a Vault object as an argument and adds
-        // its balance to the balance of the owner's Vault.
+        // its balance to the balance of the owners Vault.
         // It is allowed to destroy the sent Vault because the Vault
         // was a temporary holder of the tokens. The Vault's balance has
         // been consumed and therefore can be destroyed.
@@ -125,13 +122,13 @@ access(all) contract TSHOT: FungibleToken {
 
     // Mint tokens
     //
-    // $TSHOT token can only be minted by the TopShotExchange contract.
-    // This function allows the TopShotExchange contract to mint tokens 
-    // in exchange for a user's NFT.
-    access(all) fun mintTokens(amount: UFix64): @TSHOT.Vault {
+    // $TSHOT token can only be minted when:
+    //   - user stakes unlocked $flow tokens, or
+    //   - user migrates existing (staked) NodeDelegator resource
+    // into the liquid staking protocol
+    access(account) fun mintTokens(amount: UFix64): @TSHOT.Vault {
         pre {
             amount > 0.0: "Amount minted must be greater than zero"
-            self.account.address == self.topShotExchangeAddress: "Caller is not authorized to mint tokens"
         }
         TSHOT.totalSupply = TSHOT.totalSupply + amount
         emit TokensMinted(amount: amount)
@@ -140,7 +137,7 @@ access(all) contract TSHOT: FungibleToken {
     
     // Burn tokens
     //
-    // $TSHOT token will be burned in exchange for underlying $FLOW when a user requests to unstake from the liquid staking protocol.
+    // $TSHOT token will be burned in exchange for underlying $flow when user requests unstake from the liquid staking protocol
     // Note: the burned tokens are automatically subtracted from the total supply in the Vault destructor.
     access(account) fun burnTokens(from: @TSHOT.Vault) {
         let amount = from.balance
@@ -149,20 +146,8 @@ access(all) contract TSHOT: FungibleToken {
         emit TokensBurned(amount: amount)
     }
 
-    // Function to update the TopShotExchange address
-    // This can be done only by the current TopShotExchange contract
-    access(all) fun updateTopShotExchangeAddress(newAddress: Address) {
-        pre {
-            self.account.address == self.topShotExchangeAddress || self.topShotExchangeAddress == 0x179b6b1cb6755e31: "Only the current TopShotExchange contract can update the address"
-        }
-        self.topShotExchangeAddress = newAddress
-    }
-
-    // Initialization function
     init() {
         self.totalSupply = 0.0
-        // Placeholder address for TopShotExchange contract
-        self.topShotExchangeAddress = 0x179b6b1cb6755e31
 
         self.tokenVaultPath = /storage/TSHOTTokenVault
         self.tokenReceiverPath = /public/TSHOTTokenReceiver

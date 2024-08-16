@@ -1,12 +1,13 @@
 import "TSHOT"
+import "FungibleToken"
 
-pub fun main(address: Address): UFix64 {
+access(all) fun main(address: Address): UFix64 {
     let account = getAccount(address)
     
-    // Borrow a reference to the user's Vault using the public capability
-    let vaultRef = account.capabilities.borrow<&TSHOT.Vault>(/public/tshotReceiver)
-        ?? panic("Could not borrow reference to the user's Vault")
+    // Borrow a reference to the user's Vault balance using the public capability
+    let balanceRef = account.capabilities.borrow<&{FungibleToken.Balance}>(/public/TSHOTTokenBalance)
+        ?? panic("Could not borrow reference to the user's Vault balance")
     
     // Return the balance in the Vault
-    return vaultRef.getBalance()
+    return balanceRef.balance
 }
