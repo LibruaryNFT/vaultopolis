@@ -153,7 +153,7 @@ access(all) contract TSHOT: FungibleToken {
     // This can be done only by the current TopShotExchange contract
     access(all) fun updateTopShotExchangeAddress(newAddress: Address) {
         pre {
-            self.account.address == self.topShotExchangeAddress || self.topShotExchangeAddress == 0x179b6b1cb6755e31: "Only the current TopShotExchange contract can update the address"
+            self.account.address == self.topShotExchangeAddress || self.topShotExchangeAddress == 0x179b6b1cb6755e32: "Only the current TopShotExchange contract can update the address"
         }
         self.topShotExchangeAddress = newAddress
     }
@@ -162,7 +162,7 @@ access(all) contract TSHOT: FungibleToken {
     init() {
         self.totalSupply = 0.0
         // Placeholder address for TopShotExchange contract
-        self.topShotExchangeAddress = 0x179b6b1cb6755e31
+        self.topShotExchangeAddress = 0x179b6b1cb6755e32
 
         self.tokenVaultPath = /storage/TSHOTTokenVault
         self.tokenReceiverPath = /public/TSHOTTokenReceiver

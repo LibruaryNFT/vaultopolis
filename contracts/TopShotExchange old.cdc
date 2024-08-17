@@ -14,8 +14,13 @@ access(all) contract TopShotExchange {
     // Event emitted when TSHOT tokens are minted
     access(all) event TSHOTMinted(amount: UFix64, to: Address)
 
+    access(all) resource interface PublicVault {
+        access(all) fun getVaultIDs(): [UInt64]
+        access(all) fun borrowNFT(id: UInt64): &TopShot.NFT?  // Read-only access to the NFT
+    }
+
     // Resource to hold the TopShot NFTs that users deposit
-    access(all) resource NFTVault {
+    access(all) resource NFTVault: PublicVault {
         access(all) var nfts: @{UInt64: TopShot.NFT}
 
         init() {
@@ -27,32 +32,32 @@ access(all) contract TopShotExchange {
             self.nfts[nftID] <-! nft
             emit NFTDeposited(id: nftID, from: self.owner!.address)
         }
-    }
 
-    init() {
-        // Set the storage path for the admin NFT vault
-        self.nftVaultPath = /storage/TopShotNFTVault
-
-        // Store the NFT Vault in the contract's storage
-        self.account.storage.save(<-create NFTVault(), to: self.nftVaultPath)
-    }
-
-   // Function to swap an NBA Top Shot Moment for TSHOT tokens
-    access(all) fun swapNFTForTSHOT(nftID: UInt64, userAddress: Address) {
-        // Get the user's TopShot Collection capability with the correct entitlement
-        let userCollectionCap = getAccount(userAddress)
-            .capabilities
-            .get<auth(NonFungibleToken.Withdraw) &TopShot.Collection>(/public/MomentCollection)
-
-        if userCollectionCap == nil {
-            panic("Could not get user's TopShot Collection capability")
+        // Function to get the IDs of all NFTs in the vault
+        access(all) fun getVaultIDs(): [UInt64] {
+            return self.nfts.keys
         }
 
-        let userCollection = userCollectionCap!.borrow()
+        // Function to borrow a read-only reference to an NFT by its ID
+        access(all) fun borrowNFT(id: UInt64): &TopShot.NFT? {
+            return &self.nfts[id] as &TopShot.NFT?
+        }
+    }
+
+    // Function to swap an NBA Top Shot Moment for TSHOT tokens
+    access(all) fun swapNFTForTSHOT(
+        ownerCollection: Capability<auth(NonFungibleToken.Withdraw) &TopShot.Collection>,
+        nftID: UInt64,
+        receiverCap: Capability<&{FungibleToken.Receiver}>,
+        userAddress: Address
+    ) {
+        // Borrow the owner's TopShot Collection reference using the provided capability
+        let collectionRef = ownerCollection
+            .borrow()
             ?? panic("Could not borrow reference to user's TopShot Collection")
 
         // Withdraw the NFT from the user's collection
-        let nft <- userCollection.withdraw(withdrawID: nftID) as! @TopShot.NFT
+        let nft <- collectionRef.withdraw(withdrawID: nftID) as! @TopShot.NFT
 
         // Deposit the NFT into the exchange's NFT vault
         let adminVault = self.account
@@ -65,22 +70,27 @@ access(all) contract TopShotExchange {
         // Mint 1 TSHOT token for the user
         let tshotVault <- TSHOT.mintTokens(amount: 1.0)
 
-        // Get the user's TSHOT Receiver capability
-        let receiverCap = getAccount(userAddress)
-            .capabilities
-            .get<&{FungibleToken.Receiver}>(/public/tshotReceiver)
-
-        if receiverCap == nil {
-            panic("Could not get user's TSHOT Receiver capability")
-        }
-
         // Borrow a reference to the user's receiver
-        let receiver = receiverCap!.borrow()
+        let receiverRef = receiverCap.borrow()
             ?? panic("Could not borrow reference to user's TSHOT Receiver")
 
         // Deposit the TSHOT token into the user's account
-        receiver.deposit(from: <-tshotVault)
+        receiverRef.deposit(from: <-tshotVault)
         emit TSHOTMinted(amount: 1.0, to: userAddress)
     }
-}
 
+    init() {
+        // Set the storage path for the admin NFT vault
+        self.nftVaultPath = /storage/TopShotNFTVault
+
+        // Store the NFT Vault in the contract's storage
+        self.account.storage.save(<-create NFTVault(), to: self.nftVaultPath)
+
+        // Issue the capability to the NFT vault and publish it to a public path
+        let cap = self.account.capabilities.storage.issue<&NFTVault>(self.nftVaultPath)
+        self.account.capabilities.publish(cap, at: /public/TopShotNFTVault)
+
+         // Update the TopShotExchange address in TSHOT contract
+        TSHOT.updateTopShotExchangeAddress(newAddress: self.account.address)
+    }
+}
