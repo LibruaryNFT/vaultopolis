@@ -236,11 +236,12 @@ flow-c1 transactions send ./tshot/transactions/mint_TSHOT.cdc 1 --signer=justin
 flow-c1 scripts execute ./topshot/scripts/get_collection_ids.cdc 0xf8d6e0586b0a20c7
 flow-c1 scripts execute ./topshot/scripts/get_collection_ids.cdc 0x179b6b1cb6755e31
 flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0x179b6b1cb6755e31
+flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0xf8d6e0586b0a20c7
 flow-c1 scripts execute ./tshot/scripts/get_vault_nfts.cdc 0xf8d6e0586b0a20c7
 flow-c1 scripts execute ./tshot/scripts/get_vault_metadata.cdc 1
 flow-c1 transactions send ./tshot/transactions/exchange_TSHOT.cdc --signer=justin
-flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0x179b6b1cb6755e31
 flow-c1 scripts execute ./topshot/scripts/get_collection_ids.cdc 0x179b6b1cb6755e31
+flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0x179b6b1cb6755e31
 flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0xf8d6e0586b0a20c7
 
 ```

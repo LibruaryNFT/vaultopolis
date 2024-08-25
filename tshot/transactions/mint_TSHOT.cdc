@@ -4,7 +4,7 @@ import "TopShot"
 import "FungibleToken"
 import "TSHOT"
 
-transaction(nftID: UInt64) {
+transaction(nftIDs: [UInt64]) {
 
     prepare(signer: auth(Capabilities, Storage) &Account) {
         // Retrieve the capability to the user's TopShot Collection
@@ -15,12 +15,12 @@ transaction(nftID: UInt64) {
         // Retrieve the capability for the user's TSHOT Receiver using the hardcoded path
         let receiverCap = signer
             .capabilities
-            .get<&{FungibleToken.Receiver}>(TSHOT.tokenReceiverPath)!
+            .get<&{FungibleToken.Receiver}>(TSHOT.tokenReceiverPath)
 
         // Now call the swap function with the user's capabilities
         TopShotExchange.swapNFTForTSHOT(
             ownerCollection: ownerCollection, 
-            nftID: nftID, 
+            nftIDs: nftIDs, 
             receiverCap: receiverCap, 
             userAddress: signer.address
         )

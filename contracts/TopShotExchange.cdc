@@ -18,8 +18,8 @@ access(all) contract TopShotExchange {
     access(all) event NFTExchanged(id: UInt64, to: Address)
 
     access(all) resource interface PublicVault {
-        access(all) fun getVaultIDs(): [UInt64]
-        access(all) fun borrowNFT(id: UInt64): &TopShot.NFT?  // Read-only access to the NFT
+        access(all) view fun getVaultIDs(): [UInt64]
+        access(all) view fun borrowNFT(id: UInt64): &TopShot.NFT?  // Read-only access to the NFT
         access(all) fun withdrawNFT(id: UInt64): @TopShot.NFT  // Withdraw an NFT by ID
     }
 
@@ -38,12 +38,12 @@ access(all) contract TopShotExchange {
         }
 
         // Function to get the IDs of all NFTs in the vault
-        access(all) fun getVaultIDs(): [UInt64] {
+        access(all) view fun getVaultIDs(): [UInt64] {
             return self.nfts.keys
         }
 
         // Function to borrow a read-only reference to an NFT by its ID
-        access(all) fun borrowNFT(id: UInt64): &TopShot.NFT? {
+        access(all) view fun borrowNFT(id: UInt64): &TopShot.NFT? {
             return &self.nfts[id] as &TopShot.NFT?
         }
 
@@ -58,7 +58,7 @@ access(all) contract TopShotExchange {
     // Function to swap an NBA Top Shot Moment for TSHOT tokens
     access(all) fun swapNFTForTSHOT(
         ownerCollection: Capability<auth(NonFungibleToken.Withdraw) &TopShot.Collection>,
-        nftID: UInt64,
+        nftIDs: [UInt64],
         receiverCap: Capability<&{FungibleToken.Receiver}>,
         userAddress: Address
     ) {
@@ -67,27 +67,29 @@ access(all) contract TopShotExchange {
             .borrow()
             ?? panic("Could not borrow reference to user's TopShot Collection")
 
-        // Withdraw the NFT from the user's collection
-        let nft <- collectionRef.withdraw(withdrawID: nftID) as! @TopShot.NFT
-
-        // Deposit the NFT into the exchange's NFT vault
+        // Borrow the exchange's NFT vault
         let adminVault = self.account
             .storage
             .borrow<auth(NonFungibleToken.Withdraw) &NFTVault>(from: self.nftVaultPath)
             ?? panic("Could not borrow NFTVault")
 
-        adminVault.deposit(nft: <-nft)
+        // Iterate over the provided NFT IDs and swap each one
+        for nftID in nftIDs {
+            // Withdraw the NFT from the user's collection
+            let nft <- collectionRef.withdraw(withdrawID: nftID) as! @TopShot.NFT
 
-        // Mint 1 TSHOT token for the user
-        let tshotVault <- TSHOT.mintTokens(amount: 1.0)
+            // Deposit the NFT into the exchange's NFT vault
+            adminVault.deposit(nft: <-nft)
 
-        // Borrow a reference to the user's receiver
-        let receiverRef = receiverCap.borrow()
-            ?? panic("Could not borrow reference to user's TSHOT Receiver")
+            // Mint 1 TSHOT token for each NFT and deposit into the user's account
+            let tshotVault <- TSHOT.mintTokens(amount: 1.0)
+            let receiverRef = receiverCap.borrow()
+                ?? panic("Could not borrow reference to user's TSHOT Receiver")
+            receiverRef.deposit(from: <-tshotVault)
 
-        // Deposit the TSHOT token into the user's account
-        receiverRef.deposit(from: <-tshotVault)
-        emit TSHOTMinted(amount: 1.0, to: userAddress)
+            // Emit an event for each NFT deposited
+            emit TSHOTMinted(amount: 1.0, to: userAddress)
+        }
     }
 
 // Function to exchange 1 TSHOT token for a random TopShot NFT
@@ -120,14 +122,14 @@ access(all) fun exchangeTSHOTForRandomNFT(
     }
 
     // Generate a random number using revertibleRandom
-let randNumber: UInt64 = revertibleRandom<UInt64>()
+    let randNumber: UInt64 = revertibleRandom<UInt64>()
 
-// Calculate the random index by taking the modulus with the length of the NFT IDs list
-let nftCount: UInt64 = UInt64(nftIDs.length)
-let randomIndex: UInt64 = randNumber % nftCount
+    // Calculate the random index by taking the modulus with the length of the NFT IDs list
+    let nftCount: UInt64 = UInt64(nftIDs.length)
+    let randomIndex: UInt64 = randNumber % nftCount
 
-// Select the NFT ID using the calculated random index
-let selectedNFTID = nftIDs[randomIndex]
+    // Select the NFT ID using the calculated random index
+    let selectedNFTID = nftIDs[randomIndex]
 
     // Withdraw the selected NFT from the vault
     let selectedNFT <- vaultRef.withdrawNFT(id: selectedNFTID)
@@ -142,8 +144,6 @@ let selectedNFTID = nftIDs[randomIndex]
     // Emit event for NFT exchange
     emit NFTExchanged(id: selectedNFTID, to: userAddress)
 }
-
-
 
     init() {
         // Set the storage path for the admin NFT vault
