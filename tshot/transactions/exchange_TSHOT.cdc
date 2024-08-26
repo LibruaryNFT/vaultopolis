@@ -3,7 +3,7 @@ import "FungibleToken"
 import "NonFungibleToken"
 import "TSHOT"
 
-transaction {
+transaction(tokenAmount: UFix64) {
 
     prepare(signer: auth(Capabilities, Storage) &Account) {
         // Retrieve the capability to the user's TSHOT Vault
@@ -16,11 +16,12 @@ transaction {
             .capabilities
             .get<&{NonFungibleToken.Receiver}>(/public/MomentCollection)!
 
-        // Now call the exchange function with the user's capabilities
+        // Now call the exchange function with the user's capabilities and tokenAmount
         TopShotExchange.exchangeTSHOTForRandomNFT(
             userTSHOTVault: userTSHOTVault,
             userNFTReceiver: userNFTReceiver,
-            userAddress: signer.address
+            userAddress: signer.address,
+            tokenAmount: tokenAmount
         )
     }
 

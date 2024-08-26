@@ -9,23 +9,28 @@ We are developing this project using Cadence 1.0, which is part of the Crescendo
 The Fungify project involves three primary smart contracts:
 
 ### 1. **TopShot**
-   - This contract represents the NBA Top Shot collection where users store their NBA Top Shot moments as NFTs. The contract handles the creation, management, and transfer of these NFTs. It also includes metadata management and capabilities for secure interactions.
+
+- This contract represents the NBA Top Shot collection where users store their NBA Top Shot moments as NFTs. The contract handles the creation, management, and transfer of these NFTs. It also includes metadata management and capabilities for secure interactions.
 
 ### 2. **TSHOT**
-   - This contract manages the TSHOT fungible token. Users will store their TSHOT tokens in this contract. The contract follows the Fungible Token standard on Flow and includes functionality for minting, transferring, and burning TSHOT tokens.
+
+- This contract manages the TSHOT fungible token. Users will store their TSHOT tokens in this contract. The contract follows the Fungible Token standard on Flow and includes functionality for minting, transferring, and burning TSHOT tokens.
 
 ### 3. **TopShotExchange**
-   - This is the core contract that facilitates the exchange between Top Shot moments and TSHOT tokens. Users can swap their Top Shot moments for TSHOT tokens and vice versa. The contract ensures that all exchanges are secure and trustless, leveraging Flow’s capability system.
+
+- This is the core contract that facilitates the exchange between Top Shot moments and TSHOT tokens. Users can swap their Top Shot moments for TSHOT tokens and vice versa. The contract ensures that all exchanges are secure and trustless, leveraging Flow’s capability system.
 
 ## Features to Implement
 
 ### TopShotExchange Contract Features
 
 1. **One-to-One Exchange:**
+
    - Users can exchange 1 NBA Top Shot Moment for 1 TSHOT token.
    - Users can exchange 1 TSHOT token for 1 NBA Top Shot Moment.
 
 2. **User-Initiated Transactions:**
+
    - Exchanges should be initiated by the user through a single transaction.
    - The contract will leverage capabilities, particularly to allow the TopShotExchange vault to send a Top Shot Moment back to the user within a transaction initiated by the user.
    - The approach will take inspiration from existing marketplace contracts to ensure security and efficiency.
@@ -37,10 +42,11 @@ The Fungify project involves three primary smart contracts:
 ### Additional Features and Concepts
 
 - **On-Chain Randomness:**
-   - Implement on-chain randomness for specific operations, using Flow's `revertibleRandom()` function.
-   - Future iterations will include mechanisms to mitigate post-selection of results, ensuring fairness and unpredictability.
 
-   Example usage:
+  - Implement on-chain randomness for specific operations, using Flow's `revertibleRandom()` function.
+  - Future iterations will include mechanisms to mitigate post-selection of results, ensuring fairness and unpredictability.
+
+  Example usage:
 
 ```cadence
    access(all) fun main(): UInt64 {
@@ -165,6 +171,7 @@ Summary
 By following this approach, you can enable users to exchange 1 TSHOT token for a randomly selected TopShot NFT within a single transaction, all while maintaining the process within a single contract. This provides a seamless, efficient, and engaging experience for users, leveraging the power of Cadence's atomic transactions.
 
 ## TopShot Emulator Setup
+
 This guide will help you set up the TopShot emulator, allowing you to start minting moments quickly.
 
 You can choose from three setup options, depending on your needs and the level of detail you require:
@@ -173,100 +180,19 @@ You can choose from three setup options, depending on your needs and the level o
 - Basic Setup: A more detailed setup with 5511 empty plays data and 160 sets data. This setup is a closer representation of the Mainnet TopShot contract and takes about 4 minutes to complete.
 - Full Setup: The most comprehensive setup, including 5511 full plays data and 160 full sets data. This setup is the most accurate representation of the Mainnet TopShot contract and takes around 15 minutes to complete.
 
-### [TopShot Emulator Commands Reference](./EMULATOR.md)
+### [TopShot Commands](./TOPSHOT.md)
 
-After completing your setup, refer to the **TopShot Emulator Commands Reference** for detailed instructions on how to mint moments, transfer them, and execute other commands using the emulator. This document will guide you through all the necessary commands to manage and interact with your TopShot moments effectively.
+After completing your setup, refer to the **TopShot Commands** for detailed instructions on how to mint moments, transfer them, and execute other commands using the emulator. This document will guide you through all the necessary commands to manage and interact with your TopShot moments effectively.
 
-### Python Setup
-
-If you are running the Basic or Full Setup, you will need a Python Virtual Environment
-
-Create a python virtual environment
-```bash
-python -m venv venv
-```
-
-Activate the Virtual environment
-
-```bash
-.\venv\Scripts\activate
-```
-
-### Express Setup 
-
-```bash
-
-flow-c1 emulator start
-./setup-flow.ps1
-flow-c1 transactions send ./topshot/transactions/create_custom_plays.cdc
-flow-c1 transactions send ./topshot/transactions/add_plays_to_sets.cdc 1 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
-flow-c1 transactions send ./topshot/transactions/mint_moments.cdc 1 1 5 0xf8d6e0586b0a20c7
-flow-c1 transactions send .\topshot\transactions\transfer_moment.cdc 0x179b6b1cb6755e31 1
-flow-c1 transactions send .\topshot\transactions\verify_entitlements.cdc 0x179b6b1cb6755e31
-flow-c1 scripts execute .\topshot\scripts\verify_collection.cdc 0x179b6b1cb6755e31
-```
-
-### Basic Setup 
+## TSHOT Setup
 
 ```bash
 flow-c1 emulator start
-./setup-flow.ps1
-python ./topshot/tools/create_plays_minimal.py
-python ./topshot/tools/add_plays_to_sets.py
+./deployment/scripts/setup-flow.ps1
+./deployment/scripts/setup-tshot.ps1
 ```
 
-### Full Setup 
-
-```bash
-flow-c1 emulator start
-./setup-flow.ps1
-python ./topshot/tools/create_plays.py
-python ./topshot/tools/add_plays_to_sets.py
-
-```
-
-## TSHOT
-
-```bash
-
-flow-c1 transactions send ./tshot/transactions/setup_vault.cdc --signer=justin
-flow-c1 scripts execute ./tshot/scripts/verify_vault.cdc 0x179b6b1cb6755e31
-flow-c1 scripts execute ./tshot/scripts/verify_vault.cdc 0xf8d6e0586b0a20c7
-flow-c1 transactions send ./tshot/transactions/mint_TSHOT.cdc 1 --signer=justin
-flow-c1 scripts execute ./topshot/scripts/get_collection_ids.cdc 0xf8d6e0586b0a20c7
-flow-c1 scripts execute ./topshot/scripts/get_collection_ids.cdc 0x179b6b1cb6755e31
-flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0x179b6b1cb6755e31
-flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0xf8d6e0586b0a20c7
-flow-c1 scripts execute ./tshot/scripts/get_vault_nfts.cdc 0xf8d6e0586b0a20c7
-flow-c1 scripts execute ./tshot/scripts/get_vault_metadata.cdc 1
-flow-c1 transactions send ./tshot/transactions/exchange_TSHOT.cdc --signer=justin
-flow-c1 scripts execute ./topshot/scripts/get_collection_ids.cdc 0x179b6b1cb6755e31
-flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0x179b6b1cb6755e31
-flow-c1 scripts execute ./tshot/scripts/verify_balance.cdc 0xf8d6e0586b0a20c7
-
-```
-
-### Scripts
-
-verify_vault.cdc
-address: Address
-
-bool
-
-```bash
-flow-c1 scripts execute ./tshot/scripts/verify_vault.cdc 0xf8d6e0586b0a20c7
-flow-c1 scripts execute ./tshot/scripts/verify_vault.cdc 0x179b6b1cb6755e31
-```
-
-### Transactions
-
-```bash
-flow-c1 transactions send ./tshot/transactions/setup_vault.cdc --signer=justin
-```
-
-```bash
-flow-c1 transactions send ./tshot/transactions/mint_TSHOT.cdc 1 --signer=justin
-```
+### [TopShotExchange Commands][./EXCHANGE.md]
 
 ## TopShot Tiers
 
@@ -275,8 +201,3 @@ flow-c1 transactions send ./tshot/transactions/mint_TSHOT.cdc 1 --signer=justin
 Under review/testing. Will deploy to mainnet soon.
 
 ### [Tiers Commands Reference](./TIERS.md)
-
-
-
-
-

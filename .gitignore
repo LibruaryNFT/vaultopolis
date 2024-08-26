@@ -1,8 +1,9 @@
 
 # flow
+*.pkey
 emulator-account.pkey
+mainnet-account.pkey
 imports
 flow.json
-*.pkey
-mainnet-account.pkey
 /venv
+*.log

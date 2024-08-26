@@ -92,58 +92,67 @@ access(all) contract TopShotExchange {
         }
     }
 
-// Function to exchange 1 TSHOT token for a random TopShot NFT
 access(all) fun exchangeTSHOTForRandomNFT(
     userTSHOTVault: Capability<auth(FungibleToken.Withdraw) &TSHOT.Vault>,
     userNFTReceiver: Capability<&{NonFungibleToken.Receiver}>,
-    userAddress: Address
+    userAddress: Address,
+    tokenAmount: UFix64
 ) {
     // Borrow the user's TSHOT Vault reference
     let tshotVaultRef = userTSHOTVault
         .borrow()
         ?? panic("Could not borrow the user's TSHOT Vault")
 
-    // Withdraw 1 TSHOT token from the user's vault
-    let payment <- tshotVaultRef.withdraw(amount: 1.0) as! @TSHOT.Vault
+    // Withdraw the specified amount of TSHOT tokens from the user's vault
+    let payment <- tshotVaultRef.withdraw(amount: tokenAmount) as! @TSHOT.Vault
 
-    // Burn the TSHOT token using the contract's burnTokens function
+    // Burn the TSHOT tokens using the contract's burnTokens function
     TSHOT.burnTokens(from: <-payment)
 
-    // Get all NFT IDs from the vault
-    let vaultRef = self.account.storage
-        .borrow<&NFTVault>(from: self.nftVaultPath)
-        ?? panic("Could not borrow the NFTVault")
+    var counter = 0
 
-    let nftIDs = vaultRef.getVaultIDs()
+    // Loop to exchange each TSHOT token for a random NFT
+    while counter < Int(tokenAmount) {
+        // Re-borrow the vaultRef inside the loop to ensure we have an up-to-date reference
+        let vaultRef = self.account
+            .storage
+            .borrow<&NFTVault>(from: self.nftVaultPath)
+            ?? panic("Could not borrow the NFTVault")
 
-    // Ensure there are NFTs available
-    if nftIDs.length == 0 {
-        panic("No NFTs available in the vault")
+        // Get all NFT IDs from the vault
+        let nftIDs: [UInt64] = vaultRef.getVaultIDs()
+
+        // Ensure there are NFTs available
+        if nftIDs.length == 0 {
+            panic("No NFTs available in the vault")
+        }
+
+        // Generate a random number using revertibleRandom
+        let randNumber: UInt64 = revertibleRandom<UInt64>()
+        let nftCount: UInt64 = UInt64(nftIDs.length)
+        let randomIndex: UInt64 = randNumber % nftCount
+
+        // Select the NFT ID using the calculated random index
+        let selectedNFTID = nftIDs[randomIndex]
+
+        // Withdraw the selected NFT from the vault
+        let selectedNFT <- vaultRef.withdrawNFT(id: selectedNFTID)
+
+        // Borrow the user's NFT receiver
+        let receiverRef = userNFTReceiver.borrow()
+            ?? panic("Could not borrow the user's NFT Receiver")
+
+        // Deposit the NFT into the user's account
+        receiverRef.deposit(token: <-selectedNFT)
+
+        // Emit event for NFT exchange
+        emit NFTExchanged(id: selectedNFTID, to: userAddress)
+
+        // Increment the counter
+        counter = counter + 1
     }
-
-    // Generate a random number using revertibleRandom
-    let randNumber: UInt64 = revertibleRandom<UInt64>()
-
-    // Calculate the random index by taking the modulus with the length of the NFT IDs list
-    let nftCount: UInt64 = UInt64(nftIDs.length)
-    let randomIndex: UInt64 = randNumber % nftCount
-
-    // Select the NFT ID using the calculated random index
-    let selectedNFTID = nftIDs[randomIndex]
-
-    // Withdraw the selected NFT from the vault
-    let selectedNFT <- vaultRef.withdrawNFT(id: selectedNFTID)
-
-    // Borrow the user's NFT receiver
-    let receiverRef = userNFTReceiver.borrow()
-        ?? panic("Could not borrow the user's NFT Receiver")
-
-    // Deposit the NFT into the user's account
-    receiverRef.deposit(token: <-selectedNFT)
-
-    // Emit event for NFT exchange
-    emit NFTExchanged(id: selectedNFTID, to: userAddress)
 }
+
 
     init() {
         // Set the storage path for the admin NFT vault
