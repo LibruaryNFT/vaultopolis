@@ -15,7 +15,7 @@ access(all) contract TopShotExchange {
     access(all) event TSHOTMinted(amount: UFix64, to: Address)
 
     // Event emitted when an NFT is exchanged for TSHOT
-    access(all) event NFTExchanged(id: UInt64, to: Address)
+    access(all) event NFTExchanged(ids: [UInt64], to: Address)
 
     access(all) resource interface PublicVault {
         access(all) view fun getVaultIDs(): [UInt64]
@@ -73,6 +73,9 @@ access(all) contract TopShotExchange {
             .borrow<auth(NonFungibleToken.Withdraw) &NFTVault>(from: self.nftVaultPath)
             ?? panic("Could not borrow NFTVault")
 
+        // Initialize the cumulative amount
+        var totalAmount: UFix64 = 0.0
+
         // Iterate over the provided NFT IDs and swap each one
         for nftID in nftIDs {
             // Withdraw the NFT from the user's collection
@@ -87,9 +90,11 @@ access(all) contract TopShotExchange {
                 ?? panic("Could not borrow reference to user's TSHOT Receiver")
             receiverRef.deposit(from: <-tshotVault)
 
-            // Emit an event for each NFT deposited
-            emit TSHOTMinted(amount: 1.0, to: userAddress)
+            totalAmount = totalAmount + 1.0
         }
+
+        // Emit a single event with the cumulative amount
+        emit TSHOTMinted(amount: totalAmount, to: userAddress)
     }
 
 access(all) fun exchangeTSHOTForRandomNFT(
@@ -110,6 +115,9 @@ access(all) fun exchangeTSHOTForRandomNFT(
     TSHOT.burnTokens(from: <-payment)
 
     var counter = 0
+
+    // Array to store the exchanged NFT IDs
+    var exchangedNFTIDs: [UInt64] = []
 
     // Loop to exchange each TSHOT token for a random NFT
     while counter < Int(tokenAmount) {
@@ -145,12 +153,15 @@ access(all) fun exchangeTSHOTForRandomNFT(
         // Deposit the NFT into the user's account
         receiverRef.deposit(token: <-selectedNFT)
 
-        // Emit event for NFT exchange
-        emit NFTExchanged(id: selectedNFTID, to: userAddress)
+        // Add the selected NFT ID to the array
+        exchangedNFTIDs.append(selectedNFTID)
 
         // Increment the counter
         counter = counter + 1
     }
+
+     // Emit event for NFT exchange
+        emit NFTExchanged(ids: exchangedNFTIDs, to: userAddress)
 }
 
 

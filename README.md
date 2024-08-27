@@ -20,14 +20,18 @@ The Fungify project involves three primary smart contracts:
 
 - This is the core contract that facilitates the exchange between Top Shot moments and TSHOT tokens. Users can swap their Top Shot moments for TSHOT tokens and vice versa. The contract ensures that all exchanges are secure and trustless, leveraging Flow’s capability system.
 
-## Features to Implement
+### 4. **Liquidity Pool Contracts**
+
+## Features
 
 ### TopShotExchange Contract Features
 
 1. **One-to-One Exchange:**
 
-   - Users can exchange 1 NBA Top Shot Moment for 1 TSHOT token.
-   - Users can exchange 1 TSHOT token for 1 NBA Top Shot Moment.
+There is currently no limits set in place(ie 5 for 5), however they will be added.
+
+- Users can exchange 1 NBA Top Shot Moment for 1 TSHOT token.
+- Users can exchange 1 TSHOT token for 1 NBA Top Shot Moment.
 
 2. **User-Initiated Transactions:**
 
@@ -36,17 +40,16 @@ The Fungify project involves three primary smart contracts:
    - The approach will take inspiration from existing marketplace contracts to ensure security and efficiency.
 
 3. **Secure Transfer and Minting:**
+
    - The actual transfer of the Top Shot Moment NFT must be made to the Admin’s storage.
    - The Admin will be the sole entity capable of minting TSHOT tokens, preventing any unauthorized minting and securing the system against potential attacks.
 
-### Additional Features and Concepts
+4. **On-Chain Randomness**
 
-- **On-Chain Randomness:**
+- Implement on-chain randomness for specific operations, using Flow's `revertibleRandom()` function.
+- Future iterations will include mechanisms to mitigate post-selection of results, ensuring fairness and unpredictability.
 
-  - Implement on-chain randomness for specific operations, using Flow's `revertibleRandom()` function.
-  - Future iterations will include mechanisms to mitigate post-selection of results, ensuring fairness and unpredictability.
-
-  Example usage:
+Example usage:
 
 ```cadence
    access(all) fun main(): UInt64 {
@@ -55,19 +58,7 @@ The Fungify project involves three primary smart contracts:
    }
 ```
 
-## Sharded Collections
-
-Depending on performance requirements, the collection of NFTs or fungible tokens may need to be sharded. This concept is under exploration to manage scalability as the project grows.
-
-## Current Contract Operations
-
-### Capabilities and Setup
-
-#### Capabilities Overview
-
-Capabilities in Flow allow secure access to resources stored in accounts, enabling fine-grained control over what can be done with those resources. In our contracts, capabilities will be utilized extensively to ensure that only authorized actions can be performed, particularly in the TopShotExchange contract where NFTs and tokens are swapped.
-
-#### NFT Vault
+5. **NFT Vault**
 
 The **NFTVault** resource within the TopShot contract is a secure storage for NFTs. It can:
 
@@ -92,94 +83,6 @@ The **NFTVault** cannot:
 - **Sharded Collection Reference:**  
   [TopShot Sharded Collection Contract](https://github.com/dapperlabs/nba-smart-contracts/blob/judez/NBA-2865-upgrade-flow-sdk/contracts/TopShotShardedCollection.cdc)
 
-## Development Notes
-
-- This project is built using Cadence 1.0, which introduces new syntax and design patterns.
-- The secure and trustless nature of the Flow blockchain is leveraged throughout the project to ensure safe exchanges between NFTs and tokens.
-- Detailed attention is being paid to the implementation of secure minting and transfer processes, ensuring that users can confidently interact with the contracts.
-
-To perform the exchange of 1 TSHOT token for a randomly selected TopShot NFT within a single transaction, while keeping everything within the same contract, here’s how you can conceptually design it:
-
-Transaction Design Overview
-Single Transaction Exchange:
-
-The transaction will handle both the burning of 1 TSHOT token and the random selection and transfer of a TopShot NFT in one atomic operation.
-Transaction Workflow:
-
-Input: The user sends 1 TSHOT token to the contract.
-Random Selection: The contract generates a random number to select an NFT from the vault.
-NFT Transfer: The selected NFT is transferred from the vault to the user’s account.
-TSHOT Token Handling: The TSHOT token sent by the user is either burned or handled according to the contract's design (e.g., sent to an admin account).
-Ensuring Atomicity:
-
-All or Nothing: The transaction must succeed as a whole or fail entirely, ensuring that no partial operations occur (e.g., TSHOT is burned, but the NFT is not transferred).
-Key Steps in the Transaction
-Receive TSHOT Token:
-
-The user authorizes the contract to withdraw 1 TSHOT token from their vault.
-Generate Random Index:
-
-The contract generates a random number within the range of available NFTs in the vault.
-Retrieve NFT:
-
-Using the random number, the contract retrieves the corresponding NFT from the vault.
-Transfer NFT to User:
-
-The NFT is then transferred to the user’s account.
-Burn TSHOT Token:
-
-The TSHOT token is either burned or sent to an admin-controlled vault.
-Example Transaction Flow
-Here’s a step-by-step outline of how this could be structured:
-
-User Sends TSHOT Token:
-
-The transaction begins with the user providing 1 TSHOT token, which the contract withdraws from the user's vault.
-Random Number Generation:
-
-The contract generates a random number that corresponds to the index of an NFT in the vault.
-NFT Selection and Transfer:
-
-The NFT at the selected index is transferred from the contract’s vault to the user.
-TSHOT Token Handling:
-
-The contract burns the TSHOT token or deposits it into an admin-controlled vault.
-Completion:
-
-The transaction completes, and the user now has a randomly selected NFT in exchange for their TSHOT token.
-Considerations
-Randomness:
-
-Ensure that the randomness used is secure and cannot be manipulated by users or external entities.
-Error Handling:
-
-Handle cases where the vault might be empty or the user’s balance is insufficient.
-Transaction Size:
-
-Keep the operations within the transaction small enough to avoid exceeding transaction limits on the blockchain.
-Implementation Outline
-Transaction Script:
-
-The transaction script would be written to handle the exchange process as outlined above.
-Contract Methods:
-
-Ensure that the contract has the necessary methods to support random selection, withdrawal, and deposit operations.
-Testing:
-
-Simulate different scenarios to test the transaction thoroughly, especially the random selection mechanism.
-Summary
-By following this approach, you can enable users to exchange 1 TSHOT token for a randomly selected TopShot NFT within a single transaction, all while maintaining the process within a single contract. This provides a seamless, efficient, and engaging experience for users, leveraging the power of Cadence's atomic transactions.
-
-## TopShot Emulator Setup
-
-This guide will help you set up the TopShot emulator, allowing you to start minting moments quickly.
-
-You can choose from three setup options, depending on your needs and the level of detail you require:
-
-- Express Setup: A quick start with only 18 plays and 1 set. This setup takes just a minute to complete, providing the fastest way to get started with the TopShot emulator.
-- Basic Setup: A more detailed setup with 5511 empty plays data and 160 sets data. This setup is a closer representation of the Mainnet TopShot contract and takes about 4 minutes to complete.
-- Full Setup: The most comprehensive setup, including 5511 full plays data and 160 full sets data. This setup is the most accurate representation of the Mainnet TopShot contract and takes around 15 minutes to complete.
-
 ### [TopShot Commands](./TOPSHOT.md)
 
 After completing your setup, refer to the **TopShot Commands** for detailed instructions on how to mint moments, transfer them, and execute other commands using the emulator. This document will guide you through all the necessary commands to manage and interact with your TopShot moments effectively.
@@ -201,3 +104,59 @@ flow-c1 emulator start
 Under review/testing. Will deploy to mainnet soon.
 
 ### [Tiers Commands Reference](./TIERS.md)
+
+# Notes
+
+## Computational Limits
+
+Current limits seem to be that we can swap 95 moments at a time and also swap 95 TSHOT for NFTs at a time.
+
+## Questions
+
+What limit should there be for swapping? There are gas and computational limits.
+How efficient is the swapping functionality for gas?
+Depending on performance requirements, the collection of NFTs or fungible tokens may need to be sharded. This concept is under exploration to manage scalability as the project grows.
+
+Does that allow for exchanging tshot for any other tokens somehow?
+
+It adopts the factory pattern that each unique trading pair is deployed using the SwapPair template file, with a factory contract storing all deployed pairs.
+
+## To-Do
+
+### Testing TopShotExchange
+
+Build out test cases.
+Build out test scripts.
+Verify that this is all-or-nothing.
+Verify overall design and any potential attack vectors.
+3rd party audit
+
+### Improve TopShotExchange
+
+Implement better randomness if possible.
+Add filtering mechanic for tiers, such as rare, legendary, fandom, common and possibly anything needed for NFL Allday.
+
+### DeFi
+
+Create pairing of TSHOT to STFLOW - decide on pricing model - perhaps price oracle
+LP - Increment.fi Integration
+
+### LP Seeding
+
+After crescendo & account linking push:
+Create buying mechanic, allow people to swap moments in for cash.
+
+Events Emitted
+
+// Event emitted when an NFT is deposited
+access(all) event NFTDeposited(id: UInt64, from: Address)
+
+// Event emitted when TSHOT tokens are minted
+access(all) event TSHOTMinted(amount: UFix64, to: Address)
+
+// Event emitted when an NFT is exchanged for TSHOT
+access(all) event NFTExchanged(id: UInt64, to: Address)
+
+NFTVault
+every nft deposited puts out this
+emit NFTDeposited(id: nftID, from: self.owner!.address)
