@@ -1,14 +1,20 @@
 import "TopShotFloors"
 
-transaction(newPrice: UFix64) {
+transaction(newFlowPerNFT: UFix64) {
 
-    prepare(signer: auth(contract) &Account) {
+    prepare(signer: auth(BorrowValue, Storage, LoadValue) &Account) {
+        // Borrow the Admin resource from storage
+        let adminRef = signer
+            .storage
+            .borrow<&TopShotFloors.Admin>(from: /storage/TopShotFloorsAdmin)
+            ?? panic("Could not borrow the Admin resource")
 
-        // Update the price per TopShot moment in the TopShotFloors contract
-        TopShotFloors.updateFlowPerNFT(newAmount: newPrice)
+        // Use the Admin resource to update the flowPerNFT value
+        adminRef.updateFlowPerNFT(newValue: newFlowPerNFT)
     }
 
     execute {
-        
+        log("Updated flowPerNFT value successfully")
     }
 }
+
