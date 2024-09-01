@@ -20,7 +20,11 @@ The Fungify project involves three primary smart contracts:
 
 - This is the core contract that facilitates the exchange between Top Shot moments and TSHOT tokens. Users can swap their Top Shot moments for TSHOT tokens and vice versa. The contract ensures that all exchanges are secure and trustless, leveraging Flow’s capability system.
 
-### 4. **Liquidity Pool Contracts**
+### 4. **TopShotFloors**
+
+- This allows users to submit TopShot moments in exchange for Flow tokens.
+
+### 5. **Liquidity Pool Contracts**
 
 ## Features
 
@@ -193,3 +197,37 @@ The following are in-progress:
 ```bash
   flow-c1 scripts execute ./badges/scripts/get_all_badges.cdc 0xf8d6e0586b0a20c7
 ```
+
+SwapFactory
+https://www.flowdiver.io/account/0xb063c16cac85dbd1
+Pair creation and data container of all uni-v2 style (volatile) swap pair addresses
+
+Summary of Key Contracts for Creating and Managing Your Liquidity Pool
+
+1. SwapFactory Contract
+   Purpose:
+   The SwapFactory contract is used to create new liquidity pools (pairs) between two tokens.
+
+Steps to Use:
+
+Create the Liquidity Pool:
+Call the createPair function on the SwapFactory contract.
+Specify the vaults for $TSHOT and $stFlow.
+This function will deploy a new SwapPair contract specific to the $TSHOT/$stFlow pair. 2. SwapPair Contract
+Purpose:
+The SwapPair contract manages the specific liquidity pool for your token pair. It handles adding/removing liquidity and processing swaps.
+
+Steps to Use:
+
+Add Initial Liquidity:
+Once the pair is created, interact with the SwapPair contract.
+Use the addLiquidity function to deposit your initial $2,500 worth of $TSHOT and $stFlow tokens into the pool.
+Manage the Pool:
+You can use the removeLiquidity function to withdraw liquidity.
+The swap function allows tokens to be exchanged between $TSHOT and $stFlow within the pool.
+How It Works:
+Creation: SwapFactory creates a SwapPair contract for your chosen tokens.
+Management: SwapPair handles the day-to-day operations of the liquidity pool, including liquidity management and swaps.
+Note: You don’t need to interact with SwapRouter or SwapConfig directly; they are used internally to support advanced swap functionalities.
+
+Increment.FI only allows for basic swap functionality, so you will primarily interact with the SwapPair contract to manage your liquidity pool.
