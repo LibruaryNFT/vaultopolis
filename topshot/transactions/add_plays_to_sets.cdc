@@ -1,24 +1,29 @@
 import "TopShot"
 
-transaction(setID: UInt32, playIDs: [UInt32]) {
+// This transaction adds multiple plays to a set
+		
+// Parameters:
+//
+// setID: the ID of the set to which multiple plays are added
+// plays: an array of play IDs being added to the set
+
+transaction(setID: UInt32, plays: [UInt32]) {
 
     // Local variable for the topshot Admin object
-    let adminRef: auth(TopShot.NFTMinter) &TopShot.Admin
+    let adminRef: &TopShot.Admin
 
     prepare(acct: auth(BorrowValue) &Account) {
 
         // borrow a reference to the Admin resource in storage
-        self.adminRef = acct.storage.borrow<auth(TopShot.NFTMinter) &TopShot.Admin>(from: /storage/TopShotAdmin)
-            ?? panic("Could not borrow a reference to the Admin resource")
+        self.adminRef = acct.storage.borrow<&TopShot.Admin>(from: /storage/TopShotAdmin)!
     }
+
     execute {
 
-         // Borrow a reference to the specified set
+        // borrow a reference to the set to be added to
         let setRef = self.adminRef.borrowSet(setID: setID)
 
-        // Loop through the array of play IDs and add each to the set
-        for playID in playIDs {
-            setRef.addPlay(playID: playID)
-        }
+        // Add the specified play IDs
+        setRef.addPlays(playIDs: plays)
     }
 }

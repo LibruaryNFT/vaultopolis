@@ -48,7 +48,7 @@ access(all) contract TopShotLocking {
     //
     // Returns: the NFT resource
     access(all) fun lockNFT(nft: @{NonFungibleToken.NFT}, duration: UFix64): @{NonFungibleToken.NFT} {
-        let TopShotNFTType: Type = CompositeType("A.TOPSHOTADDRESS.TopShot.NFT")!
+        let TopShotNFTType: Type = CompositeType("A.0b2a3299cc857e29.TopShot.NFT")!
         if !nft.isInstance(TopShotNFTType) {
             panic("NFT is not a TopShot NFT")
         }

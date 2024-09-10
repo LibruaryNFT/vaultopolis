@@ -94,7 +94,7 @@ After completing your setup, refer to the **TopShot Commands** for detailed inst
 ## TSHOT Setup
 
 ```bash
-flow-c1 emulator start
+flow emulator start
 ./deployment/scripts/setup-flow.ps1
 ./deployment/scripts/setup-tshot.ps1
 ```
@@ -195,7 +195,7 @@ The following are in-progress:
 - **Example Usage**:
 
 ```bash
-  flow-c1 scripts execute ./badges/scripts/get_all_badges.cdc 0xf8d6e0586b0a20c7
+  flow scripts execute ./badges/scripts/get_all_badges.cdc 0xf8d6e0586b0a20c7
 ```
 
 SwapFactory

@@ -48,7 +48,7 @@ for chunk in chunked(play_metadata_list, CHUNK_SIZE):
 
     # Execute the Flow transaction using the JSON string
     result = subprocess.run([
-        'flow-c1', 'transactions', 'send', './topshot/transactions/create_plays.cdc',
+        'flow', 'transactions', 'send', './topshot/transactions/create_plays.cdc',
         '--args-json', metadata_json,
         '--network', 'emulator'
     ], capture_output=True, text=True)
