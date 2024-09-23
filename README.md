@@ -125,46 +125,6 @@ Does that allow for exchanging tshot for any other tokens somehow?
 
 It adopts the factory pattern that each unique trading pair is deployed using the SwapPair template file, with a factory contract storing all deployed pairs.
 
-## To-Do
-
-### Testing TopShotExchange
-
-Build out test cases.
-Build out test scripts.
-Verify that this is all-or-nothing.
-Verify overall design and any potential attack vectors.
-3rd party audit
-
-### Improve TopShotExchange
-
-Implement better randomness if possible.
-Add filtering mechanic for tiers, such as rare, legendary, fandom, common and possibly anything needed for NFL Allday.
-
-### DeFi
-
-Create pairing of TSHOT to STFLOW - decide on pricing model - perhaps price oracle
-LP - Increment.fi Integration
-
-### LP Seeding
-
-After crescendo & account linking push:
-Create buying mechanic, allow people to swap moments in for cash.
-
-Events Emitted
-
-// Event emitted when an NFT is deposited
-access(all) event NFTDeposited(id: UInt64, from: Address)
-
-// Event emitted when TSHOT tokens are minted
-access(all) event TSHOTMinted(amount: UFix64, to: Address)
-
-// Event emitted when an NFT is exchanged for TSHOT
-access(all) event NFTExchanged(id: UInt64, to: Address)
-
-NFTVault
-every nft deposited puts out this
-emit NFTDeposited(id: nftID, from: self.owner!.address)
-
 ## TopShot Badges
 
 ### Status

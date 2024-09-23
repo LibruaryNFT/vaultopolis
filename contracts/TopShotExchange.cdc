@@ -6,7 +6,10 @@ import "TSHOT"
 access(all) contract TopShotExchange {
 
     // Storage path for the admin NFT vault
-    access(all) let nftVaultPath: StoragePath
+    access(all) let nftCollectionPath: StoragePath
+
+    // Path to the admin resource in the TSHOT contract
+    access(all) let tshotAdminPath: StoragePath
 
     // Event emitted when an NFT is deposited
     access(all) event NFTDeposited(id: UInt64, from: Address)
@@ -57,126 +60,62 @@ access(all) contract TopShotExchange {
 
     // Function to swap an NBA Top Shot Moment for TSHOT tokens
     access(all) fun swapNFTForTSHOT(
-        ownerCollection: Capability<auth(NonFungibleToken.Withdraw) &TopShot.Collection>,
-        nftIDs: [UInt64],
-        receiverCap: Capability<&{FungibleToken.Receiver}>,
-        userAddress: Address
+        nftIDs: @[TopShot.NFT],
+        address: Address
     ) {
-        // Borrow the owner's TopShot Collection reference using the provided capability
-        let collectionRef = ownerCollection
-            .borrow()
-            ?? panic("Could not borrow reference to user's TopShot Collection")
 
-        // Borrow the exchange's NFT vault
-        let adminVault = self.account
+        // Borrow the admin's TopShot Collection
+        let adminCollection = self.account
             .storage
-            .borrow<auth(NonFungibleToken.Withdraw) &NFTVault>(from: self.nftVaultPath)
-            ?? panic("Could not borrow NFTVault")
+            .borrow<&TopShot.Collection>(from: self.nftCollectionPath)
+            ?? panic("Could not borrow admin's TopShot Collection")
+
+        // Get the recipient's account and borrow their TSHOT token receiver
+        let recipientAccount = getAccount(address)
+        let receiverRef = recipientAccount
+            .capabilities
+            .get<&{FungibleToken.Receiver}>(/public/TSHOTTokenReceiver)
+            .borrow()
+            ?? panic("Could not borrow the user's TSHOT receiver capability")
 
         // Initialize the cumulative amount
         var totalAmount: UFix64 = 0.0
 
-        // Iterate over the provided NFT IDs and swap each one
-        for nftID in nftIDs {
-            // Withdraw the NFT from the user's collection
-            let nft <- collectionRef.withdraw(withdrawID: nftID) as! @TopShot.NFT
+        // Store the number of NFTs before they are moved
+        let numberOfNFTs = nftIDs.length
 
-            // Deposit the NFT into the exchange's NFT vault
-            adminVault.deposit(nft: <-nft)
+        let adminRef = self.account
+            .storage
+            .borrow<auth(TSHOT.AdminEntitlement) &TSHOT.Admin>(from: self.tshotAdminPath)
+            ?? panic("Could not borrow the TSHOT Admin resource")
+
+        // Deposit all NFTs into the admin's collection
+        while nftIDs.length > 0 {
+            let nft <- nftIDs.removeFirst()
+            adminCollection.deposit(token: <-nft)
 
             // Mint 1 TSHOT token for each NFT and deposit into the user's account
-            let tshotVault <- TSHOT.mintTokens(amount: 1.0)
-            let receiverRef = receiverCap.borrow()
-                ?? panic("Could not borrow reference to user's TSHOT Receiver")
+            let tshotVault <- adminRef.mintTokens(amount: 1.0)
+
             receiverRef.deposit(from: <-tshotVault)
 
             totalAmount = totalAmount + 1.0
+
         }
+
+        // Destroy the empty resource array to prevent resource leakage
+        destroy nftIDs
+
 
         // Emit a single event with the cumulative amount
-        emit TSHOTMinted(amount: totalAmount, to: userAddress)
+        emit TSHOTMinted(amount: totalAmount, to: address)
+      
     }
-
-access(all) fun exchangeTSHOTForRandomNFT(
-    userTSHOTVault: Capability<auth(FungibleToken.Withdraw) &TSHOT.Vault>,
-    userNFTReceiver: Capability<&{NonFungibleToken.Receiver}>,
-    userAddress: Address,
-    tokenAmount: UFix64
-) {
-    // Borrow the user's TSHOT Vault reference
-    let tshotVaultRef = userTSHOTVault
-        .borrow()
-        ?? panic("Could not borrow the user's TSHOT Vault")
-
-    // Withdraw the specified amount of TSHOT tokens from the user's vault
-    let payment <- tshotVaultRef.withdraw(amount: tokenAmount) as! @TSHOT.Vault
-
-    // Burn the TSHOT tokens using the contract's burnTokens function
-    TSHOT.burnTokens(from: <-payment)
-
-    var counter = 0
-
-    // Array to store the exchanged NFT IDs
-    var exchangedNFTIDs: [UInt64] = []
-
-    // Loop to exchange each TSHOT token for a random NFT
-    while counter < Int(tokenAmount) {
-        // Re-borrow the vaultRef inside the loop to ensure we have an up-to-date reference
-        let vaultRef = self.account
-            .storage
-            .borrow<&NFTVault>(from: self.nftVaultPath)
-            ?? panic("Could not borrow the NFTVault")
-
-        // Get all NFT IDs from the vault
-        let nftIDs: [UInt64] = vaultRef.getVaultIDs()
-
-        // Ensure there are NFTs available
-        if nftIDs.length == 0 {
-            panic("No NFTs available in the vault")
-        }
-
-        // Generate a random number using revertibleRandom
-        let randNumber: UInt64 = revertibleRandom<UInt64>()
-        let nftCount: UInt64 = UInt64(nftIDs.length)
-        let randomIndex: UInt64 = randNumber % nftCount
-
-        // Select the NFT ID using the calculated random index
-        let selectedNFTID = nftIDs[randomIndex]
-
-        // Withdraw the selected NFT from the vault
-        let selectedNFT <- vaultRef.withdrawNFT(id: selectedNFTID)
-
-        // Borrow the user's NFT receiver
-        let receiverRef = userNFTReceiver.borrow()
-            ?? panic("Could not borrow the user's NFT Receiver")
-
-        // Deposit the NFT into the user's account
-        receiverRef.deposit(token: <-selectedNFT)
-
-        // Add the selected NFT ID to the array
-        exchangedNFTIDs.append(selectedNFTID)
-
-        // Increment the counter
-        counter = counter + 1
-    }
-
-     // Emit event for NFT exchange
-        emit NFTExchanged(ids: exchangedNFTIDs, to: userAddress)
-}
-
 
     init() {
         // Set the storage path for the admin NFT vault
-        self.nftVaultPath = /storage/TopShotNFTVault
+        self.nftCollectionPath = /storage/MomentCollection
+        self.tshotAdminPath = /storage/TSHOTAdmin
 
-        // Store the NFT Vault in the contract's storage
-        self.account.storage.save(<-create NFTVault(), to: self.nftVaultPath)
-
-        // Issue the capability to the NFT vault and publish it to a public path
-        let cap = self.account.capabilities.storage.issue<&NFTVault>(self.nftVaultPath)
-        self.account.capabilities.publish(cap, at: /public/TopShotNFTVault)
-
-        // Update the TopShotExchange address in TSHOT contract
-        TSHOT.updateTopShotExchangeAddress(newAddress: self.account.address)
     }
 }

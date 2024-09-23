@@ -5,11 +5,7 @@ access(all) contract TSHOT: FungibleToken {
     // Total supply of Flow tokens in existence
     access(all) var totalSupply: UFix64
 
-    // Address of the TopShotExchange contract that is allowed to mint TSHOT tokens
-    access(all) var topShotExchangeAddress: Address
-
     // Paths
-    access(all) let tokenVaultPath: StoragePath
     access(all) let tokenBalancePath: PublicPath
     access(all) let tokenReceiverPath: PublicPath
 
@@ -27,6 +23,9 @@ access(all) contract TSHOT: FungibleToken {
 
     // Event that is emitted when tokens are destroyed
     access(all) event TokensBurned(amount: UFix64)
+
+    // Define Admin Entitlement
+    access(all) entitlement AdminEntitlement
 
     // Vault
     //
@@ -128,14 +127,16 @@ access(all) contract TSHOT: FungibleToken {
     // $TSHOT token can only be minted by the TopShotExchange contract.
     // This function allows the TopShotExchange contract to mint tokens 
     // in exchange for a user's NFT.
-    access(all) fun mintTokens(amount: UFix64): @TSHOT.Vault {
-        pre {
-            amount > 0.0: "Amount minted must be greater than zero"
-            self.account.address == self.topShotExchangeAddress: "Caller is not authorized to mint tokens"
-        }
+
+    // Admin resource definition with entitlement applied to the function
+    access(all) resource Admin {
+
+        // Function to update the Flow per NFT value with entitlement
+        access(AdminEntitlement) fun mintTokens(amount: UFix64): @TSHOT.Vault {
         TSHOT.totalSupply = TSHOT.totalSupply + amount
         emit TokensMinted(amount: amount)
         return <-create Vault(balance: amount)
+    }
     }
     
     // Burn tokens
@@ -149,42 +150,16 @@ access(all) contract TSHOT: FungibleToken {
         emit TokensBurned(amount: amount)
     }
 
-    // Function to update the TopShotExchange address
-    // This can be done only by the current TopShotExchange contract
-    access(all) fun updateTopShotExchangeAddress(newAddress: Address) {
-        pre {
-            self.account.address == self.topShotExchangeAddress || self.topShotExchangeAddress == 0x179b6b1cb6755e32: "Only the current TopShotExchange contract can update the address"
-        }
-        self.topShotExchangeAddress = newAddress
-    }
 
     // Initialization function
     init() {
         self.totalSupply = 0.0
-        // Placeholder address for TopShotExchange contract
-        self.topShotExchangeAddress = 0x179b6b1cb6755e32
 
-        self.tokenVaultPath = /storage/TSHOTTokenVault
         self.tokenReceiverPath = /public/TSHOTTokenReceiver
         self.tokenBalancePath = /public/TSHOTTokenBalance
-        
-        // Create the Vault with the total supply of tokens and save it in storage
-        let vault <- create Vault(balance: self.totalSupply)
-        self.account.storage.save(<-vault, to: self.tokenVaultPath)
 
-        // Create a public capability to the stored Vault that only exposes
-        // the `deposit` method through the `Receiver` interface
-        self.account.capabilities.publish(
-            self.account.capabilities.storage.issue<&{FungibleToken.Receiver}>(self.tokenVaultPath),
-            at: self.tokenReceiverPath
-        )
-
-        // Create a public capability to the stored Vault that only exposes
-        // the `balance` field through the `Balance` interface
-        self.account.capabilities.publish(
-            self.account.capabilities.storage.issue<&{FungibleToken.Balance}>(self.tokenVaultPath),
-            at: self.tokenBalancePath
-        )
+        // Put a new Collection in storage
+        self.account.storage.save<@Admin>(<- create Admin(), to: /storage/TSHOTAdmin)
 
         // Emit an event that shows that the contract was initialized
         emit TokensInitialized(initialSupply: self.totalSupply)
