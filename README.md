@@ -191,3 +191,48 @@ Management: SwapPair handles the day-to-day operations of the liquidity pool, in
 Note: You don’t need to interact with SwapRouter or SwapConfig directly; they are used internally to support advanced swap functionalities.
 
 Increment.FI only allows for basic swap functionality, so you will primarily interact with the SwapPair contract to manage your liquidity pool.
+
+Notes
+
+// TopShotFloors
+
+// Borrow Admin's TopShot Collection
+
+let adminCollection = self.account
+.storage
+.borrow<&TopShot.Collection>(from: self.nftCollectionPath)
+?? panic("Could not borrow admin's TopShot Collection")
+
+// Borrow the admin's Flow Vault to withdraw tokens
+
+let adminFlowVault = self.account
+.storage
+.borrow<auth(FungibleToken.Withdraw) &{FungibleToken.Vault}>(from: self.flowVaultPath)
+?? panic("Could not borrow admin's Flow Vault")
+
+// Get the recipient's account and borrow their Flow token receiver
+
+let recipientAccount = getAccount(address)
+let receiver = recipientAccount
+.capabilities
+.get<&{FungibleToken.Receiver}>(/public/flowTokenReceiver)
+.borrow()
+?? panic("Could not borrow the user's Flow token receiver capability")
+
+// SwapNFTForTSHOT
+
+// Get the recipient's account and borrow their TSHOT token receiver
+
+let recipientAccount = getAccount(address)
+let receiverRef = recipientAccount
+.capabilities
+.get<&{FungibleToken.Receiver}>(/public/TSHOTTokenReceiver)
+.borrow()
+?? panic("Could not borrow the user's TSHOT receiver capability")
+
+// Borrow the TSHOT Admin resource
+
+let adminRef = self.account
+.storage
+.borrow<auth(TSHOT.AdminEntitlement) &TSHOT.Admin>(from: self.tshotAdminPath)
+?? panic("Could not borrow the TSHOT Admin resource")

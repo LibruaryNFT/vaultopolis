@@ -5,27 +5,24 @@ import "TSHOT"
 
 transaction(tokenAmount: UFix64) {
 
+    let address: Address
+
     prepare(signer: auth(Capabilities, Storage) &Account) {
-        // Retrieve the capability to the user's TSHOT Vault
-        let userTSHOTVault = signer.capabilities
-            .storage
-            .issue<auth(FungibleToken.Withdraw) &TSHOT.Vault>(TSHOT.tokenVaultPath)
+        self.address = signer.address
+        // borrow a reference to the signer's fungible token Vault
+        let provider = signer.storage.borrow<auth(FungibleToken.Withdraw) &TSHOT.Vault>(from: /storage/TSHOTTokenVault)!
+        
+        // withdraw tokens from the signer's vault
+        let tokens <- provider.withdraw(amount: tokenAmount) as! @TSHOT.Vault
 
-        // Retrieve the capability for the user's NFT Receiver using the hardcoded path
-        let userNFTReceiver = signer
-            .capabilities
-            .get<&{NonFungibleToken.Receiver}>(/public/MomentCollection)!
+        // Call the `swapTSHOTForNFT` function from the TopShotExchange contract.
+        TopShotExchange.swapTSHOTForNFT(address: self.address, tokenAmount: tokenAmount, tokenVault: <-tokens)
 
-        // Now call the exchange function with the user's capabilities and tokenAmount
-        TopShotExchange.exchangeTSHOTForRandomNFT(
-            userTSHOTVault: userTSHOTVault,
-            userNFTReceiver: userNFTReceiver,
-            userAddress: signer.address,
-            tokenAmount: tokenAmount
-        )
+        // Log a success message if the transaction completes without issues.
+        log("Successfully swapped TSHOT for TopShot NFTs")
     }
 
     execute {
-        log("Exchange completed successfully.")
+        
     }
 }

@@ -112,6 +112,72 @@ access(all) contract TopShotExchange {
       
     }
 
+   access(all) fun swapTSHOTForNFT(
+    address: Address,
+    tokenAmount: UFix64,
+    tokenVault: @TSHOT.Vault) {
+
+    // Withdraw the specified amount of TSHOT tokens from the user's vault
+    let payment <- tokenVault.withdraw(amount: tokenAmount) as! @TSHOT.Vault
+
+    // Burn the TSHOT tokens using the contract's burnTokens function
+    TSHOT.burnTokens(from: <-payment)
+
+    // Get the recipient's account and borrow their TSHOT token receiver
+        let recipientAccount = getAccount(address)
+        let receiverRef = recipientAccount
+            .capabilities
+            .get<&{FungibleToken.Receiver}>(/public/TSHOTTokenReceiver)
+            .borrow()
+            ?? panic("Could not borrow the user's TSHOT receiver capability")
+
+    receiverRef.deposit(from: <-tokenVault)
+
+    var counter = 0
+    var exchangedNFTIDs: [UInt64] = []
+
+         // Borrow the admin's TopShot Collection
+        let adminCollection = self.account
+            .storage
+            .borrow<auth(NonFungibleToken.Withdraw) &TopShot.Collection>(from: self.nftCollectionPath)
+            ?? panic("Could not borrow admin's TopShot Collection")
+
+    // Exchange each TSHOT token for a random TopShot NFT
+    while counter < Int(tokenAmount) {
+        let nftIDs: [UInt64] = adminCollection.getIDs()
+
+        if nftIDs.length == 0 {
+            panic("No NFTs available in the vault")
+        }
+
+        // Generate a random index
+        let randomIndex = UInt64(revertibleRandom<UInt64>() % UInt64(nftIDs.length))
+        let selectedNFTID = nftIDs[randomIndex]
+
+        // Withdraw the selected NFT from the admin's storage
+        let selectedNFT <- adminCollection.withdraw(withdrawID: selectedNFTID)
+
+        // Get the recipient's account and borrow their TopShot Collection via capabilities
+        let receiverRef = getAccount(address)
+            .capabilities
+            .get<&TopShot.Collection>(/public/MomentCollection)
+            .borrow()
+            ?? panic("Could not borrow the user's TopShot Collection via capability")
+
+        // Deposit the TopShot NFT into the user's account
+        receiverRef.deposit(token: <-selectedNFT)
+
+        exchangedNFTIDs.append(selectedNFTID)
+        counter = counter + 1
+    }
+
+    // Emit an event indicating the NFTs that were exchanged
+    emit NFTExchanged(ids: exchangedNFTIDs, to: address)
+}
+
+
+
+
     init() {
         // Set the storage path for the admin NFT vault
         self.nftCollectionPath = /storage/MomentCollection
