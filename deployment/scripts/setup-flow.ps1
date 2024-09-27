@@ -109,9 +109,45 @@ flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 1 [1,2,3,4,5
 Log-Message "add_plays_to_sets transaction sent."
 $summarySteps += "Plays added to sets."
 
+# Send add_plays_to_sets transaction
+Log-Message "Sending add_plays_to_sets transaction..."
+flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 4 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+Log-Message "add_plays_to_sets transaction sent."
+$summarySteps += "Plays added to sets."
+
+# Send add_plays_to_sets transaction
+Log-Message "Sending add_plays_to_sets transaction..."
+flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 5 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+Log-Message "add_plays_to_sets transaction sent."
+$summarySteps += "Plays added to sets."
+
+# Send add_plays_to_sets transaction
+Log-Message "Sending add_plays_to_sets transaction..."
+flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 6 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+Log-Message "add_plays_to_sets transaction sent."
+$summarySteps += "Plays added to sets."
+
 # Send mint_moments transaction
 Log-Message "Sending mint_moments transaction..."
 flow transactions send ./topshot/transactions/mint_moments.cdc 1 2 20 0x179b6b1cb6755e31
+Log-Message "mint_moments transaction sent."
+$summarySteps += "Moments minted."
+
+# Send mint_moments transaction
+Log-Message "Sending mint_moments transaction..."
+flow transactions send ./topshot/transactions/mint_moments.cdc 4 3 20 0x179b6b1cb6755e31
+Log-Message "mint_moments transaction sent."
+$summarySteps += "Moments minted."
+
+# Send mint_moments transaction
+Log-Message "Sending mint_moments transaction..."
+flow transactions send ./topshot/transactions/mint_moments.cdc 5 4 20 0x179b6b1cb6755e31
+Log-Message "mint_moments transaction sent."
+$summarySteps += "Moments minted."
+
+# Send mint_moments transaction
+Log-Message "Sending mint_moments transaction..."
+flow transactions send ./topshot/transactions/mint_moments.cdc 6 5 20 0x179b6b1cb6755e31
 Log-Message "mint_moments transaction sent."
 $summarySteps += "Moments minted."
 

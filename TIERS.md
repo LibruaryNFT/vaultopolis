@@ -13,6 +13,7 @@
 
 ```bash
 flow scripts execute ./tiers/scripts/get_tier.cdc 0xf8d6e0586b0a20c7 1
+flow scripts execute ./tiers/scripts/get_tier.cdc 0x179b6b1cb6755e31 1
 ```
 
 ### update_default_tier
@@ -21,7 +22,7 @@ flow scripts execute ./tiers/scripts/get_tier.cdc 0xf8d6e0586b0a20c7 1
 - **Notes**: This command requires admin privileges to execute.
 - **Input Parameters**:
   - `setID: UInt32` - The ID of the set you want to update.
-  - `tierRawValue: UInt8` - The new tier value to set (e.g., 2 for Rare).
+  - `tierRawValue: UInt8` - The new tier value to set (e.g., 0 common, 1 fandom, 2 rare, 3 legendary, 4 ultimate).
 - **Example Usage**:
 
   ```bash

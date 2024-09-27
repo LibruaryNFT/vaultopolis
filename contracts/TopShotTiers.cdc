@@ -300,14 +300,21 @@ contract TopShotTiers {
             150: Tier.rare,
             151: Tier.ultimate,
             152: Tier.rare,
-            153: Tier.legendary
+            153: Tier.legendary,
+            154: Tier.legendary,
+            155: Tier.common,
+            156: Tier.common,
+            157: Tier.rare,
+            158: Tier.common,
+            159: Tier.rare,
+            160: Tier.legendary,
+            161: Tier.legendary,
+            162: Tier.legendary
         }
 
         self.account.storage.save<@Admin>(<-create Admin(), to: /storage/TopShotTiersAdmin)
         let cap = self.account.capabilities.storage.issue<&TopShotTiers.Admin>(/storage/TopShotTiersAdmin)
         self.account.capabilities.publish(cap, at: /public/TopShotTiersAdmin)
-
-
     }
 
     access(all)
@@ -343,4 +350,32 @@ contract TopShotTiers {
         }
         return nil
     }
+
+    // Add a function to return mixedTierSets
+    access(all)
+    fun getMixedTierSets(): {UInt32: {UInt32: String}} {
+        var mixedTierResult: {UInt32: {UInt32: String}} = {}
+        for setID in self.mixedTierSets.keys {
+            var playIDToTierMap: {UInt32: String} = {}
+            let playIDs = self.mixedTierSets[setID]!
+            for playID in playIDs.keys {
+                let tier = playIDs[playID]!
+                playIDToTierMap[playID] = self.tierToString(tier: tier)
+            }
+            mixedTierResult[setID] = playIDToTierMap
+        }
+        return mixedTierResult
+    }
+
+    // Add a function to return defaultTiers
+    access(all)
+    fun getDefaultTiers(): {UInt32: String} {
+        var defaultTierResult: {UInt32: String} = {}
+        for setID in self.defaultTiers.keys {
+            let tier = self.defaultTiers[setID]!
+            defaultTierResult[setID] = self.tierToString(tier: tier)
+        }
+        return defaultTierResult
+    }
+
 }
