@@ -43,11 +43,17 @@
 
 */
 
+/* import FungibleToken from 0xFungibleToken
+import NonFungibleToken from 0xNonFungibleToken
+import MetadataViews from 0xMetadataViews
+import TopShotLocking from 0xTopShotLocking
+import ViewResolver from 0xViewResolver */
+
 import "FungibleToken"
 import "NonFungibleToken"
 import "MetadataViews"
-import "TopShotLocking"
-import "ViewResolver"
+import "TopShotLocking" 
+import "ViewResolver" 
 
 access(all) contract TopShot: NonFungibleToken {
     // -----------------------------------------------------------------------

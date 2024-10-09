@@ -1,0 +1,102 @@
+# Initialize an array to store summary steps
+$summarySteps = @()
+
+# Function to log output with timestamps
+function Log-Message {
+    param(
+        [string]$message
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "$timestamp - $message"
+    Write-Output $logEntry
+    $logEntry | Add-Content -Path ".\deployment\logs\deployment.log"
+}
+
+# Log the start time
+Log-Message "Script started."
+
+Log-Message "Executing get_balance script..."
+flow scripts execute .\utilities\get_balance.cdc 0x332ffc0ae9bba9c1 --network=testnet
+Log-Message "get_balance script executed."
+
+# flow transactions send ./topshot/transactions/create_sets1.cdc --network=testnet --signer=testnet-account
+# flow transactions send ./topshot/transactions/create_sets2.cdc --network=testnet --signer=testnet-account
+# flow transactions send ./topshot/transactions/create_sets3.cdc --network=testnet --signer=testnet-account
+# flow transactions send ./topshot/transactions/create_sets4.cdc --network=testnet --signer=testnet-account
+
+# Send create_sets transactions
+$sets = @("create_sets1.cdc", "create_sets2.cdc", "create_sets3.cdc", "create_sets4.cdc")
+foreach ($set in $sets) {
+    Log-Message "Sending transaction to create sets from $set..."
+    flow transactions send "./topshot/transactions/$set" --network=testnet --signer=testnet-account
+    Log-Message "$set transaction sent."
+}
+$summarySteps += "Sets created."
+
+# Additional verification steps
+Log-Message "Executing verify_collection script again for final verification..."
+flow scripts execute .\topshot\scripts\verify_collection.cdc 0x332ffc0ae9bba9c1 --network=testnet
+Log-Message "verify_collection script executed again."
+
+Log-Message "Sending verify_entitlements transaction..."
+flow transactions send .\topshot\transactions\verify_entitlements.cdc 0x332ffc0ae9bba9c1 --network=testnet --signer=testnet-account
+Log-Message "verify_entitlements transaction sent."
+$summarySteps += "Final verifications completed."
+
+# Send create_custom_plays transaction
+Log-Message "Sending create_custom_plays transaction..."
+flow transactions send ./topshot/transactions/create_custom_plays.cdc --network=testnet --signer=testnet-account
+Log-Message "create_custom_plays transaction sent."
+$summarySteps += "Custom plays created."
+
+# Send add_plays_to_sets transaction setID: UInt32, plays: [UInt32]
+Log-Message "Sending add_plays_to_sets transaction..."
+flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 1 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18] --network=testnet --signer=testnet-account
+Log-Message "add_plays_to_sets transaction sent."
+$summarySteps += "Plays added to sets."
+
+# Send add_plays_to_sets transaction
+Log-Message "Sending add_plays_to_sets transaction..."
+flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 4 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18] --network=testnet --signer=testnet-account
+Log-Message "add_plays_to_sets transaction sent."
+$summarySteps += "Plays added to sets."
+
+# Send add_plays_to_sets transaction
+Log-Message "Sending add_plays_to_sets transaction..."
+flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 5 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18] --network=testnet --signer=testnet-account
+Log-Message "add_plays_to_sets transaction sent."
+$summarySteps += "Plays added to sets."
+
+# Send add_plays_to_sets transaction
+Log-Message "Sending add_plays_to_sets transaction..."
+flow transactions send ./topshot/transactions/add_plays_to_sets.cdc 6 [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18] --network=testnet --signer=testnet-account
+Log-Message "add_plays_to_sets transaction sent."
+$summarySteps += "Plays added to sets."
+
+# Send mint_moments transaction setID: UInt32, playID: UInt32, quantity: UInt64
+Log-Message "Sending mint_moments transaction..."
+flow transactions send ./topshot/transactions/mint_moments.cdc 2 5 20 0x332ffc0ae9bba9c1 --network=testnet --signer=testnet-account
+Log-Message "mint_moments transaction sent."
+$summarySteps += "Moments minted."
+
+# Send mint_moments transaction setID: UInt32, playID: UInt32, quantity: UInt64
+Log-Message "Sending mint_moments transaction..."
+flow transactions send ./topshot/transactions/transfer_moment.cdc 0xa1d297b2610cba6a 1 --network=testnet --signer=testnet-account
+Log-Message "mint_moments transaction sent."
+$summarySteps += "Moments minted."
+
+# Execute get_collection_ids script for both accounts
+Log-Message "Executing get_collection_ids script for 0xf8d6e0586b0a20c7..."
+flow scripts execute ./topshot/scripts/get_collection_ids.cdc 0x332ffc0ae9bba9c1 --network=testnet
+Log-Message "get_collection_ids script executed for 0xf8d6e0586b0a20c7."
+
+# Execute get_collection_ids script for both accounts
+Log-Message "Executing get_collection_ids script for 0xf8d6e0586b0a20c7..."
+flow scripts execute ./topshot/scripts/get_collection_ids.cdc 0xa1d297b2610cba6a --network=testnet
+Log-Message "get_collection_ids script executed for 0xf8d6e0586b0a20c7."
+
+# Script completion
+Log-Message "Script completed. Summary:"
+
+# Print out the summary
+$summarySteps | ForEach-Object { Log-Message "$_" }

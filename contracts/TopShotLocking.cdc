@@ -1,3 +1,4 @@
+//import NonFungibleToken from 0xNonFungibleToken
 import "NonFungibleToken"
 
 access(all) contract TopShotLocking {
