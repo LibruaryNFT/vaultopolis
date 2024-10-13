@@ -1,17 +1,23 @@
+// index.js
 import React from "react";
-import ReactDOM from "react-dom/client";
-import "./index.css";
+import { createRoot } from "react-dom/client";
 import App from "./App";
-import reportWebVitals from "./reportWebVitals";
+import { UserProvider } from "./contexts/UserContext";
+import * as fcl from "@onflow/fcl";
+import "./index.css";
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+// Configure FCL
+fcl
+  .config()
+  .put("accessNode.api", "https://rest-testnet.onflow.org") // Flow Testnet
+  .put("discovery.wallet", "https://fcl-discovery.onflow.org/testnet/authn") // Wallet for Testnet
+  .put("0xFlowToken", "0x7e60df042a9c0868"); // Flow Token address
+
+const container = document.getElementById("root");
+const root = createRoot(container);
+
 root.render(
-  <React.StrictMode>
+  <UserProvider>
     <App />
-  </React.StrictMode>
+  </UserProvider>
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
