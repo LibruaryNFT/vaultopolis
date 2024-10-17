@@ -30,7 +30,7 @@ transaction(nftIDs: [UInt64]) {
 
     execute {
         // Call the swapNFTForTSHOT function in the TopShotExchange contract
-        TopShotExchange.swapNFTForTSHOT(
+        TopShotExchange.swapNFTsForTSHOT(
             nftIDs: <-self.nfts,
             address: self.signerAddress
         )

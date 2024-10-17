@@ -69,36 +69,36 @@ contract TopShotTiers {
             74: {
                 2648: Tier.legendary,
                 2649: Tier.legendary,
-                2837: Tier.legendary,
                 2650: Tier.rare,
-                2651: Tier.rare
+                2651: Tier.rare,
+                2837: Tier.legendary
             },
             100: {
                 3345: Tier.legendary,
                 3919: Tier.legendary,
-                5304: Tier.legendary,
                 4163: Tier.rare,
-                5301: Tier.rare
+                5301: Tier.rare,
+                5304: Tier.legendary
             },
             109: {
                 3938: Tier.legendary,
-                5299: Tier.legendary,
                 4162: Tier.rare,
+                5299: Tier.legendary,
                 5300: Tier.rare
             },
             114: {
-                3938: Tier.legendary,
-                5299: Tier.legendary,
-                4162: Tier.rare,
-                5300: Tier.rare
+                4066: Tier.legendary,
+                4164: Tier.rare,
+                5302: Tier.legendary,
+                5303: Tier.rare
             },
             117: {
-                4126: Tier.legendary,
-                4128: Tier.legendary,
-                5305: Tier.legendary,
                 4124: Tier.rare,
                 4125: Tier.rare,
+                4126: Tier.legendary,
                 4127: Tier.rare,
+                4128: Tier.legendary,
+                5305: Tier.legendary,
                 5306: Tier.rare
             },
             141: {
@@ -130,10 +130,6 @@ contract TopShotTiers {
                 5174: Tier.fandom,
                 5175: Tier.fandom,
                 5176: Tier.fandom,
-                5194: Tier.fandom,
-                5195: Tier.fandom,
-                5196: Tier.fandom,
-                5197: Tier.fandom,
                 5177: Tier.rare,
                 5178: Tier.rare,
                 5179: Tier.rare,
@@ -149,7 +145,46 @@ contract TopShotTiers {
                 5189: Tier.rare,
                 5190: Tier.rare,
                 5192: Tier.rare,
-                5193: Tier.rare
+                5193: Tier.rare,
+                5194: Tier.fandom,
+                5195: Tier.fandom,
+                5196: Tier.fandom,
+                5197: Tier.fandom
+            },
+            163: {
+                5655: Tier.rare,
+                5656: Tier.legendary,
+                5657: Tier.rare,
+                5658: Tier.rare,
+                5659: Tier.rare,
+                5660: Tier.legendary,
+                5661: Tier.rare,
+                5662: Tier.legendary,
+                5663: Tier.rare,
+                5664: Tier.rare,
+                5665: Tier.rare,
+                5666: Tier.rare,
+                5667: Tier.rare,
+                5668: Tier.rare,
+                5669: Tier.legendary,
+                5670: Tier.rare,
+                5671: Tier.rare,
+                5672: Tier.rare,
+                5673: Tier.legendary,
+                5674: Tier.rare,
+                5675: Tier.rare,
+                5676: Tier.rare,
+                5677: Tier.rare,
+                5678: Tier.rare,
+                5679: Tier.rare,
+                5680: Tier.rare,
+                5681: Tier.rare,
+                5682: Tier.legendary,
+                5683: Tier.rare,
+                5684: Tier.rare,
+                5685: Tier.rare,
+                5686: Tier.rare,
+                5687: Tier.rare
             }
         }
 

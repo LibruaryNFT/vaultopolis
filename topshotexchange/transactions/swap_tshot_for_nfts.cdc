@@ -16,7 +16,7 @@ transaction(tokenAmount: UFix64) {
         let tokens <- provider.withdraw(amount: tokenAmount) as! @TSHOT.Vault
 
         // Call the `swapTSHOTForNFT` function from the TopShotExchange contract.
-        TopShotExchange.swapTSHOTForNFT(address: self.address, tokenAmount: tokenAmount, tokenVault: <-tokens)
+        TopShotExchange.swapTSHOTForNFTs(address: self.address, tokenAmount: tokenAmount, tokenVault: <-tokens)
 
         // Log a success message if the transaction completes without issues.
         log("Successfully swapped TSHOT for TopShot NFTs")
