@@ -3,7 +3,7 @@ import "TopShot"
 import "TopShotShardedCollection"
 
 // This transaction deposits an NFT to a recipient
-
+//https://github.com/dapperlabs/nba-smart-contracts/blob/master/transactions/shardedCollection/transfer_from_sharded.cdc
 // Parameters
 //
 // recipient: the Flow address who will receive the NFT

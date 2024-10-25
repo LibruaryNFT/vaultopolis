@@ -1,4 +1,4 @@
-import "TopShotExchange"
+import "MomentSwapTSHOT"
 import "NonFungibleToken"
 import "TopShot" 
 import "FungibleToken"
@@ -29,8 +29,8 @@ transaction(nftIDs: [UInt64]) {
     }
 
     execute {
-        // Call the swapNFTForTSHOT function in the TopShotExchange contract
-        TopShotExchange.swapNFTsForTSHOT(
+        // Call the swapNFTForTSHOT function in the MomentSwap contract
+        MomentSwapTSHOT.swapNFTsForTSHOT(
             nftIDs: <-self.nfts,
             address: self.signerAddress
         )

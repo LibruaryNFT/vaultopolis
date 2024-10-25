@@ -2,12 +2,15 @@ import React, { useContext, useState, useEffect, useRef } from "react";
 import { UserContext } from "../contexts/UserContext";
 import * as fcl from "@onflow/fcl";
 import { FaSignOutAlt, FaClipboard, FaUserCircle } from "react-icons/fa"; // Import icons
+import { setupTopShotCollection } from "../flow/setupTopShotCollection";
+import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 
 const Header = () => {
   const { user, tshotBalance, network, momentDetails } =
     useContext(UserContext); // Assuming momentDetails provides the user's moments
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [viewType, setViewType] = useState("Tokens"); // Toggle between Tokens and Moments view
+  const [hasCollection, setHasCollection] = useState(null); // Track collection status
   const popoutRef = useRef(null); // Ref for the popout element
   const buttonRef = useRef(null); // Ref for the profile button
 
@@ -19,10 +22,47 @@ const Header = () => {
     navigator.clipboard.writeText(user.addr); // Copy address silently
   };
 
+  const checkCollection = async () => {
+    try {
+      const result = await fcl.query({
+        cadence: verifyTopShotCollection,
+        args: (arg, t) => [arg(user.addr, t.Address)],
+      });
+      setHasCollection(result);
+    } catch (error) {
+      console.error("Error verifying collection:", error);
+      setHasCollection(false);
+    }
+  };
+
+  const setupCollection = async () => {
+    try {
+      const transactionId = await fcl.mutate({
+        cadence: setupTopShotCollection,
+        payer: fcl.authz,
+        proposer: fcl.authz,
+        authorizations: [fcl.authz],
+        limit: 100,
+      });
+      console.log("Transaction ID:", transactionId);
+      await fcl.tx(transactionId).onceSealed();
+      // Refresh collection status after successful setup
+      checkCollection();
+    } catch (error) {
+      console.error("Error setting up collection:", error);
+    }
+  };
+
+  // Check if the collection is set up when the component mounts
+  useEffect(() => {
+    if (user.addr) {
+      checkCollection();
+    }
+  }, [user.addr]);
+
   // Close the popout when clicking outside of it
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // Check if the clicked element is not part of the popout or the button
       if (
         popoutRef.current &&
         !popoutRef.current.contains(event.target) &&
@@ -123,6 +163,18 @@ const Header = () => {
                     <FaSignOutAlt size={20} />
                   </button>
                 </div>
+
+                {/* Show setup button if collection is not set up */}
+                {hasCollection === false && (
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={setupCollection}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Setup Collection
+                    </button>
+                  </div>
+                )}
 
                 {/* Toggle between Tokens and Moments */}
                 <div className="flex justify-center space-x-4 mt-4">

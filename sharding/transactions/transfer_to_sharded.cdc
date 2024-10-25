@@ -2,30 +2,43 @@ import "TopShot"
 import "NonFungibleToken"
 import "TopShotShardedCollection"
 
-// Transaction to send an NFT to a recipient's sharded collection
+// This transaction transfers a moment to a recipient
+
+// This transaction is how a topshot user would transfer a moment
+// from their account to another account
+// The recipient must have a TopShot Collection object stored
+// and a public MomentCollectionPublic capability stored at
+// `/public/MomentCollection`
+
+// Parameters:
+//
+// recipient: The Flow address of the account to receive the moment.
+// withdrawID: The id of the moment to be transferred
 
 transaction(recipient: Address, withdrawID: UInt64) {
 
+    // local variable for storing the transferred token
     let transferToken: @{NonFungibleToken.NFT}
     
     prepare(acct: auth(BorrowValue) &Account) {
-        // Borrow a reference to the sender's sharded collection
-        let collectionRef = acct.storage.borrow<auth(NonFungibleToken.Withdraw) &TopShotShardedCollection.ShardedCollection>(from: /storage/ShardedMomentCollection)
-            ?? panic("Could not borrow reference to the stored Sharded Moment collection")
+
+        // borrow a reference to the owner's collection
+        let collectionRef = acct.storage.borrow<auth(NonFungibleToken.Withdraw) &TopShot.Collection>(from: /storage/MomentCollection)
+            ?? panic("Could not borrow a reference to the stored Moment collection")
         
-        // Withdraw the NFT from the sharded collection
+        // withdraw the NFT
         self.transferToken <- collectionRef.withdraw(withdrawID: withdrawID)
     }
 
     execute {
-        // Get the recipient's public account object
+        
+        // get the recipient's public account object
         let recipient = getAccount(recipient)
 
-        // Get the recipient's collection reference from their public capability
-        let receiverRef = recipient.capabilities.borrow<&{TopShot.MomentCollectionPublic}>(/public/MomentCollection)
-            ?? panic("Could not borrow the recipient's Moment Collection reference")
+        // get the Collection reference for the receiver
+        let receiverRef = recipient.capabilities.borrow<&TopShotShardedCollection.ShardedCollection>(/public/MomentCollection)!
 
-        // Deposit the NFT into the recipient's sharded collection
+        // deposit the NFT in the receivers collection
         receiverRef.deposit(token: <-self.transferToken)
     }
 }
