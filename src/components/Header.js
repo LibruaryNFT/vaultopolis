@@ -4,6 +4,8 @@ import * as fcl from "@onflow/fcl";
 import { FaSignOutAlt, FaClipboard, FaUserCircle } from "react-icons/fa"; // Import icons
 import { setupTopShotCollection } from "../flow/setupTopShotCollection";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
+import { setupTSHOTVault } from "../flow/setupTSHOTVault";
+import { verifyTSHOTVault } from "../flow/verifyTSHOTVault";
 
 const Header = () => {
   const { user, tshotBalance, network, momentDetails } =
@@ -11,6 +13,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [viewType, setViewType] = useState("Tokens"); // Toggle between Tokens and Moments view
   const [hasCollection, setHasCollection] = useState(null); // Track collection status
+  const [hasVault, setHasVault] = useState(null); // Track vault status
   const popoutRef = useRef(null); // Ref for the popout element
   const buttonRef = useRef(null); // Ref for the profile button
 
@@ -35,6 +38,19 @@ const Header = () => {
     }
   };
 
+  const checkVault = async () => {
+    try {
+      const result = await fcl.query({
+        cadence: verifyTSHOTVault,
+        args: (arg, t) => [arg(user.addr, t.Address)],
+      });
+      setHasVault(result);
+    } catch (error) {
+      console.error("Error verifying TSHOT vault:", error);
+      setHasVault(false);
+    }
+  };
+
   const setupCollection = async () => {
     try {
       const transactionId = await fcl.mutate({
@@ -53,10 +69,29 @@ const Header = () => {
     }
   };
 
-  // Check if the collection is set up when the component mounts
+  const setupVault = async () => {
+    try {
+      const transactionId = await fcl.mutate({
+        cadence: setupTSHOTVault,
+        payer: fcl.authz,
+        proposer: fcl.authz,
+        authorizations: [fcl.authz],
+        limit: 100,
+      });
+      console.log("Transaction ID:", transactionId);
+      await fcl.tx(transactionId).onceSealed();
+      // Refresh vault status after successful setup
+      checkVault();
+    } catch (error) {
+      console.error("Error setting up vault:", error);
+    }
+  };
+
+  // Check if the collection and vault are set up when the component mounts
   useEffect(() => {
     if (user.addr) {
       checkCollection();
+      checkVault();
     }
   }, [user.addr]);
 
@@ -164,7 +199,7 @@ const Header = () => {
                   </button>
                 </div>
 
-                {/* Show setup button if collection is not set up */}
+                {/* Show setup buttons if collection or vault is not set up */}
                 {hasCollection === false && (
                   <div className="flex justify-center mt-4">
                     <button
@@ -172,6 +207,16 @@ const Header = () => {
                       className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
                     >
                       Setup Collection
+                    </button>
+                  </div>
+                )}
+                {hasVault === false && (
+                  <div className="flex justify-center mt-4">
+                    <button
+                      onClick={setupVault}
+                      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                      Setup TSHOT Vault
                     </button>
                   </div>
                 )}
