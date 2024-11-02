@@ -1,9 +1,10 @@
 // App.js
 import React from "react";
-import { UserProvider } from "./contexts/UserContext";
+import { UserProvider } from "./components/UserContext";
 import Header from "./components/Header";
 import ExchangePanel from "./components/ExchangePanel";
 import TransactionModal from "./components/TransactionModal";
+import SwapInfo from "./components/SwapInfo";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <div className="bg-black bg-opacity-50 min-h-screen">
           <Header />
           <div className="p-4 mt-32">
+            <SwapInfo />
             <ExchangePanel />
             <TransactionModal />
           </div>

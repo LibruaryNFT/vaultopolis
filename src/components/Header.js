@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
-import { UserContext } from "../contexts/UserContext";
+import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import { FaSignOutAlt, FaClipboard, FaUserCircle } from "react-icons/fa";
 import { setupTopShotCollection } from "../flow/setupTopShotCollection";
@@ -25,6 +25,11 @@ const Header = () => {
 
   const handleCopyAddress = () => {
     navigator.clipboard.writeText(user.addr);
+  };
+
+  const handleLogout = () => {
+    fcl.unauthenticate();
+    dispatch({ type: "RESET_STATE" });
   };
 
   useEffect(() => {
@@ -59,7 +64,6 @@ const Header = () => {
         limit: 100,
       });
       await fcl.tx(transactionId).onceSealed();
-      // Update context state
       dispatch({ type: "SET_COLLECTION_STATUS", payload: true });
     } catch (error) {
       console.error("Error setting up collection:", error);
@@ -76,7 +80,6 @@ const Header = () => {
         limit: 100,
       });
       await fcl.tx(transactionId).onceSealed();
-      // Update context state
       dispatch({ type: "SET_VAULT_STATUS", payload: true });
     } catch (error) {
       console.error("Error setting up vault:", error);
@@ -124,7 +127,7 @@ const Header = () => {
                   </div>
 
                   <button
-                    onClick={() => fcl.unauthenticate()}
+                    onClick={handleLogout}
                     className="text-white hover:bg-red-600 p-2 rounded-full"
                     title="Disconnect"
                   >

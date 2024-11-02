@@ -24,7 +24,7 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
 
   return (
     <div
-      onClick={() => handleNFTSelection(nft.id)}
+      onClick={() => handleNFTSelection(nft?.id)}
       className={`border rounded bg-black cursor-pointer relative ${
         isSelected ? "border-green-500" : "border-gray-600"
       } font-inter text-white w-28 sm:w-32`}
@@ -35,7 +35,7 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
         <div className="relative h-32 overflow-hidden rounded">
           <img
             src={imageUrl}
-            alt={`${nft.playerName} moment`}
+            alt={`${nft?.playerName || "Unknown Player"} moment`}
             className="object-cover w-full h-full"
           />
         </div>
@@ -43,26 +43,32 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
 
       {/* Player Name */}
       <h3 className="text-center text-white mt-1 text-xs font-semibold truncate">
-        {nft.playerName || "Unknown Player"}
+        {nft?.playerName || "Unknown Player"}
       </h3>
 
       {/* Tier and Serial Number */}
       <p
-        className={`text-center ${tierStyles[nft.tier.toLowerCase()]} text-xs`}
+        className={`text-center ${
+          tierStyles[nft?.tier?.toLowerCase()] || "text-gray-400"
+        } text-xs`}
       >
-        {nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()} #
-        {nft.serialNumber} / {nft.numMomentsInEdition}
+        {nft?.tier
+          ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
+          : "Unknown Tier"}{" "}
+        #{nft?.serialNumber || "?"} / {nft?.numMomentsInEdition || "?"}
       </p>
 
       {/* Set Name and Series */}
       <p className="text-center text-gray-400 text-xs truncate">
-        {nft.setName}
+        {nft?.setName || "Unknown Set"}
       </p>
-      <p className="text-center text-gray-400 text-xs">Series {nft.seriesID}</p>
+      <p className="text-center text-gray-400 text-xs">
+        Series {nft?.seriesID || "?"}
+      </p>
 
       {/* Locked Icon */}
       <div className="text-center mt-1">
-        {nft.isLocked && (
+        {nft?.isLocked && (
           <AiOutlineInfoCircle className="text-red-500 mx-auto" />
         )}
       </div>
@@ -80,10 +86,10 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
 
       {isDebuggingVisible && (
         <div className="text-gray-400 mt-1 text-xs">
-          <p>ID: {nft.id}</p>
-          <p>Play ID: {nft.playID}</p>
-          <p>Set ID: {nft.setID}</p>
-          <p>Team: {nft.teamAtMoment}</p>
+          <p>ID: {nft?.id || "Unknown ID"}</p>
+          <p>Play ID: {nft?.playID || "Unknown Play ID"}</p>
+          <p>Set ID: {nft?.setID || "Unknown Set ID"}</p>
+          <p>Team: {nft?.teamAtMoment || "Unknown Team"}</p>
         </div>
       )}
     </div>

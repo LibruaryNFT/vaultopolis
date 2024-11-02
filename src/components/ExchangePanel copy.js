@@ -6,7 +6,6 @@ import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import { FaArrowRight } from "react-icons/fa";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
-import TransactionModal from "./TransactionModal";
 
 const ExchangePanel = () => {
   const {
@@ -15,8 +14,6 @@ const ExchangePanel = () => {
     nftDetails = [],
     selectedNFTs = [],
     dispatch,
-    showModal,
-    transactionInfo,
   } = useContext(UserContext);
 
   const [isReversed, setIsReversed] = useState(false);
@@ -35,114 +32,59 @@ const ExchangePanel = () => {
   };
 
   const handleCommit = async () => {
-    if (isReversed && tshotAmount <= 0) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Error: Please enter a valid TSHOT amount.",
-      });
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      return;
-    }
+    const formattedAmount =
+      tshotAmount % 1 === 0 ? `${tshotAmount}.0` : `${tshotAmount}`;
 
-    if (!isReversed && (!selectedNFTs || selectedNFTs.length === 0)) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Error: No NFTs selected for the swap.",
-      });
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      return;
-    }
+    if (tshotAmount <= 0) return;
 
     try {
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Processing transaction...",
+      await fcl.mutate({
+        cadence: commitSwap,
+        args: (arg, t) => [arg(formattedAmount, t.UFix64)],
+        proposer: fcl.authz,
+        payer: fcl.authz,
+        authorizations: [fcl.authz],
+        limit: 9999,
       });
-
-      if (isReversed) {
-        const txId = await fcl.mutate({
-          cadence: commitSwap,
-          args: (arg, t) => [arg(tshotAmount.toFixed(1), t.UFix64)],
-          proposer: fcl.authz,
-          payer: fcl.authz,
-          authorizations: [fcl.authz],
-          limit: 9999,
-        });
-        await fcl.tx(txId).onceSealed();
-        dispatch({
-          type: "SET_TRANSACTION_INFO",
-          payload: `Commit transaction completed. ID: ${txId}`,
-        });
-      } else {
-        const txId = await fcl.mutate({
-          cadence: exchangeNFTForTSHOT,
-          args: (arg, t) => [arg(selectedNFTs || [], t.Array(t.UInt64))],
-          proposer: fcl.authz,
-          payer: fcl.authz,
-          authorizations: [fcl.authz],
-          limit: 9999,
-        });
-        await fcl.tx(txId).onceSealed();
-        dispatch({
-          type: "SET_TRANSACTION_INFO",
-          payload: `Exchange transaction completed. ID: ${txId}`,
-        });
-      }
+      console.log("Commit transaction successful.");
     } catch (error) {
-      console.error("Transaction error:", error);
-
-      let errorMessage = "Transaction failed.";
-      if (error.message.includes("Declined")) {
-        errorMessage = "Transaction failed: User canceled the request.";
-      } else if (error.message.includes("authz")) {
-        errorMessage =
-          "Transaction failed: Authorization error. Please try again.";
-      } else {
-        errorMessage = `Transaction failed: ${error.message}`;
-      }
-
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: errorMessage,
-      });
+      console.error("Commit transaction failed:", error);
     }
   };
 
   const handleReveal = async () => {
     try {
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Revealing transaction...",
-      });
-
-      const txId = await fcl.mutate({
+      await fcl.mutate({
         cadence: revealSwap,
         proposer: fcl.authz,
         payer: fcl.authz,
         authorizations: [fcl.authz],
         limit: 9999,
       });
-      await fcl.tx(txId).onceSealed();
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Reveal transaction completed. ID: ${txId}`,
-      });
+      console.log("Reveal transaction successful.");
     } catch (error) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Reveal transaction failed: ${error.message}`,
-      });
+      console.error("Reveal transaction failed:", error);
     }
   };
 
   const handleTshotChange = (e) => {
     const value = e.target.value;
     if (/^\d*$/.test(value)) {
-      setTshotAmount(parseInt(value, 10) || 0);
+      const integerValue = parseInt(value, 10);
+      setTshotAmount(isNaN(integerValue) ? 0 : integerValue);
     }
   };
+
+  const SwapDisplayBox = ({ label, value, tokenName, balance }) => (
+    <div className="flex flex-col border-2 border-gray-700 p-4 rounded-lg text-center w-1/2 mx-1">
+      <div className="text-gray-400 mb-2">{label}</div>
+      <div className="text-xl font-bold text-white">{value}</div>
+      <div className="text-gray-400">{tokenName}</div>
+      {balance && (
+        <small className="text-gray-500 mt-1">Balance: {balance}</small>
+      )}
+    </div>
+  );
 
   useEffect(() => {
     const updateMomentVisibility = () => {
@@ -160,6 +102,7 @@ const ExchangePanel = () => {
         .sort((a, b) => b.serialNumber - a.serialNumber);
 
       const ineligible = nftDetails.filter((nft) => !eligible.includes(nft));
+
       setEligibleMoments(eligible);
       setIneligibleMoments(ineligible);
 
@@ -175,7 +118,10 @@ const ExchangePanel = () => {
   }, [user, nftDetails, excludeSpecialSerials, dispatch]);
 
   const handleNFTSelection = (id) => {
-    dispatch({ type: "SELECT_NFT", payload: id });
+    dispatch({
+      type: "SELECT_NFT",
+      payload: id,
+    });
   };
 
   const handlePageChange = (newPage) => {
@@ -190,23 +136,27 @@ const ExchangePanel = () => {
     (showIneligible ? ineligibleMoments : eligibleMoments).length / itemsPerPage
   );
 
+  const eligibleCommonsCount = eligibleMoments.length;
+
   return (
     <div className="w-full mx-auto p-6 rounded-lg shadow-xl font-inter max-w-screen-lg mt-12 bg-gray-800">
-      <TransactionModal />
+      {/* Swap Interface */}
       <div className="bg-gray-700 p-6 rounded-lg text-center text-white mb-6">
         <div className="flex items-center justify-center">
           {isReversed ? (
             <>
               <div className="flex flex-col items-center border-2 border-gray-700 p-4 rounded-lg text-center w-1/2 mx-1">
                 <div className="text-gray-400 mb-2">Give</div>
-                <input
-                  type="number"
-                  value={tshotAmount || ""}
-                  onChange={handleTshotChange}
-                  className="text-xl font-bold text-white bg-gray-800 border-2 border-gray-600 rounded-lg text-center px-2 py-1"
-                  style={{ width: "70px" }}
-                />
-                <div className="text-gray-400 mt-2">$TSHOT</div>
+                <div className="flex items-center justify-center">
+                  <input
+                    type="number"
+                    value={tshotAmount || ""}
+                    onChange={handleTshotChange}
+                    className="text-xl font-bold text-white bg-gray-800 border-2 border-gray-600 rounded-lg text-center px-2 py-1"
+                    style={{ width: "70px" }}
+                  />
+                  <span className="text-gray-400 ml-2">$TSHOT</span>
+                </div>
                 <small className="text-gray-500 mt-1">
                   Balance: {parseFloat(tshotBalance || 0).toFixed(2)} $TSHOT
                 </small>
@@ -218,28 +168,22 @@ const ExchangePanel = () => {
               >
                 <FaArrowRight />
               </div>
-              <div className="flex flex-col items-center border-2 border-gray-700 p-4 rounded-lg text-center w-1/2 mx-1">
-                <div className="text-gray-400 mb-2">Receive</div>
-                <div className="text-xl font-bold text-white">
-                  {tshotAmount || 0} Random Moment
-                </div>
-                <small className="text-gray-500 mt-1">
-                  Balance: {eligibleMoments.length} Top Shot Commons
-                </small>
-              </div>
+              <SwapDisplayBox
+                label="Receive"
+                value={`${tshotAmount || 0} Random Moment${
+                  tshotAmount === 1 ? "" : "s"
+                }`}
+                tokenName="TopShot Common"
+              />
             </>
           ) : (
             <>
-              <div className="flex flex-col items-center border-2 border-gray-700 p-4 rounded-lg text-center w-1/2 mx-1">
-                <div className="text-gray-400 mb-2">Give</div>
-                <div className="text-xl font-bold text-white">
-                  {selectedNFTs.length || 0}
-                </div>
-                <div className="text-gray-400 mt-2">Top Shot Common</div>
-                <small className="text-gray-500 mt-1">
-                  Balance: {eligibleMoments.length} Commons
-                </small>
-              </div>
+              <SwapDisplayBox
+                label="Give"
+                value={selectedNFTs.length || 0}
+                tokenName="TopShot Common"
+                balance={`${eligibleCommonsCount} Commons`}
+              />
               <div
                 className="text-2xl cursor-pointer mx-4"
                 onClick={handleSwapDirection}
@@ -247,20 +191,17 @@ const ExchangePanel = () => {
               >
                 <FaArrowRight />
               </div>
-              <div className="flex flex-col items-center border-2 border-gray-700 p-4 rounded-lg text-center w-1/2 mx-1">
-                <div className="text-gray-400 mb-2">Receive</div>
-                <div className="text-xl font-bold text-white">
-                  {selectedNFTs.length || 0}
-                </div>
-                <div className="text-gray-400 mt-2">$TSHOT</div>
-                <small className="text-gray-500 mt-1">
-                  Balance: {parseFloat(tshotBalance || 0).toFixed(2)} $TSHOT
-                </small>
-              </div>
+              <SwapDisplayBox
+                label="Receive"
+                value={selectedNFTs.length || 0}
+                tokenName="$TSHOT"
+                balance={`${parseFloat(tshotBalance || 0).toFixed(2)} $TSHOT`}
+              />
             </>
           )}
         </div>
 
+        {/* Conditional rendering based on swap direction */}
         {isReversed ? (
           <div className="flex space-x-4 mt-4">
             <button
@@ -284,9 +225,9 @@ const ExchangePanel = () => {
             className={`mt-6 w-full p-3 text-lg rounded-lg font-bold ${
               user.loggedIn
                 ? selectedNFTs.length
-                  ? "bg-blue-500"
-                  : "bg-gray-500 cursor-not-allowed"
-                : "bg-green-500"
+                  ? "bg-blue-500 text-white"
+                  : "bg-gray-500 text-white cursor-not-allowed"
+                : "bg-green-500 text-white"
             }`}
           >
             {user.loggedIn
@@ -297,9 +238,10 @@ const ExchangePanel = () => {
           </button>
         )}
 
+        {/* Conditionally render Selected Moments and Available Eligible Moments when not reversed */}
         {user.loggedIn && !isReversed && (
           <>
-            <div className="bg-gray-900 p-4 rounded-lg mt-6">
+            <div className="bg-gray-900 p-4 rounded-lg mb-4 mt-6">
               <h2 className="text-white text-lg font-semibold">
                 Selected Moments
               </h2>
@@ -362,14 +304,16 @@ const ExchangePanel = () => {
               </button>
 
               <div className="flex flex-wrap mt-3">
-                {paginatedMoments.map((nft) => (
-                  <MomentCard
-                    key={nft.id}
-                    nft={nft}
-                    handleNFTSelection={handleNFTSelection}
-                    isSelected={false}
-                  />
-                ))}
+                {paginatedMoments
+                  .filter((nft) => !selectedNFTs.includes(nft.id))
+                  .map((nft) => (
+                    <MomentCard
+                      key={nft.id}
+                      nft={nft}
+                      handleNFTSelection={handleNFTSelection}
+                      isSelected={false}
+                    />
+                  ))}
               </div>
 
               {/* Pagination controls */}
