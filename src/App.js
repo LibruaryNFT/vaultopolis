@@ -1,6 +1,7 @@
+// App.js
 import React from "react";
 import { UserProvider } from "./contexts/UserContext";
-import Header from "./components/Header"; // Import the Header component
+import Header from "./components/Header";
 import ExchangePanel from "./components/ExchangePanel";
 import TransactionModal from "./components/TransactionModal";
 
@@ -8,17 +9,20 @@ function App() {
   return (
     <UserProvider>
       <div
-        className="w-full min-h-screen bg-cover bg-center"
+        className="w-full min-h-screen bg-cover bg-center bg-fixed"
         style={{
           backgroundImage:
             "url('https://storage.googleapis.com/momentswap/images/BackgroundMomentSwap.jpg')",
+          objectPosition: "center",
         }}
       >
-        <Header />
-        {/* Add margin-top (mt-16) to move it down */}
-        <div className="p-4 mt-32">
-          <ExchangePanel />
-          <TransactionModal />
+        {/* Optional overlay for better readability on mobile */}
+        <div className="bg-black bg-opacity-50 min-h-screen">
+          <Header />
+          <div className="p-4 mt-32">
+            <ExchangePanel />
+            <TransactionModal />
+          </div>
         </div>
       </div>
     </UserProvider>

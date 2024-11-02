@@ -1,31 +1,91 @@
-import React from "react";
+// MomentCard.js
+import React, { useEffect, useState } from "react";
+import { AiOutlineInfoCircle } from "react-icons/ai";
 
-const MomentCard = ({
-  nft,
-  playerName,
-  handleNFTSelection,
-  isSelected,
-  tier,
-}) => {
+const tierStyles = {
+  common: "text-gray-400",
+  rare: "text-blue-500",
+  fandom: "text-lime-400",
+  legendary: "text-orange-500",
+  ultimate: "text-pink-500",
+};
+
+const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
+  const [imageUrl, setImageUrl] = useState("");
+  const [isDebuggingVisible, setDebuggingVisible] = useState(false);
+
+  useEffect(() => {
+    if (nft?.setID && nft?.playID) {
+      setImageUrl(
+        `https://storage.googleapis.com/flowconnect/topshot/images_small/${nft.setID}_${nft.playID}.jpg`
+      );
+    }
+  }, [nft?.setID, nft?.playID]);
+
   return (
     <div
       onClick={() => handleNFTSelection(nft.id)}
-      className={`border rounded p-4 m-2 cursor-pointer ${
-        isSelected
-          ? "bg-green-200 border-green-400"
-          : "bg-gray-200 border-gray-300"
-      }`}
+      className={`border rounded bg-black cursor-pointer relative ${
+        isSelected ? "border-green-500" : "border-gray-600"
+      } font-inter text-white w-28 sm:w-32`}
+      style={{ padding: "0.5rem" }}
     >
-      <h3 className="text-lg font-semibold text-black">
-        {playerName || "Unknown Player"}
-      </h3>
-      <p className="text-gray-600">ID: {nft.id}</p>
-      <p className="text-gray-600">Edition ID: {nft.editionID}</p>
-      {nft.serialNumber && (
-        <p className="text-gray-600">Serial Number: {nft.serialNumber}</p>
+      {/* Image Section */}
+      {imageUrl && (
+        <div className="relative h-32 overflow-hidden rounded">
+          <img
+            src={imageUrl}
+            alt={`${nft.playerName} moment`}
+            className="object-cover w-full h-full"
+          />
+        </div>
       )}
-      {tier && <p className="text-blue-600 font-bold">Tier: {tier}</p>}{" "}
-      {/* Display tier */}
+
+      {/* Player Name */}
+      <h3 className="text-center text-white mt-1 text-xs font-semibold truncate">
+        {nft.playerName || "Unknown Player"}
+      </h3>
+
+      {/* Tier and Serial Number */}
+      <p
+        className={`text-center ${tierStyles[nft.tier.toLowerCase()]} text-xs`}
+      >
+        {nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()} #
+        {nft.serialNumber} / {nft.numMomentsInEdition}
+      </p>
+
+      {/* Set Name and Series */}
+      <p className="text-center text-gray-400 text-xs truncate">
+        {nft.setName}
+      </p>
+      <p className="text-center text-gray-400 text-xs">Series {nft.seriesID}</p>
+
+      {/* Locked Icon */}
+      <div className="text-center mt-1">
+        {nft.isLocked && (
+          <AiOutlineInfoCircle className="text-red-500 mx-auto" />
+        )}
+      </div>
+
+      {/* Collapsible Debugging Info */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setDebuggingVisible((prev) => !prev);
+        }}
+        className="mt-1 flex items-center justify-center text-gray-400 text-xs"
+      >
+        <AiOutlineInfoCircle className="mr-1" /> Debugging Info
+      </button>
+
+      {isDebuggingVisible && (
+        <div className="text-gray-400 mt-1 text-xs">
+          <p>ID: {nft.id}</p>
+          <p>Play ID: {nft.playID}</p>
+          <p>Set ID: {nft.setID}</p>
+          <p>Team: {nft.teamAtMoment}</p>
+        </div>
+      )}
     </div>
   );
 };

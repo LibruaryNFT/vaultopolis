@@ -9,19 +9,30 @@ const TransactionModal = () => {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 bg-gray-800 text-white p-4 text-center"
-      style={{ width: "100%", zIndex: 1000 }}
+      className="fixed inset-0 flex items-end justify-center z-50"
+      aria-live="polite"
+      role="alert"
     >
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-bold">Transaction Status</h2>
-        <button
-          onClick={() => setShowModal(false)}
-          className="text-white text-xl"
-        >
-          &times;
-        </button>
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black opacity-50"
+        onClick={() => setShowModal(false)}
+      ></div>
+
+      {/* Modal Content */}
+      <div className="relative bg-gray-800 text-white p-4 w-full max-w-lg mx-auto rounded-t-lg shadow-lg">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-bold">Transaction Status</h2>
+          <button
+            onClick={() => setShowModal(false)}
+            aria-label="Close transaction modal"
+            className="text-white text-xl"
+          >
+            &times;
+          </button>
+        </div>
+        <pre className="mt-2 whitespace-pre-wrap">{transactionInfo}</pre>
       </div>
-      <pre className="mt-2 whitespace-pre-wrap">{transactionInfo}</pre>
     </div>
   );
 };

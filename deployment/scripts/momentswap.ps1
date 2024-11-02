@@ -94,17 +94,11 @@ Log-Message "Collection IDs and balance verified for 0x179b6b1cb6755e31."
 $summarySteps += "Collection IDs and balances verified for both accounts."
 
 # 
-
 flow transactions send ./momentswap/transactions/commit_swap.cdc 1.0 --signer=justin
 
+flow transactions send ./momentswap/transactions/reveal_swap.cdc --signer=justin
 
-
-# Send exchange_TSHOT transaction
-Log-Message "Sending exchange_TSHOT transaction..."
-flow transactions send ./momentswap/transactions/swap_tshot_for_nfts.cdc 1.0 --signer=justin
-Log-Message "exchange_TSHOT transaction sent."
-$summarySteps += "TSHOT exchanged."
-
+flow scripts execute ./sharding/scripts/get_collection_ids.cdc 0xf8d6e0586b0a20c7
 
 $summarySteps += "Final verifications completed."
 

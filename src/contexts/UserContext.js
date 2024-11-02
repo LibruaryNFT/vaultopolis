@@ -1,7 +1,8 @@
-import React, { createContext, useState, useEffect } from "react";
+// UserContext.js
+import React, { createContext, useReducer, useEffect } from "react";
 import * as fcl from "@onflow/fcl";
-
-// Import Cadence scripts
+import { useQuery, useQueryClient } from "react-query";
+import { userReducer, initialState } from "../reducers/userReducer";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import { getTopShotCollection } from "../flow/getTopShotCollection";
 import { verifyTSHOTVault } from "../flow/verifyTSHOTVault";
@@ -12,156 +13,147 @@ import { exchangeTSHOTForNFT } from "../flow/exchangeTSHOTForNFT";
 export const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
-  const [user, setUser] = useState({ loggedIn: null });
-  const [nftDetails, setNftDetails] = useState([]);
-  const [hasCollection, setHasCollection] = useState(false);
-  const [tshotBalance, setTshotBalance] = useState(null);
-  const [playerData, setPlayerData] = useState({});
-  const [selectedNFTs, setSelectedNFTs] = useState([]);
-  const [transactionInfo, setTransactionInfo] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [network, setNetwork] = useState(""); // Add network state
+  const [state, dispatch] = useReducer(userReducer, initialState);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    fcl.currentUser.subscribe((currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
+      dispatch({ type: "SET_USER", payload: currentUser });
       if (currentUser && currentUser.loggedIn) {
-        checkCollection(currentUser.addr);
-        checkTSHOTVault(currentUser.addr);
+        queryClient.invalidateQueries(["topShotCollection", "tshotBalance"]);
+
+        // Fetch hasCollection and hasVault statuses
+        const [hasCollection, hasVault] = await Promise.all([
+          fcl.query({
+            cadence: verifyTopShotCollection,
+            args: (arg, t) => [arg(currentUser.addr, t.Address)],
+          }),
+          fcl.query({
+            cadence: verifyTSHOTVault,
+            args: (arg, t) => [arg(currentUser.addr, t.Address)],
+          }),
+        ]);
+
+        dispatch({ type: "SET_COLLECTION_STATUS", payload: hasCollection });
+        dispatch({ type: "SET_VAULT_STATUS", payload: hasVault });
       } else {
         resetState();
       }
     });
 
-    // Determine the network based on `accessNode.api`
     const determineNetwork = async () => {
       const apiUrl = await fcl.config().get("accessNode.api");
-      if (apiUrl.includes("testnet")) {
-        setNetwork("Testnet");
-      } else if (apiUrl.includes("mainnet")) {
-        setNetwork("Mainnet");
-      } else {
-        setNetwork("Unknown");
-      }
+      dispatch({
+        type: "SET_NETWORK",
+        payload: apiUrl.includes("testnet") ? "Testnet" : "Mainnet",
+      });
     };
 
     determineNetwork();
-  }, []);
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [queryClient]);
 
   const resetState = () => {
-    setNftDetails([]);
-    setHasCollection(false);
-    setTshotBalance(null);
-    setPlayerData({});
-    setSelectedNFTs([]);
+    dispatch({ type: "RESET_STATE" });
   };
 
-  const checkCollection = async (userAddress) => {
-    try {
+  useQuery(
+    ["topShotCollection", state.user.addr],
+    async () => {
       const hasCollection = await fcl.query({
         cadence: verifyTopShotCollection,
-        args: (arg, t) => [arg(userAddress, t.Address)],
+        args: (arg, t) => [arg(state.user.addr, t.Address)],
       });
-      setHasCollection(hasCollection);
-
       if (hasCollection) {
-        fetchTopShotCollection(userAddress);
-        fetchPlayerData();
+        const details = await fcl.query({
+          cadence: getTopShotCollection,
+          args: (arg, t) => [arg(state.user.addr, t.Address)],
+        });
+
+        const tierCounts = {
+          common: 0,
+          rare: 0,
+          fandom: 0,
+          legendary: 0,
+          ultimate: 0,
+        };
+
+        for (const nft of details) {
+          const tier = nft.tier.toLowerCase();
+          if (tierCounts.hasOwnProperty(tier)) {
+            tierCounts[tier]++;
+          }
+        }
+
+        return { details, tierCounts };
+      } else {
+        return { details: [], tierCounts: {} };
       }
-    } catch (error) {
-      console.error("Error checking TopShot Collection:", error);
+    },
+    {
+      enabled: !!state.user.addr,
+      onSuccess: (data) => {
+        dispatch({ type: "SET_NFT_DETAILS", payload: data.details });
+        dispatch({ type: "SET_TIER_COUNTS", payload: data.tierCounts });
+      },
     }
-  };
+  );
 
-  const fetchTopShotCollection = async (userAddress) => {
-    try {
-      const details = await fcl.query({
-        cadence: getTopShotCollection,
-        args: (arg, t) => [arg(userAddress, t.Address)],
-      });
-      setNftDetails(details);
-    } catch (error) {
-      console.error("Error fetching TopShot Collection details:", error);
-    }
-  };
-
-  const checkTSHOTVault = async (userAddress) => {
-    try {
-      const hasVault = await fcl.query({
-        cadence: verifyTSHOTVault,
-        args: (arg, t) => [arg(userAddress, t.Address)],
-      });
-
-      if (hasVault) {
-        fetchTSHOTBalance(userAddress);
-      }
-    } catch (error) {
-      console.error("Error checking TSHOT Vault:", error);
-    }
-  };
-
-  const fetchTSHOTBalance = async (userAddress) => {
-    try {
-      const balance = await fcl.query({
+  useQuery(
+    ["tshotBalance", state.user.addr],
+    async () => {
+      return await fcl.query({
         cadence: getTSHOTBalance,
-        args: (arg, t) => [arg(userAddress, t.Address)],
+        args: (arg, t) => [arg(state.user.addr, t.Address)],
       });
-      setTshotBalance(balance);
-    } catch (error) {
-      console.error("Error fetching TSHOT balance:", error);
+    },
+    {
+      enabled: !!state.user.addr,
+      onSuccess: (balance) =>
+        dispatch({ type: "SET_TSHOT_BALANCE", payload: balance }),
     }
-  };
-
-  const fetchPlayerData = async () => {
-    try {
-      const response = await fetch(
-        "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-plays"
-      );
-      const data = await response.json();
-      const playerMap = data.reduce((acc, player) => {
-        acc[player.PlayID] = player.FullName;
-        return acc;
-      }, {});
-      setPlayerData(playerMap);
-    } catch (error) {
-      console.error("Error fetching player data:", error);
-    }
-  };
+  );
 
   const handleNFTSelection = (nftID) => {
-    setSelectedNFTs((prevSelected) => {
-      if (prevSelected.includes(nftID)) {
-        return prevSelected.filter((id) => id !== nftID);
-      } else {
-        return [...prevSelected, nftID];
-      }
-    });
+    dispatch({ type: "SELECT_NFT", payload: nftID });
   };
 
   const exchangeNFTsForTSHOT = async () => {
-    if (!user.addr) {
-      setTransactionInfo("User is not logged in or address is not available.");
-      setShowModal(true);
+    if (!state.user.addr) {
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "User is not logged in or address is not available.",
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
       return;
     }
 
-    if (selectedNFTs.length === 0) {
-      setTransactionInfo("No NFTs selected for exchange.");
-      setShowModal(true);
+    if (state.selectedNFTs.length === 0) {
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "No NFTs selected for exchange.",
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
       return;
     }
 
     try {
-      setShowModal(true);
-      setTransactionInfo("Transaction submitted...");
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "Transaction submitted...",
+      });
 
       const txId = await fcl.mutate({
         cadence: exchangeNFTForTSHOT,
-        args: (arg, t) => [arg(selectedNFTs, t.Array(t.UInt64))],
+        args: (arg, t) => [arg(state.selectedNFTs, t.Array(t.UInt64))],
         proposer: fcl.authz,
         payer: fcl.authz,
         authorizations: [fcl.authz],
-        limit: 50,
+        limit: 1000,
       });
 
       fcl.tx(txId).subscribe((transaction) => {
@@ -169,36 +161,54 @@ export const UserProvider = ({ children }) => {
         if (transaction.errorMessage) {
           statusMessage += `\nError: ${transaction.errorMessage}`;
         }
-        setTransactionInfo(`${statusMessage}\nTransaction ID: ${txId}`);
+        dispatch({
+          type: "SET_TRANSACTION_INFO",
+          payload: `${statusMessage}\nTransaction ID: ${txId}`,
+        });
       });
 
       await fcl.tx(txId).onceSealed();
-      await fetchTSHOTBalance(user.addr);
-      await fetchTopShotCollection(user.addr); // Update the collection
-      setSelectedNFTs([]);
-      setTransactionInfo(`Transaction completed! Transaction ID: ${txId}`);
+      queryClient.invalidateQueries("tshotBalance");
+      queryClient.invalidateQueries("topShotCollection");
+      dispatch({ type: "RESET_SELECTED_NFTS" });
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: `Transaction completed! Transaction ID: ${txId}`,
+      });
     } catch (error) {
-      setTransactionInfo(`Error exchanging NFTs for TSHOT: ${error.message}`);
-      setShowModal(true);
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: `Error exchanging NFTs for TSHOT: ${error.message}`,
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
     }
   };
 
   const swapTSHOTForNFT = async (tokenAmount) => {
-    if (!user.addr) {
-      setTransactionInfo("User is not logged in or address is not available.");
-      setShowModal(true);
+    if (!state.user.addr) {
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "User is not logged in or address is not available.",
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
       return;
     }
 
     if (tokenAmount <= 0) {
-      setTransactionInfo("Please enter a valid token amount.");
-      setShowModal(true);
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "Please enter a valid token amount.",
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
       return;
     }
 
     try {
-      setShowModal(true);
-      setTransactionInfo("Transaction submitted...");
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "Transaction submitted...",
+      });
 
       const txId = await fcl.mutate({
         cadence: exchangeTSHOTForNFT,
@@ -206,7 +216,7 @@ export const UserProvider = ({ children }) => {
         proposer: fcl.authz,
         payer: fcl.authz,
         authorizations: [fcl.authz],
-        limit: 50,
+        limit: 1000,
       });
 
       fcl.tx(txId).subscribe((transaction) => {
@@ -214,35 +224,36 @@ export const UserProvider = ({ children }) => {
         if (transaction.errorMessage) {
           statusMessage += `\nError: ${transaction.errorMessage}`;
         }
-        setTransactionInfo(`${statusMessage}\nTransaction ID: ${txId}`);
+        dispatch({
+          type: "SET_TRANSACTION_INFO",
+          payload: `${statusMessage}\nTransaction ID: ${txId}`,
+        });
       });
 
       await fcl.tx(txId).onceSealed();
-      await fetchTSHOTBalance(user.addr);
-      await fetchTopShotCollection(user.addr); // Update the collection
-      setTransactionInfo(`Transaction completed! Transaction ID: ${txId}`);
+      queryClient.invalidateQueries("tshotBalance");
+      queryClient.invalidateQueries("topShotCollection");
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: `Transaction completed! Transaction ID: ${txId}`,
+      });
     } catch (error) {
-      setTransactionInfo(`Error swapping TSHOT for NFT: ${error.message}`);
-      setShowModal(true);
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: `Error swapping TSHOT for NFT: ${error.message}`,
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
     }
   };
 
   return (
     <UserContext.Provider
       value={{
-        user,
-        nftDetails,
-        hasCollection,
-        tshotBalance,
-        playerData,
-        selectedNFTs,
+        ...state,
+        dispatch,
         handleNFTSelection,
         exchangeNFTsForTSHOT,
         swapTSHOTForNFT,
-        transactionInfo,
-        showModal,
-        setShowModal,
-        network, // Include the network in the context
       }}
     >
       {children}

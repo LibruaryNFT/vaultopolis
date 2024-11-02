@@ -1,8 +1,7 @@
-// index.js
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "react-query";
 import App from "./App";
-import { UserProvider } from "./contexts/UserContext";
 import * as fcl from "@onflow/fcl";
 import "./index.css";
 
@@ -13,11 +12,14 @@ fcl
   .put("discovery.wallet", "https://fcl-discovery.onflow.org/testnet/authn") // Wallet for Testnet
   .put("0xFlowToken", "0x7e60df042a9c0868"); // Flow Token address
 
+// Initialize QueryClient instance
+const queryClient = new QueryClient();
+
 const container = document.getElementById("root");
 const root = createRoot(container);
 
 root.render(
-  <UserProvider>
+  <QueryClientProvider client={queryClient}>
     <App />
-  </UserProvider>
+  </QueryClientProvider>
 );

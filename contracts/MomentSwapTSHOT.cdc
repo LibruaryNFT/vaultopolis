@@ -139,9 +139,12 @@ access(all) contract MomentSwapTSHOT {
     // Burn the TSHOT tokens using the contract's burnTokens function
     TSHOT.burnTokens(from: <-payment)
 
-    // Pop the randomness request once and assign the random value to a variable
+    // Pop the randomness request from the receipt
     let randomSeed <- receipt.popRequest()
-    let baseRandomValue = randomSeed.uuid
+
+    // Use the randomness from the randomSeed and generate a random number
+    // Use this directly instead of revertibleRandom
+    let baseRandomValue = self.consumer.fulfillRandomInRange(request: <-randomSeed, min: 0, max: UInt64.max)
 
     // Now that the receipt has been fully used, we burn it
     Burner.burn(<-receipt)
@@ -162,12 +165,10 @@ access(all) contract MomentSwapTSHOT {
             panic("No NFTs available in the vault")
         }
 
-        // Combine revertibleRandom with baseRandomValue to derive a new random index in each iteration
-        let derivedRandomValue = (baseRandomValue + UInt64(revertibleRandom<UInt64>())) % UInt64(nftIDs.length)
+        // Derive a new random index using the baseRandomValue and counter
+        let derivedRandomValue = (baseRandomValue + UInt64(counter)) % UInt64(nftIDs.length)
 
-        let randomIndex = UInt64(derivedRandomValue)
-
-        let selectedNFTID = nftIDs[randomIndex]
+        let selectedNFTID = nftIDs[derivedRandomValue]
 
         // Withdraw the selected NFT from the admin's storage
         let selectedNFT <- adminCollection.withdraw(withdrawID: selectedNFTID)
@@ -184,12 +185,7 @@ access(all) contract MomentSwapTSHOT {
 
         counter = counter + 1
     }
-
-    // Now that we've processed all the tokens and burned the receipt, no further action is needed
 }
-
-
-
 
     init() {
         // Set the storage paths for the admin NFT vault and FT admin resources
