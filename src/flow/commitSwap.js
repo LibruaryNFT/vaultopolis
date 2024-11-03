@@ -22,13 +22,16 @@ transaction(betAmount: UFix64) {
         // Save the receipt to storage
         signer.storage.save(<-receipt, to: MomentSwapTSHOT.ReceiptStoragePath)
         
-        // Create a public capability for the stored receipt
-        let receiptCap = signer.capabilities.storage.issue<&MomentSwapTSHOT.Receipt>(MomentSwapTSHOT.ReceiptStoragePath)
-        signer.capabilities.publish(receiptCap, at: /public/TSHOTReceipt)
+        // Check if a public capability already exists
+        if signer.capabilities.borrow<&MomentSwapTSHOT.Receipt>(/public/TSHOTReceipt) == nil {
+            // Issue a new capability only if it doesn't exist
+            let receiptCap = signer.capabilities.storage.issue<&MomentSwapTSHOT.Receipt>(MomentSwapTSHOT.ReceiptStoragePath)
+            signer.capabilities.publish(receiptCap, at: /public/TSHOTReceipt)
+        }
     }
 
     execute {
-        log("Receipt stored and public capability issued.")
+        log("Receipt stored and public capability issued if it didn't already exist.")
     }
 }
 

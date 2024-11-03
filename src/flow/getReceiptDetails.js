@@ -1,4 +1,5 @@
-import "MomentSwapTSHOT"
+export const getReceiptDetails = `
+import MomentSwapTSHOT from 0x332ffc0ae9bba9c1
 
 // Script that retrieves specific fields from the Receipt associated with MomentSwapTSHOT
 access(all) fun main(userAddress: Address): {String: AnyStruct} {
@@ -34,3 +35,5 @@ access(all) fun main(userAddress: Address): {String: AnyStruct} {
         return {}
     }
 }
+
+`;

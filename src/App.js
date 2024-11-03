@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import ExchangePanel from "./components/ExchangePanel";
 import TransactionModal from "./components/TransactionModal";
 import SwapInfo from "./components/SwapInfo";
+import Admin from "./components/Admin";
 
 function App() {
   return (

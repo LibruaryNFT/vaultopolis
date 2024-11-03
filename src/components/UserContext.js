@@ -7,7 +7,8 @@ import { getTopShotCollection } from "../flow/getTopShotCollection";
 import { verifyTSHOTVault } from "../flow/verifyTSHOTVault";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
-import { verifyReceipt } from "../flow/verifyReceipt"; // Import the verifyReceipt script
+import { verifyReceipt } from "../flow/verifyReceipt";
+import { getReceiptDetails } from "../flow/getReceiptDetails"; // Import getReceiptDetails script
 
 export const UserContext = createContext();
 
@@ -28,7 +29,8 @@ const initialState = {
     legendary: 0,
     ultimate: 0,
   },
-  hasReceipt: null, // New state variable to track receipt status
+  hasReceipt: null, // State to track receipt existence
+  receiptDetails: {}, // State to store receipt details
 };
 
 function userReducer(state, action) {
@@ -62,8 +64,10 @@ function userReducer(state, action) {
       return { ...state, showModal: action.payload };
     case "SET_NETWORK":
       return { ...state, network: action.payload };
-    case "SET_RECEIPT_STATUS": // New case for receipt status
+    case "SET_RECEIPT_STATUS":
       return { ...state, hasReceipt: action.payload };
+    case "SET_RECEIPT_DETAILS":
+      return { ...state, receiptDetails: action.payload };
     case "RESET_STATE":
       return { ...initialState, user: { loggedIn: false } };
     default:
@@ -104,7 +108,8 @@ export const UserProvider = ({ children }) => {
     dispatch({ type: "RESET_STATE" });
     dispatch({ type: "SET_NFT_DETAILS", payload: [] });
     dispatch({ type: "SET_TIER_COUNTS", payload: {} });
-    dispatch({ type: "SET_RECEIPT_STATUS", payload: null }); // Reset receipt status
+    dispatch({ type: "SET_RECEIPT_STATUS", payload: null });
+    dispatch({ type: "SET_RECEIPT_DETAILS", payload: {} });
   };
 
   const refreshBalances = async () => {
@@ -137,6 +142,13 @@ export const UserProvider = ({ children }) => {
           args: (arg, t) => [arg(state.user.addr, t.Address)],
         });
         dispatch({ type: "SET_RECEIPT_STATUS", payload: hasReceipt });
+
+        // Fetch receipt details if the receipt exists
+        if (hasReceipt) {
+          await fetchReceiptDetails();
+        } else {
+          dispatch({ type: "SET_RECEIPT_DETAILS", payload: {} });
+        }
 
         // Refresh NFT details
         if (hasCollection) {
@@ -172,7 +184,20 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // useQuery for TSHOT Balance (optional, can be retained or removed based on preference)
+  const fetchReceiptDetails = async () => {
+    if (state.user.addr) {
+      try {
+        const receiptDetails = await fcl.query({
+          cadence: getReceiptDetails,
+          args: (arg, t) => [arg(state.user.addr, t.Address)],
+        });
+        dispatch({ type: "SET_RECEIPT_DETAILS", payload: receiptDetails });
+      } catch (error) {
+        console.error("Error fetching receipt details:", error);
+      }
+    }
+  };
+
   useQuery(
     ["tshotBalance", state.user.addr],
     async () => {
@@ -189,7 +214,6 @@ export const UserProvider = ({ children }) => {
     }
   );
 
-  // useQuery for TopShot Collection (optional, can be retained or removed based on preference)
   useQuery(
     ["topShotCollection", state.user.addr],
     async () => {
@@ -275,7 +299,6 @@ export const UserProvider = ({ children }) => {
 
       await fcl.tx(txId).onceSealed();
 
-      // Refresh balances after swap
       await refreshBalances();
 
       dispatch({ type: "RESET_SELECTED_NFTS" });
@@ -285,7 +308,6 @@ export const UserProvider = ({ children }) => {
         payload: `Swap transaction completed. ${state.selectedNFTs.length} NFT(s) exchanged for TSHOT.\nTransaction ID: ${txId}`,
       });
 
-      // Optionally, close the modal after a delay
       setTimeout(() => {
         dispatch({ type: "TOGGLE_MODAL", payload: false });
       }, 3000);
@@ -306,6 +328,7 @@ export const UserProvider = ({ children }) => {
         handleNFTSelection,
         exchangeNFTsForTSHOT,
         refreshBalances,
+        receiptDetails: state.receiptDetails,
       }}
     >
       {children}

@@ -9,6 +9,7 @@ access(all) struct NFTDetails {
     access(all) let setName: String
     access(all) let playID: UInt32
     access(all) let playerName: String
+    access(all) let jerseyNumber: String
     access(all) let teamAtMoment: String
     access(all) let serialNumber: UInt32
     access(all) let tier: String
@@ -22,6 +23,7 @@ access(all) struct NFTDetails {
         setName: String,
         playID: UInt32,
         playerName: String,
+        jerseyNumber: String,
         teamAtMoment: String,
         serialNumber: UInt32,
         tier: String,
@@ -34,6 +36,7 @@ access(all) struct NFTDetails {
         self.setName = setName
         self.playID = playID
         self.playerName = playerName
+        self.jerseyNumber = jerseyNumber
         self.teamAtMoment = teamAtMoment
         self.serialNumber = serialNumber
         self.tier = tier
@@ -92,6 +95,7 @@ access(all) fun main(address: Address): [NFTDetails] {
         // Get play metadata
         let playMetadata = TopShot.getPlayMetaData(playID: data.playID) ?? {}
         let playerName = playMetadata["FullName"] ?? "Unknown Player"
+        let jerseyNumber = playMetadata["JerseyNumber"] ?? "Unknown Jersey Number"
         let teamAtMoment = playMetadata["TeamAtMoment"] ?? "Unknown Team"
 
         // Get the number of moments in this edition
@@ -105,6 +109,7 @@ access(all) fun main(address: Address): [NFTDetails] {
             setName: setName,
             playID: data.playID,
             playerName: playerName,
+            jerseyNumber: jerseyNumber,
             teamAtMoment: teamAtMoment,
             serialNumber: data.serialNumber,
             tier: tierString,
