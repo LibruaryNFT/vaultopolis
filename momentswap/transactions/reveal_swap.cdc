@@ -18,14 +18,5 @@ transaction {
         // Reveal by redeeming my receipt - fingers crossed!
         MomentSwapTSHOT.swapTSHOTForNFTs(address: self.address, receipt: <-receipt)
 
-
-
-        //if winnings.balance > 0.0 {
-            // Deposit winnings into my FlowToken Vault
-            //let tshotVault = signer.storage.borrow<&TSHOT.Vault>(from: /storage/TSHOTTokenVault)!
-          //  tshotVault.deposit(from: <-winnings)
-        //} else {
-        //    destroy winnings
-        //}
     }
 }

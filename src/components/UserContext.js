@@ -7,6 +7,7 @@ import { getTopShotCollection } from "../flow/getTopShotCollection";
 import { verifyTSHOTVault } from "../flow/verifyTSHOTVault";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
+import { verifyReceipt } from "../flow/verifyReceipt"; // Import the verifyReceipt script
 
 export const UserContext = createContext();
 
@@ -27,6 +28,7 @@ const initialState = {
     legendary: 0,
     ultimate: 0,
   },
+  hasReceipt: null, // New state variable to track receipt status
 };
 
 function userReducer(state, action) {
@@ -60,6 +62,8 @@ function userReducer(state, action) {
       return { ...state, showModal: action.payload };
     case "SET_NETWORK":
       return { ...state, network: action.payload };
+    case "SET_RECEIPT_STATUS": // New case for receipt status
+      return { ...state, hasReceipt: action.payload };
     case "RESET_STATE":
       return { ...initialState, user: { loggedIn: false } };
     default:
@@ -100,6 +104,7 @@ export const UserProvider = ({ children }) => {
     dispatch({ type: "RESET_STATE" });
     dispatch({ type: "SET_NFT_DETAILS", payload: [] });
     dispatch({ type: "SET_TIER_COUNTS", payload: {} });
+    dispatch({ type: "SET_RECEIPT_STATUS", payload: null }); // Reset receipt status
   };
 
   const refreshBalances = async () => {
@@ -125,6 +130,13 @@ export const UserProvider = ({ children }) => {
           args: (arg, t) => [arg(state.user.addr, t.Address)],
         });
         dispatch({ type: "SET_VAULT_STATUS", payload: hasVault });
+
+        // Check for receipt
+        const hasReceipt = await fcl.query({
+          cadence: verifyReceipt,
+          args: (arg, t) => [arg(state.user.addr, t.Address)],
+        });
+        dispatch({ type: "SET_RECEIPT_STATUS", payload: hasReceipt });
 
         // Refresh NFT details
         if (hasCollection) {
@@ -160,7 +172,7 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Include useQuery hooks to ensure data is fetched on component mount and when dependencies change
+  // useQuery for TSHOT Balance (optional, can be retained or removed based on preference)
   useQuery(
     ["tshotBalance", state.user.addr],
     async () => {
@@ -177,6 +189,7 @@ export const UserProvider = ({ children }) => {
     }
   );
 
+  // useQuery for TopShot Collection (optional, can be retained or removed based on preference)
   useQuery(
     ["topShotCollection", state.user.addr],
     async () => {

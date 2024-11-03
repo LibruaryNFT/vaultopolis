@@ -1,3 +1,4 @@
+// ExchangePanel.js
 import React, { useState, useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
 import MomentCard from "./MomentCard";
@@ -18,6 +19,7 @@ const ExchangePanel = () => {
     showModal,
     transactionInfo,
     refreshBalances,
+    hasReceipt, // Access hasReceipt from context
   } = useContext(UserContext);
 
   const [isReversed, setIsReversed] = useState(false);
@@ -73,7 +75,7 @@ const ExchangePanel = () => {
 
         await fcl.tx(txId).onceSealed();
 
-        // Refresh TSHOT balance after commit
+        // Refresh TSHOT balance and receipt status after commit
         await refreshBalances();
 
         dispatch({
@@ -134,6 +136,16 @@ const ExchangePanel = () => {
   };
 
   const handleReveal = async () => {
+    if (!hasReceipt) {
+      // Check if the user has completed the commit step
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "You need to complete the commit step before revealing.",
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      return;
+    }
+
     try {
       dispatch({ type: "TOGGLE_MODAL", payload: true });
       dispatch({
@@ -167,13 +179,15 @@ const ExchangePanel = () => {
         type: "SET_TRANSACTION_INFO",
         payload: `Reveal transaction failed: ${error.message}`,
       });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
     }
   };
 
   const handleTshotChange = (e) => {
     const value = e.target.value;
-    if (/^\d*$/.test(value)) {
-      setTshotAmount(parseInt(value, 10) || 0);
+    if (/^\d*\.?\d*$/.test(value)) {
+      // Allow decimal inputs
+      setTshotAmount(parseFloat(value) || 0);
     }
   };
 
@@ -245,6 +259,8 @@ const ExchangePanel = () => {
                   onChange={handleTshotChange}
                   className="text-xl font-bold text-white bg-gray-800 border-2 border-gray-600 rounded-lg text-center px-2 py-1"
                   style={{ width: "70px" }}
+                  min="0"
+                  step="0.1"
                 />
                 <div className="text-gray-400 mt-2">$TSHOT</div>
                 <small className="text-gray-500 mt-1">
@@ -312,7 +328,15 @@ const ExchangePanel = () => {
             </button>
             <button
               onClick={handleReveal}
-              className="p-3 text-lg rounded-lg font-bold bg-green-500 text-white"
+              className={`p-3 text-lg rounded-lg font-bold ${
+                hasReceipt ? "bg-green-500" : "bg-gray-500 cursor-not-allowed"
+              } text-white`}
+              disabled={!hasReceipt}
+              title={
+                hasReceipt
+                  ? "Reveal your swap"
+                  : "Complete the commit step before revealing"
+              }
             >
               Reveal
             </button>
@@ -324,15 +348,15 @@ const ExchangePanel = () => {
             className={`mt-6 w-full p-3 text-lg rounded-lg font-bold ${
               user.loggedIn
                 ? selectedNFTs.length
-                  ? "bg-blue-500"
+                  ? "bg-blue-500 hover:bg-blue-600"
                   : "bg-gray-500 cursor-not-allowed"
-                : "bg-green-500"
-            }`}
+                : "bg-green-500 hover:bg-green-600"
+            } text-white transition-colors duration-300`}
           >
             {user.loggedIn
               ? selectedNFTs.length
-                ? "Swap"
-                : "Select Moments to Swap"
+                ? "Commit"
+                : "Select Moments to Commit"
               : "Connect Wallet"}
           </button>
         )}
@@ -359,7 +383,7 @@ const ExchangePanel = () => {
                 </div>
               ) : (
                 <p className="text-gray-400 mt-4">
-                  Select moments below to swap for $TSHOT.
+                  Select moments below to commit for swapping.
                 </p>
               )}
             </div>
@@ -410,7 +434,7 @@ const ExchangePanel = () => {
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 bg-gray-600 text-white rounded mr-2"
+                  className="px-4 py-2 bg-gray-600 text-white rounded mr-2 disabled:opacity-50"
                 >
                   Previous
                 </button>
@@ -420,7 +444,7 @@ const ExchangePanel = () => {
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
-                  className="px-4 py-2 bg-gray-600 text-white rounded ml-2"
+                  className="px-4 py-2 bg-gray-600 text-white rounded ml-2 disabled:opacity-50"
                 >
                   Next
                 </button>
