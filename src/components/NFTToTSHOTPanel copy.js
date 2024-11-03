@@ -24,7 +24,6 @@ const NFTToTSHOTPanel = () => {
   const [selectedSeries, setSelectedSeries] = useState([]); // Multi-select series filter
   const [sortBy, setSortBy] = useState("serialNumber"); // Sorting preference
 
-  // Update eligible moments whenever filters or nftDetails change
   useEffect(() => {
     const updateMomentVisibility = () => {
       let eligible = nftDetails
@@ -33,10 +32,12 @@ const NFTToTSHOTPanel = () => {
             nft.serialNumber === 1 ||
             nft.serialNumber === nft.numMomentsInEdition ||
             (nft.jerseyNumber &&
-              parseInt(nft.jerseyNumber) === nft.serialNumber);
+              parseInt(nft.jerseyNumber) === nft.serialNumber); // Check for jersey match
+
           const isSeriesSelected =
             selectedSeries.length === 0 ||
             selectedSeries.includes(parseInt(nft.seriesID));
+
           return (
             nft.tier.toLowerCase() === "common" &&
             !nft.isLocked &&
@@ -48,18 +49,21 @@ const NFTToTSHOTPanel = () => {
 
       // Apply sorting
       if (sortBy === "series") {
-        eligible.sort((a, b) =>
-          b.seriesID === a.seriesID
-            ? b.serialNumber - a.serialNumber
-            : b.seriesID - a.seriesID
-        );
+        eligible = eligible.sort((a, b) => {
+          if (b.seriesID === a.seriesID) {
+            return b.serialNumber - a.serialNumber;
+          }
+          return b.seriesID - a.seriesID;
+        });
       } else if (sortBy === "serialNumber") {
-        eligible.sort((a, b) =>
-          b.serialNumber === a.serialNumber
-            ? b.seriesID - a.seriesID
-            : b.serialNumber - a.serialNumber
-        );
+        eligible = eligible.sort((a, b) => {
+          if (b.serialNumber === a.serialNumber) {
+            return b.seriesID - a.seriesID;
+          }
+          return b.serialNumber - a.serialNumber;
+        });
       }
+
       setEligibleMoments(eligible);
     };
 
@@ -67,7 +71,7 @@ const NFTToTSHOTPanel = () => {
       updateMomentVisibility();
     }
   }, [
-    user.loggedIn,
+    user,
     nftDetails,
     excludeSpecialSerials,
     selectedNFTs,
@@ -75,15 +79,18 @@ const NFTToTSHOTPanel = () => {
     sortBy,
   ]);
 
-  // Count total commons
   useEffect(() => {
-    if (user.loggedIn && nftDetails.length > 0) {
+    const countTotalCommons = () => {
       const commons = nftDetails.filter(
         (nft) => nft.tier.toLowerCase() === "common" && !nft.isLocked
       );
       setTotalCommons(commons.length);
+    };
+
+    if (user.loggedIn && nftDetails.length > 0) {
+      countTotalCommons();
     }
-  }, [user.loggedIn, nftDetails]);
+  }, [user, nftDetails]);
 
   const handleNFTSelection = (id) => {
     dispatch({ type: "SELECT_NFT", payload: id });
@@ -134,6 +141,7 @@ const NFTToTSHOTPanel = () => {
         dispatch({ type: "TOGGLE_MODAL", payload: false });
       }, 3000);
     } catch (error) {
+      console.error("Transaction error:", error);
       dispatch({
         type: "SET_TRANSACTION_INFO",
         payload: `Transaction failed: ${error.message}`,
@@ -185,15 +193,10 @@ const NFTToTSHOTPanel = () => {
         </div>
       </div>
 
-      {/* Connect Wallet / Swap Button */}
+      {/* Swap button */}
       <button
-        onClick={() => {
-          if (!user.loggedIn) {
-            fcl.authenticate();
-          } else {
-            handleSwap();
-          }
-        }}
+        onClick={handleSwap}
+        disabled={!selectedNFTs.length}
         className={`w-full p-3 mb-6 text-lg rounded-lg font-bold ${
           user.loggedIn
             ? selectedNFTs.length
@@ -209,131 +212,123 @@ const NFTToTSHOTPanel = () => {
           : "Connect Wallet"}
       </button>
 
-      {user.loggedIn && (
-        <>
-          {/* Selected Moments Section */}
-          <div className="bg-gray-900 p-4 rounded-lg mt-6">
-            <h2 className="text-white text-lg font-semibold">
-              Selected Moments
-            </h2>
-            {selectedNFTs.length ? (
-              <div className="flex flex-wrap mt-2">
-                {selectedNFTs.map((id) => {
-                  const nft = nftDetails.find((n) => n.id === id);
-                  return (
-                    <MomentCard
-                      key={id}
-                      nft={nft}
-                      handleNFTSelection={handleNFTSelection}
-                      isSelected={true}
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-gray-400 mt-4">
-                Select moments below to swap for $TSHOT.
-              </p>
-            )}
-          </div>
-
-          {/* Available Eligible Moments Section */}
-          <div className="bg-gray-900 p-4 rounded-lg mb-4">
-            <h2 className="text-white text-lg font-semibold">
-              Available Eligible Moments
-            </h2>
-
-            {/* Filter for Special Serials */}
-            <div className="flex items-center mb-4">
-              <input
-                type="checkbox"
-                checked={excludeSpecialSerials}
-                onChange={() => setExcludeSpecialSerials((prev) => !prev)}
-                className="mr-2"
-              />
-              <label className="text-gray-300">
-                Exclude special serials (#1, last serial, or jersey match)
-              </label>
-            </div>
-
-            {/* Series Filter */}
-            <div className="flex flex-wrap gap-4 mt-4">
-              {[0, 2, 3, 4, 5, 6, 7].map((series) => (
-                <label key={series} className="flex items-center text-gray-300">
-                  <input
-                    type="checkbox"
-                    checked={selectedSeries.includes(series)}
-                    onChange={() => handleSeriesChange(series)}
-                    className="mr-2"
-                  />
-                  Series {series}
-                </label>
-              ))}
-            </div>
-
-            {/* Sort Dropdown */}
-            <div className="flex items-center mt-4">
-              <label className="text-gray-300 mr-2">Sort by:</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="p-1 bg-gray-700 text-white rounded"
-              >
-                <option value="serialNumber">Serial (Descending)</option>
-                <option value="series">Series (Descending)</option>
-              </select>
-            </div>
-
-            {/* Items per Page Dropdown */}
-            <div className="flex items-center justify-center mt-4">
-              <label className="mr-2 text-gray-300">Items per page:</label>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                className="p-1 bg-gray-700 text-white rounded"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-
-            {/* Eligible Moments Display */}
-            <div className="flex flex-wrap mt-3">
-              {paginatedMoments.map((nft) => (
+      <div className="bg-gray-900 p-4 rounded-lg mt-6">
+        <h2 className="text-white text-lg font-semibold">Selected Moments</h2>
+        {selectedNFTs.length ? (
+          <div className="flex flex-wrap mt-2">
+            {selectedNFTs.map((id) => {
+              const nft = nftDetails.find((n) => n.id === id);
+              return (
                 <MomentCard
-                  key={nft.id}
+                  key={id}
                   nft={nft}
                   handleNFTSelection={handleNFTSelection}
-                  isSelected={false}
+                  isSelected={true}
                 />
-              ))}
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex justify-center items-center mt-4">
-              <button
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="px-4 py-2 bg-gray-600 text-white rounded mr-2 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-white">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 bg-gray-600 text-white rounded ml-2 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
+              );
+            })}
           </div>
-        </>
-      )}
+        ) : (
+          <p className="text-gray-400 mt-4">
+            Select moments below to swap for $TSHOT.
+          </p>
+        )}
+      </div>
+
+      {/* Available Eligible Moments section */}
+      <div className="bg-gray-900 p-4 rounded-lg mb-4">
+        <h2 className="text-white text-lg font-semibold">
+          Available Eligible Moments
+        </h2>
+
+        {/* Filter for Special Serials */}
+        <div className="flex items-center mb-4">
+          <input
+            type="checkbox"
+            checked={excludeSpecialSerials}
+            onChange={() => setExcludeSpecialSerials((prev) => !prev)}
+            className="mr-2"
+          />
+          <label className="text-gray-300">
+            Exclude special serials (#1, last serial, or jersey match)
+          </label>
+        </div>
+
+        {/* Series Filter */}
+        <div className="flex flex-wrap gap-4 mt-4">
+          {[0, 2, 3, 4, 5, 6, 7].map((series) => (
+            <label key={series} className="flex items-center text-gray-300">
+              <input
+                type="checkbox"
+                checked={selectedSeries.includes(series)}
+                onChange={() => handleSeriesChange(series)}
+                className="mr-2"
+              />
+              Series {series}
+            </label>
+          ))}
+        </div>
+
+        {/* Sort Dropdown */}
+        <div className="flex items-center mt-4">
+          <label className="text-gray-300 mr-2">Sort by:</label>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="p-1 bg-gray-700 text-white rounded"
+          >
+            <option value="serialNumber">Serial (Descending)</option>
+            <option value="series">Series (Descending)</option>
+          </select>
+        </div>
+
+        {/* Items per Page Dropdown */}
+        <div className="flex items-center justify-center mt-4">
+          <label className="mr-2 text-gray-300">Items per page:</label>
+          <select
+            value={itemsPerPage}
+            onChange={(e) => setItemsPerPage(Number(e.target.value))}
+            className="p-1 bg-gray-700 text-white rounded"
+          >
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+        </div>
+
+        <div className="flex flex-wrap mt-3">
+          {paginatedMoments.map((nft) => (
+            <MomentCard
+              key={nft.id}
+              nft={nft}
+              handleNFTSelection={handleNFTSelection}
+              isSelected={false}
+            />
+          ))}
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex justify-center items-center mt-4">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-600 text-white rounded mr-2 disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <span className="text-white">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-gray-600 text-white rounded ml-2 disabled:opacity-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </>
   );
 };

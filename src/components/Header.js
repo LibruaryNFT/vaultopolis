@@ -198,7 +198,7 @@ const Header = () => {
                             <div>
                               <p>{`TopShot ${
                                 tier.charAt(0).toUpperCase() + tier.slice(1)
-                              }s`}</p>
+                              }`}</p>
                               <p>{tierCounts?.[tier] || 0} Moments</p>
                             </div>
                           </div>
