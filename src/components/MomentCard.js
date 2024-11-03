@@ -1,6 +1,4 @@
-// MomentCard.js
 import React, { useEffect, useState } from "react";
-import { AiOutlineInfoCircle } from "react-icons/ai";
 
 const tierStyles = {
   common: "text-gray-400",
@@ -12,7 +10,6 @@ const tierStyles = {
 
 const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
   const [imageUrl, setImageUrl] = useState("");
-  const [isDebuggingVisible, setDebuggingVisible] = useState(false);
 
   useEffect(() => {
     if (nft?.setID && nft?.playID) {
@@ -67,29 +64,9 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
       </p>
 
       {/* Locked Icon */}
-      <div className="text-center mt-1">
-        {nft?.isLocked && (
-          <AiOutlineInfoCircle className="text-red-500 mx-auto" />
-        )}
-      </div>
-
-      {/* Collapsible Debugging Info */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setDebuggingVisible((prev) => !prev);
-        }}
-        className="mt-1 flex items-center justify-center text-gray-400 text-xs"
-      >
-        <AiOutlineInfoCircle className="mr-1" /> Debugging Info
-      </button>
-
-      {isDebuggingVisible && (
-        <div className="text-gray-400 mt-1 text-xs">
-          <p>ID: {nft?.id || "Unknown ID"}</p>
-          <p>Play ID: {nft?.playID || "Unknown Play ID"}</p>
-          <p>Set ID: {nft?.setID || "Unknown Set ID"}</p>
-          <p>Team: {nft?.teamAtMoment || "Unknown Team"}</p>
+      {nft?.isLocked && (
+        <div className="text-center mt-1">
+          <span className="text-red-500 text-xs">Locked</span>
         </div>
       )}
     </div>

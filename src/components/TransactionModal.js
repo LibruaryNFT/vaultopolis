@@ -1,11 +1,19 @@
 import React, { useContext } from "react";
 import { UserContext } from "./UserContext";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
+import { FaCheckCircle } from "react-icons/fa"; // Added for completion icon
 
 const TransactionModal = () => {
   const { transactionInfo, showModal, dispatch } = useContext(UserContext);
 
   if (!showModal) return null;
+
+  // Determine if the transaction is in progress
+  const isTransactionInProgress =
+    transactionInfo.includes("Processing") ||
+    transactionInfo.includes("Revealing") ||
+    transactionInfo.includes("Submitting") ||
+    transactionInfo.includes("Transaction submitted");
 
   return (
     <div
@@ -30,9 +38,13 @@ const TransactionModal = () => {
           </button>
         </div>
         <div className="flex items-center justify-center my-4">
-          <AiOutlineLoading3Quarters className="text-3xl animate-spin" />
+          {isTransactionInProgress ? (
+            <AiOutlineLoading3Quarters className="text-3xl animate-spin" />
+          ) : (
+            <FaCheckCircle className="text-3xl text-green-500" />
+          )}
         </div>
-        <pre className="mt-2 text-center whitespace-pre-wrap text-sm leading-relaxed">
+        <pre className="mt-2 text-center whitespace-pre-wrap text-sm leading-relaxed break-words">
           {transactionInfo || "Processing transaction..."}
         </pre>
       </div>

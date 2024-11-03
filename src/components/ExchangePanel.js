@@ -17,16 +17,16 @@ const ExchangePanel = () => {
     dispatch,
     showModal,
     transactionInfo,
+    refreshBalances,
   } = useContext(UserContext);
 
   const [isReversed, setIsReversed] = useState(false);
   const [tshotAmount, setTshotAmount] = useState(0);
   const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
   const [eligibleMoments, setEligibleMoments] = useState([]);
-  const [ineligibleMoments, setIneligibleMoments] = useState([]);
-  const [showIneligible, setShowIneligible] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [totalCommons, setTotalCommons] = useState(0);
 
   const handleSwapDirection = () => {
     setIsReversed((prev) => !prev);
@@ -55,12 +55,13 @@ const ExchangePanel = () => {
 
     try {
       dispatch({ type: "TOGGLE_MODAL", payload: true });
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Processing transaction...",
-      });
 
       if (isReversed) {
+        dispatch({
+          type: "SET_TRANSACTION_INFO",
+          payload: `Processing commit transaction with ${tshotAmount} TSHOT...`,
+        });
+
         const txId = await fcl.mutate({
           cadence: commitSwap,
           args: (arg, t) => [arg(tshotAmount.toFixed(1), t.UFix64)],
@@ -69,12 +70,22 @@ const ExchangePanel = () => {
           authorizations: [fcl.authz],
           limit: 9999,
         });
+
         await fcl.tx(txId).onceSealed();
+
+        // Refresh TSHOT balance after commit
+        await refreshBalances();
+
         dispatch({
           type: "SET_TRANSACTION_INFO",
-          payload: `Commit transaction completed. ID: ${txId}`,
+          payload: `Commit transaction completed. ${tshotAmount} TSHOT committed.\nTransaction ID: ${txId}`,
         });
       } else {
+        dispatch({
+          type: "SET_TRANSACTION_INFO",
+          payload: `Processing swap of ${selectedNFTs.length} NFT(s) for TSHOT...`,
+        });
+
         const txId = await fcl.mutate({
           cadence: exchangeNFTForTSHOT,
           args: (arg, t) => [arg(selectedNFTs || [], t.Array(t.UInt64))],
@@ -83,23 +94,36 @@ const ExchangePanel = () => {
           authorizations: [fcl.authz],
           limit: 9999,
         });
+
         await fcl.tx(txId).onceSealed();
+
+        // Refresh balances after swap
+        await refreshBalances();
+        dispatch({ type: "RESET_SELECTED_NFTS" }); // Reset selected NFTs after swap
+
         dispatch({
           type: "SET_TRANSACTION_INFO",
-          payload: `Exchange transaction completed. ID: ${txId}`,
+          payload: `Swap transaction completed. ${selectedNFTs.length} NFT(s) exchanged for TSHOT.\nTransaction ID: ${txId}`,
         });
       }
+
+      // Optionally, close the modal after a delay
+      setTimeout(() => {
+        dispatch({ type: "TOGGLE_MODAL", payload: false });
+      }, 3000); // Adjust the delay as needed
     } catch (error) {
       console.error("Transaction error:", error);
 
       let errorMessage = "Transaction failed.";
-      if (error.message.includes("Declined")) {
-        errorMessage = "Transaction failed: User canceled the request.";
-      } else if (error.message.includes("authz")) {
+      const errMsg = error?.message || error?.toString() || "";
+
+      if (errMsg.includes("Declined") || errMsg.includes("rejected")) {
+        errorMessage = "Transaction failed: User rejected the request.";
+      } else if (errMsg.includes("authz")) {
         errorMessage =
           "Transaction failed: Authorization error. Please try again.";
       } else {
-        errorMessage = `Transaction failed: ${error.message}`;
+        errorMessage = `Transaction failed: ${errMsg}`;
       }
 
       dispatch({
@@ -125,10 +149,19 @@ const ExchangePanel = () => {
         limit: 9999,
       });
       await fcl.tx(txId).onceSealed();
+
+      // Refresh balances after reveal
+      await refreshBalances();
+
       dispatch({
         type: "SET_TRANSACTION_INFO",
-        payload: `Reveal transaction completed. ID: ${txId}`,
+        payload: `Reveal transaction completed.\nTransaction ID: ${txId}`,
       });
+
+      // Optionally, close the modal after a delay
+      setTimeout(() => {
+        dispatch({ type: "TOGGLE_MODAL", payload: false });
+      }, 3000);
     } catch (error) {
       dispatch({
         type: "SET_TRANSACTION_INFO",
@@ -157,22 +190,30 @@ const ExchangePanel = () => {
             (!excludeSpecialSerials || !isSpecialSerial)
           );
         })
+        .filter((nft) => !selectedNFTs.includes(nft.id)) // Exclude selected NFTs
         .sort((a, b) => b.serialNumber - a.serialNumber);
 
-      const ineligible = nftDetails.filter((nft) => !eligible.includes(nft));
       setEligibleMoments(eligible);
-      setIneligibleMoments(ineligible);
-
-      const visibleSelectedNFTs = selectedNFTs.filter((id) =>
-        eligible.some((nft) => nft.id === id)
-      );
-      dispatch({ type: "SET_SELECTED_NFTS", payload: visibleSelectedNFTs });
     };
 
     if (user.loggedIn && nftDetails.length > 0) {
       updateMomentVisibility();
     }
-  }, [user, nftDetails, excludeSpecialSerials, dispatch]);
+  }, [user, nftDetails, excludeSpecialSerials, selectedNFTs]);
+
+  // Calculate total commons regardless of filters
+  useEffect(() => {
+    const countTotalCommons = () => {
+      const commons = nftDetails.filter(
+        (nft) => nft.tier.toLowerCase() === "common" && !nft.isLocked
+      );
+      setTotalCommons(commons.length);
+    };
+
+    if (user.loggedIn && nftDetails.length > 0) {
+      countTotalCommons();
+    }
+  }, [user, nftDetails]);
 
   const handleNFTSelection = (id) => {
     dispatch({ type: "SELECT_NFT", payload: id });
@@ -182,13 +223,12 @@ const ExchangePanel = () => {
     setCurrentPage(newPage);
   };
 
-  const paginatedMoments = (
-    showIneligible ? ineligibleMoments : eligibleMoments
-  ).slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const totalPages = Math.ceil(
-    (showIneligible ? ineligibleMoments : eligibleMoments).length / itemsPerPage
+  const paginatedMoments = eligibleMoments.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
+
+  const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
 
   return (
     <div className="w-full mx-auto p-6 rounded-lg shadow-xl font-inter max-w-screen-lg mt-12 bg-gray-800">
@@ -224,7 +264,7 @@ const ExchangePanel = () => {
                   {tshotAmount || 0} Random Moment
                 </div>
                 <small className="text-gray-500 mt-1">
-                  Balance: {eligibleMoments.length} Top Shot Commons
+                  Balance: {totalCommons} Top Shot Commons
                 </small>
               </div>
             </>
@@ -237,7 +277,7 @@ const ExchangePanel = () => {
                 </div>
                 <div className="text-gray-400 mt-2">Top Shot Common</div>
                 <small className="text-gray-500 mt-1">
-                  Balance: {eligibleMoments.length} Commons
+                  Balance: {totalCommons} Commons
                 </small>
               </div>
               <div
@@ -353,13 +393,6 @@ const ExchangePanel = () => {
                   Exclude special serials (#1 or last serial)
                 </label>
               </div>
-
-              <button
-                onClick={() => setShowIneligible((prev) => !prev)}
-                className="bg-gray-600 hover:bg-gray-500 text-white py-1 px-3 rounded mb-4"
-              >
-                Show Ineligible Moments (Debug)
-              </button>
 
               <div className="flex flex-wrap mt-3">
                 {paginatedMoments.map((nft) => (
