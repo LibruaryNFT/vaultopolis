@@ -3,45 +3,35 @@ import React, { useState, useContext } from "react";
 import { UserContext } from "./UserContext";
 import NFTToTSHOTPanel from "./NFTToTSHOTPanel";
 import TSHOTToNFTPanel from "./TSHOTToNFTPanel";
-import TransactionModal from "./TransactionModal"; // Import TransactionModal
+import MomentSelection from "./MomentSelection";
+import TransactionModal from "./TransactionModal";
 
 const ExchangePanel = () => {
   const [isNFTToTSHOT, setIsNFTToTSHOT] = useState(true);
-  const { showModal } = useContext(UserContext);
+  const { showModal, user } = useContext(UserContext);
 
   return (
-    <div className="w-full mx-auto p-6 rounded-lg shadow-xl font-inter max-w-screen-lg mt-12 bg-gray-800">
+    <div className="w-full mx-auto mt-24 flex flex-col items-center space-y-4">
       {showModal && <TransactionModal />}
 
-      <div className="bg-gray-700 p-6 rounded-lg text-center text-white mb-6">
-        {/* Mode Toggle with Label */}
-        <div className="text-gray-400 mb-2">Select Swap Mode</div>
-        <div className="flex items-center justify-center mb-6 space-x-4">
-          <button
-            onClick={() => setIsNFTToTSHOT(true)}
-            className={`px-6 py-2 font-bold rounded-lg border-2 ${
-              isNFTToTSHOT
-                ? "bg-blue-500 text-white border-blue-500"
-                : "bg-gray-700 text-gray-400 border-gray-600"
-            }`}
-          >
-            Moments to $TSHOT
-          </button>
-          <button
-            onClick={() => setIsNFTToTSHOT(false)}
-            className={`px-6 py-2 font-bold rounded-lg border-2 ${
-              !isNFTToTSHOT
-                ? "bg-blue-500 text-white border-blue-500"
-                : "bg-gray-700 text-gray-400 border-gray-600"
-            }`}
-          >
-            $TSHOT to Moments
-          </button>
-        </div>
-
-        {/* Render Mode-Specific Panels */}
-        {isNFTToTSHOT ? <NFTToTSHOTPanel /> : <TSHOTToNFTPanel />}
+      {/* Give/Receive Panel (50% Width) */}
+      <div className="w-1/2 p-2 bg-gray-800 rounded-lg shadow-xl">
+        {isNFTToTSHOT ? (
+          <NFTToTSHOTPanel
+            isNFTToTSHOT={isNFTToTSHOT}
+            setIsNFTToTSHOT={setIsNFTToTSHOT}
+          />
+        ) : (
+          <TSHOTToNFTPanel setIsNFTToTSHOT={setIsNFTToTSHOT} />
+        )}
       </div>
+
+      {/* Conditionally render Moment Selection Panel (75% Width) */}
+      {user.loggedIn && isNFTToTSHOT && (
+        <div className="w-3/4 p-2 bg-gray-800 rounded-lg shadow-xl">
+          <MomentSelection />
+        </div>
+      )}
     </div>
   );
 };
