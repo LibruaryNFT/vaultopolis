@@ -4,6 +4,7 @@ import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
+import { getReceiptDetails } from "../flow/getReceiptDetails"; // Import the script
 import { FaArrowDown, FaCheckCircle } from "react-icons/fa";
 
 const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
@@ -13,13 +14,13 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
     dispatch,
     refreshBalances,
     hasReceipt,
-    receiptDetails = {},
     nftDetails = [],
   } = useContext(UserContext);
 
   const [tshotAmount, setTshotAmount] = useState(0);
   const [totalCommons, setTotalCommons] = useState(0);
   const [showReceiptDetails, setShowReceiptDetails] = useState(false);
+  const [receiptData, setReceiptData] = useState({});
 
   useEffect(() => {
     const countTotalCommons = () => {
@@ -33,6 +34,21 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
       countTotalCommons();
     }
   }, [user, nftDetails]);
+
+  const fetchReceiptDetails = async () => {
+    if (!showReceiptDetails) {
+      try {
+        const result = await fcl.query({
+          cadence: getReceiptDetails,
+          args: (arg, t) => [arg(user.addr, t.Address)],
+        });
+        setReceiptData(result);
+      } catch (error) {
+        console.error("Failed to fetch receipt details:", error);
+      }
+    }
+    setShowReceiptDetails(!showReceiptDetails);
+  };
 
   const handleCommit = async () => {
     if (!user.loggedIn) {
@@ -209,9 +225,6 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
             Step 1: Deposit $TSHOT
             {hasReceipt && <FaCheckCircle className="ml-2 text-gray-500" />}
           </p>
-          <p className="text-gray-300 text-sm mt-1">
-            Deposit $TSHOT to begin the swap process.
-          </p>
           <button
             onClick={user.loggedIn ? handleCommit : fcl.authenticate}
             className={`mt-3 p-2 text-lg rounded-lg font-bold w-full ${
@@ -242,11 +255,38 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
             {hasReceipt ? "Current Step" : "Upcoming Step"}
           </p>
           <p className="text-white font-semibold">Step 2: Receive Moments</p>
-          <p className="text-gray-300 text-sm mt-1">
-            {hasReceipt
-              ? "Proceed to claim your Moments."
-              : "Complete Step 1 to unlock Step 2."}
-          </p>
+          {hasReceipt && (
+            <button
+              onClick={fetchReceiptDetails}
+              className="text-blue-300 underline text-xs mt-2"
+            >
+              {showReceiptDetails ? "Hide Receipt Details" : "Receipt Details"}
+            </button>
+          )}
+          {showReceiptDetails && (
+            <div className="mt-2 bg-gray-800 p-3 rounded-lg">
+              <p className="text-gray-400">
+                <strong>$TSHOT Swap Amount:</strong>{" "}
+                {receiptData.betAmount || "N/A"}
+              </p>
+              <p className="text-gray-400">
+                <strong>Request Block:</strong>{" "}
+                {receiptData.requestBlock || "N/A"}
+              </p>
+              <p className="text-gray-400">
+                <strong>Can Fulfill:</strong>{" "}
+                {receiptData.canFulfill ? "Yes" : "No"}
+              </p>
+              <p className="text-gray-400">
+                <strong>Request UUID:</strong>{" "}
+                {receiptData.requestUUID || "N/A"}
+              </p>
+              <p className="text-gray-400">
+                <strong>Is Fulfilled:</strong>{" "}
+                {receiptData.isFulfilled ? "Yes" : "No"}
+              </p>
+            </div>
+          )}
           <button
             onClick={user.loggedIn ? handleReveal : fcl.authenticate}
             className={`mt-3 p-2 text-lg rounded-lg font-bold w-full ${

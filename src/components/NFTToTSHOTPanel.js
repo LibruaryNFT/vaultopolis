@@ -6,8 +6,16 @@ import * as fcl from "@onflow/fcl";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 
 const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
-  const { user, tshotBalance, selectedNFTs, dispatch, refreshBalances } =
-    useContext(UserContext);
+  const {
+    user,
+    tshotBalance,
+    selectedNFTs,
+    dispatch,
+    refreshBalances,
+    tierCounts,
+  } = useContext(UserContext);
+
+  const totalTopShotCommons = user.loggedIn ? tierCounts?.common || 0 : 0;
 
   const handleSwap = async () => {
     if (!user.loggedIn) {
@@ -68,6 +76,9 @@ const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
         <div className="text-lg font-bold text-white">
           {selectedNFTs.length || 0} TopShot Commons
         </div>
+        <small className="text-gray-500">
+          Balance: {totalTopShotCommons} TopShot Commons
+        </small>
       </div>
 
       {/* Centered Down Arrow */}
