@@ -14,7 +14,7 @@ function App() {
         className="w-full min-h-screen bg-cover bg-center bg-fixed"
         style={{
           backgroundImage:
-            "url('https://storage.googleapis.com/momentswap/images/BackgroundMomentSwap.jpg')",
+            "url('https://storage.googleapis.com/momentswap/images/BackgroundMomentSwap3.jpg')",
           objectPosition: "center",
         }}
       >
