@@ -1,35 +1,35 @@
-// App.js
 import React from "react";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { UserProvider } from "./components/UserContext";
 import Header from "./components/Header";
-import ExchangePanel from "./components/ExchangePanel";
-import TransactionModal from "./components/TransactionModal";
+import Home from "./components/Home";
+import VaultCollection from "./components/VaultCollection";
 
 function App() {
   return (
     <UserProvider>
-      <div className="w-full min-h-screen relative overflow-hidden bg-black">
-        {/* Background Video */}
-        <video
-          className="fixed top-0 left-0 w-full h-full object-cover"
-          src="https://storage.googleapis.com/momentswap/images/BackgroundMomentSwap4.mp4"
-          autoPlay
-          muted
-          playsInline
-        />
-
-        {/* Overlay for content readability */}
-        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-
-        {/* Main Content */}
-        <div className="relative z-10 min-h-screen flex flex-col items-center text-white">
-          <Header />
-          <div className="w-full flex flex-col items-center p-4 mt-32">
-            <ExchangePanel />
-            <TransactionModal />
+      <Router>
+        <div className="w-full min-h-screen relative overflow-hidden bg-black">
+          {/* Background Video */}
+          <video
+            className="fixed top-0 left-0 w-full h-full object-cover z-0"
+            src="https://storage.googleapis.com/momentswap/images/BackgroundMomentSwap4.mp4"
+            autoPlay
+            muted
+            playsInline
+          />
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black bg-opacity-50 z-10"></div>
+          {/* Main Content */}
+          <div className="relative z-20 min-h-screen flex flex-col items-center text-white">
+            <Header />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/vault" element={<VaultCollection />} />
+            </Routes>
           </div>
         </div>
-      </div>
+      </Router>
     </UserProvider>
   );
 }
