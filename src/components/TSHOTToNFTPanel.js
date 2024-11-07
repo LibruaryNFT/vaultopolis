@@ -5,6 +5,7 @@ import * as fcl from "@onflow/fcl";
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import { getReceiptDetails } from "../flow/getReceiptDetails"; // Import the script
+import { destroyReceipt } from "../flow/destroyReceipt"; // Import destroy receipt script
 import { FaArrowDown, FaCheckCircle } from "react-icons/fa";
 
 const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
@@ -156,6 +157,47 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
     }
   };
 
+  const handleDestroyReceipt = async () => {
+    if (!user.loggedIn) {
+      fcl.authenticate();
+      return;
+    }
+
+    try {
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: "Destroying receipt...",
+      });
+
+      const txId = await fcl.mutate({
+        cadence: destroyReceipt,
+        proposer: fcl.authz,
+        payer: fcl.authz,
+        authorizations: [fcl.authz],
+        limit: 9999,
+      });
+
+      await fcl.tx(txId).onceSealed();
+      await refreshBalances();
+
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: `Receipt destroyed successfully.\nTransaction ID: ${txId}`,
+      });
+
+      setTimeout(() => {
+        dispatch({ type: "TOGGLE_MODAL", payload: false });
+      }, 3000);
+    } catch (error) {
+      dispatch({
+        type: "SET_TRANSACTION_INFO",
+        payload: `Destroy receipt transaction failed: ${error.message}`,
+      });
+      dispatch({ type: "TOGGLE_MODAL", payload: true });
+    }
+  };
+
   const handleTshotChange = (e) => {
     const value = e.target.value;
     if (/^\d*\.?\d*$/.test(value)) {
@@ -285,6 +327,12 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
                 <strong>Is Fulfilled:</strong>{" "}
                 {receiptData.isFulfilled ? "Yes" : "No"}
               </p>
+              <button
+                onClick={handleDestroyReceipt}
+                className="mt-3 p-2 bg-red-600 text-white rounded-lg font-bold w-full"
+              >
+                Destroy Receipt
+              </button>
             </div>
           )}
           <button

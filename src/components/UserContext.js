@@ -1,5 +1,5 @@
 // UserContext.js
-import React, { createContext, useReducer, useEffect } from "react";
+import React, { createContext, useReducer, useEffect, useMemo } from "react";
 import * as fcl from "@onflow/fcl";
 import { useQuery, useQueryClient } from "react-query";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
@@ -8,7 +8,7 @@ import { verifyTSHOTVault } from "../flow/verifyTSHOTVault";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 import { verifyReceipt } from "../flow/verifyReceipt";
-import { getReceiptDetails } from "../flow/getReceiptDetails"; // Import getReceiptDetails script
+import { getReceiptDetails } from "../flow/getReceiptDetails";
 
 export const UserContext = createContext();
 
@@ -29,8 +29,8 @@ const initialState = {
     legendary: 0,
     ultimate: 0,
   },
-  hasReceipt: null, // State to track receipt existence
-  receiptDetails: {}, // State to store receipt details
+  hasReceipt: null,
+  receiptDetails: {},
 };
 
 function userReducer(state, action) {
@@ -115,69 +115,13 @@ export const UserProvider = ({ children }) => {
   const refreshBalances = async () => {
     if (state.user.addr) {
       try {
-        // Refresh TSHOT balance
-        const tshotBalance = await fcl.query({
-          cadence: getTSHOTBalance,
-          args: (arg, t) => [arg(state.user.addr, t.Address)],
-        });
-        dispatch({ type: "SET_TSHOT_BALANCE", payload: tshotBalance });
-
-        // Check for TopShot collection
-        const hasCollection = await fcl.query({
-          cadence: verifyTopShotCollection,
-          args: (arg, t) => [arg(state.user.addr, t.Address)],
-        });
-        dispatch({ type: "SET_COLLECTION_STATUS", payload: hasCollection });
-
-        // Check for TSHOT vault
-        const hasVault = await fcl.query({
-          cadence: verifyTSHOTVault,
-          args: (arg, t) => [arg(state.user.addr, t.Address)],
-        });
-        dispatch({ type: "SET_VAULT_STATUS", payload: hasVault });
-
-        // Check for receipt
-        const hasReceipt = await fcl.query({
-          cadence: verifyReceipt,
-          args: (arg, t) => [arg(state.user.addr, t.Address)],
-        });
-        dispatch({ type: "SET_RECEIPT_STATUS", payload: hasReceipt });
-
-        // Fetch receipt details if the receipt exists
-        if (hasReceipt) {
-          await fetchReceiptDetails();
-        } else {
-          dispatch({ type: "SET_RECEIPT_DETAILS", payload: {} });
-        }
-
-        // Refresh NFT details
-        if (hasCollection) {
-          const details = await fcl.query({
-            cadence: getTopShotCollection,
-            args: (arg, t) => [arg(state.user.addr, t.Address)],
-          });
-
-          const tierCounts = {
-            common: 0,
-            rare: 0,
-            fandom: 0,
-            legendary: 0,
-            ultimate: 0,
-          };
-
-          for (const nft of details) {
-            const tier = nft.tier.toLowerCase();
-            if (tierCounts.hasOwnProperty(tier)) {
-              tierCounts[tier]++;
-            }
-          }
-
-          dispatch({ type: "SET_NFT_DETAILS", payload: details });
-          dispatch({ type: "SET_TIER_COUNTS", payload: tierCounts });
-        } else {
-          dispatch({ type: "SET_NFT_DETAILS", payload: [] });
-          dispatch({ type: "SET_TIER_COUNTS", payload: {} });
-        }
+        // Invalidate queries to refresh data
+        await queryClient.invalidateQueries(["tshotBalance", state.user.addr]);
+        await queryClient.invalidateQueries([
+          "topShotCollection",
+          state.user.addr,
+        ]);
+        await queryClient.invalidateQueries(["hasReceipt", state.user.addr]);
       } catch (error) {
         console.error("Error refreshing balances:", error);
       }
@@ -198,13 +142,15 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  // useQuery for TSHOT balance
   useQuery(
     ["tshotBalance", state.user.addr],
     async () => {
-      return await fcl.query({
+      const tshotBalance = await fcl.query({
         cadence: getTSHOTBalance,
         args: (arg, t) => [arg(state.user.addr, t.Address)],
       });
+      return tshotBalance;
     },
     {
       enabled: !!state.user.addr,
@@ -214,6 +160,7 @@ export const UserProvider = ({ children }) => {
     }
   );
 
+  // useQuery for TopShot collection and tier counts
   useQuery(
     ["topShotCollection", state.user.addr],
     async () => {
@@ -254,6 +201,29 @@ export const UserProvider = ({ children }) => {
       onSuccess: (data) => {
         dispatch({ type: "SET_NFT_DETAILS", payload: data.details });
         dispatch({ type: "SET_TIER_COUNTS", payload: data.tierCounts });
+      },
+    }
+  );
+
+  // New useQuery for hasReceipt
+  useQuery(
+    ["hasReceipt", state.user.addr],
+    async () => {
+      const hasReceipt = await fcl.query({
+        cadence: verifyReceipt,
+        args: (arg, t) => [arg(state.user.addr, t.Address)],
+      });
+      return hasReceipt;
+    },
+    {
+      enabled: !!state.user.addr,
+      onSuccess: (hasReceipt) => {
+        dispatch({ type: "SET_RECEIPT_STATUS", payload: hasReceipt });
+        if (hasReceipt) {
+          fetchReceiptDetails();
+        } else {
+          dispatch({ type: "SET_RECEIPT_DETAILS", payload: {} });
+        }
       },
     }
   );
@@ -320,18 +290,17 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  return (
-    <UserContext.Provider
-      value={{
-        ...state,
-        dispatch,
-        handleNFTSelection,
-        exchangeNFTsForTSHOT,
-        refreshBalances,
-        receiptDetails: state.receiptDetails,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
+  const value = useMemo(
+    () => ({
+      ...state,
+      dispatch,
+      handleNFTSelection,
+      exchangeNFTsForTSHOT,
+      refreshBalances,
+      receiptDetails: state.receiptDetails,
+    }),
+    [state]
   );
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

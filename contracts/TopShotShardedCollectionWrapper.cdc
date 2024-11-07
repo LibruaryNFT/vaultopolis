@@ -43,6 +43,26 @@ access(all) contract TopShotShardedCollectionWrapper {
             // Call and return borrowMoment
             return collectionRef.borrowMoment(id: id)
         }
+
+        // Expose the getNumBuckets function from the Sharded Collection
+        access(all) fun getNumBuckets(): UInt64 {
+            // Borrow the collection using the capability
+            let collectionRef = self.collectionCap.borrow()
+                ?? panic("Could not borrow the sharded collection reference")
+            
+            // Call and return getNumBuckets
+            return collectionRef.getNumBuckets()
+        }
+
+        // Expose the getShardIDs function from the Sharded Collection
+        access(all) fun getShardIDs(shardIndex: UInt64): [UInt64] {
+            // Borrow the collection using the capability
+            let collectionRef = self.collectionCap.borrow()
+                ?? panic("Could not borrow the sharded collection reference")
+            
+            // Call and return getShardIDs for the specified shard index
+            return collectionRef.getShardIDs(shardIndex: shardIndex)
+        }
     }
 
     // Function to create a new CollectionWrapper with the sharded collection capability

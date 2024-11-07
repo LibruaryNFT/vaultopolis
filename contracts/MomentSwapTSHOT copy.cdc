@@ -120,17 +120,17 @@ access(all) contract MomentSwapTSHOT {
    access(all) fun swapTSHOTForNFTs(address: Address, receipt: @Receipt) {
 
     pre {
-        receipt.request != nil:
+        receipt.request != nil: 
         "Cannot swap! The provided receipt has already been swapped."
         receipt.getRequestBlock()! <= getCurrentBlock().height:
-        "Cannot swap! The provided receipt was committed for block height "
-            .concat(receipt.getRequestBlock()!.toString())
-            .concat(" which is greater than the current block height of ")
-            .concat(getCurrentBlock().height.toString())
-            .concat(". The swap can only happen after the committed block has passed.")
+        "Cannot swap! The provided receipt was committed for block height ".concat(receipt.getRequestBlock()!.toString())
+        .concat(" which is greater than the current block height of ")
+        .concat(getCurrentBlock().height.toString())
+        .concat(". The swap can only happen after the committed block has passed.")
     }
 
     let tokenAmount = receipt.betAmount
+    let commitBlock = receipt.getRequestBlock()!
     let receiptID = receipt.uuid
 
     // Withdraw the specified amount of TSHOT tokens from the reserve
@@ -143,14 +143,13 @@ access(all) contract MomentSwapTSHOT {
     let randomSeed <- receipt.popRequest()
 
     // Use the randomness from the randomSeed and generate a random number
-    let baseRandomValue = self.consumer.fulfillRandomInRange(
-        request: <-randomSeed,
-        min: 0,
-        max: UInt64.max
-    )
+    // Use this directly instead of revertibleRandom
+    let baseRandomValue = self.consumer.fulfillRandomInRange(request: <-randomSeed, min: 0, max: UInt64.max)
 
     // Now that the receipt has been fully used, we burn it
     Burner.burn(<-receipt)
+
+    var counter = 0
 
     // Borrow the admin's TopShot Collection
     let adminCollection = self.account
@@ -158,54 +157,35 @@ access(all) contract MomentSwapTSHOT {
         .borrow<auth(NonFungibleToken.Withdraw) &TopShotShardedCollection.ShardedCollection>(from: self.nftCollectionPath)
         ?? panic("Could not borrow admin's TopShot Collection")
 
-    // Get the number of shards (buckets)
-    let numBuckets = adminCollection.getNumBuckets()
-
-    // Select a random shard based on the baseRandomValue
-    let shardIndex = baseRandomValue % numBuckets
-
-    // Get the list of NFT IDs in the selected shard
-    let nftIDs: [UInt64] = adminCollection.getShardIDs(shardIndex: shardIndex)
-    if nftIDs.length == 0 {
-        panic("No NFTs available in the selected shard")
-    }
-
-    // Ensure that the tokenAmount does not exceed the number of available NFTs in the shard
-    if UInt64(tokenAmount) > UInt64(nftIDs.length) {
-        panic("Not enough NFTs available in the selected shard to fulfill the swap")
-    }
-
-    // Set up a list to store selected NFT IDs and a counter for the loop
-    var selectedNFTIDs: [UInt64] = []
-    var remainingNFTIDs = nftIDs
-    var counter = 0
-
-    // Loop to generate a list of unique random indices for NFT selection
+    // Exchange each TSHOT token for a random TopShot NFT
     while counter < Int(tokenAmount) {
-        let derivedRandomValue = (baseRandomValue + UInt64(counter)) % UInt64(remainingNFTIDs.length)
-        let selectedNFTID = remainingNFTIDs.remove(at: Int(derivedRandomValue))
-        selectedNFTIDs.append(selectedNFTID)
+        let nftIDs: [UInt64] = adminCollection.getIDs()
+
+        if nftIDs.length == 0 {
+            panic("No NFTs available in the vault")
+        }
+
+        // Derive a new random index using the baseRandomValue and counter
+        let derivedRandomValue = (baseRandomValue + UInt64(counter)) % UInt64(nftIDs.length)
+
+        let selectedNFTID = nftIDs[derivedRandomValue]
+
+        // Withdraw the selected NFT from the admin's storage
+        let selectedNFT <- adminCollection.withdraw(withdrawID: selectedNFTID)
+
+        // Get the recipient's account and borrow their TopShot Collection via capabilities
+        let receiverRef = getAccount(address)
+            .capabilities
+            .get<&TopShot.Collection>(/public/MomentCollection)
+            .borrow()
+            ?? panic("Could not borrow the user's TopShot Collection via capability")
+
+        // Deposit the TopShot NFT into the user's account
+        receiverRef.deposit(token: <-selectedNFT)
+
         counter = counter + 1
     }
-
-    // Batch withdraw the selected NFTs from the shard
-    let selectedNFTs <- adminCollection.batchWithdrawFromShard(
-        shardIndex: shardIndex,
-        ids: selectedNFTIDs
-    )
-
-    // Get the recipient's account and borrow their TopShot Collection via capabilities
-    let receiverRef = getAccount(address)
-        .capabilities
-        .get<&TopShot.Collection>(/public/MomentCollection)
-        .borrow()
-        ?? panic("Could not borrow the user's TopShot Collection via capability")
-
-    // Deposit all selected NFTs into the user's account
-    receiverRef.batchDeposit(tokens: <-selectedNFTs)
 }
-
-
 
     init() {
         // Set the storage paths for the admin NFT vault and FT admin resources

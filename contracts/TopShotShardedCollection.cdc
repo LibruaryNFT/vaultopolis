@@ -59,6 +59,41 @@ access(all) contract TopShotShardedCollection {
             }
         }
 
+        access(all) fun getNumBuckets(): UInt64 {
+            return self.numBuckets
+        }
+
+        access(all) fun getShardIDs(shardIndex: UInt64): [UInt64] {
+            pre {
+                shardIndex < self.numBuckets: "Invalid shard index"
+            }
+            let shard = &self.collections[shardIndex] as &TopShot.Collection?
+                ?? panic("Shard not found")
+            return shard.getIDs()
+        }
+
+       access(NonFungibleToken.Withdraw) fun batchWithdrawFromShard(shardIndex: UInt64, ids: [UInt64]): @{NonFungibleToken.Collection} {
+            pre {
+                shardIndex < self.numBuckets: "Invalid shard index"
+            }
+
+            // Borrow a reference to the shard with `Withdraw` authorization
+            let shard = (&self.collections[shardIndex] as auth(NonFungibleToken.Withdraw) &TopShot.Collection?)
+                ?? panic("Shard not found")
+
+            // Create an empty batch collection to hold the withdrawn NFTs
+            var batchCollection <- TopShot.createEmptyCollection(nftType: Type<@TopShot.NFT>())
+
+            // Iterate over each requested ID and withdraw the NFT from the shard
+            for id in ids {
+                batchCollection.deposit(token: <- shard.withdraw(withdrawID: id))
+            }
+
+            // Return the batch of withdrawn NFTs
+            return <-batchCollection
+        }
+
+
 
         init(numBuckets: UInt64) {
             self.collections <- {}

@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { UserProvider } from "./components/UserContext";
 import Header from "./components/Header";
 import Home from "./components/Home";
-import VaultCollection from "./components/VaultCollection";
+import Vault from "./components/Vault";
+import Earn from "./components/Earn";
 
 function App() {
   return (
@@ -25,7 +26,8 @@ function App() {
             <Header />
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/vault" element={<VaultCollection />} />
+              <Route path="/vault" element={<Vault />} />
+              <Route path="/earn" element={<Earn />} />
             </Routes>
           </div>
         </div>

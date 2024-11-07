@@ -28,8 +28,13 @@ const Header = () => {
           <NavLink to="/" isActive={location.pathname === "/"}>
             Swap
           </NavLink>
+
           <NavLink to="/vault" isActive={location.pathname === "/vault"}>
             Vault
+          </NavLink>
+
+          <NavLink to="/earn" isActive={location.pathname === "/earn"}>
+            Overview
           </NavLink>
         </div>
       </div>
