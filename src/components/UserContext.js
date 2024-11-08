@@ -205,6 +205,23 @@ export const UserProvider = ({ children }) => {
     }
   );
 
+  useQuery(
+    ["hasVault", state.user.addr],
+    async () => {
+      const hasVault = await fcl.query({
+        cadence: verifyTSHOTVault,
+        args: (arg, t) => [arg(state.user.addr, t.Address)],
+      });
+      return hasVault;
+    },
+    {
+      enabled: !!state.user.addr,
+      onSuccess: (hasVault) => {
+        dispatch({ type: "SET_VAULT_STATUS", payload: hasVault });
+      },
+    }
+  );
+
   // New useQuery for hasReceipt
   useQuery(
     ["hasReceipt", state.user.addr],
