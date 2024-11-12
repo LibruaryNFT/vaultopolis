@@ -1,46 +1,85 @@
+// src/components/ExchangePanel.js
 import React, { useContext, useState, useRef } from "react";
 import { UserContext } from "./UserContext";
 import { Link, useLocation } from "react-router-dom";
 import DropdownMenu from "./DropdownMenu";
-import { FaUserCircle } from "react-icons/fa";
+import { FaUserCircle, FaBars } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 const Header = () => {
   const { user } = useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const buttonRef = useRef(null); // Reference to profile button
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
+  const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
 
   return (
     <header className="bg-transparent text-white py-4 w-full flex items-center justify-between relative z-50">
-      {/* Logo and Navigation Links */}
+      {/* Logo and Mobile Menu Icon */}
       <div className="flex items-center space-x-4 pl-4">
         <Link to="/" className="flex-shrink-0">
+          {/* Show "MS" text on small screens, full logo on larger screens */}
+          <span className="text-2xl font-bold md:hidden">MS</span>
           <img
             src="https://storage.googleapis.com/momentswap/images/MomentSwapWhite.png"
             alt="MomentSwap Logo"
-            className="max-h-8"
+            className="hidden md:block max-h-8"
           />
         </Link>
-        <div className="flex space-x-4">
-          <NavLink to="/" isActive={location.pathname === "/"}>
+        {/* Hamburger Icon next to Logo on Mobile */}
+        <button
+          onClick={toggleMobileMenu}
+          className="md:hidden focus:outline-none"
+        >
+          <FaBars size={20} />
+        </button>
+      </div>
+
+      {/* Desktop Navigation Links */}
+      <div className="hidden md:flex space-x-4">
+        <NavLink to="/" isActive={location.pathname === "/"}>
+          Swap
+        </NavLink>
+        <NavLink to="/vault" isActive={location.pathname === "/vault"}>
+          Vault
+        </NavLink>
+        <NavLink to="/earn" isActive={location.pathname === "/earn"}>
+          Overview
+        </NavLink>
+      </div>
+
+      {/* Mobile Navigation Menu */}
+      {isMobileMenuOpen && (
+        <div className="absolute top-16 left-0 w-full bg-gray-800 text-white flex flex-col items-start p-4 md:hidden">
+          <NavLink
+            to="/"
+            isActive={location.pathname === "/"}
+            onClick={toggleMobileMenu}
+          >
             Swap
           </NavLink>
-
-          <NavLink to="/vault" isActive={location.pathname === "/vault"}>
+          <NavLink
+            to="/vault"
+            isActive={location.pathname === "/vault"}
+            onClick={toggleMobileMenu}
+          >
             Vault
           </NavLink>
-
-          <NavLink to="/earn" isActive={location.pathname === "/earn"}>
+          <NavLink
+            to="/earn"
+            isActive={location.pathname === "/earn"}
+            onClick={toggleMobileMenu}
+          >
             Overview
           </NavLink>
         </div>
-      </div>
+      )}
 
-      {/* User Profile and Actions */}
-      <div className="flex justify-end items-center w-full pr-2">
+      {/* User Profile and Connect Button */}
+      <div className="flex justify-end items-center pr-4">
         {user.loggedIn ? (
           <div className="relative">
             <UserButton ref={buttonRef} onClick={toggleMenu} user={user} />
@@ -54,7 +93,7 @@ const Header = () => {
         ) : (
           <button
             onClick={() => fcl.authenticate()}
-            className="px-4 py-2 bg-green-500 rounded hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="px-4 py-2 bg-flow-dark rounded hover:bg-flow-darkest focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             Connect
           </button>
@@ -64,9 +103,10 @@ const Header = () => {
   );
 };
 
-const NavLink = ({ to, isActive, children }) => (
+const NavLink = ({ to, isActive, children, onClick }) => (
   <Link
     to={to}
+    onClick={onClick}
     className={`${
       isActive ? "text-white" : "text-gray-400"
     } hover:text-white transition-colors py-2 px-4 rounded-md`}

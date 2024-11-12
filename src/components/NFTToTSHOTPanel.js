@@ -1,7 +1,7 @@
 // src/components/NFTToTSHOTPanel.js
 import React, { useContext } from "react";
 import { UserContext } from "./UserContext";
-import { FaArrowDown } from "react-icons/fa";
+import { FaArrowDown, FaExchangeAlt } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 
@@ -69,11 +69,39 @@ const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
   };
 
   return (
-    <div className="flex flex-col space-y-4">
-      {/* Give Section */}
-      <div className="bg-gray-900 p-2 rounded-lg flex flex-col items-start mb-2">
-        <div className="text-gray-400 mb-1">Give</div>
-        <div className="text-lg font-bold text-white">
+    <div className="flex flex-col space-y-1">
+      {/* Swap Mode Section */}
+      <div className="flex items-center justify-center space-x-4 mb-2">
+        <span
+          className={`text-gray-400 font-semibold ${
+            isNFTToTSHOT ? "text-white" : ""
+          }`}
+        >
+          Moment to $TSHOT
+        </span>
+        <div
+          className="relative w-12 h-6 bg-gray-700 rounded-full cursor-pointer"
+          onClick={() => setIsNFTToTSHOT(!isNFTToTSHOT)}
+        >
+          <div
+            className={`absolute top-0.5 w-5 h-5 bg-flow-dark rounded-full transition-transform ${
+              isNFTToTSHOT ? "translate-x-0.5" : "translate-x-6"
+            }`}
+          />
+        </div>
+        <span
+          className={`text-gray-400 font-semibold ${
+            !isNFTToTSHOT ? "text-white" : ""
+          }`}
+        >
+          $TSHOT to Moment
+        </span>
+      </div>
+
+      {/* Sell Section */}
+      <div className="bg-gray-800 p-2 rounded-lg flex flex-col items-start">
+        <div className="text-gray-400 mb-1">Sell</div>
+        <div className="text-3xl font-bold text-white">
           {selectedNFTs.length || 0} TopShot Commons
         </div>
         <small className="text-gray-500">
@@ -82,17 +110,17 @@ const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
       </div>
 
       {/* Centered Down Arrow */}
-      <div className="flex justify-center my-1">
-        <FaArrowDown
-          className="text-white text-2xl cursor-pointer"
-          onClick={() => setIsNFTToTSHOT(false)}
-        />
+      <div
+        className="flex justify-center rounded-lg bg-gray-800 py-5 cursor-pointer"
+        onClick={() => setIsNFTToTSHOT(false)}
+      >
+        <FaArrowDown className="text-white text-2xl" />
       </div>
 
-      {/* Receive Section */}
-      <div className="bg-gray-900 p-2 rounded-lg flex flex-col items-start mb-4">
-        <div className="text-gray-400 mb-1">Receive</div>
-        <div className="text-lg font-bold text-white">
+      {/* Buy Section */}
+      <div className="bg-gray-800 p-2 rounded-lg flex flex-col items-start mb-1">
+        <div className="text-gray-400 mb-1">Buy</div>
+        <div className="text-3xl font-bold text-white">
           {selectedNFTs.length || 0} $TSHOT
         </div>
         <small className="text-gray-500">
@@ -103,7 +131,7 @@ const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
       {/* Swap Button with Conditional Text */}
       <button
         onClick={handleSwap}
-        className="w-full p-3 text-lg rounded-lg font-bold bg-blue-500 text-white"
+        className="w-full p-3 text-lg rounded-lg font-bold bg-flow-dark text-white hover:bg-flow-darkest"
       >
         {user.loggedIn ? "Swap" : "Connect Wallet"}
       </button>

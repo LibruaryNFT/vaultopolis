@@ -8,7 +8,7 @@ import { getReceiptDetails } from "../flow/getReceiptDetails"; // Import the scr
 import { destroyReceipt } from "../flow/destroyReceipt"; // Import destroy receipt script
 import { FaArrowDown, FaCheckCircle } from "react-icons/fa";
 
-const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
+const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
   const {
     user,
     tshotBalance,
@@ -206,11 +206,39 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
   };
 
   return (
-    <div className="p-4 bg-gray-900 rounded-lg space-y-4">
-      {/* Give Section */}
-      <div className="flex flex-col items-start bg-gray-800 p-3 rounded-lg mb-2">
-        <div className="text-gray-400 mb-1">Give</div>
-        <div className="text-lg font-bold text-white flex items-center">
+    <div className="rounded-lg space-y-1">
+      {/* Swap Mode Section */}
+      <div className="flex items-center justify-center space-x-4 mb-2">
+        <span
+          className={`text-gray-400 font-semibold ${
+            isNFTToTSHOT ? "text-white" : ""
+          }`}
+        >
+          Moment to $TSHOT
+        </span>
+        <div
+          className="relative w-12 h-6 bg-gray-700 rounded-full cursor-pointer"
+          onClick={() => setIsNFTToTSHOT(!isNFTToTSHOT)}
+        >
+          <div
+            className={`absolute top-0.5 w-5 h-5 bg-flow-dark rounded-full transition-transform ${
+              isNFTToTSHOT ? "translate-x-0.5" : "translate-x-6"
+            }`}
+          />
+        </div>
+        <span
+          className={`text-gray-400 font-semibold ${
+            !isNFTToTSHOT ? "text-white" : ""
+          }`}
+        >
+          $TSHOT to Moment
+        </span>
+      </div>
+
+      {/* Sell Section */}
+      <div className="flex flex-col items-start bg-gray-800 p-2 rounded-lg">
+        <div className="text-gray-400 mb-1">Sell</div>
+        <div className="text-3xl font-bold text-white flex items-center">
           <input
             type="number"
             value={tshotAmount || ""}
@@ -228,17 +256,17 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
       </div>
 
       {/* Centered Down Arrow */}
-      <div className="flex justify-center my-1">
-        <FaArrowDown
-          className="text-white text-2xl cursor-pointer"
-          onClick={() => setIsNFTToTSHOT(true)}
-        />
+      <div
+        className="flex justify-center rounded-lg bg-gray-800 py-5 cursor-pointer"
+        onClick={() => setIsNFTToTSHOT(true)}
+      >
+        <FaArrowDown className="text-white text-2xl" />
       </div>
 
-      {/* Receive Section */}
-      <div className="flex flex-col items-start bg-gray-800 p-3 rounded-lg mb-4">
-        <div className="text-gray-400 mb-1">Receive</div>
-        <div className="text-lg font-bold text-white">
+      {/* Buy Section */}
+      <div className="flex flex-col items-start bg-gray-800 p-2 rounded-lg mb-4">
+        <div className="text-gray-400 mb-1">Buy</div>
+        <div className="text-3xl font-bold text-white">
           {tshotAmount || 0} Random TopShot Commons
         </div>
         <small className="text-gray-500">
@@ -250,27 +278,39 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
       <div className="flex justify-between items-center space-x-4">
         {/* Step 1: Deposit $TSHOT */}
         <div
-          className={`w-1/2 p-4 text-center rounded-lg border-2 h-56 flex flex-col justify-between ${
+          className={`w-1/2 p-4 text-center rounded-lg border-2 h-124 flex flex-col justify-between ${
             hasReceipt
               ? "border-gray-500 bg-gray-800"
-              : "border-green-500 bg-gray-700"
+              : "border-flow-dark bg-gray-700"
           }`}
         >
           <p
             className={`text-sm font-bold ${
-              hasReceipt ? "text-gray-500" : "text-green-500"
+              hasReceipt ? "text-gray-500" : "text-flow-dark"
             }`}
           >
             {hasReceipt ? "Completed" : "Current Step"}
           </p>
           <p className="text-white font-semibold flex items-center justify-center">
-            Step 1: Deposit $TSHOT
+            Step 1: Deposit $TSHOT and Receive a Receipt
             {hasReceipt && <FaCheckCircle className="ml-2 text-gray-500" />}
           </p>
+
+          {/* Video Animation for Step 1 */}
+          <div className="flex justify-center my-3">
+            <video
+              src="https://storage.googleapis.com/momentswap/images/TSHOT-Step1.mp4"
+              autoPlay
+              loop
+              muted
+              className="w-full h-64 rounded-lg"
+            />
+          </div>
+
           <button
             onClick={user.loggedIn ? handleCommit : fcl.authenticate}
             className={`mt-3 p-2 text-lg rounded-lg font-bold w-full ${
-              hasReceipt ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600"
+              hasReceipt ? "bg-gray-500 cursor-not-allowed" : "bg-flow-dark"
             } text-white`}
           >
             {user.loggedIn
@@ -283,20 +323,35 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
 
         {/* Step 2: Receive Moments */}
         <div
-          className={`w-1/2 p-4 text-center rounded-lg border-2 h-56 flex flex-col justify-between ${
+          className={`w-1/2 p-4 text-center rounded-lg border-2 h-124 flex flex-col justify-between ${
             hasReceipt
-              ? "border-green-500 bg-gray-700"
+              ? "border-flow-dark bg-gray-700"
               : "border-gray-500 bg-gray-800"
           }`}
         >
           <p
             className={`text-sm font-bold ${
-              hasReceipt ? "text-green-500" : "text-gray-500"
+              hasReceipt ? "text-flow-dark" : "text-gray-500"
             }`}
           >
             {hasReceipt ? "Current Step" : "Upcoming Step"}
           </p>
-          <p className="text-white font-semibold">Step 2: Receive Moments</p>
+          <p className="text-white font-semibold flex items-center justify-center">
+            Step 2: Submit Receipt and Receive Moments
+          </p>
+
+          {/* Video Animation for Step 2 */}
+          <div className="flex justify-center my-3">
+            <video
+              src="https://storage.googleapis.com/momentswap/images/TSHOT-Step2.mp4"
+              autoPlay
+              loop
+              muted
+              className="w-full h-64 rounded-lg"
+            />
+          </div>
+
+          {/* Button to Show Receipt Details if Receipt is Present */}
           {hasReceipt && (
             <button
               onClick={fetchReceiptDetails}
@@ -305,6 +360,8 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
               {showReceiptDetails ? "Hide Receipt Details" : "Receipt Details"}
             </button>
           )}
+
+          {/* Receipt Details Section */}
           {showReceiptDetails && (
             <div className="mt-2 bg-gray-800 p-3 rounded-lg">
               <p className="text-gray-400">
@@ -335,10 +392,12 @@ const TSHOTToNFTPanel = ({ setIsNFTToTSHOT }) => {
               </button>
             </div>
           )}
+
+          {/* Action Button for Step 2 */}
           <button
             onClick={user.loggedIn ? handleReveal : fcl.authenticate}
             className={`mt-3 p-2 text-lg rounded-lg font-bold w-full ${
-              hasReceipt ? "bg-green-600" : "bg-gray-500"
+              hasReceipt ? "bg-flow-dark" : "bg-gray-500"
             } text-white`}
             disabled={!hasReceipt && user.loggedIn}
           >

@@ -60,7 +60,7 @@ const TestingSetupPrompt = () => {
           className={`px-4 py-2 mt-2 rounded ${
             isConnected
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-flow-dark text-white hover:bg-flow-darkest"
           }`}
         >
           {isConnected ? "Wallet Connected" : "Connect Wallet"}
@@ -83,7 +83,7 @@ const TestingSetupPrompt = () => {
           className={`px-4 py-2 mt-2 rounded ${
             !isConnected || hasCollection
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-flow-dark text-white hover:bg-flow-darkest"
           }`}
         >
           {hasCollection ? "Collection Set Up" : "Setup Collection"}
@@ -108,7 +108,7 @@ const TestingSetupPrompt = () => {
           className={`px-4 py-2 mt-2 rounded ${
             !hasCollection || !isConnected
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-flow-dark text-white hover:bg-flow-darkest"
           }`}
         >
           {hasCollection && isConnected
@@ -137,7 +137,7 @@ const TestingSetupPrompt = () => {
           className={`inline-block mt-3 px-4 py-2 rounded ${
             !hasCollection || !isConnected
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-blue-500 text-white hover:bg-blue-600"
+              : "bg-flow-dark text-white hover:bg-flow-darkest"
           }`}
         >
           {hasCollection && isConnected

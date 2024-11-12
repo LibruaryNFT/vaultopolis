@@ -8,6 +8,13 @@ module.exports = {
       fontFamily: {
         inter: ["Inter", "sans-serif"],
       },
+      colors: {
+        flow: {
+          light: "#00EF8B", // flow-light
+          dark: "#02D87E", // flow-dark
+          darkest: "#029A5C", // flow-darkest
+        },
+      },
     },
   },
 };
