@@ -6,7 +6,7 @@ import TestingSetupPrompt from "./TestingSetupPrompt";
 
 function Home() {
   return (
-    <div className="w-full flex flex-col items-center p-4 mt-32">
+    <div className="w-full flex flex-col items-center p-4 mt-2">
       <TestingSetupPrompt />
       <ExchangePanel />
       <TransactionModal />

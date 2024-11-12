@@ -152,7 +152,7 @@ const MomentSelection = () => {
   };
 
   return (
-    <div className="w-full p-2">
+    <div className="w-full">
       {/* Selected Moments Section */}
       <div className="bg-gray-900 p-2 rounded-lg">
         <h2 className="text-white text-lg font-semibold">Selected Moments</h2>

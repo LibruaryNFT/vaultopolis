@@ -15,7 +15,7 @@ const ExchangePanel = () => {
       {showModal && <TransactionModal />}
 
       {/* Give/Receive Panel with responsive width */}
-      <div className="w-full md:w-3/4 lg:w-1/2 p-2 bg-transparent rounded-lg shadow-xl">
+      <div className="w-full md:w-3/4 lg:w-1/2 bg-transparent rounded-lg shadow-xl">
         {isNFTToTSHOT ? (
           <NFTToTSHOTPanel
             isNFTToTSHOT={isNFTToTSHOT}
@@ -28,7 +28,7 @@ const ExchangePanel = () => {
 
       {/* Conditionally render Moment Selection Panel with responsive width */}
       {user.loggedIn && isNFTToTSHOT && (
-        <div className="w-full md:w-3/4 p-2 bg-transparent rounded-lg shadow-xl">
+        <div className="w-full md:w-3/4 bg-transparent rounded-lg shadow-xl">
           <MomentSelection />
         </div>
       )}

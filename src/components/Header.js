@@ -1,20 +1,26 @@
-// src/components/ExchangePanel.js
 import React, { useContext, useState, useRef } from "react";
 import { UserContext } from "./UserContext";
 import { Link, useLocation } from "react-router-dom";
 import DropdownMenu from "./DropdownMenu";
-import { FaUserCircle, FaBars } from "react-icons/fa";
+import {
+  FaUserCircle,
+  FaBars,
+  FaChevronDown,
+  FaChevronRight,
+} from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 const Header = () => {
   const { user } = useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isStakingOpen, setIsStakingOpen] = useState(false); // Mobile Staking toggle
   const location = useLocation();
   const buttonRef = useRef(null); // Reference to profile button
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
+  const toggleStaking = () => setIsStakingOpen((prev) => !prev);
 
   return (
     <header className="bg-transparent text-white py-4 w-full flex items-center justify-between relative z-50">
@@ -49,6 +55,23 @@ const Header = () => {
         <NavLink to="/earn" isActive={location.pathname === "/earn"}>
           Overview
         </NavLink>
+
+        {/* Staking Dropdown for Desktop */}
+        <div className="relative group">
+          <button className="flex items-center space-x-2 py-2 px-4 rounded-md text-gray-400 hover:text-white">
+            <span>Staking & Liquidity</span>
+            <FaChevronDown size={14} />
+          </button>
+          {/* Dropdown menu positioned directly below the button */}
+          <div className="absolute top-full left-0 bg-gray-800 rounded-md shadow-lg w-48 flex-col hidden group-hover:flex group-hover:flex-col z-10">
+            <NavLink to="https://app.increment.fi/" external>
+              Flow Cadence
+            </NavLink>
+            <NavLink to="https://www.kittypunch.xyz/" external>
+              Flow EVM
+            </NavLink>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Navigation Menu */}
@@ -75,6 +98,31 @@ const Header = () => {
           >
             Overview
           </NavLink>
+
+          {/* Staking Expandable Menu for Mobile */}
+          <div
+            onClick={toggleStaking}
+            className="flex items-center justify-between w-full py-2 px-4 cursor-pointer"
+          >
+            <span>Staking & Liquidity</span>
+            <span className="-ml-2">
+              {isStakingOpen ? (
+                <FaChevronDown size={14} />
+              ) : (
+                <FaChevronRight size={14} />
+              )}
+            </span>
+          </div>
+          {isStakingOpen && (
+            <div className="ml-6 flex flex-col">
+              <NavLink to="https://app.increment.fi/" external>
+                Flow Cadence
+              </NavLink>
+              <NavLink to="https://www.kittypunch.xyz/" external>
+                Flow EVM
+              </NavLink>
+            </div>
+          )}
         </div>
       )}
 
@@ -103,18 +151,29 @@ const Header = () => {
   );
 };
 
-const NavLink = ({ to, isActive, children, onClick }) => (
-  <Link
-    to={to}
-    onClick={onClick}
-    className={`${
-      isActive ? "text-white" : "text-gray-400"
-    } hover:text-white transition-colors py-2 px-4 rounded-md`}
-    style={{ pointerEvents: "auto", zIndex: 50, position: "relative" }} // Ensures link is clickable
-  >
-    {children}
-  </Link>
-);
+const NavLink = ({ to, isActive, children, onClick, external }) =>
+  external ? (
+    <a
+      href={to}
+      onClick={onClick}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block px-4 py-2 text-gray-400 hover:text-white transition-colors"
+    >
+      {children}
+    </a>
+  ) : (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={`${
+        isActive ? "text-white" : "text-gray-400"
+      } hover:text-white transition-colors py-2 px-4 rounded-md`}
+      style={{ pointerEvents: "auto", zIndex: 50, position: "relative" }} // Ensures link is clickable
+    >
+      {children}
+    </Link>
+  );
 
 const UserButton = React.forwardRef(({ onClick, user }, ref) => (
   <button

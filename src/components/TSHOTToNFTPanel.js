@@ -296,17 +296,6 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
             {hasReceipt && <FaCheckCircle className="ml-2 text-gray-500" />}
           </p>
 
-          {/* Video Animation for Step 1 */}
-          <div className="flex justify-center my-3">
-            <video
-              src="https://storage.googleapis.com/momentswap/images/TSHOT-Step1.mp4"
-              autoPlay
-              loop
-              muted
-              className="w-full h-64 rounded-lg"
-            />
-          </div>
-
           <button
             onClick={user.loggedIn ? handleCommit : fcl.authenticate}
             className={`mt-3 p-2 text-lg rounded-lg font-bold w-full ${
@@ -339,17 +328,6 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
           <p className="text-white font-semibold flex items-center justify-center">
             Step 2: Submit Receipt and Receive Moments
           </p>
-
-          {/* Video Animation for Step 2 */}
-          <div className="flex justify-center my-3">
-            <video
-              src="https://storage.googleapis.com/momentswap/images/TSHOT-Step2.mp4"
-              autoPlay
-              loop
-              muted
-              className="w-full h-64 rounded-lg"
-            />
-          </div>
 
           {/* Button to Show Receipt Details if Receipt is Present */}
           {hasReceipt && (
