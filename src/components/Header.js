@@ -8,7 +8,9 @@ import {
   FaChevronDown,
   FaChevronRight,
 } from "react-icons/fa";
+import "../fclConfig";
 import * as fcl from "@onflow/fcl";
+console.log(fcl.config().all());
 
 const Header = () => {
   const { user } = useContext(UserContext);
