@@ -236,3 +236,281 @@ let adminRef = self.account
 .storage
 .borrow<auth(TSHOT.AdminEntitlement) &TSHOT.Admin>(from: self.tshotAdminPath)
 ?? panic("Could not borrow the TSHOT Admin resource")
+
+Creating Pairing
+
+flow transactions send ./swap/transactions/create_pair.cdc "TSHOT" 0x332ffc0ae9bba9c1 "FlowToken" 0x7e60df042a9c0868 false --network=testnet --signer=testnet-account
+
+https://docs.increment.fi/protocols/decentralized-exchange/cpamm-dex/deployment-addresses
+
+Transaction ID: 3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+
+Block ID de242e646a8b8a72b7fdbf3bb2b71839d9969627c68f1cccd150380fc85a19da
+Block Height 227011527
+Status SEALED
+ID 3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+Payer 332ffc0ae9bba9c1
+Authorizers [332ffc0ae9bba9c1]
+
+Proposal Key:
+Address 332ffc0ae9bba9c1
+Index 0
+Sequence 190
+
+No Payload Signatures
+
+Envelope Signature 0: 332ffc0ae9bba9c1
+Signatures (minimized, use --include signatures)
+
+Events:
+Index 0
+Type A.7e60df042a9c0868.FlowToken.TokensWithdrawn
+Tx ID 3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+Values - amount (UFix64): 0.00100000 - from ((Address)?): 0x332ffc0ae9bba9c1
+
+    Index       1
+    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - balanceAfter (UFix64): 999.98535541
+                - from ((Address)?): 0x332ffc0ae9bba9c1
+                - fromUUID (UInt64): 24189255893027
+                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
+                - withdrawnUUID (UInt64): 136339441937156
+
+    Index       2
+    Type        A.7e60df042a9c0868.FlowToken.TokensDeposited
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - to ((Address)?): 0x6ca93d49c45a249f
+
+    Index       3
+    Type        A.9a0766d93b6608b7.FungibleToken.Deposited
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - balanceAfter (UFix64): 1000.00199252
+                - depositedUUID (UInt64): 136339441937156
+                - to ((Address)?): 0x6ca93d49c45a249f
+                - toUUID (UInt64): 188016488428667
+                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
+
+    Index       4
+    Type        A.7e60df042a9c0868.FlowToken.TokensWithdrawn
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - from ((Address)?): 0x6ca93d49c45a249f
+
+    Index       5
+    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - balanceAfter (UFix64): 1000.00099252
+                - from ((Address)?): 0x6ca93d49c45a249f
+                - fromUUID (UInt64): 188016488428667
+                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
+                - withdrawnUUID (UInt64): 136339441937159
+
+    Index       6
+    Type        A.7e60df042a9c0868.FlowToken.TokensWithdrawn
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - from ((Address)?): nil
+
+    Index       7
+    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - balanceAfter (UFix64): 0.00000000
+                - from ((Address)?): nil
+                - fromUUID (UInt64): 136339441937159
+                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
+                - withdrawnUUID (UInt64): 136339441937160
+
+    Index       8
+    Type        A.7e60df042a9c0868.FlowToken.TokensDeposited
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00000000
+                - to ((Address)?): 0x912d5440f7e3769e
+
+    Index       9
+    Type        A.9a0766d93b6608b7.FungibleToken.Deposited
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00000000
+                - balanceAfter (UFix64): 0.07982729
+                - depositedUUID (UInt64): 136339441937159
+                - to ((Address)?): 0x912d5440f7e3769e
+                - toUUID (UInt64): 0
+                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
+
+    Index       10
+    Type        A.912d5440f7e3769e.FlowFees.TokensDeposited
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00000000
+
+    Index       11
+    Type        flow.StorageCapabilityControllerIssued
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - id (UInt64): 1
+                - path (StoragePath): /storage/flowTokenVault
+                - type (Type): Type<&A.7e60df042a9c0868.FlowToken.Vault>()
+
+    Index       12
+    Type        flow.CapabilityPublished
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - capability (Capability): Capability<&A.7e60df042a9c0868.FlowToken.Vault>(address: 0xdba587c9155372d6, id: 1)
+                - path (PublicPath): /public/flowTokenReceiver
+
+    Index       13
+    Type        flow.StorageCapabilityControllerIssued
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - id (UInt64): 2
+                - path (StoragePath): /storage/flowTokenVault
+                - type (Type): Type<&A.7e60df042a9c0868.FlowToken.Vault>()
+
+    Index       14
+    Type        flow.CapabilityPublished
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - capability (Capability): Capability<&A.7e60df042a9c0868.FlowToken.Vault>(address: 0xdba587c9155372d6, id: 2)
+                - path (PublicPath): /public/flowTokenBalance
+
+    Index       15
+    Type        A.7e60df042a9c0868.FlowToken.TokensDeposited
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - to ((Address)?): 0xdba587c9155372d6
+
+    Index       16
+    Type        A.9a0766d93b6608b7.FungibleToken.Deposited
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00100000
+                - balanceAfter (UFix64): 0.00100000
+                - depositedUUID (UInt64): 136339441937160
+                - to ((Address)?): 0xdba587c9155372d6
+                - toUUID (UInt64): 136339441937161
+                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
+
+    Index       17
+    Type        flow.AccountCreated
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+
+    Index       18
+    Type        flow.AccountKeyAdded
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - hashAlgorithm (HashAlgorithm): HashAlgorithm(rawValue: 3)
+                - keyIndex (Int): 0
+                - publicKey (PublicKey): PublicKey(publicKey: [149, 239, 224, 82, 204, 46,
+
+27, 226, 22, 44, 180, 194, 115, 171, 134, 164, 96, 35, 105, 83, 111, 172, 96, 232, 53, 198, 62, 229, 252, 133, 106, 215, 246, 244, 209, 126, 181, 5, 175, 84, 72, 44, 170, 192, 173, 222, 185, 178, 178, 78, 123, 68, 235, 121, 203, 2, 225, 155, 225, 6, 193, 203, 253, 79], signatureAlgorithm: SignatureAlgorithm(rawValue: 2)) - weight (UFix64): 1000.00000000
+
+    Index       19
+    Type        flow.StorageCapabilityControllerIssued
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - id (UInt64): 3
+                - path (StoragePath): /storage/pair_public
+                - type (Type): Type<&{A.8d5b9dd833e176da.SwapInterfaces.PairPublic}>()
+
+    Index       20
+    Type        flow.CapabilityPublished
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - capability (Capability): Capability<&{A.8d5b9dd833e176da.SwapInterfaces.PairPublic}>(address: 0xdba587c9155372d6, id: 3)
+                - path (PublicPath): /public/increment_swap_pair_new
+
+    Index       21
+    Type        A.dba587c9155372d6.SwapPair.TokensInitialized
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - initialSupply (UFix64): 0.00000000
+
+    Index       22
+    Type        flow.AccountContractAdded
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - address (Address): 0xdba587c9155372d6
+                - codeHash ([UInt8;32]): [149, 173, 156, 135, 119, 129, 2, 79, 148, 106, 13, 18, 229, 198, 27, 171, 130, 224, 48, 228, 72, 113, 163, 41, 225, 25, 243, 76, 85, 127, 181, 113]
+                - contract (String): "SwapPair"
+
+    Index       23
+    Type        A.6ca93d49c45a249f.SwapFactory.PairCreated
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - numPairs (Int): 4
+                - pairAddress (Address): 0xdba587c9155372d6
+                - stableMode (Bool): false
+                - token0Key (String): "A.332ffc0ae9bba9c1.TSHOT"
+                - token1Key (String): "A.7e60df042a9c0868.FlowToken"
+
+    Index       24
+    Type        A.7e60df042a9c0868.FlowToken.TokensWithdrawn
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00001774
+                - from ((Address)?): 0x332ffc0ae9bba9c1
+
+    Index       25
+    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
+    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
+    Values
+                - amount (UFix64): 0.00001774
+                - balanceAfter (UFix64): 999.98533767
+                - from ((Address)?): 0x332ffc0ae9bba9c1
+                - fromUUID (UInt64): 24189255893027
+                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
+                - withdrawnUUID (UInt64): 136339441937163
+
+flow scripts execute .\swap\scripts\query_pair_info_by_tokenkey.cdc "A.332ffc0ae9bba9c1.TSHOT" "A.7e60df042a9c0868.FlowToken" false --network=testnet
+
+Token 0 Key ("A.332ffc0ae9bba9c1.TSHOT"):
+
+The identifier for the first token in the pair, TSHOT, including its contract address and name.
+Token 1 Key ("A.7e60df042a9c0868.FlowToken"):
+
+The identifier for the second token in the pair, FLOW, including its contract address and name.
+Token 0 Reserve (0.00000000):
+
+The amount of TSHOT tokens currently in the pool. Since no liquidity has been added, this value is 0.0.
+Token 1 Reserve (0.00000000):
+
+The amount of FLOW tokens currently in the pool. Like the TSHOT reserve, this is 0.0 because no liquidity has been provided yet.
+Pair Address (0xdba587c9155372d6):
+
+The unique address of the account that holds this specific trading pair’s contract, where liquidity and swapping functions occur.
+Total LP Token Supply (0.00000000):
+
+The current total supply of liquidity provider (LP) tokens for this pair. LP tokens represent ownership of the pool’s liquidity and are used to track each provider’s share of the pool. This is 0.0 as no liquidity has been deposited.
+Swap Fee Rate (30):
+
+The swap fee rate, in basis points (bps), applied to trades in this pool. A rate of 30 bps means a 0.3% fee, typical for volatile (uncorrelated) asset pairs.
+Stable Mode (false):
+
+Indicates whether the pool is operating in stable mode (using a stableswap curve). Here, false means it uses a traditional Uniswap-style curve for uncorrelated assets.
+Stable Curve Parameter (1.00000000):
+
+The parameter for the stableswap curve, set to 1.0 by default. This value would adjust if the pool were in stable mode, affecting the curve's shape.

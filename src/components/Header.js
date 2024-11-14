@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import { UserContext } from "./UserContext";
 import { Link, useLocation } from "react-router-dom";
 import DropdownMenu from "./DropdownMenu";
@@ -8,21 +8,23 @@ import {
   FaChevronDown,
   FaChevronRight,
 } from "react-icons/fa";
-import "../fclConfig";
 import * as fcl from "@onflow/fcl";
-console.log(fcl.config().all());
 
 const Header = () => {
   const { user } = useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isStakingOpen, setIsStakingOpen] = useState(false); // Mobile Staking toggle
+  const [isStakingOpen, setIsStakingOpen] = useState(false);
   const location = useLocation();
   const buttonRef = useRef(null); // Reference to profile button
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
   const toggleStaking = () => setIsStakingOpen((prev) => !prev);
+
+  const connectWallet = () => {
+    fcl.authenticate();
+  };
 
   return (
     <header className="bg-transparent text-white py-4 w-full flex items-center justify-between relative z-50">
@@ -142,7 +144,7 @@ const Header = () => {
           </div>
         ) : (
           <button
-            onClick={() => fcl.authenticate()}
+            onClick={connectWallet}
             className="px-4 py-2 bg-flow-dark rounded hover:bg-flow-darkest focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             Connect

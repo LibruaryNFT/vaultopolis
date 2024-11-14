@@ -47,7 +47,10 @@ const TestingSetupPrompt = () => {
       {/* Step 1: Connect Wallet */}
       <div className="mb-4">
         <p className="flex items-center">
-          <span className="mr-2">Step 1: Connect your wallet</span>
+          <span className="mr-2">
+            Step 1: Connect your wallet. Only Flow Wallet is supported.(Not
+            Blocto Wallet)
+          </span>
           {isConnected ? (
             <span className="text-green-600 font-semibold">✓ Done</span>
           ) : (

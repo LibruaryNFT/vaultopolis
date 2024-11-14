@@ -8,13 +8,26 @@ import "./index.css";
 // Configure FCL
 fcl
   .config()
-  .put("accessNode.api", "https://rest-testnet.onflow.org") // Flow Testnet
-  .put("discovery.wallet", "https://fcl-discovery.onflow.org/testnet/authn") // Wallet for Testnet
-  .put("0xFlowToken", "0x7e60df042a9c0868"); // Flow Token address
+  .put("flow.network", "testnet")
+  .put("accessNode.api", "https://rest-testnet.onflow.org")
+  .put("discovery.wallet", "https://fcl-discovery.onflow.org/testnet/authn")
+  .put(
+    "discover.authn.endpoint",
+    "https://fcl-discovery.onflow.org/testnet/authn"
+  )
+  .put("discovery.authn.include", ["0x33f75ff0b830dcec", "0xc7efa8c33fceee03"])
+  .put("walletconnect.projectId", "5eabb9960473de682c24253ffb57efa1")
+  .put("app.detail.title", "MomentSwap")
+  .put(
+    "app.detail.icon",
+    "https://storage.googleapis.com/momentswap/images/MomentSwapWhite.png"
+  )
+  .put("app.detail.description", "MomentSwap - NFT and Token Swaps")
+  .put("app.detail.url", "https://momentswap.xyz")
+  .put("0xFlowToken", "0x7e60df042a9c0868");
 
 // Initialize QueryClient instance
 const queryClient = new QueryClient();
-
 const container = document.getElementById("root");
 const root = createRoot(container);
 
