@@ -1,11 +1,17 @@
 // src/components/NFTToTSHOTPanel.js
+
 import React, { useContext } from "react";
 import { UserContext } from "./UserContext";
-import { FaArrowDown, FaExchangeAlt } from "react-icons/fa";
+import { FaArrowDown } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
+import useTransaction from "../hooks/useTransaction";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 
-const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
+const NFTToTSHOTPanel = ({
+  isNFTToTSHOT,
+  setIsNFTToTSHOT,
+  onTransactionStart,
+}) => {
   const {
     user,
     tshotBalance,
@@ -17,6 +23,8 @@ const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
 
   const totalTopShotCommons = user.loggedIn ? tierCounts?.common || 0 : 0;
 
+  const { sendTransaction } = useTransaction();
+
   const handleSwap = async () => {
     if (!user.loggedIn) {
       fcl.authenticate();
@@ -24,47 +32,44 @@ const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
     }
 
     if (selectedNFTs.length === 0) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Error: No NFTs selected for the swap.",
-      });
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      alert("No NFTs selected for exchange.");
       return;
     }
 
+    const nftCount = selectedNFTs.length;
+    const tshotAmount = nftCount; // 1:1 swap ratio
+
     try {
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Processing swap of ${selectedNFTs.length} NFT(s) for TSHOT...`,
+      // Open the modal immediately with initial status and swap type
+      onTransactionStart({
+        status: "Awaiting Approval",
+        txId: null,
+        error: null,
+        nftCount,
+        tshotAmount,
+        swapType: "NFT_TO_TSHOT", // Add swap type
       });
 
-      const txId = await fcl.mutate({
+      // Start the transaction
+      await sendTransaction({
         cadence: exchangeNFTForTSHOT,
-        args: (arg, t) => [arg(selectedNFTs || [], t.Array(t.UInt64))],
-        proposer: fcl.authz,
-        payer: fcl.authz,
-        authorizations: [fcl.authz],
+        args: (arg, t) => [arg(selectedNFTs, t.Array(t.UInt64))],
         limit: 9999,
+        onUpdate: (transactionData) => {
+          onTransactionStart({
+            ...transactionData,
+            nftCount,
+            tshotAmount,
+            swapType: "NFT_TO_TSHOT", // Ensure swap type is included
+          });
+        },
       });
 
-      await fcl.tx(txId).onceSealed();
       await refreshBalances();
       dispatch({ type: "RESET_SELECTED_NFTS" });
-
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Swap transaction completed. ${selectedNFTs.length} NFT(s) exchanged for TSHOT.\nTransaction ID: ${txId}`,
-      });
-      setTimeout(
-        () => dispatch({ type: "TOGGLE_MODAL", payload: false }),
-        3000
-      );
     } catch (error) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Transaction failed: ${error.message}`,
-      });
+      console.error("Transaction failed:", error);
+      // Error will be handled in the modal
     }
   };
 
@@ -128,10 +133,15 @@ const NFTToTSHOTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
         </small>
       </div>
 
-      {/* Swap Button with Conditional Text */}
+      {/* Swap Button */}
       <button
         onClick={handleSwap}
-        className="w-full p-3 text-lg rounded-lg font-bold bg-flow-dark text-white hover:bg-flow-darkest"
+        className={`w-full p-3 text-lg rounded-lg font-bold text-white ${
+          selectedNFTs.length === 0
+            ? "bg-gray-600 cursor-not-allowed"
+            : "bg-flow-dark hover:bg-flow-darkest"
+        }`}
+        disabled={selectedNFTs.length === 0}
       >
         {user.loggedIn ? "Swap" : "Connect Wallet"}
       </button>

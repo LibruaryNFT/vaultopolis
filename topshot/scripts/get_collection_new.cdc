@@ -1,7 +1,6 @@
-export const getTopShotCollection = `
-import TopShot from 0x332ffc0ae9bba9c1
-import TopShotTiers from 0x332ffc0ae9bba9c1
-import TopShotLocking from 0x332ffc0ae9bba9c1
+import "TopShot"
+import "TopShotTiers"
+import "TopShotLocking"
 
 // Structure to hold the NFT details with additional fields
 access(all) struct NFTDetails {
@@ -141,6 +140,3 @@ access(all) fun main(address: Address): [NFTDetails] {
     // Return the array of NFT details
     return nftDetailsList
 }
-
-
-`;

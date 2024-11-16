@@ -1,55 +1,47 @@
 // src/components/TSHOTToNFTPanel.js
+
 import React, { useState, useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
-import { getReceiptDetails } from "../flow/getReceiptDetails"; // Import the script
-import { destroyReceipt } from "../flow/destroyReceipt"; // Import destroy receipt script
+import { destroyReceipt } from "../flow/destroyReceipt";
+import { getReceiptDetails } from "../flow/getReceiptDetails";
 import { FaArrowDown, FaCheckCircle } from "react-icons/fa";
+import useTransaction from "../hooks/useTransaction";
 
-const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
+const TSHOTToNFTPanel = ({
+  isNFTToTSHOT,
+  setIsNFTToTSHOT,
+  onTransactionStart,
+}) => {
   const {
     user,
     tshotBalance,
-    dispatch,
     refreshBalances,
     hasReceipt,
-    nftDetails = [],
+    nftDetails,
+    receiptDetails,
   } = useContext(UserContext);
 
   const [tshotAmount, setTshotAmount] = useState(0);
   const [totalCommons, setTotalCommons] = useState(0);
   const [showReceiptDetails, setShowReceiptDetails] = useState(false);
-  const [receiptData, setReceiptData] = useState({});
+
+  const { sendTransaction } = useTransaction();
 
   useEffect(() => {
-    const countTotalCommons = () => {
+    const calculateTotalCommons = () => {
       const commons = nftDetails.filter(
-        (nft) => nft.tier.toLowerCase() === "common" && !nft.isLocked
+        (nft) => nft.tier?.toLowerCase() === "common" && !nft.isLocked
       );
       setTotalCommons(commons.length);
     };
 
     if (user.loggedIn && nftDetails.length > 0) {
-      countTotalCommons();
+      calculateTotalCommons();
     }
   }, [user, nftDetails]);
-
-  const fetchReceiptDetails = async () => {
-    if (!showReceiptDetails) {
-      try {
-        const result = await fcl.query({
-          cadence: getReceiptDetails,
-          args: (arg, t) => [arg(user.addr, t.Address)],
-        });
-        setReceiptData(result);
-      } catch (error) {
-        console.error("Failed to fetch receipt details:", error);
-      }
-    }
-    setShowReceiptDetails(!showReceiptDetails);
-  };
 
   const handleCommit = async () => {
     if (!user.loggedIn) {
@@ -58,53 +50,49 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
     }
 
     if (tshotAmount <= 0) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Error: Please enter a valid $TSHOT amount.",
-      });
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      alert("Please enter a valid $TSHOT amount.");
       return;
     }
 
+    const nftCount = tshotAmount; // Number of NFTs to receive.
+
     try {
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Depositing ${tshotAmount} $TSHOT...`,
+      console.log("Opening modal with initial transaction data");
+      // Open the modal immediately with initial status and transaction action
+      onTransactionStart({
+        status: "Awaiting Approval",
+        txId: null,
+        error: null,
+        nftCount,
+        tshotAmount,
+        swapType: "TSHOT_TO_NFT", // Swap type
+        transactionAction: "COMMIT_SWAP", // Indicate commit step
       });
 
-      const txId = await fcl.mutate({
+      // Convert tshotAmount to a decimal string with one decimal place.
+      const tshotAmountDecimal = `${tshotAmount.toFixed(1)}`;
+
+      // Start the transaction
+      await sendTransaction({
         cadence: commitSwap,
-        args: (arg, t) => [arg(tshotAmount.toFixed(1), t.UFix64)],
-        proposer: fcl.authz,
-        payer: fcl.authz,
-        authorizations: [fcl.authz],
+        args: (arg, t) => [arg(tshotAmountDecimal, t.UFix64)],
         limit: 9999,
+        onUpdate: (transactionData) => {
+          onTransactionStart({
+            ...transactionData,
+            nftCount,
+            tshotAmount,
+            swapType: "TSHOT_TO_NFT",
+            transactionAction: "COMMIT_SWAP",
+          });
+        },
       });
 
-      await fcl.tx(txId).onceSealed();
+      // After transaction, ensure that balances are refreshed immediately
       await refreshBalances();
-
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Deposit completed. ${tshotAmount} $TSHOT deposited.\nTransaction ID: ${txId}`,
-      });
-
-      setTimeout(() => {
-        dispatch({ type: "TOGGLE_MODAL", payload: false });
-      }, 3000);
     } catch (error) {
-      const errorMessage =
-        error?.message || error?.toString() || "Transaction failed.";
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload:
-          errorMessage.includes("Declined") || errorMessage.includes("rejected")
-            ? "Transaction failed: User rejected the request."
-            : errorMessage.includes("authz")
-            ? "Transaction failed: Authorization error. Please try again."
-            : `Transaction failed: ${errorMessage}`,
-      });
+      console.error("Transaction failed:", error);
+      // Error will be handled in the modal
     }
   };
 
@@ -115,45 +103,46 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
     }
 
     if (!hasReceipt) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "You need to complete the deposit step before claiming.",
-      });
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      alert("You need to complete the deposit step before claiming.");
       return;
     }
 
     try {
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Claiming your Moments...",
+      const tshotAmountFromReceipt = parseInt(receiptDetails.betAmount) || 0;
+      const nftCount = tshotAmountFromReceipt; // Assuming 1:1 ratio
+
+      console.log("Opening modal with initial transaction data");
+      // Open the modal immediately with initial status and transaction action
+      onTransactionStart({
+        status: "Awaiting Approval",
+        txId: null,
+        error: null,
+        nftCount,
+        tshotAmount: tshotAmountFromReceipt,
+        swapType: "TSHOT_TO_NFT",
+        transactionAction: "REVEAL_SWAP", // Indicate reveal step
       });
 
-      const txId = await fcl.mutate({
+      // Start the transaction
+      await sendTransaction({
         cadence: revealSwap,
-        proposer: fcl.authz,
-        payer: fcl.authz,
-        authorizations: [fcl.authz],
         limit: 9999,
+        onUpdate: (transactionData) => {
+          onTransactionStart({
+            ...transactionData,
+            nftCount,
+            tshotAmount: tshotAmountFromReceipt,
+            swapType: "TSHOT_TO_NFT",
+            transactionAction: "REVEAL_SWAP",
+          });
+        },
       });
-      await fcl.tx(txId).onceSealed();
+
+      // After transaction, ensure that balances are refreshed immediately
       await refreshBalances();
-
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Claim completed.\nTransaction ID: ${txId}`,
-      });
-
-      setTimeout(() => {
-        dispatch({ type: "TOGGLE_MODAL", payload: false });
-      }, 3000);
     } catch (error) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Claim transaction failed: ${error.message}`,
-      });
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      console.error("Transaction failed:", error);
+      // Error will be handled in the modal
     }
   };
 
@@ -164,44 +153,53 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
     }
 
     try {
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: "Destroying receipt...",
+      console.log("Opening modal with initial transaction data");
+      // Open the modal immediately with initial status
+      onTransactionStart({
+        status: "Awaiting Approval",
+        txId: null,
+        error: null,
+        nftCount: 0,
+        tshotAmount: 0,
+        swapType: "TSHOT_TO_NFT",
+        transactionAction: "DESTROY_RECEIPT", // Indicate destroy action
       });
 
-      const txId = await fcl.mutate({
+      // Start the transaction
+      await sendTransaction({
         cadence: destroyReceipt,
-        proposer: fcl.authz,
-        payer: fcl.authz,
-        authorizations: [fcl.authz],
         limit: 9999,
+        onUpdate: (transactionData) => {
+          onTransactionStart({
+            ...transactionData,
+            nftCount: 0,
+            tshotAmount: 0,
+            swapType: "TSHOT_TO_NFT",
+            transactionAction: "DESTROY_RECEIPT",
+          });
+        },
       });
 
-      await fcl.tx(txId).onceSealed();
+      // After transaction, ensure that balances are refreshed immediately
       await refreshBalances();
-
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Receipt destroyed successfully.\nTransaction ID: ${txId}`,
-      });
-
-      setTimeout(() => {
-        dispatch({ type: "TOGGLE_MODAL", payload: false });
-      }, 3000);
     } catch (error) {
-      dispatch({
-        type: "SET_TRANSACTION_INFO",
-        payload: `Destroy receipt transaction failed: ${error.message}`,
-      });
-      dispatch({ type: "TOGGLE_MODAL", payload: true });
+      console.error("Transaction failed:", error);
+      // Error will be handled in the modal
     }
   };
 
   const handleTshotChange = (e) => {
     const value = e.target.value;
-    if (/^\d*\.?\d*$/.test(value)) {
-      setTshotAmount(parseFloat(value) || 0);
+    if (/^\d*$/.test(value)) {
+      setTshotAmount(parseInt(value) || 0);
+    }
+  };
+
+  // Disallow non-numeric input
+  const handleKeyPress = (e) => {
+    const charCode = e.which ? e.which : e.keyCode;
+    if (charCode < 48 || charCode > 57) {
+      e.preventDefault();
     }
   };
 
@@ -239,16 +237,29 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
       <div className="flex flex-col items-start bg-gray-800 p-2 rounded-lg">
         <div className="text-gray-400 mb-1">Sell</div>
         <div className="text-3xl font-bold text-white flex items-center">
-          <input
-            type="number"
-            value={tshotAmount || ""}
-            onChange={handleTshotChange}
-            className="text-lg font-bold bg-gray-700 text-white rounded-lg text-center px-2 py-1 mr-2"
-            min="0"
-            step="0.1"
-            style={{ width: "70px" }}
-          />
-          <span>$TSHOT</span>
+          {hasReceipt ? (
+            <>
+              <span>{parseFloat(receiptDetails.betAmount || 0)}</span>
+              <span className="ml-2">$TSHOT</span>
+            </>
+          ) : (
+            <>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={tshotAmount || ""}
+                onChange={handleTshotChange}
+                onKeyPress={handleKeyPress}
+                className="text-3xl font-bold bg-gray-700 text-white rounded-lg text-center px-2 py-1 mr-2 appearance-none focus:outline-none"
+                disabled={hasReceipt}
+                style={{
+                  width: "150px",
+                }}
+              />
+              <span>$TSHOT</span>
+            </>
+          )}
         </div>
         <small className="text-gray-500">
           Balance: {parseFloat(tshotBalance || 0).toFixed(2)} $TSHOT
@@ -267,16 +278,20 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
       <div className="flex flex-col items-start bg-gray-800 p-2 rounded-lg mb-4">
         <div className="text-gray-400 mb-1">Buy</div>
         <div className="text-3xl font-bold text-white">
-          {tshotAmount || 0} Random TopShot Commons
+          {hasReceipt
+            ? `${parseFloat(
+                receiptDetails.betAmount || 0
+              )} Random TopShot Commons`
+            : `${tshotAmount || 0} Random TopShot Commons`}
         </div>
         <small className="text-gray-500">
           Balance: {totalCommons || 0} TopShot Commons
         </small>
       </div>
 
-      {/* Step Guide with Deposit and Receive Buttons */}
+      {/* Steps: Deposit and Claim */}
       <div className="flex justify-between items-center space-x-4">
-        {/* Step 1: Deposit $TSHOT */}
+        {/* Deposit $TSHOT */}
         <div
           className={`w-1/2 p-4 text-center rounded-lg border-2 h-124 flex flex-col justify-between ${
             hasReceipt
@@ -301,6 +316,7 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
             className={`mt-3 p-2 text-lg rounded-lg font-bold w-full ${
               hasReceipt ? "bg-gray-500 cursor-not-allowed" : "bg-flow-dark"
             } text-white`}
+            disabled={hasReceipt}
           >
             {user.loggedIn
               ? hasReceipt
@@ -310,7 +326,7 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
           </button>
         </div>
 
-        {/* Step 2: Receive Moments */}
+        {/* Claim Moments */}
         <div
           className={`w-1/2 p-4 text-center rounded-lg border-2 h-124 flex flex-col justify-between ${
             hasReceipt
@@ -329,38 +345,36 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
             Step 2: Submit Receipt and Receive Moments
           </p>
 
-          {/* Button to Show Receipt Details if Receipt is Present */}
           {hasReceipt && (
             <button
-              onClick={fetchReceiptDetails}
+              onClick={() => setShowReceiptDetails(!showReceiptDetails)}
               className="text-blue-300 underline text-xs mt-2"
             >
               {showReceiptDetails ? "Hide Receipt Details" : "Receipt Details"}
             </button>
           )}
 
-          {/* Receipt Details Section */}
           {showReceiptDetails && (
             <div className="mt-2 bg-gray-800 p-3 rounded-lg">
               <p className="text-gray-400">
                 <strong>$TSHOT Swap Amount:</strong>{" "}
-                {receiptData.betAmount || "N/A"}
+                {parseFloat(receiptDetails.betAmount || 0)}
               </p>
               <p className="text-gray-400">
                 <strong>Request Block:</strong>{" "}
-                {receiptData.requestBlock || "N/A"}
+                {receiptDetails.requestBlock || "N/A"}
               </p>
               <p className="text-gray-400">
                 <strong>Can Fulfill:</strong>{" "}
-                {receiptData.canFulfill ? "Yes" : "No"}
+                {receiptDetails.canFulfill ? "Yes" : "No"}
               </p>
               <p className="text-gray-400">
                 <strong>Request UUID:</strong>{" "}
-                {receiptData.requestUUID || "N/A"}
+                {receiptDetails.requestUUID || "N/A"}
               </p>
               <p className="text-gray-400">
                 <strong>Is Fulfilled:</strong>{" "}
-                {receiptData.isFulfilled ? "Yes" : "No"}
+                {receiptDetails.isFulfilled ? "Yes" : "No"}
               </p>
               <button
                 onClick={handleDestroyReceipt}
@@ -371,13 +385,12 @@ const TSHOTToNFTPanel = ({ isNFTToTSHOT, setIsNFTToTSHOT }) => {
             </div>
           )}
 
-          {/* Action Button for Step 2 */}
           <button
             onClick={user.loggedIn ? handleReveal : fcl.authenticate}
             className={`mt-3 p-2 text-lg rounded-lg font-bold w-full ${
               hasReceipt ? "bg-flow-dark" : "bg-gray-500"
             } text-white`}
-            disabled={!hasReceipt && user.loggedIn}
+            disabled={!hasReceipt}
           >
             {user.loggedIn
               ? hasReceipt

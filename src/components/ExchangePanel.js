@@ -5,14 +5,32 @@ import NFTToTSHOTPanel from "./NFTToTSHOTPanel";
 import TSHOTToNFTPanel from "./TSHOTToNFTPanel";
 import MomentSelection from "./MomentSelection";
 import TransactionModal from "./TransactionModal";
+import { AnimatePresence } from "framer-motion";
 
 const ExchangePanel = () => {
   const [isNFTToTSHOT, setIsNFTToTSHOT] = useState(true);
-  const { showModal, user } = useContext(UserContext);
+  const [showModal, setShowModal] = useState(false);
+  const [transactionData, setTransactionData] = useState({});
+  const { user } = useContext(UserContext);
+
+  const handleOpenModal = (data) => {
+    setTransactionData(data);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setTransactionData({});
+  };
 
   return (
     <div className="w-full mx-auto mt-1 flex flex-col items-center space-y-4">
-      {showModal && <TransactionModal />}
+      {/* Wrap the modal with AnimatePresence */}
+      <AnimatePresence>
+        {showModal && transactionData.status && (
+          <TransactionModal {...transactionData} onClose={handleCloseModal} />
+        )}
+      </AnimatePresence>
 
       {/* Give/Receive Panel with responsive width */}
       <div className="w-full md:w-3/4 lg:w-1/2 bg-transparent rounded-lg shadow-xl">
@@ -20,9 +38,14 @@ const ExchangePanel = () => {
           <NFTToTSHOTPanel
             isNFTToTSHOT={isNFTToTSHOT}
             setIsNFTToTSHOT={setIsNFTToTSHOT}
+            onTransactionStart={handleOpenModal} // Pass modal control to child
           />
         ) : (
-          <TSHOTToNFTPanel setIsNFTToTSHOT={setIsNFTToTSHOT} />
+          <TSHOTToNFTPanel
+            isNFTToTSHOT={isNFTToTSHOT}
+            setIsNFTToTSHOT={setIsNFTToTSHOT}
+            onTransactionStart={handleOpenModal} // Pass modal control to child
+          />
         )}
       </div>
 

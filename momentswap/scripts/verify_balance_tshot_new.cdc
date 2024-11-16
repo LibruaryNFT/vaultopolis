@@ -1,6 +1,5 @@
-export const getTSHOTBalance = `
-  import TSHOT from 0x332ffc0ae9bba9c1
-  import FungibleToken from 0x9a0766d93b6608b7
+import "TSHOT"
+import "FungibleToken"
 
 access(all) fun main(address: Address): UFix64 {
     let account = getAccount(address)
@@ -20,5 +19,3 @@ access(all) fun main(address: Address): UFix64 {
     // Safely access the balance using optional chaining
     return balanceCap?.balance ?? 0.0
 }
-
-`;
