@@ -12,7 +12,7 @@ fcl
   .put("accessNode.api", "https://rest-testnet.onflow.org")
   .put("discovery.wallet", "https://fcl-discovery.onflow.org/testnet/authn")
   .put(
-    "discover.authn.endpoint",
+    "discovery.authn.endpoint",
     "https://fcl-discovery.onflow.org/testnet/authn"
   )
   .put("discovery.authn.include", ["0x33f75ff0b830dcec", "0xc7efa8c33fceee03"])

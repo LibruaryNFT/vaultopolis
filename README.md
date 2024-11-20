@@ -514,3 +514,398 @@ Indicates whether the pool is operating in stable mode (using a stableswap curve
 Stable Curve Parameter (1.00000000):
 
 The parameter for the stableswap curve, set to 1.0 by default. This value would adjust if the pool were in stable mode, affecting the curve's shape.
+
+Hybrid Custody
+
+1. Set up a Flow Wallet for both a parent and child
+2. Setup topshot collection on both
+
+import "TopShot"
+import "NonFungibleToken"
+
+transaction {
+
+    prepare(acct: auth(Storage, Capabilities) &Account) {
+        // Check if the collection exists, create if it doesn't
+        if acct.storage.borrow<&TopShot.Collection>(from: /storage/MomentCollection) == nil {
+            let collection <- TopShot.createEmptyCollection(nftType: Type<@TopShot.NFT>()) as! @TopShot.Collection
+            acct.storage.save(<-collection, to: /storage/MomentCollection)
+        }
+
+        // Unpublish any existing public capability
+        acct.capabilities.unpublish(/public/MomentCollection)
+
+        // Publish a capability with the expected type
+        acct.capabilities.publish(
+            acct.capabilities.storage.issue<&{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>(/storage/MomentCollection),
+            at: /public/MomentCollection
+        )
+    }
+
+}
+
+3. Verify topshot account setup
+
+import "NonFungibleToken"
+
+access(all) fun main(child: Address): Bool {
+let cap = getAccount(child)
+.capabilities
+.get<&{NonFungibleToken.Provider}>(/public/MomentCollection)
+
+    return cap != nil && cap!.check()
+
+}
+
+3. setup_manager on parent flow wallet (0xa1d297b2610cba6a)
+   https://github.com/onflow/hybrid-custody/blob/3d58af2972dfcd3496196f8d527d890b8a8f3077/transactions/hybrid-custody/setup_manager.cdc
+   https://testnet.flowscan.io/tx/35c4986ef7480bca3a5fb05956033594f67112655e36c9fc90c8cf1ef0e09afe
+
+import "HybridCustody"
+import "CapabilityFilter"
+
+transaction(filterAddress: Address?, filterPath: PublicPath?) {
+prepare(acct: auth(Storage, Capabilities) &Account) {
+var filter: Capability<&{CapabilityFilter.Filter}>? = nil
+if filterAddress != nil && filterPath != nil {
+filter = getAccount(filterAddress!).capabilities.get<&{CapabilityFilter.Filter}>(filterPath!)
+}
+
+        if acct.storage.borrow<&HybridCustody.Manager>(from: HybridCustody.ManagerStoragePath) == nil {
+            let m <- HybridCustody.createManager(filter: filter)
+            acct.storage.save(<- m, to: HybridCustody.ManagerStoragePath)
+        }
+
+        for c in acct.capabilities.storage.getControllers(forPath: HybridCustody.ManagerStoragePath) {
+            c.delete()
+        }
+
+        acct.capabilities.unpublish(HybridCustody.ManagerPublicPath)
+
+        acct.capabilities.publish(
+            acct.capabilities.storage.issue<&{HybridCustody.ManagerPublic}>(HybridCustody.ManagerStoragePath),
+            at: HybridCustody.ManagerPublicPath
+        )
+
+        acct.capabilities.storage.issue<auth(HybridCustody.Manage) &{HybridCustody.ManagerPrivate, HybridCustody.ManagerPublic}>(HybridCustody.ManagerStoragePath)
+    }
+
+}
+
+4. Check manager exists
+
+import "HybridCustody"
+
+access(all) fun main(parent: Address): Bool {
+let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
+let manager = parentAcct.storage.borrow<&{HybridCustody.ManagerPublic}>(from: HybridCustody.ManagerStoragePath)
+return manager != nil
+}
+
+5. setup_owned_account_and_publish_to_parent on child wallet (0xdbdfa235bf22428f)
+   https://github.com/onflow/hybrid-custody/blob/3d58af2972dfcd3496196f8d527d890b8a8f3077/transactions/hybrid-custody/setup_owned_account_and_publish_to_parent.cdc
+   https://testnet.flowscan.io/tx/9a3c4ede6c1da6796e5a6cf29cb31cc190953137f6c922e4b5a732b7fb1bf2cc/events
+
+#allowAccountLinking
+
+import "MetadataViews"
+import "ViewResolver"
+
+import "HybridCustody"
+import "CapabilityFactory"
+import "CapabilityFilter"
+import "CapabilityDelegator"
+
+/// This transaction configures an OwnedAccount in the signer if needed, and proceeds to create a ChildAccount
+/// using CapabilityFactory.Manager and CapabilityFilter.Filter Capabilities from the given addresses. A
+/// Capability on the ChildAccount is then published to the specified parent account.
+///
+transaction(
+parent: Address,
+factoryAddress: Address,
+filterAddress: Address,
+name: String?,
+desc: String?,
+thumbnailURL: String?
+) {
+prepare(acct: auth(Storage, Capabilities) &Account) {
+// Configure OwnedAccount if it doesn't exist
+if acct.storage.borrow<&HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath) == nil {
+var acctCap = acct.capabilities.account.issue<auth(Storage, Contracts, Keys, Inbox, Capabilities) &Account>()
+let ownedAccount <- HybridCustody.createOwnedAccount(acct: acctCap)
+acct.storage.save(<-ownedAccount, to: HybridCustody.OwnedAccountStoragePath)
+}
+
+        for c in acct.capabilities.storage.getControllers(forPath: HybridCustody.OwnedAccountStoragePath) {
+            c.delete()
+        }
+
+
+        acct.capabilities.storage.issue<&{HybridCustody.BorrowableAccount, HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath)
+        acct.capabilities.publish(
+            acct.capabilities.storage.issue<&{HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath),
+            at: HybridCustody.OwnedAccountPublicPath
+        )
+
+        let owned = acct.storage.borrow<auth(HybridCustody.Owner) &HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath)
+            ?? panic("owned account not found")
+
+        // Set the display metadata for the OwnedAccount
+        if name != nil && desc != nil && thumbnailURL != nil {
+            let thumbnail = MetadataViews.HTTPFile(url: thumbnailURL!)
+            let display = MetadataViews.Display(name: name!, description: desc!, thumbnail: thumbnail)
+            owned.setDisplay(display)
+        }
+
+        // Get CapabilityFactory & CapabilityFilter Capabilities
+        let factory = getAccount(factoryAddress).capabilities.get<&CapabilityFactory.Manager>(CapabilityFactory.PublicPath)
+        assert(factory.check(), message: "factory address is not configured properly")
+
+        let filter = getAccount(filterAddress).capabilities.get<&{CapabilityFilter.Filter}>(CapabilityFilter.PublicPath)
+        assert(filter.check(), message: "capability filter is not configured properly")
+
+        // Finally publish a ChildAccount capability on the signing account to the specified parent
+        owned.publishToParent(parentAddress: parent, factory: factory, filter: filter)
+    }
+
+}
+
+6. Verify borrowing of child account and get Controller ID
+
+import "HybridCustody"
+import "NonFungibleToken"
+
+access(all) fun main(parent: Address, child: Address): UInt64? {
+let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
+let manager = parentAcct.storage.borrow<auth(HybridCustody.Manage) &HybridCustody.Manager>(from: HybridCustody.ManagerStoragePath)
+?? panic("Hybrid Custody Manager does not exist")
+
+    let childAcct = manager.borrowAccount(addr: child)
+        ?? panic("Child account not found")
+
+    return childAcct.getControllerIDForType(
+        type: Type<&{NonFungibleToken.Provider}>(),
+        forPath: /storage/MomentCollection
+    )
+
+}
+
+7. Verify child is part of parent's childAddresses
+
+import "HybridCustody"
+
+access(all) fun main(parent: Address, child: Address): Bool {
+let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
+let manager = parentAcct.storage.borrow<&{HybridCustody.ManagerPublic}>(from: HybridCustody.ManagerStoragePath)
+?? panic("Manager not found")
+
+    let childAddresses = manager.getChildAddresses()
+    return childAddresses.contains(child)
+
+}
+
+7. Verify ownedAccount in child
+
+import "HybridCustody"
+
+access(all) fun main(child: Address): Bool {
+let ownedAcct = getAccount(child)
+.capabilities
+.get<&{HybridCustody.OwnedAccountPublic}>(HybridCustody.OwnedAccountPublicPath)
+.borrow()
+
+    return ownedAcct != nil
+
+}
+
+6. redeem_account on parent flow wallet
+   https://github.com/onflow/hybrid-custody/blob/3d58af2972dfcd3496196f8d527d890b8a8f3077/transactions/hybrid-custody/redeem_account.cdc
+   https://testnet.flowscan.io/tx/a070fdddf8be1975aa13c666a5de0a8cfaef926a2b00ac3a7b5a8feca13fe6d3
+
+#allowAccountLinking
+
+import "MetadataViews"
+import "ViewResolver"
+
+import "HybridCustody"
+import "CapabilityFactory"
+import "CapabilityFilter"
+import "CapabilityDelegator"
+
+/// This transaction configures an OwnedAccount in the signer if needed, and proceeds to create a ChildAccount
+/// using CapabilityFactory.Manager and CapabilityFilter.Filter Capabilities from the given addresses. A
+/// Capability on the ChildAccount is then published to the specified parent account.
+///
+transaction(
+parent: Address,
+factoryAddress: Address,
+filterAddress: Address,
+name: String?,
+desc: String?,
+thumbnailURL: String?
+) {
+prepare(acct: auth(Storage, Capabilities) &Account) {
+// Configure OwnedAccount if it doesn't exist
+if acct.storage.borrow<&HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath) == nil {
+var acctCap = acct.capabilities.account.issue<auth(Storage, Contracts, Keys, Inbox, Capabilities) &Account>()
+let ownedAccount <- HybridCustody.createOwnedAccount(acct: acctCap)
+acct.storage.save(<-ownedAccount, to: HybridCustody.OwnedAccountStoragePath)
+}
+
+        for c in acct.capabilities.storage.getControllers(forPath: HybridCustody.OwnedAccountStoragePath) {
+            c.delete()
+        }
+
+
+        acct.capabilities.storage.issue<&{HybridCustody.BorrowableAccount, HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath)
+        acct.capabilities.publish(
+            acct.capabilities.storage.issue<&{HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath),
+            at: HybridCustody.OwnedAccountPublicPath
+        )
+
+        let owned = acct.storage.borrow<auth(HybridCustody.Owner) &HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath)
+            ?? panic("owned account not found")
+
+        // Set the display metadata for the OwnedAccount
+        if name != nil && desc != nil && thumbnailURL != nil {
+            let thumbnail = MetadataViews.HTTPFile(url: thumbnailURL!)
+            let display = MetadataViews.Display(name: name!, description: desc!, thumbnail: thumbnail)
+            owned.setDisplay(display)
+        }
+
+        // Get CapabilityFactory & CapabilityFilter Capabilities
+        let factory = getAccount(factoryAddress).capabilities.get<&CapabilityFactory.Manager>(CapabilityFactory.PublicPath)
+        assert(factory.check(), message: "factory address is not configured properly")
+
+        let filter = getAccount(filterAddress).capabilities.get<&{CapabilityFilter.Filter}>(CapabilityFilter.PublicPath)
+        assert(filter.check(), message: "capability filter is not configured properly")
+
+        // Finally publish a ChildAccount capability on the signing account to the specified parent
+        owned.publishToParent(parentAddress: parent, factory: factory, filter: filter)
+    }
+
+}
+
+6. Verify Step 5 redeem_account
+
+get_redeemed_status
+
+import "HybridCustody"
+
+access(all) fun main(child: Address, parent: Address): Bool {
+let ownedAcct = getAccount(child)
+.capabilities
+.get<&{HybridCustody.OwnedAccountPublic}>(HybridCustody.OwnedAccountPublicPath)
+.borrow()
+?? panic("OwnedAccount not found")
+
+    return ownedAcct.getRedeemedStatus(addr: parent) == true
+
+}
+
+7. Verify collection data from storage of parent
+
+get_all_collection_data_from_storage
+
+import "NonFungibleToken"
+import "MetadataViews"
+import "HybridCustody"
+
+/// Helper function that retrieves data about all publicly accessible NFTs in an account
+///
+access(all) fun getAllViewsFromAddress(\_ address: Address): [MetadataViews.NFTCollectionData] {
+
+    let account = getAuthAccount<auth(BorrowValue) &Account>(address)
+    let data: [MetadataViews.NFTCollectionData] = []
+
+    let collectionType: Type = Type<@{NonFungibleToken.Collection}>()
+    let viewType: Type = Type<MetadataViews.NFTCollectionData>()
+
+    // Iterate over each public path
+    account.storage.forEachStored(fun (path: StoragePath, type: Type): Bool {
+        // Return early if the collection is broken or is not the type we're looking for
+        if type.isRecovered || (!type.isInstance(collectionType) && !type.isSubtype(of: collectionType)) {
+            return true
+        }
+        if let collectionRef = account.storage.borrow<&{NonFungibleToken.Collection}>(from: path) {
+            // Return early if no Resolver found in the Collection
+            let ids: [UInt64]= collectionRef.getIDs()
+            if ids.length == 0 {
+                return true
+            }
+            // Otherwise, attempt to get the NFTCollectionData & append if exists
+            if let resolver = collectionRef.borrowViewResolver(id: ids[0]) {
+                if let dataView = resolver.resolveView(viewType) as! MetadataViews.NFTCollectionData? {
+                    data.append(dataView)
+                }
+            }
+        }
+        return true
+    })
+    return data
+
+}
+
+/// Script that retrieve data about all NFT Collections in the storage of an account and any of its child accounts
+///
+access(all) fun main(address: Address): {Address: [MetadataViews.NFTCollectionData]} {
+
+    let allNFTData: {Address: [MetadataViews.NFTCollectionData]} = {address: getAllViewsFromAddress(address)}
+    let seen: [Address] = [address]
+
+    /* Iterate over any child accounts */
+    //
+    if let managerRef = getAccount(address).capabilities.borrow<&HybridCustody.Manager>(HybridCustody.ManagerPublicPath) {
+
+        for childAddress in managerRef.getChildAddresses() {
+            allNFTData.insert(key: childAddress, getAllViewsFromAddress(childAddress))
+        }
+
+        for ownedAddress in managerRef.getOwnedAddresses() {
+            if seen.contains(ownedAddress) == false {
+                allNFTData.insert(key: ownedAddress, getAllViewsFromAddress(ownedAddress))
+                seen.append(ownedAddress)
+            }
+        }
+    }
+    return allNFTData
+
+}
+
+8. Verify nft_collection_public_cap of child
+
+import "HybridCustody"
+import "NonFungibleToken"
+
+// Verify capabilities for a specific child account
+access(all) fun main(parent: Address, child: Address): Bool {
+// Get the parent account's manager
+let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
+let manager = parentAcct.storage.borrow<auth(HybridCustody.Manage) &HybridCustody.Manager>(from: HybridCustody.ManagerStoragePath)
+?? panic("Hybrid Custody Manager does not exist")
+
+    // Borrow the child account
+    let childAcct = manager.borrowAccount(addr: child)
+        ?? panic("Child account not found")
+
+    let type = Type<&{NonFungibleToken.CollectionPublic}>()
+    let controllerId = childAcct.getControllerIDForType(type: type, forPath: /storage/MomentCollection)
+        ?? panic("no controller ID found for desired type")
+
+    let nakedCap = childAcct.getCapability(controllerID: controllerId, type: type)
+        ?? panic("capability not found")
+
+    let cap = nakedCap as! Capability<&{NonFungibleToken.CollectionPublic}>
+    cap.borrow() ?? panic("unable to borrow nft provider collection")
+
+    return true
+
+}
+
+Which scripts dont work..
+
+fetchNFTsFromLinkedAccts
+get_child_nft_caps
+
+Parent - 0xa1d297b2610cba6a
+Child - 0xdbdfa235bf22428f

@@ -1,11 +1,10 @@
-// src/components/NFTToTSHOTPanel.js
-
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
 import { FaArrowDown } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 import useTransaction from "../hooks/useTransaction";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
+import { exchangeNFTForTSHOT_child } from "../flow/exchangeNFTForTSHOT_child";
 
 const NFTToTSHOTPanel = ({
   isNFTToTSHOT,
@@ -16,65 +15,148 @@ const NFTToTSHOTPanel = ({
     user,
     tshotBalance,
     selectedNFTs,
+    nftDetails,
     dispatch,
     refreshBalances,
     tierCounts,
+    hasChildren,
+    childrenAddresses,
+    activeAccount,
+    setActiveAccount,
   } = useContext(UserContext);
 
-  const totalTopShotCommons = user.loggedIn ? tierCounts?.common || 0 : 0;
+  useEffect(() => {
+    if (activeAccount) {
+      dispatch({ type: "RESET_SELECTED_NFTS" });
+      refreshBalances(activeAccount);
+    }
+  }, [activeAccount]);
+
+  const handleMomentClick = (momentId) => {
+    dispatch({ type: "SELECT_NFT", payload: momentId });
+  };
+
+  const totalTopShotCommons = tierCounts?.common || 0;
 
   const { sendTransaction } = useTransaction();
 
   const handleSwap = async () => {
     if (!user.loggedIn) {
+      console.log("User not logged in. Redirecting to authentication.");
       fcl.authenticate();
       return;
     }
 
     if (selectedNFTs.length === 0) {
+      console.log("No NFTs selected for exchange.");
       alert("No NFTs selected for exchange.");
       return;
     }
 
     const nftCount = selectedNFTs.length;
-    const tshotAmount = nftCount; // 1:1 swap ratio
+    const tshotAmount = nftCount;
+
+    const isChildAccount = activeAccount !== user.addr; // Determine if child account is active
+    const cadenceScript = isChildAccount
+      ? exchangeNFTForTSHOT_child
+      : exchangeNFTForTSHOT;
+
+    // Debugging Logs
+    console.log("Transaction Details:");
+    console.log("User Address (Parent):", user.addr);
+    console.log("Active Account:", activeAccount);
+    console.log("Is Child Account:", isChildAccount);
+    console.log(
+      "Cadence Script Selected:",
+      isChildAccount ? "Child Script" : "Parent Script"
+    );
+    console.log("Selected NFTs:", selectedNFTs);
 
     try {
-      // Open the modal immediately with initial status and swap type
       onTransactionStart({
         status: "Awaiting Approval",
         txId: null,
         error: null,
         nftCount,
         tshotAmount,
-        swapType: "NFT_TO_TSHOT", // Add swap type
+        swapType: "NFT_TO_TSHOT",
       });
 
-      // Start the transaction
       await sendTransaction({
-        cadence: exchangeNFTForTSHOT,
-        args: (arg, t) => [arg(selectedNFTs, t.Array(t.UInt64))],
+        cadence: cadenceScript,
+        args: (arg, t) =>
+          isChildAccount
+            ? [
+                arg(activeAccount, t.Address), // Child account address
+                arg(selectedNFTs, t.Array(t.UInt64)), // Selected NFTs
+              ]
+            : [
+                arg(selectedNFTs, t.Array(t.UInt64)), // Parent NFTs
+              ],
         limit: 9999,
         onUpdate: (transactionData) => {
+          console.log("Transaction Update:", transactionData);
           onTransactionStart({
             ...transactionData,
             nftCount,
             tshotAmount,
-            swapType: "NFT_TO_TSHOT", // Ensure swap type is included
+            swapType: "NFT_TO_TSHOT",
           });
         },
       });
 
-      await refreshBalances();
+      console.log("Transaction successfully sent.");
+      await refreshBalances(activeAccount);
       dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (error) {
       console.error("Transaction failed:", error);
-      // Error will be handled in the modal
     }
   };
 
   return (
     <div className="flex flex-col space-y-1">
+      {/* Active Account Selector */}
+      <div className="mb-4">
+        <label
+          htmlFor="account-selector"
+          className="text-gray-400 font-semibold"
+        >
+          Active Account:
+        </label>
+        {hasChildren ? (
+          <select
+            id="account-selector"
+            value={activeAccount}
+            onChange={(e) => setActiveAccount(e.target.value)}
+            className="w-full p-2 mt-2 rounded-lg bg-gray-700 text-white"
+          >
+            <option value={user?.addr}>Parent Account ({user?.addr})</option>
+            {childrenAddresses.map((child) => (
+              <option key={child} value={child}>
+                Child Account ({child})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="text-white mt-2">Parent Account ({user?.addr})</div>
+        )}
+      </div>
+
+      {/* Eligible Moments */}
+      <div className="eligible-moments">
+        {nftDetails.map((moment) => (
+          <div
+            key={moment.id}
+            className={`moment-item ${
+              selectedNFTs.includes(moment.id) ? "selected" : ""
+            }`}
+            onClick={() => handleMomentClick(moment.id)}
+          >
+            <span>{moment.name}</span>
+          </div>
+        ))}
+      </div>
+
       {/* Swap Mode Section */}
       <div className="flex items-center justify-center space-x-4 mb-2">
         <span
