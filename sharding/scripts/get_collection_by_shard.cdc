@@ -47,15 +47,15 @@ access(all) struct NFTDetails {
     }
 }
 
-access(all) fun main(account: Address): [NFTDetails] {
+access(all) fun main(account: Address, shardID: UInt64): [NFTDetails] {
     let acct = getAccount(account)
 
     // Borrow the wrapper's public capability
     let wrapperRef = acct.capabilities.borrow<&TopShotShardedCollectionWrapper.CollectionWrapper>(/public/ShardedCollectionWrapper)
         ?? panic("Could not borrow the collection wrapper reference")
 
-    // Get all NFT IDs in the collection
-    let nftIDs = wrapperRef.getIDs()
+    // Get NFT IDs in the specified shard
+    let nftIDs = wrapperRef.getShardIDs(shardIndex: shardID)
 
     // Cache for set names to avoid redundant lookups
     var setNames: {UInt32: String} = {}
@@ -63,7 +63,7 @@ access(all) fun main(account: Address): [NFTDetails] {
     // Array to hold the details of each NFT
     var nftDetailsList: [NFTDetails] = []
 
-    // Loop through the NFT IDs, get metadata, tier, seriesID, etc.
+    // Loop through the NFT IDs in the specified shard
     for id in nftIDs {
         let nftRef = wrapperRef.borrowMoment(id: id)
             ?? panic("Could not borrow the TopShot NFT")

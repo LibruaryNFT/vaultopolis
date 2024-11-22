@@ -61,17 +61,6 @@ const NFTToTSHOTPanel = ({
       ? exchangeNFTForTSHOT_child
       : exchangeNFTForTSHOT;
 
-    // Debugging Logs
-    console.log("Transaction Details:");
-    console.log("User Address (Parent):", user.addr);
-    console.log("Active Account:", activeAccount);
-    console.log("Is Child Account:", isChildAccount);
-    console.log(
-      "Cadence Script Selected:",
-      isChildAccount ? "Child Script" : "Parent Script"
-    );
-    console.log("Selected NFTs:", selectedNFTs);
-
     try {
       onTransactionStart({
         status: "Awaiting Approval",
@@ -115,33 +104,6 @@ const NFTToTSHOTPanel = ({
 
   return (
     <div className="flex flex-col space-y-1">
-      {/* Active Account Selector */}
-      <div className="mb-4">
-        <label
-          htmlFor="account-selector"
-          className="text-gray-400 font-semibold"
-        >
-          Active Account:
-        </label>
-        {hasChildren ? (
-          <select
-            id="account-selector"
-            value={activeAccount}
-            onChange={(e) => setActiveAccount(e.target.value)}
-            className="w-full p-2 mt-2 rounded-lg bg-gray-700 text-white"
-          >
-            <option value={user?.addr}>Parent Account ({user?.addr})</option>
-            {childrenAddresses.map((child) => (
-              <option key={child} value={child}>
-                Child Account ({child})
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div className="text-white mt-2">Parent Account ({user?.addr})</div>
-        )}
-      </div>
-
       {/* Eligible Moments */}
       <div className="eligible-moments">
         {nftDetails.map((moment) => (
@@ -227,6 +189,35 @@ const NFTToTSHOTPanel = ({
       >
         {user.loggedIn ? "Swap" : "Connect Wallet"}
       </button>
+
+      {/* Active Account Selector */}
+      <div className="mb-4">
+        <label htmlFor="account-selector" className="text-white font-semibold">
+          Collection Selector:
+        </label>
+        {hasChildren ? (
+          <select
+            id="account-selector"
+            value={activeAccount}
+            onChange={(e) => setActiveAccount(e.target.value)}
+            className="w-full p-2 mt-2 rounded-lg bg-gray-700 text-white"
+          >
+            <option value={user?.addr}>Parent Account ({user?.addr})</option>
+            {childrenAddresses.map((child) => (
+              <option key={child} value={child}>
+                Child Account ({child})
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="text-white mt-2">Parent Account ({user?.addr})</div>
+        )}
+        {activeAccount !== user.addr && (
+          <div className="mt-2 text-sm text-yellow-400">
+            Note: $TSHOT received will be deposited into the signer's account.
+          </div>
+        )}
+      </div>
     </div>
   );
 };
