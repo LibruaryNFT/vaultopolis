@@ -22,18 +22,30 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
   return (
     <div
       onClick={() => handleNFTSelection(nft?.id)}
-      className={`border rounded bg-black cursor-pointer relative ${
+      className={`border rounded bg-black cursor-pointer relative p-1 ${
         isSelected ? "border-green-500" : "border-gray-600"
-      } font-inter text-white w-28 sm:w-32`}
-      style={{ padding: "0.5rem" }}
+      } font-inter text-white`}
+      style={{
+        width: "fit-content", // Ensure the card's width fits its content
+        maxWidth: "7rem", // Set a maximum width constraint
+      }}
     >
       {/* Image Section */}
       {imageUrl && (
-        <div className="relative h-32 overflow-hidden rounded">
+        <div
+          className="relative overflow-hidden rounded mx-auto"
+          style={{
+            height: "80px", // Adjust container height
+            width: "80px", // Adjust container width
+          }}
+        >
           <img
             src={imageUrl}
             alt={`${nft?.playerName || "Unknown Player"} moment`}
-            className="object-cover w-full h-full"
+            className="object-cover w-full h-full transform scale-150"
+            style={{
+              objectPosition: "center", // Ensure the zoom focuses on the center
+            }}
           />
         </div>
       )}
@@ -43,7 +55,12 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
         {nft?.playerName || "Unknown Player"}
       </h3>
 
-      {/* Tier and Serial Number */}
+      {/* Series */}
+      <p className="text-center text-xs text-gray-400">
+        Series {nft?.seriesID || "?"}
+      </p>
+
+      {/* Tier */}
       <p
         className={`text-center ${
           tierStyles[nft?.tier?.toLowerCase()] || "text-gray-400"
@@ -51,16 +68,17 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
       >
         {nft?.tier
           ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
-          : "Unknown Tier"}{" "}
-        #{nft?.serialNumber || "?"} / {nft?.numMomentsInEdition || "?"}
+          : "Unknown Tier"}
       </p>
 
-      {/* Set Name and Series */}
+      {/* Serial Number and Edition Size */}
+      <p className="text-center text-xs text-gray-400">
+        {nft?.serialNumber || "?"} / {nft?.numMomentsInEdition || "?"}
+      </p>
+
+      {/* Set Name */}
       <p className="text-center text-gray-400 text-xs truncate">
         {nft?.setName || "Unknown Set"}
-      </p>
-      <p className="text-center text-gray-400 text-xs">
-        Series {nft?.seriesID || "?"}
       </p>
 
       {/* Locked Icon */}

@@ -1,5 +1,3 @@
-// src/components/TransactionModal.js
-
 import React from "react";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
@@ -41,12 +39,20 @@ const TransactionModal = ({
 
   if (transactionAction === "COMMIT_SWAP") {
     transactionMessage = `Depositing ${tshotAmount} $TSHOT to receive a receipt (Step 1 of 2)`;
-  } else if (transactionAction === "REVEAL_SWAP") {
-    transactionMessage = `Receiving ${nftCount} Random TopShot Common(s) (Step 2 of 2)`;
+  } else if (
+    transactionAction === "REVEAL_SWAP" ||
+    transactionAction === "RECEIVE"
+  ) {
+    // Updated to ensure integer display
+    transactionMessage = `Receiving ${Math.round(
+      nftCount || 0
+    )} Random Common(s)`;
   } else if (swapType === "NFT_TO_TSHOT") {
     transactionMessage = `Swapping ${nftCount} TopShot Common(s) for ${tshotAmount} $TSHOT`;
   } else if (swapType === "TSHOT_TO_NFT") {
-    transactionMessage = `Swapping ${tshotAmount} $TSHOT for ${nftCount} Random TopShot Common(s)`;
+    transactionMessage = `Swapping ${tshotAmount} $TSHOT for ${Math.round(
+      nftCount || 0
+    )} Random Common(s)`;
   }
 
   const getStatusIcon = () => {

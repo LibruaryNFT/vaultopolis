@@ -1,9 +1,10 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import useTransaction from "../hooks/useTransaction";
+import { getReceiptDetails } from "../flow/getReceiptDetails";
 
 const TSHOTToNFTPanel = ({
   isNFTToTSHOT,
@@ -17,12 +18,34 @@ const TSHOTToNFTPanel = ({
     tshotBalance = 0,
     childrenData = [],
     hasReceipt = false,
+    tierCounts = {},
   } = accountData || {};
 
   const [tshotAmount, setTshotAmount] = useState(0);
   const [selectedRecipient, setSelectedRecipient] = useState(activeAccountAddr);
+  const [betAmount, setBetAmount] = useState(0);
 
   const { sendTransaction } = useTransaction();
+
+  useEffect(() => {
+    const fetchBetAmount = async () => {
+      if (hasReceipt) {
+        try {
+          const result = await fcl.query({
+            cadence: getReceiptDetails,
+            args: (arg, t) => [arg(activeAccountAddr, t.Address)],
+          });
+          const fetchedBetAmount = parseInt(result.betAmount || 0, 10);
+          setBetAmount(fetchedBetAmount);
+          console.log("Fetched betAmount:", fetchedBetAmount);
+        } catch (error) {
+          console.error("Error fetching betAmount:", error);
+        }
+      }
+    };
+
+    fetchBetAmount();
+  }, [hasReceipt, activeAccountAddr]);
 
   const handleCommit = async () => {
     if (!user.loggedIn) {
@@ -76,7 +99,7 @@ const TSHOTToNFTPanel = ({
         status: "Awaiting Approval",
         txId: null,
         error: null,
-        tshotAmount: 0,
+        nftCount: betAmount,
         swapType: "TSHOT_TO_NFT",
         transactionAction: "RECEIVE",
       });
@@ -88,7 +111,7 @@ const TSHOTToNFTPanel = ({
         onUpdate: (transactionData) => {
           onTransactionStart({
             ...transactionData,
-            tshotAmount: 0,
+            nftCount: betAmount,
             swapType: "TSHOT_TO_NFT",
             transactionAction: "RECEIVE",
           });
@@ -99,7 +122,12 @@ const TSHOTToNFTPanel = ({
     }
   };
 
-  const renderAccountInfo = (label, accountAddr, tshotBalance) => (
+  const renderAccountInfo = (
+    label,
+    accountAddr,
+    tshotBalance,
+    commonMoments
+  ) => (
     <div
       key={accountAddr}
       className={`p-2 w-48 flex-shrink-0 text-center rounded-lg border-4 cursor-pointer ${
@@ -114,6 +142,9 @@ const TSHOTToNFTPanel = ({
       <div className="mt-2">
         <p className="text-base font-semibold text-white">
           {parseFloat(tshotBalance).toFixed(1)} $TSHOT
+        </p>
+        <p className="text-sm text-gray-300">
+          {commonMoments || 0} Common Moments
         </p>
       </div>
     </div>
@@ -150,7 +181,18 @@ const TSHOTToNFTPanel = ({
       </div>
 
       {/* Step 1: Deposit $TSHOT */}
-      <div className="flex flex-col items-start bg-gray-800 p-4 rounded-lg">
+      <div
+        className={`relative flex flex-col items-start bg-gray-800 p-4 rounded-lg ${
+          hasReceipt ? "bg-gray-900 bg-opacity-75" : ""
+        }`}
+      >
+        {hasReceipt && (
+          <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center rounded-lg">
+            <p className="bg-yellow-500 text-black px-6 py-3 font-semibold text-lg rounded-lg w-full text-center">
+              Complete Step 2
+            </p>
+          </div>
+        )}
         <h3 className="text-lg font-semibold text-white mb-2">
           Step 1: Deposit $TSHOT
         </h3>
@@ -171,7 +213,6 @@ const TSHOTToNFTPanel = ({
             className="text-2xl font-bold bg-gray-700 text-white rounded-lg text-center px-2 py-1 mr-2 appearance-none focus:outline-none"
             style={{ width: "150px" }}
           />
-
           <span className="text-white text-lg font-bold">
             {`$TSHOT = ${tshotAmount || 0} Random Commons`}
           </span>
@@ -194,7 +235,7 @@ const TSHOTToNFTPanel = ({
         {!hasReceipt && (
           <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center rounded-lg">
             <p className="bg-yellow-500 text-black px-6 py-3 font-semibold text-lg rounded-lg w-full text-center">
-              Complete Step 1 to Unlock
+              Complete Step 1
             </p>
           </div>
         )}
@@ -208,13 +249,15 @@ const TSHOTToNFTPanel = ({
           {renderAccountInfo(
             "Parent Account",
             accountData.parentAddress,
-            accountData.tshotBalance
+            accountData.tshotBalance,
+            tierCounts.common
           )}
           {childrenData.map((child, index) =>
             renderAccountInfo(
               `Child Account ${index + 1}`,
               child.addr,
-              child.tshotBalance
+              child.tshotBalance,
+              child.tierCounts?.common || 0
             )
           )}
         </div>
@@ -227,7 +270,7 @@ const TSHOTToNFTPanel = ({
           } text-white`}
           disabled={!hasReceipt}
         >
-          Receive Moments
+          Receive {betAmount} Random Common Moments
         </button>
       </div>
     </div>

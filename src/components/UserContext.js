@@ -29,9 +29,9 @@ const initialState = {
     childrenData: [],
     childrenAddresses: [],
   },
-  selectedAccount: null, // Address of the currently selected account
-  selectedAccountType: "parent", // Can be 'parent' or 'child'
-  selectedNFTs: [], // NFTs selected for actions
+  selectedAccount: null,
+  selectedAccountType: "parent",
+  selectedNFTs: [],
 };
 
 function userReducer(state, action) {
@@ -48,7 +48,7 @@ function userReducer(state, action) {
         ...state,
         selectedAccount: action.payload.address,
         selectedAccountType: action.payload.type,
-        selectedNFTs: [], // Reset selected NFTs when account switches
+        selectedNFTs: [],
       };
     case "SET_SELECTED_NFTS":
       const isSelected = state.selectedNFTs.includes(action.payload);
@@ -100,11 +100,8 @@ export const UserProvider = ({ children }) => {
       dispatch({ type: "SET_USER", payload: currentUser });
 
       if (currentUser?.loggedIn) {
-        // Default to parent account if logged in
         await loadParentData(currentUser.addr);
         const hasChildren = await checkForChildren(currentUser.addr);
-
-        const accountType = hasChildren ? "parent" : "parent"; // Default to parent if no children
         setSelectedAccount(currentUser.addr);
       } else {
         resetState();

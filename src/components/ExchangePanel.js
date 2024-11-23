@@ -36,7 +36,7 @@ const ExchangePanel = () => {
       </AnimatePresence>
 
       {/* Swap Panel: NFT to $TSHOT or $TSHOT to NFT */}
-      <div className="w-full md:w-3/4 lg:w-1/2 bg-transparent rounded-lg shadow-xl">
+      <div className="w-full md:w-3/4 bg-transparent rounded-lg shadow-xl">
         {isNFTToTSHOT ? (
           <NFTToTSHOTPanel
             isNFTToTSHOT={isNFTToTSHOT}

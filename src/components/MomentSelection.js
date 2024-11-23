@@ -115,31 +115,6 @@ const MomentSelection = () => {
 
   return (
     <div className="w-full">
-      {/* Selected Moments Section */}
-      <div className="bg-gray-900 p-2 rounded-lg">
-        <h2 className="text-white text-lg font-semibold">Selected Moments</h2>
-        <p className="text-gray-400">Total Selected: {selectedNFTs.length}</p>
-        {selectedNFTs.length ? (
-          <div className="flex flex-wrap mt-2">
-            {selectedNFTs.map((id) => {
-              const nft = nftDetails.find((n) => n.id === id);
-              return (
-                <MomentCard
-                  key={id}
-                  nft={nft}
-                  handleNFTSelection={handleNFTSelection}
-                  isSelected={true}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-gray-400 mt-2">
-            Select moments to swap for $TSHOT.
-          </p>
-        )}
-      </div>
-
       {/* Available Eligible Moments Section */}
       <div className="bg-gray-900 p-2 rounded-lg mt-4">
         <h2 className="text-white text-lg font-semibold">
@@ -163,7 +138,7 @@ const MomentSelection = () => {
         </div>
 
         {/* Display eligible moments */}
-        <div className="flex flex-wrap mt-2">
+        <div className="flex flex-wrap gap-2 mt-2">
           {paginatedMoments.map((nft) => (
             <MomentCard
               key={nft.id}
