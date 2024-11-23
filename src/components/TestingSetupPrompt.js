@@ -1,23 +1,33 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import { setupTopShotCollection } from "../flow/setupTopShotCollection";
+import { verifyTopShotCollection } from "../flow/verifyTopShotCollection"; // Script to check collection status
 
 const TestingSetupPrompt = () => {
-  const { user, hasCollection, dispatch } = useContext(UserContext);
-
+  const { user, dispatch } = useContext(UserContext);
+  const [hasCollection, setHasCollection] = useState(false);
   const isConnected = !!user?.addr;
   const googleFormUrl = "https://forms.gle/dVmDgW9CidbEetXy5"; // Replace with your actual form URL
 
   useEffect(() => {
-    if (!isConnected) {
-      console.log("User is not connected. Prompting them to connect.");
-    } else if (!hasCollection) {
-      console.log(
-        "User connected but does not have a TopShot collection set up."
-      );
-    }
-  }, [isConnected, hasCollection]);
+    const checkCollection = async () => {
+      if (isConnected) {
+        try {
+          const result = await fcl.query({
+            cadence: verifyTopShotCollection,
+            args: (arg, t) => [arg(user.addr, t.Address)],
+          });
+          setHasCollection(result);
+          dispatch({ type: "SET_COLLECTION_STATUS", payload: result });
+        } catch (error) {
+          console.error("Error checking TopShot collection:", error);
+        }
+      }
+    };
+
+    checkCollection();
+  }, [isConnected, user.addr, dispatch]);
 
   const handleConnectWallet = () => {
     fcl.authenticate();
@@ -33,6 +43,7 @@ const TestingSetupPrompt = () => {
         limit: 100,
       });
       await fcl.tx(transactionId).onceSealed();
+      setHasCollection(true);
       dispatch({ type: "SET_COLLECTION_STATUS", payload: true });
       console.log("Collection setup complete.");
     } catch (error) {
@@ -41,26 +52,26 @@ const TestingSetupPrompt = () => {
   };
 
   return (
-    <div className="bg-yellow-100 text-yellow-800 p-4 rounded-lg mb-4">
-      <h2 className="font-bold mb-3">Testing Setup Steps</h2>
+    <div className="bg-yellow-100 text-yellow-800 p-2 rounded-md mb-2">
+      <h2 className="font-bold mb-2">Testing Setup Steps</h2>
 
       {/* Step 1: Connect Wallet */}
-      <div className="mb-4">
-        <p className="flex items-center">
-          <span className="mr-2">
-            Step 1: Connect your wallet. Only Flow Wallet is supported.(Not
-            Blocto Wallet)
-          </span>
+      <div className="mb-3">
+        <p className="flex items-center text-sm">
+          Step 1: Connect your wallet (Only Flow Wallet is supported, not Blocto
+          Wallet)
           {isConnected ? (
-            <span className="text-green-600 font-semibold">✓ Done</span>
+            <span className="ml-auto text-green-600 font-semibold">✓ Done</span>
           ) : (
-            <span className="text-yellow-600 font-semibold">In Progress</span>
+            <span className="ml-auto text-yellow-600 font-semibold">
+              In Progress
+            </span>
           )}
         </p>
         <button
           onClick={handleConnectWallet}
           disabled={isConnected}
-          className={`px-4 py-2 mt-2 rounded ${
+          className={`px-3 py-1 mt-1 rounded text-sm ${
             isConnected
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-flow-dark text-white hover:bg-flow-darkest"
@@ -71,19 +82,21 @@ const TestingSetupPrompt = () => {
       </div>
 
       {/* Step 2: Setup Collection */}
-      <div className="mb-4">
-        <p className="flex items-center">
-          <span className="mr-2">Step 2: Set up your TopShot collection</span>
+      <div className="mb-3">
+        <p className="flex items-center text-sm">
+          Step 2: Set up your TopShot collection
           {hasCollection ? (
-            <span className="text-green-600 font-semibold">✓ Done</span>
+            <span className="ml-auto text-green-600 font-semibold">✓ Done</span>
           ) : (
-            <span className="text-yellow-600 font-semibold">In Progress</span>
+            <span className="ml-auto text-yellow-600 font-semibold">
+              In Progress
+            </span>
           )}
         </p>
         <button
           onClick={setupCollection}
           disabled={!isConnected || hasCollection}
-          className={`px-4 py-2 mt-2 rounded ${
+          className={`px-3 py-1 mt-1 rounded text-sm ${
             !isConnected || hasCollection
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-flow-dark text-white hover:bg-flow-darkest"
@@ -94,21 +107,19 @@ const TestingSetupPrompt = () => {
       </div>
 
       {/* Step 3: Share Wallet Address */}
-      <div className="mb-4">
-        <p className="flex items-center">
-          <span className="mr-2">
-            Step 3: Send us your wallet address so we can send NFTs for testing
-          </span>
+      <div className="mb-3">
+        <p className="flex items-center text-sm">
+          Step 3: Send us your wallet address for testing NFTs
           {hasCollection && isConnected ? (
-            <span className="text-green-600 font-semibold">✓ Done</span>
+            <span className="ml-auto text-green-600 font-semibold">✓ Done</span>
           ) : (
-            <span className="text-gray-500 font-semibold">Pending</span>
+            <span className="ml-auto text-gray-500 font-semibold">Pending</span>
           )}
         </p>
         <button
           onClick={() => navigator.clipboard.writeText(user.addr)}
           disabled={!hasCollection || !isConnected}
-          className={`px-4 py-2 mt-2 rounded ${
+          className={`px-3 py-1 mt-1 rounded text-sm ${
             !hasCollection || !isConnected
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-flow-dark text-white hover:bg-flow-darkest"
@@ -122,22 +133,21 @@ const TestingSetupPrompt = () => {
 
       {/* Step 4: Test the Product and Complete the Survey */}
       <div>
-        <p className="flex items-center">
-          <span className="mr-2">
-            Step 4: Test the product with the NFTs and fill out our feedback
-            survey
-          </span>
+        <p className="flex items-center text-sm">
+          Step 4: Test the product and provide feedback
           {hasCollection && isConnected ? (
-            <span className="text-yellow-600 font-semibold">Current Step</span>
+            <span className="ml-auto text-yellow-600 font-semibold">
+              Current Step
+            </span>
           ) : (
-            <span className="text-gray-500 font-semibold">Pending</span>
+            <span className="ml-auto text-gray-500 font-semibold">Pending</span>
           )}
         </p>
         <a
           href={googleFormUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className={`inline-block mt-3 px-4 py-2 rounded ${
+          className={`inline-block mt-2 px-3 py-1 rounded text-sm ${
             !hasCollection || !isConnected
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-flow-dark text-white hover:bg-flow-darkest"

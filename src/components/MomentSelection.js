@@ -62,16 +62,6 @@ const MomentSelection = () => {
     dispatch({ type: "SET_SELECTED_NFTS", payload: id });
   };
 
-  const handleSelectAllOnPage = () => {
-    const pageMomentIDs = paginatedMoments.map((nft) => nft.id);
-    const newSelection = [...new Set([...selectedNFTs, ...pageMomentIDs])];
-    dispatch({ type: "SET_SELECTED_NFTS", payload: newSelection });
-  };
-
-  const handleDeselectAll = () => {
-    dispatch({ type: "RESET_SELECTED_NFTS" });
-  };
-
   const toggleExcludeSpecialSerials = () => {
     setExcludeSpecialSerials(!excludeSpecialSerials);
     setCurrentPage(1); // Reset to first page when filter changes
@@ -129,14 +119,6 @@ const MomentSelection = () => {
       <div className="bg-gray-900 p-2 rounded-lg">
         <h2 className="text-white text-lg font-semibold">Selected Moments</h2>
         <p className="text-gray-400">Total Selected: {selectedNFTs.length}</p>
-        {selectedNFTs.length > 0 && (
-          <button
-            onClick={handleDeselectAll}
-            className="text-red-500 hover:underline mb-2"
-          >
-            Deselect All
-          </button>
-        )}
         {selectedNFTs.length ? (
           <div className="flex flex-wrap mt-2">
             {selectedNFTs.map((id) => {
@@ -180,13 +162,6 @@ const MomentSelection = () => {
           </label>
         </div>
 
-        <button
-          onClick={handleSelectAllOnPage}
-          className="text-blue-500 hover:underline mb-2"
-        >
-          Select All on Page
-        </button>
-
         {/* Display eligible moments */}
         <div className="flex flex-wrap mt-2">
           {paginatedMoments.map((nft) => (
@@ -194,7 +169,7 @@ const MomentSelection = () => {
               key={nft.id}
               nft={nft}
               handleNFTSelection={handleNFTSelection}
-              isSelected={false}
+              isSelected={selectedNFTs.includes(nft.id)}
             />
           ))}
         </div>

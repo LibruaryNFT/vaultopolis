@@ -1,6 +1,5 @@
 import React, { useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
-import { FaArrowDown } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 import useTransaction from "../hooks/useTransaction";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
@@ -109,7 +108,7 @@ const NFTToTSHOTPanel = ({
 
     return (
       <div
-        key={accountAddr} // Unique key for React list rendering
+        key={accountAddr}
         onClick={() =>
           setSelectedAccount(
             accountAddr,
@@ -143,22 +142,7 @@ const NFTToTSHOTPanel = ({
   };
 
   return (
-    <div className="flex flex-col space-y-4">
-      {/* Eligible Moments */}
-      <div className="eligible-moments mt-4">
-        {nftDetails.map((moment) => (
-          <div
-            key={moment.id} // Unique key for each moment
-            className={`moment-item ${
-              selectedNFTs.includes(moment.id) ? "selected" : ""
-            }`}
-            onClick={() => handleMomentClick(moment.id)}
-          >
-            <span>{moment.name}</span>
-          </div>
-        ))}
-      </div>
-
+    <div className="flex flex-col space-y-2">
       {/* Swap Mode Section */}
       <div className="flex items-center justify-center space-x-4 mb-2">
         <span
@@ -187,18 +171,37 @@ const NFTToTSHOTPanel = ({
         </span>
       </div>
 
-      {/* Swap Button */}
-      <button
-        onClick={handleSwap}
-        className={`w-full p-3 text-lg rounded-lg font-bold text-white ${
-          selectedNFTs.length === 0
-            ? "bg-gray-600 cursor-not-allowed"
-            : "bg-flow-dark hover:bg-flow-darkest"
-        }`}
-        disabled={selectedNFTs.length === 0}
-      >
-        {user.loggedIn ? "Swap" : "Connect Wallet"}
-      </button>
+      {/* Horizontal Layout: Give, Receive, Swap */}
+      <div className="flex items-center space-x-4">
+        {/* Give Section */}
+        <div className="bg-gray-800 p-4 rounded-lg flex flex-col items-start w-1/3">
+          <div className="text-gray-400 mb-1">Give</div>
+          <div className="text-2xl font-bold text-white">
+            {selectedNFTs.length || 0} Commons
+          </div>
+        </div>
+
+        {/* Receive Section */}
+        <div className="bg-gray-800 p-4 rounded-lg flex flex-col items-start w-1/3">
+          <div className="text-gray-400 mb-1">Receive</div>
+          <div className="text-2xl font-bold text-white">
+            {selectedNFTs.length || 0} $TSHOT
+          </div>
+        </div>
+
+        {/* Swap Button */}
+        <button
+          onClick={handleSwap}
+          className={`w-1/3 p-4 text-lg rounded-lg font-bold text-white ${
+            selectedNFTs.length === 0
+              ? "bg-gray-600 cursor-not-allowed"
+              : "bg-flow-dark hover:bg-flow-darkest"
+          }`}
+          disabled={selectedNFTs.length === 0}
+        >
+          {user.loggedIn ? "Swap" : "Connect Wallet"}
+        </button>
+      </div>
 
       {/* Account Selector Section */}
       <div>
