@@ -1,12 +1,9 @@
-// src/components/TSHOTToNFTPanel.js
-
 import React, { useState, useContext, useEffect } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import { destroyReceipt } from "../flow/destroyReceipt";
-import { getReceiptDetails } from "../flow/getReceiptDetails";
 import { FaArrowDown, FaCheckCircle } from "react-icons/fa";
 import useTransaction from "../hooks/useTransaction";
 
@@ -16,13 +13,25 @@ const TSHOTToNFTPanel = ({
   onTransactionStart,
 }) => {
   const {
-    user,
-    tshotBalance,
+    accountData,
+    selectedAccount,
+    isSelectedChild,
     refreshBalances,
-    hasReceipt,
-    nftDetails,
-    receiptDetails,
+    user,
   } = useContext(UserContext);
+
+  // Determine active account
+  const activeAccountAddr = selectedAccount || accountData.parentAddress;
+  const activeAccountData = isSelectedChild
+    ? accountData.childrenData.find((child) => child.addr === activeAccountAddr)
+    : accountData;
+
+  const {
+    tshotBalance = 0,
+    nftDetails = [],
+    hasReceipt,
+    receiptDetails = {},
+  } = activeAccountData || {};
 
   const [tshotAmount, setTshotAmount] = useState(0);
   const [totalCommons, setTotalCommons] = useState(0);
@@ -38,10 +47,10 @@ const TSHOTToNFTPanel = ({
       setTotalCommons(commons.length);
     };
 
-    if (user.loggedIn && nftDetails.length > 0) {
+    if (nftDetails.length > 0) {
       calculateTotalCommons();
     }
-  }, [user, nftDetails]);
+  }, [nftDetails]);
 
   const handleCommit = async () => {
     if (!user.loggedIn) {
@@ -54,25 +63,21 @@ const TSHOTToNFTPanel = ({
       return;
     }
 
-    const nftCount = tshotAmount; // Number of NFTs to receive.
+    const nftCount = tshotAmount;
 
     try {
-      console.log("Opening modal with initial transaction data");
-      // Open the modal immediately with initial status and transaction action
       onTransactionStart({
         status: "Awaiting Approval",
         txId: null,
         error: null,
         nftCount,
         tshotAmount,
-        swapType: "TSHOT_TO_NFT", // Swap type
-        transactionAction: "COMMIT_SWAP", // Indicate commit step
+        swapType: "TSHOT_TO_NFT",
+        transactionAction: "COMMIT_SWAP",
       });
 
-      // Convert tshotAmount to a decimal string with one decimal place.
       const tshotAmountDecimal = `${tshotAmount.toFixed(1)}`;
 
-      // Start the transaction
       await sendTransaction({
         cadence: commitSwap,
         args: (arg, t) => [arg(tshotAmountDecimal, t.UFix64)],
@@ -88,11 +93,9 @@ const TSHOTToNFTPanel = ({
         },
       });
 
-      // After transaction, ensure that balances are refreshed immediately
-      await refreshBalances();
+      await refreshBalances(activeAccountAddr);
     } catch (error) {
       console.error("Transaction failed:", error);
-      // Error will be handled in the modal
     }
   };
 
@@ -109,10 +112,8 @@ const TSHOTToNFTPanel = ({
 
     try {
       const tshotAmountFromReceipt = parseInt(receiptDetails.betAmount) || 0;
-      const nftCount = tshotAmountFromReceipt; // Assuming 1:1 ratio
+      const nftCount = tshotAmountFromReceipt;
 
-      console.log("Opening modal with initial transaction data");
-      // Open the modal immediately with initial status and transaction action
       onTransactionStart({
         status: "Awaiting Approval",
         txId: null,
@@ -120,10 +121,9 @@ const TSHOTToNFTPanel = ({
         nftCount,
         tshotAmount: tshotAmountFromReceipt,
         swapType: "TSHOT_TO_NFT",
-        transactionAction: "REVEAL_SWAP", // Indicate reveal step
+        transactionAction: "REVEAL_SWAP",
       });
 
-      // Start the transaction
       await sendTransaction({
         cadence: revealSwap,
         limit: 9999,
@@ -138,11 +138,9 @@ const TSHOTToNFTPanel = ({
         },
       });
 
-      // After transaction, ensure that balances are refreshed immediately
-      await refreshBalances();
+      await refreshBalances(activeAccountAddr);
     } catch (error) {
       console.error("Transaction failed:", error);
-      // Error will be handled in the modal
     }
   };
 
@@ -153,8 +151,6 @@ const TSHOTToNFTPanel = ({
     }
 
     try {
-      console.log("Opening modal with initial transaction data");
-      // Open the modal immediately with initial status
       onTransactionStart({
         status: "Awaiting Approval",
         txId: null,
@@ -162,10 +158,9 @@ const TSHOTToNFTPanel = ({
         nftCount: 0,
         tshotAmount: 0,
         swapType: "TSHOT_TO_NFT",
-        transactionAction: "DESTROY_RECEIPT", // Indicate destroy action
+        transactionAction: "DESTROY_RECEIPT",
       });
 
-      // Start the transaction
       await sendTransaction({
         cadence: destroyReceipt,
         limit: 9999,
@@ -180,11 +175,9 @@ const TSHOTToNFTPanel = ({
         },
       });
 
-      // After transaction, ensure that balances are refreshed immediately
-      await refreshBalances();
+      await refreshBalances(activeAccountAddr);
     } catch (error) {
       console.error("Transaction failed:", error);
-      // Error will be handled in the modal
     }
   };
 
@@ -195,9 +188,8 @@ const TSHOTToNFTPanel = ({
     }
   };
 
-  // Disallow non-numeric input
   const handleKeyPress = (e) => {
-    const charCode = e.which ? e.which : e.keyCode;
+    const charCode = e.which || e.keyCode;
     if (charCode < 48 || charCode > 57) {
       e.preventDefault();
     }

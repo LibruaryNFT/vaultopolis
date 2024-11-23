@@ -1,4 +1,3 @@
-// src/components/ExchangePanel.js
 import React, { useState, useContext } from "react";
 import { UserContext } from "./UserContext";
 import NFTToTSHOTPanel from "./NFTToTSHOTPanel";
@@ -11,7 +10,11 @@ const ExchangePanel = () => {
   const [isNFTToTSHOT, setIsNFTToTSHOT] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
-  const { user } = useContext(UserContext);
+  const { user, selectedAccount, isSelectedChild } = useContext(UserContext);
+
+  // Determine active account (parent or selected child)
+  const activeAccountAddr = selectedAccount || user?.addr;
+  const isLoggedIn = Boolean(user?.loggedIn);
 
   const handleOpenModal = (data) => {
     setTransactionData(data);
@@ -32,25 +35,25 @@ const ExchangePanel = () => {
         )}
       </AnimatePresence>
 
-      {/* Give/Receive Panel with responsive width */}
+      {/* Swap Panel: NFT to $TSHOT or $TSHOT to NFT */}
       <div className="w-full md:w-3/4 lg:w-1/2 bg-transparent rounded-lg shadow-xl">
         {isNFTToTSHOT ? (
           <NFTToTSHOTPanel
             isNFTToTSHOT={isNFTToTSHOT}
             setIsNFTToTSHOT={setIsNFTToTSHOT}
-            onTransactionStart={handleOpenModal} // Pass modal control to child
+            onTransactionStart={handleOpenModal}
           />
         ) : (
           <TSHOTToNFTPanel
             isNFTToTSHOT={isNFTToTSHOT}
             setIsNFTToTSHOT={setIsNFTToTSHOT}
-            onTransactionStart={handleOpenModal} // Pass modal control to child
+            onTransactionStart={handleOpenModal}
           />
         )}
       </div>
 
-      {/* Conditionally render Moment Selection Panel with responsive width */}
-      {user.loggedIn && isNFTToTSHOT && (
+      {/* Moment Selection: Show only for NFT to $TSHOT swaps */}
+      {isLoggedIn && isNFTToTSHOT && (
         <div className="w-full md:w-3/4 bg-transparent rounded-lg shadow-xl">
           <MomentSelection />
         </div>

@@ -3,7 +3,6 @@ import React from "react";
 import ExchangePanel from "./ExchangePanel";
 import TransactionModal from "./TransactionModal";
 import TestingSetupPrompt from "./TestingSetupPrompt";
-import Child from "./Child";
 
 function Home() {
   return (

@@ -11,12 +11,14 @@ import {
 import * as fcl from "@onflow/fcl";
 
 const Header = () => {
-  const { user } = useContext(UserContext);
+  const { user, selectedAccount, accountData } = useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isStakingOpen, setIsStakingOpen] = useState(false);
   const location = useLocation();
-  const buttonRef = useRef(null); // Reference to profile button
+  const buttonRef = useRef(null);
+
+  const activeAddress = selectedAccount || user?.addr; // Address of active account
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
@@ -66,7 +68,6 @@ const Header = () => {
             <span>Staking & Liquidity</span>
             <FaChevronDown size={14} />
           </button>
-          {/* Dropdown menu positioned directly below the button */}
           <div className="absolute top-full left-0 bg-gray-800 rounded-md shadow-lg w-48 flex-col hidden group-hover:flex group-hover:flex-col z-10">
             <NavLink to="https://app.increment.fi/" external>
               Flow Cadence
@@ -134,7 +135,11 @@ const Header = () => {
       <div className="flex justify-end items-center pr-4">
         {user.loggedIn ? (
           <div className="relative">
-            <UserButton ref={buttonRef} onClick={toggleMenu} user={user} />
+            <UserButton
+              ref={buttonRef}
+              onClick={toggleMenu}
+              activeAddress={activeAddress}
+            />
             {isMenuOpen && (
               <DropdownMenu
                 closeMenu={() => setIsMenuOpen(false)}
@@ -173,21 +178,20 @@ const NavLink = ({ to, isActive, children, onClick, external }) =>
       className={`${
         isActive ? "text-white" : "text-gray-400"
       } hover:text-white transition-colors py-2 px-4 rounded-md`}
-      style={{ pointerEvents: "auto", zIndex: 50, position: "relative" }} // Ensures link is clickable
     >
       {children}
     </Link>
   );
 
-const UserButton = React.forwardRef(({ onClick, user }, ref) => (
+const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button
     ref={ref}
     onClick={onClick}
     className="flex items-center px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-    style={{ zIndex: 50 }} // Ensures profile button is above other elements
+    style={{ zIndex: 50 }}
   >
     <FaUserCircle className="mr-2" size={20} />
-    {user.addr}
+    {activeAddress}
   </button>
 ));
 

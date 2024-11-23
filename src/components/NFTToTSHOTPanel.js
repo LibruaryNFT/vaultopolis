@@ -13,53 +13,58 @@ const NFTToTSHOTPanel = ({
 }) => {
   const {
     user,
-    tshotBalance,
+    accountData,
+    selectedAccount,
+    selectedAccountType,
     selectedNFTs,
-    nftDetails,
     dispatch,
     refreshBalances,
-    tierCounts,
-    hasChildren,
-    childrenAddresses,
-    activeAccount,
-    setActiveAccount,
+    setSelectedAccount,
   } = useContext(UserContext);
 
+  const activeAccountAddr = selectedAccount || user?.addr;
+  const isParentAccount = selectedAccountType === "parent";
+
+  const activeAccountData = isParentAccount
+    ? accountData
+    : accountData.childrenData.find((child) => child.addr === selectedAccount);
+
+  const {
+    nftDetails = [],
+    tierCounts = {},
+    tshotBalance = 0,
+  } = activeAccountData || {};
+
   useEffect(() => {
-    if (activeAccount) {
+    if (activeAccountAddr) {
       dispatch({ type: "RESET_SELECTED_NFTS" });
-      refreshBalances(activeAccount);
+      refreshBalances(activeAccountAddr);
     }
-  }, [activeAccount]);
+  }, [activeAccountAddr]);
 
   const handleMomentClick = (momentId) => {
-    dispatch({ type: "SELECT_NFT", payload: momentId });
+    dispatch({ type: "SET_SELECTED_NFTS", payload: momentId });
   };
-
-  const totalTopShotCommons = tierCounts?.common || 0;
 
   const { sendTransaction } = useTransaction();
 
   const handleSwap = async () => {
     if (!user.loggedIn) {
-      console.log("User not logged in. Redirecting to authentication.");
       fcl.authenticate();
       return;
     }
 
     if (selectedNFTs.length === 0) {
-      console.log("No NFTs selected for exchange.");
       alert("No NFTs selected for exchange.");
       return;
     }
 
     const nftCount = selectedNFTs.length;
     const tshotAmount = nftCount;
-
-    const isChildAccount = activeAccount !== user.addr; // Determine if child account is active
-    const cadenceScript = isChildAccount
-      ? exchangeNFTForTSHOT_child
-      : exchangeNFTForTSHOT;
+    const cadenceScript =
+      selectedAccountType === "child"
+        ? exchangeNFTForTSHOT_child
+        : exchangeNFTForTSHOT;
 
     try {
       onTransactionStart({
@@ -74,17 +79,14 @@ const NFTToTSHOTPanel = ({
       await sendTransaction({
         cadence: cadenceScript,
         args: (arg, t) =>
-          isChildAccount
+          selectedAccountType === "child"
             ? [
-                arg(activeAccount, t.Address), // Child account address
-                arg(selectedNFTs, t.Array(t.UInt64)), // Selected NFTs
+                arg(selectedAccount, t.Address),
+                arg(selectedNFTs, t.Array(t.UInt64)),
               ]
-            : [
-                arg(selectedNFTs, t.Array(t.UInt64)), // Parent NFTs
-              ],
+            : [arg(selectedNFTs, t.Array(t.UInt64))],
         limit: 9999,
         onUpdate: (transactionData) => {
-          console.log("Transaction Update:", transactionData);
           onTransactionStart({
             ...transactionData,
             nftCount,
@@ -94,21 +96,59 @@ const NFTToTSHOTPanel = ({
         },
       });
 
-      console.log("Transaction successfully sent.");
-      await refreshBalances(activeAccount);
+      await refreshBalances(activeAccountAddr);
       dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (error) {
       console.error("Transaction failed:", error);
     }
   };
 
+  const renderAccountBox = (label, accountAddr, accountData, isSelected) => {
+    const { tshotBalance = 0, tierCounts = {} } = accountData;
+    const commonMoments = tierCounts.common || 0;
+
+    return (
+      <div
+        key={accountAddr} // Unique key for React list rendering
+        onClick={() =>
+          setSelectedAccount(
+            accountAddr,
+            accountAddr === user.addr ? "parent" : "child"
+          )
+        }
+        className={`p-2 w-48 flex-shrink-0 text-center rounded-lg border-4 ${
+          isSelected
+            ? "border-green-500 bg-gray-700"
+            : "border-gray-500 bg-gray-800"
+        } cursor-pointer hover:bg-gray-600 transition-colors`}
+      >
+        <h4
+          className={`text-sm font-semibold ${
+            isSelected ? "text-green-400" : "text-white"
+          }`}
+        >
+          {label}
+        </h4>
+        <p className="text-xs text-gray-400 truncate">{accountAddr}</p>
+        <div className="mt-2">
+          <p className="text-base font-semibold text-white">
+            {parseFloat(tshotBalance).toFixed(1)} $TSHOT
+          </p>
+          <p className="text-base font-semibold text-white">
+            {commonMoments} Common Moments
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col space-y-1">
+    <div className="flex flex-col space-y-4">
       {/* Eligible Moments */}
-      <div className="eligible-moments">
+      <div className="eligible-moments mt-4">
         {nftDetails.map((moment) => (
           <div
-            key={moment.id}
+            key={moment.id} // Unique key for each moment
             className={`moment-item ${
               selectedNFTs.includes(moment.id) ? "selected" : ""
             }`}
@@ -147,36 +187,6 @@ const NFTToTSHOTPanel = ({
         </span>
       </div>
 
-      {/* Sell Section */}
-      <div className="bg-gray-800 p-2 rounded-lg flex flex-col items-start">
-        <div className="text-gray-400 mb-1">Sell</div>
-        <div className="text-3xl font-bold text-white">
-          {selectedNFTs.length || 0} TopShot Commons
-        </div>
-        <small className="text-gray-500">
-          Balance: {totalTopShotCommons} TopShot Commons
-        </small>
-      </div>
-
-      {/* Centered Down Arrow */}
-      <div
-        className="flex justify-center rounded-lg bg-gray-800 py-5 cursor-pointer"
-        onClick={() => setIsNFTToTSHOT(false)}
-      >
-        <FaArrowDown className="text-white text-2xl" />
-      </div>
-
-      {/* Buy Section */}
-      <div className="bg-gray-800 p-2 rounded-lg flex flex-col items-start mb-1">
-        <div className="text-gray-400 mb-1">Buy</div>
-        <div className="text-3xl font-bold text-white">
-          {selectedNFTs.length || 0} $TSHOT
-        </div>
-        <small className="text-gray-500">
-          Balance: {parseFloat(tshotBalance || 0).toFixed(2)} $TSHOT
-        </small>
-      </div>
-
       {/* Swap Button */}
       <button
         onClick={handleSwap}
@@ -190,32 +200,32 @@ const NFTToTSHOTPanel = ({
         {user.loggedIn ? "Swap" : "Connect Wallet"}
       </button>
 
-      {/* Active Account Selector */}
-      <div className="mb-4">
-        <label htmlFor="account-selector" className="text-white font-semibold">
-          Collection Selector:
-        </label>
-        {hasChildren ? (
-          <select
-            id="account-selector"
-            value={activeAccount}
-            onChange={(e) => setActiveAccount(e.target.value)}
-            className="w-full p-2 mt-2 rounded-lg bg-gray-700 text-white"
-          >
-            <option value={user?.addr}>Parent Account ({user?.addr})</option>
-            {childrenAddresses.map((child) => (
-              <option key={child} value={child}>
-                Child Account ({child})
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div className="text-white mt-2">Parent Account ({user?.addr})</div>
-        )}
-        {activeAccount !== user.addr && (
-          <div className="mt-2 text-sm text-yellow-400">
-            Note: $TSHOT received will be deposited into the signer's account.
-          </div>
+      {/* Account Selector Section */}
+      <div>
+        <h3 className="text-lg font-semibold text-white mb-2">
+          Account Selection
+        </h3>
+        <div className="flex space-x-2 overflow-auto">
+          {renderAccountBox(
+            "Parent Account",
+            user?.addr,
+            accountData,
+            activeAccountAddr === user?.addr
+          )}
+
+          {accountData.childrenData.map((child) =>
+            renderAccountBox(
+              "Child Account",
+              child.addr,
+              child,
+              activeAccountAddr === child.addr
+            )
+          )}
+        </div>
+        {selectedAccountType === "child" && (
+          <p className="text-sm text-yellow-400 mt-2">
+            Note: $TSHOT earned will appear in the parent account.
+          </p>
         )}
       </div>
     </div>

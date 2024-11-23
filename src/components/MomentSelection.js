@@ -1,109 +1,81 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState, useMemo } from "react";
 import { UserContext } from "./UserContext";
 import MomentCard from "./MomentCard";
 
 const MomentSelection = () => {
-  const { nftDetails, selectedNFTs, dispatch } = useContext(UserContext);
+  const { accountData, selectedAccount, selectedNFTs, dispatch } =
+    useContext(UserContext);
 
-  const [eligibleMoments, setEligibleMoments] = useState([]);
-  const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true); // Default to true
+  // Determine the active account (selected child or parent account)
+  const activeAccount =
+    accountData.childrenData.find((child) => child.addr === selectedAccount) ||
+    accountData;
+
+  const { nftDetails = [] } = activeAccount; // Get NFT details from the active account
+
+  const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true); // Exclude special serials toggle
   const [selectedSeries, setSelectedSeries] = useState([]);
   const [sortBy, setSortBy] = useState("serialNumber");
-  const [itemsPerPage, setItemsPerPage] = useState(50); // Default to 50 items per page
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
-  useEffect(() => {
-    const updateEligibleMoments = () => {
-      let eligible = nftDetails.filter((nft) => {
-        // Parse serial numbers and edition sizes to integers
-        const serialNumber = parseInt(nft.serialNumber);
-        const numMomentsInEdition = parseInt(nft.numMomentsInEdition);
-        const jerseyNumber = nft.jerseyNumber
-          ? parseInt(nft.jerseyNumber)
-          : null;
+  // Calculate eligible moments using `useMemo` for optimization
+  const eligibleMoments = useMemo(() => {
+    if (!nftDetails || nftDetails.length === 0) return [];
 
-        // Check if this NFT is a special serial
-        const isSpecialSerial =
-          serialNumber === 1 ||
-          serialNumber === numMomentsInEdition ||
-          (jerseyNumber && jerseyNumber === serialNumber);
+    return nftDetails.filter((nft) => {
+      const serialNumber = parseInt(nft.serialNumber, 10);
+      const numMomentsInEdition = parseInt(nft.numMomentsInEdition, 10);
+      const jerseyNumber = nft.jerseyNumber
+        ? parseInt(nft.jerseyNumber, 10)
+        : null;
 
-        // Check if this NFT's series is selected
-        const isSeriesSelected =
-          selectedSeries.length === 0 ||
-          selectedSeries.includes(parseInt(nft.seriesID));
+      const isSpecialSerial =
+        serialNumber === 1 ||
+        serialNumber === numMomentsInEdition ||
+        (jerseyNumber && jerseyNumber === serialNumber);
 
-        // Only include this NFT if:
-        // 1. It is of the "common" tier and is not locked.
-        // 2. It matches the selected series (or all series if none are selected).
-        // 3. If "excludeSpecialSerials" is true, it is not a special serial.
-        // 4. It is not in the list of already selected NFTs.
-        return (
-          nft.tier.toLowerCase() === "common" &&
-          !nft.isLocked &&
-          isSeriesSelected &&
-          (!excludeSpecialSerials || !isSpecialSerial) &&
-          !selectedNFTs.includes(nft.id)
-        );
-      });
+      const isSeriesSelected =
+        selectedSeries.length === 0 ||
+        selectedSeries.includes(parseInt(nft.seriesID, 10));
 
-      // Apply sorting
-      if (sortBy === "series") {
-        eligible.sort(
-          (a, b) =>
-            parseInt(b.seriesID) - parseInt(a.seriesID) ||
-            parseInt(b.serialNumber) - parseInt(a.serialNumber)
-        );
-      } else {
-        eligible.sort(
-          (a, b) =>
-            parseInt(b.serialNumber) - parseInt(a.serialNumber) ||
-            parseInt(b.seriesID) - parseInt(a.seriesID)
-        );
-      }
+      return (
+        nft.tier?.toLowerCase() === "common" && // Only common moments
+        !nft.isLocked && // Ensure it's not locked
+        isSeriesSelected && // Match selected series
+        (!excludeSpecialSerials || !isSpecialSerial) && // Exclude special serials if needed
+        !selectedNFTs.includes(nft.id) // Ensure it's not already selected
+      );
+    });
+  }, [nftDetails, excludeSpecialSerials, selectedSeries, selectedNFTs]);
 
-      setEligibleMoments(eligible);
-    };
+  const paginatedMoments = useMemo(() => {
+    return eligibleMoments.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [eligibleMoments, currentPage, itemsPerPage]);
 
-    updateEligibleMoments();
-  }, [nftDetails, excludeSpecialSerials, selectedSeries, sortBy, selectedNFTs]);
+  const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
 
   const handleNFTSelection = (id) => {
-    dispatch({ type: "SELECT_NFT", payload: id });
+    dispatch({ type: "SET_SELECTED_NFTS", payload: id });
   };
 
   const handleSelectAllOnPage = () => {
     const pageMomentIDs = paginatedMoments.map((nft) => nft.id);
-    dispatch({
-      type: "SET_SELECTED_NFTS",
-      payload: [...selectedNFTs, ...pageMomentIDs],
-    });
+    const newSelection = [...new Set([...selectedNFTs, ...pageMomentIDs])];
+    dispatch({ type: "SET_SELECTED_NFTS", payload: newSelection });
   };
 
   const handleDeselectAll = () => {
     dispatch({ type: "RESET_SELECTED_NFTS" });
   };
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
-
-  const handleItemsPerPageChange = (event) => {
-    setItemsPerPage(parseInt(event.target.value));
-    setCurrentPage(1); // Reset to first page
-  };
-
   const toggleExcludeSpecialSerials = () => {
     setExcludeSpecialSerials(!excludeSpecialSerials);
     setCurrentPage(1); // Reset to first page when filter changes
   };
-
-  const paginatedMoments = eligibleMoments.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
 
   const renderPaginationButtons = () => {
     const paginationRange = [];
@@ -139,7 +111,7 @@ const MomentSelection = () => {
     return paginationRange.map((page, index) => (
       <button
         key={index}
-        onClick={() => handlePageChange(page)}
+        onClick={() => setCurrentPage(page)}
         className={`px-3 py-1 mx-1 rounded ${
           currentPage === page
             ? "bg-blue-500 text-white"
@@ -195,14 +167,7 @@ const MomentSelection = () => {
           Total Available: {eligibleMoments.length}
         </p>
 
-        <button
-          onClick={handleSelectAllOnPage}
-          className="text-blue-500 hover:underline mb-2"
-        >
-          Select All on Page
-        </button>
-
-        {/* Filter and Sort Options */}
+        {/* Exclude Special Serials Toggle */}
         <div className="flex items-center mb-2">
           <input
             type="checkbox"
@@ -215,19 +180,12 @@ const MomentSelection = () => {
           </label>
         </div>
 
-        {/* Items per page selection */}
-        <div className="mb-2">
-          <label className="text-gray-300 mr-2">Items per page:</label>
-          <select
-            value={itemsPerPage}
-            onChange={handleItemsPerPageChange}
-            className="bg-gray-800 text-white rounded px-2 py-1"
-          >
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
-        </div>
+        <button
+          onClick={handleSelectAllOnPage}
+          className="text-blue-500 hover:underline mb-2"
+        >
+          Select All on Page
+        </button>
 
         {/* Display eligible moments */}
         <div className="flex flex-wrap mt-2">
