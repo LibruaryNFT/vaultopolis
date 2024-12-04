@@ -1,6 +1,6 @@
 import "TopShotShardedCollection"
 import "NonFungibleToken"
-import "TopShot"
+import "TopShot" 
 
 access(all) contract TopShotShardedCollectionWrapper {
 

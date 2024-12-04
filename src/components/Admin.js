@@ -1,46 +1,87 @@
-import React, { useContext, useEffect, useState } from "react";
-import { UserContext } from "./UserContext";
-import MomentCard from "./MomentCard";
+import React, { useEffect, useState } from "react";
 import * as fcl from "@onflow/fcl";
+import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { destroyMoments } from "../flow/destroyMoments";
-import { transferMoments } from "../flow/transferMoments";
 
 const Admin = () => {
-  const {
-    user,
-    nftDetails = [],
-    selectedNFTs = [],
-    dispatch,
-  } = useContext(UserContext);
+  const [collectionIDs, setCollectionIDs] = useState([]);
+  const [selectedIDs, setSelectedIDs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [recipientAddress, setRecipientAddress] = useState(""); // Recipient address for transfer
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const itemsPerPage = 100;
 
-  // Select or Deselect NFT
-  const handleNFTSelection = (id) => {
-    dispatch({ type: "SELECT_NFT", payload: id });
+  // Fetch the authenticated user's address
+  const fetchUserCollectionIDs = async () => {
+    try {
+      setLoading(true);
+      const currentUser = await fcl.currentUser().snapshot();
+      if (!currentUser?.addr) {
+        throw new Error("User is not authenticated or address not found.");
+      }
+
+      const ids = await fcl.query({
+        cadence: getTopShotCollectionIDs,
+        args: (arg, t) => [arg(currentUser.addr, t.Address)],
+      });
+
+      setCollectionIDs(ids);
+    } catch (error) {
+      console.error("Error fetching collection IDs:", error);
+      alert("Failed to fetch collection IDs.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Destroy selected moments
+  useEffect(() => {
+    fetchUserCollectionIDs();
+  }, []);
+
+  // Pagination logic
+  const paginatedIDs = collectionIDs.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+  const totalPages = Math.ceil(collectionIDs.length / itemsPerPage);
+
+  // Handle "Select All" for the current page
+  const handleSelectAll = () => {
+    const pageIDs = paginatedIDs.filter((id) => !selectedIDs.includes(id));
+    setSelectedIDs([...selectedIDs, ...pageIDs]);
+  };
+
+  // Handle "Deselect All" for the current page
+  const handleDeselectAll = () => {
+    const pageIDs = paginatedIDs;
+    setSelectedIDs(selectedIDs.filter((id) => !pageIDs.includes(id)));
+  };
+
+  // Handle individual ID selection
+  const handleIDSelection = (id) => {
+    setSelectedIDs((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // Destroy selected IDs
   const handleDestroyMoments = async () => {
-    if (selectedNFTs.length === 0) {
-      alert("Please select at least one moment to destroy.");
+    if (selectedIDs.length === 0) {
+      alert("Please select at least one ID to destroy.");
       return;
     }
     setLoading(true);
     try {
       const txId = await fcl.mutate({
         cadence: destroyMoments,
-        args: (arg, t) => [arg(selectedNFTs, t.Array(t.UInt64))],
+        args: (arg, t) => [arg(selectedIDs, t.Array(t.UInt64))],
         proposer: fcl.authz,
         payer: fcl.authz,
         authorizations: [fcl.authz],
         limit: 9999,
       });
       await fcl.tx(txId).onceSealed();
-      alert("Moments destroyed successfully.");
-      dispatch({ type: "RESET_SELECTED_NFTS" });
+      alert("Selected moments destroyed successfully.");
+      setSelectedIDs([]);
     } catch (error) {
       console.error("Error destroying moments:", error);
       alert("Failed to destroy moments.");
@@ -49,49 +90,6 @@ const Admin = () => {
     }
   };
 
-  // Transfer selected moments
-  const handleTransferMoments = async () => {
-    if (selectedNFTs.length === 0) {
-      alert("Please select at least one moment to transfer.");
-      return;
-    }
-    if (!recipientAddress) {
-      alert("Please enter a recipient address.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const txId = await fcl.mutate({
-        cadence: transferMoments,
-        args: (arg, t) => [
-          arg(recipientAddress, t.Address),
-          arg(selectedNFTs, t.Array(t.UInt64)),
-        ],
-        proposer: fcl.authz,
-        payer: fcl.authz,
-        authorizations: [fcl.authz],
-        limit: 9999,
-      });
-      await fcl.tx(txId).onceSealed();
-      alert("Moments transferred successfully.");
-      dispatch({ type: "RESET_SELECTED_NFTS" });
-      setRecipientAddress("");
-    } catch (error) {
-      console.error("Error transferring moments:", error);
-      alert("Failed to transfer moments.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Pagination
-  const handlePageChange = (newPage) => setCurrentPage(newPage);
-  const paginatedMoments = nftDetails.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-  const totalPages = Math.ceil(nftDetails.length / itemsPerPage);
-
   return (
     <div>
       <h1>Admin - Manage Moments</h1>
@@ -99,9 +97,9 @@ const Admin = () => {
       {/* Destroy Button */}
       <button
         onClick={handleDestroyMoments}
-        disabled={selectedNFTs.length === 0 || loading}
+        disabled={selectedIDs.length === 0 || loading}
         className={`w-full p-3 mb-3 text-lg rounded-lg font-bold ${
-          selectedNFTs.length
+          selectedIDs.length
             ? "bg-red-500 hover:bg-red-600"
             : "bg-gray-500 cursor-not-allowed"
         } text-white transition-colors duration-300`}
@@ -109,85 +107,49 @@ const Admin = () => {
         {loading ? "Processing..." : "Destroy Selected Moments"}
       </button>
 
-      {/* Transfer Section */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Enter recipient address"
-          value={recipientAddress}
-          onChange={(e) => setRecipientAddress(e.target.value)}
-          className="p-2 w-full mb-2 text-gray-900 rounded-lg"
-        />
-        <button
-          onClick={handleTransferMoments}
-          disabled={selectedNFTs.length === 0 || !recipientAddress || loading}
-          className={`w-full p-3 text-lg rounded-lg font-bold ${
-            selectedNFTs.length && recipientAddress
-              ? "bg-blue-500 hover:bg-blue-600"
-              : "bg-gray-500 cursor-not-allowed"
-          } text-white transition-colors duration-300`}
-        >
-          {loading ? "Processing..." : "Transfer Selected Moments"}
-        </button>
-      </div>
+      {/* Display Collection IDs */}
+      <div className="bg-gray-900 p-4 rounded-lg">
+        <h2 className="text-white text-lg font-semibold">
+          Collection IDs (Page {currentPage} of {totalPages})
+        </h2>
 
-      {/* Display Selected Moments */}
-      <div className="bg-gray-900 p-4 rounded-lg mt-6">
-        <h2 className="text-white text-lg font-semibold">Selected Moments</h2>
-        {selectedNFTs.length ? (
-          <div className="flex flex-wrap mt-2">
-            {selectedNFTs.map((id) => {
-              const nft = nftDetails.find((n) => n.id === id);
-              return (
-                <MomentCard
-                  key={id}
-                  nft={nft}
-                  handleNFTSelection={handleNFTSelection}
-                  isSelected={true}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-gray-400 mt-4">Select moments below to manage.</p>
-        )}
-      </div>
-
-      {/* Available Moments Section */}
-      <div className="bg-gray-900 p-4 rounded-lg mb-4">
-        <h2 className="text-white text-lg font-semibold">Available Moments</h2>
-
-        {/* Items per Page Dropdown */}
-        <div className="flex items-center justify-center mt-4">
-          <label className="mr-2 text-gray-300">Items per page:</label>
-          <select
-            value={itemsPerPage}
-            onChange={(e) => setItemsPerPage(Number(e.target.value))}
-            className="p-1 bg-gray-700 text-white rounded"
+        {/* Select/Deselect All */}
+        <div className="flex justify-between my-2">
+          <button
+            onClick={handleSelectAll}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
           >
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
+            Select All
+          </button>
+          <button
+            onClick={handleDeselectAll}
+            className="px-4 py-2 bg-gray-500 text-white rounded"
+          >
+            Deselect All
+          </button>
         </div>
 
-        {/* Display Moments with Pagination */}
-        <div className="flex flex-wrap mt-3">
-          {paginatedMoments.map((nft) => (
-            <MomentCard
-              key={nft.id}
-              nft={nft}
-              handleNFTSelection={handleNFTSelection}
-              isSelected={selectedNFTs.includes(nft.id)}
-            />
+        {/* Display IDs */}
+        <div className="grid grid-cols-5 gap-2 mt-4">
+          {paginatedIDs.map((id) => (
+            <div
+              key={id}
+              onClick={() => handleIDSelection(id)}
+              className={`p-2 border rounded text-center cursor-pointer ${
+                selectedIDs.includes(id)
+                  ? "bg-green-500 text-white"
+                  : "bg-gray-200 text-black"
+              }`}
+            >
+              {id}
+            </div>
           ))}
         </div>
 
         {/* Pagination Controls */}
         <div className="flex justify-center items-center mt-4">
           <button
-            onClick={() => handlePageChange(currentPage - 1)}
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
             className="px-4 py-2 bg-gray-600 text-white rounded mr-2 disabled:opacity-50"
           >
@@ -197,7 +159,9 @@ const Admin = () => {
             Page {currentPage} of {totalPages}
           </span>
           <button
-            onClick={() => handlePageChange(currentPage + 1)}
+            onClick={() =>
+              setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+            }
             disabled={currentPage === totalPages}
             className="px-4 py-2 bg-gray-600 text-white rounded ml-2 disabled:opacity-50"
           >

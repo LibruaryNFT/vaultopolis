@@ -21,13 +21,14 @@ access(all) contract RandomConsumer {
     access(all) event RandomnessRequested(requestUUID: UInt64, block: UInt64)
     access(all) event RandomnessSourced(requestUUID: UInt64, block: UInt64, randomSource: [UInt8])
     access(all) event RandomnessFulfilled(requestUUID: UInt64, randomResult: UInt64)
+    access(all) event RandomnessFulfilledWithPRG(requestUUID: UInt64)
 
     ///////////////////
     // PUBLIC FUNCTIONS
     ///////////////////
 
     /// Retrieves a revertible random number in the range [min, max]. By leveraging the Cadence's revertibleRandom
-    /// method, this function ensures that the random number is generated within range without risk of bias.
+    /// method, this function ensures that the random number is generated within range without risk of modulo bias.
     ///
     /// @param min: The minimum value of the range
     /// @param max: The maximum value of the range
@@ -38,21 +39,22 @@ access(all) contract RandomConsumer {
         return min + revertibleRandom<UInt64>(modulo: max - min + 1)
     }
 
-    /// Retrieves a random number in the range [min, max] using the provided PRG 
-    /// to source additional randomness if needed
+    /// Retrieves a random number in the range [min, max] using the provided PRG reference to source additional
+    /// randomness if needed. This method is implemented to avoid risk of modulo bias. Passing the PRG by reference
+    /// ensures that its state is advanced and numbers proceed down the PRG's random walk.
     ///
-    /// @param prg: The PRG to use for random number generation
+    /// @param prg: The PRG (passed by reference) to use for random number generation
     /// @param min: The minimum value of the range
     /// @param max: The maximum value of the range
     ///
     /// @return A random number in the range [min, max]
     ///
-    access(all) fun getNumberInRange(prg: Xorshift128plus.PRG, min: UInt64, max: UInt64): UInt64 {
+    access(all) fun getNumberInRange(prg: &Xorshift128plus.PRG, min: UInt64, max: UInt64): UInt64 {
         pre {
             min < max:
-                "RandomConsumer.getNumberInRange: Cannot get random number with the provided range! "
-                .concat(" The min must be less than the max. Provided min of ")
-                .concat(min.toString()).concat(" and max of ".concat(max.toString()))
+            "RandomConsumer.getNumberInRange: Cannot get random number with the provided range! "
+            .concat(" The min must be less than the max. Provided min of ")
+            .concat(min.toString()).concat(" and max of ".concat(max.toString()))
         }
         let range = max - min // Calculate the inclusive range of the random number
         let bitsRequired = UInt256(self._mostSignificantBit(range)) // Number of bits needed to cover the range
@@ -80,11 +82,11 @@ access(all) contract RandomConsumer {
                 shifts = 0
             }
         }
-        
+
         // Scale candidate to the range [min, max]
         return min + candidate
     }
-    
+
     /// Returns a new Consumer resource
     ///
     /// @return A Consumer resource
@@ -166,8 +168,13 @@ access(all) contract RandomConsumer {
             self.fulfilled = false
         }
 
+        /// Returns whether the request can be fulfilled as defined by whether it has already been fulfilled and the
+        /// created block height has been surpassed.
+        ///
+        /// @param: True if it can be fulfilled, false otherwise
+        ///
         access(all) view fun canFullfill(): Bool {
-            return !self.fulfilled && getCurrentBlock().height >= self.block
+            return !self.fulfilled && getCurrentBlock().height > self.block
         }
 
         /// Returns the Flow's random source for the requested block height
@@ -246,25 +253,48 @@ access(all) contract RandomConsumer {
                 .concat(min.toString()).concat(" and max of ".concat(max.toString()))
             }
             let reqUUID = request.uuid
-            
+
             // Create PRG from the provided request & generate a random number & generate a random number in the range
             let prg = self._getPRGFromRequest(request: <-request)
-            let res = RandomConsumer.getNumberInRange(prg: prg, min: min, max: max)
+            let prgRef: &Xorshift128plus.PRG = &prg
+            let res = RandomConsumer.getNumberInRange(prg: prgRef, min: min, max: max)
 
             emit RandomnessFulfilled(requestUUID: reqUUID, randomResult: res)
 
             return res
         }
 
-        /* --- INTERNAL --- */
-        //
-        /// Creates a PRG from a Request, using the request's block height source of randomness and UUID as a salt
+        /// Creates a PRG from a Request, using the request's block height source of randomness and UUID as a salt.
+        /// This method fulfills the request, returning a PRG so that consumers can generate any number of random values
+        /// using the request's source of randomness, seeded with the request's UUID as a salt.
+        ///
+        /// NOTE: The intention in exposing this method is for consumers to be able to generate several random values
+        /// per request, and the returned PRG should be used in association to a single request. IOW, while the PRG is
+        /// a storable object, it should be treated as ephemeral, discarding once all values have been generated
+        /// corresponding to the fulfilled request.
         ///
         /// @param request: The Request to use for PRG creation
         ///
-        /// @return A PRG object
+        /// @return A PRG object from which to generate random values in assocation with the fulfilled request
         ///
-        access(self) fun _getPRGFromRequest(request: @Request): Xorshift128plus.PRG {
+        access(Reveal) fun fulfillWithPRG(request: @Request): Xorshift128plus.PRG {
+            let reqUUID = request.uuid
+            let prg = self._getPRGFromRequest(request: <-request)
+
+            emit RandomnessFulfilledWithPRG(requestUUID: reqUUID)
+
+            return prg
+        }
+
+        /// Internal method to retrieve a PRG from a request. Doing so fulfills the request, and is intended for
+        /// internal functionality serving a single random value.
+        ///
+        /// @param request: The Request to use for PRG creation
+        ///
+        /// @return A PRG object from which this Consumer can generate a single random value to fulfill the request
+        ///
+        access(self)
+        fun _getPRGFromRequest(request: @Request): Xorshift128plus.PRG {
             let source = request._fulfill()
             let salt = request.uuid.toBigEndianBytes()
             Burner.burn(<-request)

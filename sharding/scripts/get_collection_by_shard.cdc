@@ -1,7 +1,7 @@
 import "TopShot"
 import "TopShotTiers"
 import "TopShotLocking"
-import "TopShotShardedCollectionWrapper"
+import "TopShotShardedCollectionV2"
 
 // Structure to hold the NFT details with additional fields
 access(all) struct NFTDetails {
@@ -50,12 +50,14 @@ access(all) struct NFTDetails {
 access(all) fun main(account: Address, shardID: UInt64): [NFTDetails] {
     let acct = getAccount(account)
 
-    // Borrow the wrapper's public capability
-    let wrapperRef = acct.capabilities.borrow<&TopShotShardedCollectionWrapper.CollectionWrapper>(/public/ShardedCollectionWrapper)
-        ?? panic("Could not borrow the collection wrapper reference")
+    // Borrow the public capability for the ShardedCollection
+    let shardedCollectionRef = acct.capabilities
+        .get<&TopShotShardedCollectionV2.ShardedCollection>(/public/MomentCollection)
+        .borrow()
+        ?? panic("Could not borrow the ShardedCollection reference")
 
     // Get NFT IDs in the specified shard
-    let nftIDs = wrapperRef.getShardIDs(shardIndex: shardID)
+    let nftIDs = shardedCollectionRef.getShardIDs(shardIndex: shardID)
 
     // Cache for set names to avoid redundant lookups
     var setNames: {UInt32: String} = {}
@@ -65,14 +67,14 @@ access(all) fun main(account: Address, shardID: UInt64): [NFTDetails] {
 
     // Loop through the NFT IDs in the specified shard
     for id in nftIDs {
-        let nftRef = wrapperRef.borrowMoment(id: id)
+        let nftRef = shardedCollectionRef.borrowMoment(id: id)
             ?? panic("Could not borrow the TopShot NFT")
 
         let data = nftRef.data
 
-        // Get the tier of the NFT using your custom contract
+        // Get the tier of the NFT using the TopShotTiers contract
         let tier = TopShotTiers.getTier(nft: nftRef)
-        let tierString = tier != nil ? TopShotTiers.tierToString(tier: tier!) : ""
+        let tierString = tier != nil ? TopShotTiers.tierToString(tier: tier!) : "Unknown Tier"
 
         // Get the seriesID associated with the setID
         let seriesID = TopShot.getSetSeries(setID: data.setID)

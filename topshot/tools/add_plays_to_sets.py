@@ -24,7 +24,7 @@ for setID, playIDs in set_play_mapping.items():
         # Construct the command
         command = [
             'flow', 'transactions', 'send', './topshot/transactions/add_plays_to_sets.cdc',
-            set_id_str, play_ids_str
+            set_id_str, play_ids_str, '--signer', 'dapper'
         ]
 
         # Execute the Flow transaction

@@ -1,27 +1,30 @@
 export const getVaultCollection = `
 
-import TopShotShardedCollectionWrapper from 0x332ffc0ae9bba9c1
+import TopShotShardedCollectionV2 from 0x332ffc0ae9bba9c1
 
-// This script retrieves the total number of NFTs in the wrapped sharded collection
+// This script retrieves the total number of NFTs in the sharded collection
 // owned by the specified account.
-
+//
 // Parameters:
-// account: The Flow Address of the account whose wrapped sharded collection data needs to be read
-
+// - account: The Flow Address of the account whose sharded collection data needs to be read.
+//
 // Returns: Int
-// Total number of NFTs in the wrapped sharded collection
+// Total number of NFTs in the sharded collection.
 
 access(all) fun main(account: Address): Int {
 
     let acct = getAccount(account)
 
-    // Borrow the wrapper's public capability
-    let wrapperRef = acct.capabilities.borrow<&TopShotShardedCollectionWrapper.CollectionWrapper>(/public/ShardedCollectionWrapper)
-        ?? panic("Could not borrow the collection wrapper reference")
+    // Borrow the public capability for the ShardedCollection
+    let shardedCollectionRef = acct
+        .capabilities
+        .get<&TopShotShardedCollectionV2.ShardedCollection>(/public/MomentCollection)
+        .borrow()
+        ?? panic("Could not borrow the ShardedCollection reference")
 
     // Get and log the total number of moments
-    let totalMoments = wrapperRef.getLength()
-    log(totalMoments)
+    let totalMoments = shardedCollectionRef.getLength()
+    log("Total Moments: totalMoments")
 
     // Return the total count of NFTs
     return totalMoments

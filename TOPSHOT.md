@@ -1,3 +1,34 @@
+flow scripts execute ./topshot/scripts/get_all_play_metadata.cdc 1 1 --network=testnet
+
+flow scripts execute ./topshot/scripts/get_all_plays_in_set.cdc --network=testnet
+
+flow scripts execute ./topshot/scripts/get_all_set_names.cdc --network=testnet
+
+flow scripts execute ./topshot/scripts/get_collection_ids.cdc 0xa1d297b2610cba6a --network=testnet
+
+flow scripts execute ./topshot/scripts/get_collection_length.cdc 0xa1d297b2610cba6a --network=testnet
+
+flow scripts execute ./topshot/scripts/get_collection_parent.cdc 0xa1d297b2610cba6a --network=testnet
+
+flow scripts execute ./topshot/scripts/get_metadata.cdc 0xa1d297b2610cba6a 10314 --network=testnet
+
+flow scripts execute ./topshot/scripts/get_moment_isLocked.cdc 0xa1d297b2610cba6a 10314 --network=testnet
+
+flow scripts execute ./topshot/scripts/get_collection_minimal.cdc 0xa1d297b2610cba6a --network=testnet
+
+Broken
+?? panic("No subedition admin resource in storage")
+flow scripts execute ./topshot/scripts/get_collection_all.cdc 0xa1d297b2610cba6a 1 --network=testnet
+
+memory issues i think
+Command Error: client: rpc error: code = DeadlineExceeded desc = failed to execute script on execution nodes: 3 errors occurred:
+flow scripts execute ./topshot/scripts/get_collection_new.cdc 0xa1d297b2610cba6a --network=testnet
+
+same
+flow scripts execute ./topshot/scripts/get_collection.cdc 0xa1d297b2610cba6a --network=testnet
+
+flow scripts execute ./topshot/scripts/get_collection_with_tiers.cdc 0xa1d297b2610cba6a --network=testnet
+
 # TopShot Emulator Commands
 
 ## Scripts
@@ -24,6 +55,10 @@
   flow scripts execute .\topshot\scripts\verify_collection.cdc 0x179b6b1cb6755e31
 ```
 
+### get_collection_length
+
+flow scripts execute .\topshot\scripts\get_collection_length.cdc 0xa1d297b2610cba6a --network=testnet
+
 ### get_plays_in_set
 
 - **Description**: Retrieves all play IDs within a specific set.
@@ -45,6 +80,8 @@
 ```bash
   flow scripts execute .\topshot\scripts\get_collection_ids.cdc 0x179b6b1cb6755e31
   flow scripts execute .\topshot\scripts\get_collection_ids.cdc 0xf8d6e0586b0a20c7
+flow scripts execute .\topshot\scripts\get_collection_ids.cdc 0xa1d297b2610cba6a --network=testnet
+  0xa1d297b2610cba6a
 ```
 
 ## Transactions

@@ -1,911 +1,102 @@
-# Fungify
+# MomentSwap
 
-**Fungify** is an innovative project that allows users to swap their NBA Top Shot moments for a fungible token called **TSHOT** on the Flow Blockchain. This project leverages the unique capabilities of the Flow blockchain to facilitate secure and trustless exchanges between non-fungible tokens (NFTs) and fungible tokens.
+**MomentSwap** is a decentralized protocol on the Flow Blockchain that enables users to seamlessly swap NBA Top Shot Moments for the fungible token **TSHOT**, and vice versa. Built on Cadence 1.0 (Crescendo update), it leverages on-chain randomness and sharded storage to ensure trustless, efficient, and secure swaps.
 
-We are developing this project using Cadence 1.0, which is part of the Crescendo update. Cadence 1.0 introduces several changes in syntax, design, and other areas, which we are incorporating into our contracts.
-
-## Contracts Overview
-
-The Fungify project involves three primary smart contracts:
-
-### 1. **TopShot**
-
-- This contract represents the NBA Top Shot collection where users store their NBA Top Shot moments as NFTs. The contract handles the creation, management, and transfer of these NFTs. It also includes metadata management and capabilities for secure interactions.
-
-### 2. **TSHOT**
-
-- This contract manages the TSHOT fungible token. Users will store their TSHOT tokens in this contract. The contract follows the Fungible Token standard on Flow and includes functionality for minting, transferring, and burning TSHOT tokens.
-
-### 3. **TopShotExchange**
-
-- This is the core contract that facilitates the exchange between Top Shot moments and TSHOT tokens. Users can swap their Top Shot moments for TSHOT tokens and vice versa. The contract ensures that all exchanges are secure and trustless, leveraging Flow’s capability system.
-
-### 4. **TopShotFloors**
-
-- This allows users to submit TopShot moments in exchange for Flow tokens.
-
-### 5. **Liquidity Pool Contracts**
+---
 
 ## Features
 
-### TopShotExchange Contract Features
+### Core Features
 
-1. **One-to-One Exchange:**
+- **One-to-One Swaps**  
+  Exchange Top Shot Moments for TSHOT tokens, or TSHOT tokens for Top Shot Moments, with a 1:1 conversion ratio.
 
-There is currently no limits set in place(ie 5 for 5), however they will be added.
+- **Batch Swaps**  
+  Swap multiple moments for tokens, or tokens for moments, in a single transaction.
 
-- Users can exchange 1 NBA Top Shot Moment for 1 TSHOT token.
-- Users can exchange 1 TSHOT token for 1 NBA Top Shot Moment.
+- **On-Chain Randomness**  
+  Randomly select moments from a secure NFT vault, ensuring fairness in token-to-moment swaps.
 
-2. **User-Initiated Transactions:**
+- **Sharded NFT Storage**  
+  Efficient management of large collections of Top Shot Moments through sharded storage.
 
-   - Exchanges should be initiated by the user through a single transaction.
-   - The contract will leverage capabilities, particularly to allow the TopShotExchange vault to send a Top Shot Moment back to the user within a transaction initiated by the user.
-   - The approach will take inspiration from existing marketplace contracts to ensure security and efficiency.
+---
 
-3. **Secure Transfer and Minting:**
+## Contracts Overview
 
-   - The actual transfer of the Top Shot Moment NFT must be made to the Admin’s storage.
-   - The Admin will be the sole entity capable of minting TSHOT tokens, preventing any unauthorized minting and securing the system against potential attacks.
+MomentSwap is powered by the following core contracts:
 
-4. **On-Chain Randomness**
+1. **MomentSwapTSHOT**  
+   Facilitates the trustless exchange of Top Shot Moments for TSHOT tokens, supporting both single and batch swaps.
 
-- Implement on-chain randomness for specific operations, using Flow's `revertibleRandom()` function.
-- Future iterations will include mechanisms to mitigate post-selection of results, ensuring fairness and unpredictability.
+2. **TSHOT**  
+   Implements the TSHOT fungible token, adhering to Flow's Fungible Token standards. Supports minting, transferring, and burning.
 
-Example usage:
+3. **TopShotTiers**  
+   Classifies Top Shot Moments into tiers (e.g., common, rare, legendary) for swap validation.
 
-```cadence
-   access(all) fun main(): UInt64 {
-       let rand: UInt64 = revertibleRandom()
-       return rand
-   }
-```
+4. **TopShotShardedCollection**  
+   Provides efficient storage and retrieval of large collections of NFTs using a sharded structure.
 
-5. **NFT Vault**
+---
 
-The **NFTVault** resource within the TopShot contract is a secure storage for NFTs. It can:
+## Commands
 
-- Store multiple NFTs.
-- Provide a list of all stored NFT IDs.
-- Allow controlled withdrawal and deposit of NFTs.
-- Return metadata associated with each NFT for users to view.
+Refer to the following sections for detailed commands and their usage:
 
-The **NFTVault** cannot:
+- [MomentSwap Commands](./SWAP.md)  
+  Commands related to swapping moments and tokens.
 
-- Mint new NFTs (this is reserved for the Admin).
-- Directly swap NFTs with tokens; this requires interaction with the TopShotExchange contract.
+- [Sharding Commands](./SHARDING.md)  
+  Commands for interacting with the sharded collection.
 
-## Important Contracts and References
+- [Tiers Commands](./TIERS.md)  
+  Commands for managing and querying NFT tiers.
 
-- **Core Contracts:** FastBreakV1, PackNFT, ResolverSubedition, TopShot, TopShotLocking  
-  [View Contracts](https://contractbrowser.com/account/0x0b2a3299cc857e29/contracts)
+- [Utilities Commands](./UTILITIES.md)  
+  Helper functions for vaults, randomness, and other protocol interactions.
 
-- **Marketplace Contracts:** TopShotMarketV2, TopShotMarketV3  
-  [View Marketplace Contracts](https://contractbrowser.com/account/0xc1e4f4f4c4257510/contracts)
+- [Liquidity Pool Commands](./LIQUIDITY.md)  
+  Managing liquidity for TSHOT trading.
 
-- **Sharded Collection Reference:**  
-  [TopShot Sharded Collection Contract](https://github.com/dapperlabs/nba-smart-contracts/blob/judez/NBA-2865-upgrade-flow-sdk/contracts/TopShotShardedCollection.cdc)
+- [Deployment Commands](./DEPLOYMENT.md)  
+  Instructions for deploying the contracts.
 
-### [TopShot Commands](./TOPSHOT.md)
+---
 
-After completing your setup, refer to the **TopShot Commands** for detailed instructions on how to mint moments, transfer them, and execute other commands using the emulator. This document will guide you through all the necessary commands to manage and interact with your TopShot moments effectively.
+## Core Contracts
 
-## TSHOT Setup
+The following contracts power the MomentSwap ecosystem:
 
-```bash
-flow emulator start
-./deployment/scripts/setup-flow.ps1
-./deployment/scripts/setup-tshot.ps1
-```
+1. **MomentSwapTSHOT**  
+   [View Full Contract](./contracts/MomentSwapTSHOT.cdc)
 
-### [TopShotExchange Commands][./EXCHANGE.md]
+2. **TSHOT**  
+   [View Full Contract](./contracts/TSHOT.cdc)
 
-## TopShot Tiers
+3. **TopShotTiers**  
+   [View Full Contract](./contracts/TopShotTiers.cdc)
 
-### Status
+4. **TopShotShardedCollection**  
+   [View Full Contract](./contracts/TopShotShardedCollection.cdc)
 
-Under review/testing. Will deploy to mainnet soon.
+For more details on Flow's NFT and token standards, visit the [Flow Documentation](https://developers.flow.com/).
 
-### [Tiers Commands Reference](./TIERS.md)
+---
 
-# Notes
+## References
 
-## Computational Limits
+- **TopShot Contracts**:  
+  [FastBreakV1, PackNFT, and more](https://contractbrowser.com/account/0x0b2a3299cc857e29/contracts)
 
-Current limits seem to be that we can swap 95 moments at a time and also swap 95 TSHOT for NFTs at a time.
+- **Marketplace Contracts**:  
+  [TopShotMarketV2, TopShotMarketV3](https://contractbrowser.com/account/0xc1e4f4f4c4257510/contracts)
 
-## Questions
+---
 
-What limit should there be for swapping? There are gas and computational limits.
-How efficient is the swapping functionality for gas?
-Depending on performance requirements, the collection of NFTs or fungible tokens may need to be sharded. This concept is under exploration to manage scalability as the project grows.
+## License
 
-Does that allow for exchanging tshot for any other tokens somehow?
+This project is licensed under the [MIT License](./LICENSE).
 
-It adopts the factory pattern that each unique trading pair is deployed using the SwapPair template file, with a factory contract storing all deployed pairs.
-
-## TopShot Badges
-
-### Status
-
-The following are implemented:
-
-- Rookie Mint
-- Rookie of the Year
-- MVP Year
-- Rookie Year
-- Championship Year
-
-The following are in-progress:
-
-- Rookie Premiere
-- Top Shot Debut
-- Challenge Reward
-- Crafting Challenge Reward
-- Leaderboard Reward
-
-### Commands
-
-#### get_all_badges
-
-- **Description**: Retrieves all badges associated with a specified account.
-- **Input Parameters**:
-  - `account: Address` - The Flow account address to query (e.g., `0xf8d6e0586b0a20c7`).
-- **Example Usage**:
-
-```bash
-  flow scripts execute ./badges/scripts/get_all_badges.cdc 0xf8d6e0586b0a20c7
-```
-
-SwapFactory
-https://www.flowdiver.io/account/0xb063c16cac85dbd1
-Pair creation and data container of all uni-v2 style (volatile) swap pair addresses
-
-Summary of Key Contracts for Creating and Managing Your Liquidity Pool
-
-1. SwapFactory Contract
-   Purpose:
-   The SwapFactory contract is used to create new liquidity pools (pairs) between two tokens.
-
-Steps to Use:
-
-Create the Liquidity Pool:
-Call the createPair function on the SwapFactory contract.
-Specify the vaults for $TSHOT and $stFlow.
-This function will deploy a new SwapPair contract specific to the $TSHOT/$stFlow pair. 2. SwapPair Contract
-Purpose:
-The SwapPair contract manages the specific liquidity pool for your token pair. It handles adding/removing liquidity and processing swaps.
-
-Steps to Use:
-
-Add Initial Liquidity:
-Once the pair is created, interact with the SwapPair contract.
-Use the addLiquidity function to deposit your initial $2,500 worth of $TSHOT and $stFlow tokens into the pool.
-Manage the Pool:
-You can use the removeLiquidity function to withdraw liquidity.
-The swap function allows tokens to be exchanged between $TSHOT and $stFlow within the pool.
-How It Works:
-Creation: SwapFactory creates a SwapPair contract for your chosen tokens.
-Management: SwapPair handles the day-to-day operations of the liquidity pool, including liquidity management and swaps.
-Note: You don’t need to interact with SwapRouter or SwapConfig directly; they are used internally to support advanced swap functionalities.
-
-Increment.FI only allows for basic swap functionality, so you will primarily interact with the SwapPair contract to manage your liquidity pool.
-
-Notes
-
-// TopShotFloors
-
-// Borrow Admin's TopShot Collection
-
-let adminCollection = self.account
-.storage
-.borrow<&TopShot.Collection>(from: self.nftCollectionPath)
-?? panic("Could not borrow admin's TopShot Collection")
-
-// Borrow the admin's Flow Vault to withdraw tokens
-
-let adminFlowVault = self.account
-.storage
-.borrow<auth(FungibleToken.Withdraw) &{FungibleToken.Vault}>(from: self.flowVaultPath)
-?? panic("Could not borrow admin's Flow Vault")
-
-// Get the recipient's account and borrow their Flow token receiver
-
-let recipientAccount = getAccount(address)
-let receiver = recipientAccount
-.capabilities
-.get<&{FungibleToken.Receiver}>(/public/flowTokenReceiver)
-.borrow()
-?? panic("Could not borrow the user's Flow token receiver capability")
-
-// SwapNFTForTSHOT
-
-// Get the recipient's account and borrow their TSHOT token receiver
-
-let recipientAccount = getAccount(address)
-let receiverRef = recipientAccount
-.capabilities
-.get<&{FungibleToken.Receiver}>(/public/TSHOTTokenReceiver)
-.borrow()
-?? panic("Could not borrow the user's TSHOT receiver capability")
-
-// Borrow the TSHOT Admin resource
-
-let adminRef = self.account
-.storage
-.borrow<auth(TSHOT.AdminEntitlement) &TSHOT.Admin>(from: self.tshotAdminPath)
-?? panic("Could not borrow the TSHOT Admin resource")
-
-Creating Pairing
-
-flow transactions send ./swap/transactions/create_pair.cdc "TSHOT" 0x332ffc0ae9bba9c1 "FlowToken" 0x7e60df042a9c0868 false --network=testnet --signer=testnet-account
-
-https://docs.increment.fi/protocols/decentralized-exchange/cpamm-dex/deployment-addresses
-
-Transaction ID: 3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-
-Block ID de242e646a8b8a72b7fdbf3bb2b71839d9969627c68f1cccd150380fc85a19da
-Block Height 227011527
-Status SEALED
-ID 3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-Payer 332ffc0ae9bba9c1
-Authorizers [332ffc0ae9bba9c1]
-
-Proposal Key:
-Address 332ffc0ae9bba9c1
-Index 0
-Sequence 190
-
-No Payload Signatures
-
-Envelope Signature 0: 332ffc0ae9bba9c1
-Signatures (minimized, use --include signatures)
-
-Events:
-Index 0
-Type A.7e60df042a9c0868.FlowToken.TokensWithdrawn
-Tx ID 3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-Values - amount (UFix64): 0.00100000 - from ((Address)?): 0x332ffc0ae9bba9c1
-
-    Index       1
-    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - balanceAfter (UFix64): 999.98535541
-                - from ((Address)?): 0x332ffc0ae9bba9c1
-                - fromUUID (UInt64): 24189255893027
-                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
-                - withdrawnUUID (UInt64): 136339441937156
-
-    Index       2
-    Type        A.7e60df042a9c0868.FlowToken.TokensDeposited
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - to ((Address)?): 0x6ca93d49c45a249f
-
-    Index       3
-    Type        A.9a0766d93b6608b7.FungibleToken.Deposited
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - balanceAfter (UFix64): 1000.00199252
-                - depositedUUID (UInt64): 136339441937156
-                - to ((Address)?): 0x6ca93d49c45a249f
-                - toUUID (UInt64): 188016488428667
-                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
-
-    Index       4
-    Type        A.7e60df042a9c0868.FlowToken.TokensWithdrawn
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - from ((Address)?): 0x6ca93d49c45a249f
-
-    Index       5
-    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - balanceAfter (UFix64): 1000.00099252
-                - from ((Address)?): 0x6ca93d49c45a249f
-                - fromUUID (UInt64): 188016488428667
-                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
-                - withdrawnUUID (UInt64): 136339441937159
-
-    Index       6
-    Type        A.7e60df042a9c0868.FlowToken.TokensWithdrawn
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - from ((Address)?): nil
-
-    Index       7
-    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - balanceAfter (UFix64): 0.00000000
-                - from ((Address)?): nil
-                - fromUUID (UInt64): 136339441937159
-                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
-                - withdrawnUUID (UInt64): 136339441937160
-
-    Index       8
-    Type        A.7e60df042a9c0868.FlowToken.TokensDeposited
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00000000
-                - to ((Address)?): 0x912d5440f7e3769e
-
-    Index       9
-    Type        A.9a0766d93b6608b7.FungibleToken.Deposited
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00000000
-                - balanceAfter (UFix64): 0.07982729
-                - depositedUUID (UInt64): 136339441937159
-                - to ((Address)?): 0x912d5440f7e3769e
-                - toUUID (UInt64): 0
-                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
-
-    Index       10
-    Type        A.912d5440f7e3769e.FlowFees.TokensDeposited
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00000000
-
-    Index       11
-    Type        flow.StorageCapabilityControllerIssued
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - id (UInt64): 1
-                - path (StoragePath): /storage/flowTokenVault
-                - type (Type): Type<&A.7e60df042a9c0868.FlowToken.Vault>()
-
-    Index       12
-    Type        flow.CapabilityPublished
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - capability (Capability): Capability<&A.7e60df042a9c0868.FlowToken.Vault>(address: 0xdba587c9155372d6, id: 1)
-                - path (PublicPath): /public/flowTokenReceiver
-
-    Index       13
-    Type        flow.StorageCapabilityControllerIssued
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - id (UInt64): 2
-                - path (StoragePath): /storage/flowTokenVault
-                - type (Type): Type<&A.7e60df042a9c0868.FlowToken.Vault>()
-
-    Index       14
-    Type        flow.CapabilityPublished
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - capability (Capability): Capability<&A.7e60df042a9c0868.FlowToken.Vault>(address: 0xdba587c9155372d6, id: 2)
-                - path (PublicPath): /public/flowTokenBalance
-
-    Index       15
-    Type        A.7e60df042a9c0868.FlowToken.TokensDeposited
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - to ((Address)?): 0xdba587c9155372d6
-
-    Index       16
-    Type        A.9a0766d93b6608b7.FungibleToken.Deposited
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00100000
-                - balanceAfter (UFix64): 0.00100000
-                - depositedUUID (UInt64): 136339441937160
-                - to ((Address)?): 0xdba587c9155372d6
-                - toUUID (UInt64): 136339441937161
-                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
-
-    Index       17
-    Type        flow.AccountCreated
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-
-    Index       18
-    Type        flow.AccountKeyAdded
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - hashAlgorithm (HashAlgorithm): HashAlgorithm(rawValue: 3)
-                - keyIndex (Int): 0
-                - publicKey (PublicKey): PublicKey(publicKey: [149, 239, 224, 82, 204, 46,
-
-27, 226, 22, 44, 180, 194, 115, 171, 134, 164, 96, 35, 105, 83, 111, 172, 96, 232, 53, 198, 62, 229, 252, 133, 106, 215, 246, 244, 209, 126, 181, 5, 175, 84, 72, 44, 170, 192, 173, 222, 185, 178, 178, 78, 123, 68, 235, 121, 203, 2, 225, 155, 225, 6, 193, 203, 253, 79], signatureAlgorithm: SignatureAlgorithm(rawValue: 2)) - weight (UFix64): 1000.00000000
-
-    Index       19
-    Type        flow.StorageCapabilityControllerIssued
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - id (UInt64): 3
-                - path (StoragePath): /storage/pair_public
-                - type (Type): Type<&{A.8d5b9dd833e176da.SwapInterfaces.PairPublic}>()
-
-    Index       20
-    Type        flow.CapabilityPublished
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - capability (Capability): Capability<&{A.8d5b9dd833e176da.SwapInterfaces.PairPublic}>(address: 0xdba587c9155372d6, id: 3)
-                - path (PublicPath): /public/increment_swap_pair_new
-
-    Index       21
-    Type        A.dba587c9155372d6.SwapPair.TokensInitialized
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - initialSupply (UFix64): 0.00000000
-
-    Index       22
-    Type        flow.AccountContractAdded
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - address (Address): 0xdba587c9155372d6
-                - codeHash ([UInt8;32]): [149, 173, 156, 135, 119, 129, 2, 79, 148, 106, 13, 18, 229, 198, 27, 171, 130, 224, 48, 228, 72, 113, 163, 41, 225, 25, 243, 76, 85, 127, 181, 113]
-                - contract (String): "SwapPair"
-
-    Index       23
-    Type        A.6ca93d49c45a249f.SwapFactory.PairCreated
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - numPairs (Int): 4
-                - pairAddress (Address): 0xdba587c9155372d6
-                - stableMode (Bool): false
-                - token0Key (String): "A.332ffc0ae9bba9c1.TSHOT"
-                - token1Key (String): "A.7e60df042a9c0868.FlowToken"
-
-    Index       24
-    Type        A.7e60df042a9c0868.FlowToken.TokensWithdrawn
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00001774
-                - from ((Address)?): 0x332ffc0ae9bba9c1
-
-    Index       25
-    Type        A.9a0766d93b6608b7.FungibleToken.Withdrawn
-    Tx ID       3901bfc5a88f9013c578f8789ff736404cd6dcd17f454abe3f6eaa9f8ed576ed
-    Values
-                - amount (UFix64): 0.00001774
-                - balanceAfter (UFix64): 999.98533767
-                - from ((Address)?): 0x332ffc0ae9bba9c1
-                - fromUUID (UInt64): 24189255893027
-                - type (String): "A.7e60df042a9c0868.FlowToken.Vault"
-                - withdrawnUUID (UInt64): 136339441937163
-
-flow scripts execute .\swap\scripts\query_pair_info_by_tokenkey.cdc "A.332ffc0ae9bba9c1.TSHOT" "A.7e60df042a9c0868.FlowToken" false --network=testnet
-
-Token 0 Key ("A.332ffc0ae9bba9c1.TSHOT"):
-
-The identifier for the first token in the pair, TSHOT, including its contract address and name.
-Token 1 Key ("A.7e60df042a9c0868.FlowToken"):
-
-The identifier for the second token in the pair, FLOW, including its contract address and name.
-Token 0 Reserve (0.00000000):
-
-The amount of TSHOT tokens currently in the pool. Since no liquidity has been added, this value is 0.0.
-Token 1 Reserve (0.00000000):
-
-The amount of FLOW tokens currently in the pool. Like the TSHOT reserve, this is 0.0 because no liquidity has been provided yet.
-Pair Address (0xdba587c9155372d6):
-
-The unique address of the account that holds this specific trading pair’s contract, where liquidity and swapping functions occur.
-Total LP Token Supply (0.00000000):
-
-The current total supply of liquidity provider (LP) tokens for this pair. LP tokens represent ownership of the pool’s liquidity and are used to track each provider’s share of the pool. This is 0.0 as no liquidity has been deposited.
-Swap Fee Rate (30):
-
-The swap fee rate, in basis points (bps), applied to trades in this pool. A rate of 30 bps means a 0.3% fee, typical for volatile (uncorrelated) asset pairs.
-Stable Mode (false):
-
-Indicates whether the pool is operating in stable mode (using a stableswap curve). Here, false means it uses a traditional Uniswap-style curve for uncorrelated assets.
-Stable Curve Parameter (1.00000000):
-
-The parameter for the stableswap curve, set to 1.0 by default. This value would adjust if the pool were in stable mode, affecting the curve's shape.
-
-Hybrid Custody
-
-1. Set up a Flow Wallet for both a parent and child
-2. Setup topshot collection on both
-
-import "TopShot"
-import "NonFungibleToken"
-
-transaction {
-
-    prepare(acct: auth(Storage, Capabilities) &Account) {
-        // Check if the collection exists, create if it doesn't
-        if acct.storage.borrow<&TopShot.Collection>(from: /storage/MomentCollection) == nil {
-            let collection <- TopShot.createEmptyCollection(nftType: Type<@TopShot.NFT>()) as! @TopShot.Collection
-            acct.storage.save(<-collection, to: /storage/MomentCollection)
-        }
-
-        // Unpublish any existing public capability
-        acct.capabilities.unpublish(/public/MomentCollection)
-
-        // Publish a capability with the expected type
-        acct.capabilities.publish(
-            acct.capabilities.storage.issue<&{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>(/storage/MomentCollection),
-            at: /public/MomentCollection
-        )
-    }
-
-}
-
-3. Verify topshot account setup
-
-import "NonFungibleToken"
-
-access(all) fun main(child: Address): Bool {
-let cap = getAccount(child)
-.capabilities
-.get<&{NonFungibleToken.Provider}>(/public/MomentCollection)
-
-    return cap != nil && cap!.check()
-
-}
-
-3. setup_manager on parent flow wallet (0xa1d297b2610cba6a)
-   https://github.com/onflow/hybrid-custody/blob/3d58af2972dfcd3496196f8d527d890b8a8f3077/transactions/hybrid-custody/setup_manager.cdc
-   https://testnet.flowscan.io/tx/35c4986ef7480bca3a5fb05956033594f67112655e36c9fc90c8cf1ef0e09afe
-
-import "HybridCustody"
-import "CapabilityFilter"
-
-transaction(filterAddress: Address?, filterPath: PublicPath?) {
-prepare(acct: auth(Storage, Capabilities) &Account) {
-var filter: Capability<&{CapabilityFilter.Filter}>? = nil
-if filterAddress != nil && filterPath != nil {
-filter = getAccount(filterAddress!).capabilities.get<&{CapabilityFilter.Filter}>(filterPath!)
-}
-
-        if acct.storage.borrow<&HybridCustody.Manager>(from: HybridCustody.ManagerStoragePath) == nil {
-            let m <- HybridCustody.createManager(filter: filter)
-            acct.storage.save(<- m, to: HybridCustody.ManagerStoragePath)
-        }
-
-        for c in acct.capabilities.storage.getControllers(forPath: HybridCustody.ManagerStoragePath) {
-            c.delete()
-        }
-
-        acct.capabilities.unpublish(HybridCustody.ManagerPublicPath)
-
-        acct.capabilities.publish(
-            acct.capabilities.storage.issue<&{HybridCustody.ManagerPublic}>(HybridCustody.ManagerStoragePath),
-            at: HybridCustody.ManagerPublicPath
-        )
-
-        acct.capabilities.storage.issue<auth(HybridCustody.Manage) &{HybridCustody.ManagerPrivate, HybridCustody.ManagerPublic}>(HybridCustody.ManagerStoragePath)
-    }
-
-}
-
-4. Check manager exists
-
-import "HybridCustody"
-
-access(all) fun main(parent: Address): Bool {
-let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
-let manager = parentAcct.storage.borrow<&{HybridCustody.ManagerPublic}>(from: HybridCustody.ManagerStoragePath)
-return manager != nil
-}
-
-5. setup_owned_account_and_publish_to_parent on child wallet (0xdbdfa235bf22428f)
-   https://github.com/onflow/hybrid-custody/blob/3d58af2972dfcd3496196f8d527d890b8a8f3077/transactions/hybrid-custody/setup_owned_account_and_publish_to_parent.cdc
-   https://testnet.flowscan.io/tx/9a3c4ede6c1da6796e5a6cf29cb31cc190953137f6c922e4b5a732b7fb1bf2cc/events
-
-#allowAccountLinking
-
-import "MetadataViews"
-import "ViewResolver"
-
-import "HybridCustody"
-import "CapabilityFactory"
-import "CapabilityFilter"
-import "CapabilityDelegator"
-
-/// This transaction configures an OwnedAccount in the signer if needed, and proceeds to create a ChildAccount
-/// using CapabilityFactory.Manager and CapabilityFilter.Filter Capabilities from the given addresses. A
-/// Capability on the ChildAccount is then published to the specified parent account.
-///
-transaction(
-parent: Address,
-factoryAddress: Address,
-filterAddress: Address,
-name: String?,
-desc: String?,
-thumbnailURL: String?
-) {
-prepare(acct: auth(Storage, Capabilities) &Account) {
-// Configure OwnedAccount if it doesn't exist
-if acct.storage.borrow<&HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath) == nil {
-var acctCap = acct.capabilities.account.issue<auth(Storage, Contracts, Keys, Inbox, Capabilities) &Account>()
-let ownedAccount <- HybridCustody.createOwnedAccount(acct: acctCap)
-acct.storage.save(<-ownedAccount, to: HybridCustody.OwnedAccountStoragePath)
-}
-
-        for c in acct.capabilities.storage.getControllers(forPath: HybridCustody.OwnedAccountStoragePath) {
-            c.delete()
-        }
-
-
-        acct.capabilities.storage.issue<&{HybridCustody.BorrowableAccount, HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath)
-        acct.capabilities.publish(
-            acct.capabilities.storage.issue<&{HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath),
-            at: HybridCustody.OwnedAccountPublicPath
-        )
-
-        let owned = acct.storage.borrow<auth(HybridCustody.Owner) &HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath)
-            ?? panic("owned account not found")
-
-        // Set the display metadata for the OwnedAccount
-        if name != nil && desc != nil && thumbnailURL != nil {
-            let thumbnail = MetadataViews.HTTPFile(url: thumbnailURL!)
-            let display = MetadataViews.Display(name: name!, description: desc!, thumbnail: thumbnail)
-            owned.setDisplay(display)
-        }
-
-        // Get CapabilityFactory & CapabilityFilter Capabilities
-        let factory = getAccount(factoryAddress).capabilities.get<&CapabilityFactory.Manager>(CapabilityFactory.PublicPath)
-        assert(factory.check(), message: "factory address is not configured properly")
-
-        let filter = getAccount(filterAddress).capabilities.get<&{CapabilityFilter.Filter}>(CapabilityFilter.PublicPath)
-        assert(filter.check(), message: "capability filter is not configured properly")
-
-        // Finally publish a ChildAccount capability on the signing account to the specified parent
-        owned.publishToParent(parentAddress: parent, factory: factory, filter: filter)
-    }
-
-}
-
-6. Verify borrowing of child account and get Controller ID
-
-import "HybridCustody"
-import "NonFungibleToken"
-
-access(all) fun main(parent: Address, child: Address): UInt64? {
-let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
-let manager = parentAcct.storage.borrow<auth(HybridCustody.Manage) &HybridCustody.Manager>(from: HybridCustody.ManagerStoragePath)
-?? panic("Hybrid Custody Manager does not exist")
-
-    let childAcct = manager.borrowAccount(addr: child)
-        ?? panic("Child account not found")
-
-    return childAcct.getControllerIDForType(
-        type: Type<&{NonFungibleToken.Provider}>(),
-        forPath: /storage/MomentCollection
-    )
-
-}
-
-7. Verify child is part of parent's childAddresses
-
-import "HybridCustody"
-
-access(all) fun main(parent: Address, child: Address): Bool {
-let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
-let manager = parentAcct.storage.borrow<&{HybridCustody.ManagerPublic}>(from: HybridCustody.ManagerStoragePath)
-?? panic("Manager not found")
-
-    let childAddresses = manager.getChildAddresses()
-    return childAddresses.contains(child)
-
-}
-
-7. Verify ownedAccount in child
-
-import "HybridCustody"
-
-access(all) fun main(child: Address): Bool {
-let ownedAcct = getAccount(child)
-.capabilities
-.get<&{HybridCustody.OwnedAccountPublic}>(HybridCustody.OwnedAccountPublicPath)
-.borrow()
-
-    return ownedAcct != nil
-
-}
-
-6. redeem_account on parent flow wallet
-   https://github.com/onflow/hybrid-custody/blob/3d58af2972dfcd3496196f8d527d890b8a8f3077/transactions/hybrid-custody/redeem_account.cdc
-   https://testnet.flowscan.io/tx/a070fdddf8be1975aa13c666a5de0a8cfaef926a2b00ac3a7b5a8feca13fe6d3
-
-#allowAccountLinking
-
-import "MetadataViews"
-import "ViewResolver"
-
-import "HybridCustody"
-import "CapabilityFactory"
-import "CapabilityFilter"
-import "CapabilityDelegator"
-
-/// This transaction configures an OwnedAccount in the signer if needed, and proceeds to create a ChildAccount
-/// using CapabilityFactory.Manager and CapabilityFilter.Filter Capabilities from the given addresses. A
-/// Capability on the ChildAccount is then published to the specified parent account.
-///
-transaction(
-parent: Address,
-factoryAddress: Address,
-filterAddress: Address,
-name: String?,
-desc: String?,
-thumbnailURL: String?
-) {
-prepare(acct: auth(Storage, Capabilities) &Account) {
-// Configure OwnedAccount if it doesn't exist
-if acct.storage.borrow<&HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath) == nil {
-var acctCap = acct.capabilities.account.issue<auth(Storage, Contracts, Keys, Inbox, Capabilities) &Account>()
-let ownedAccount <- HybridCustody.createOwnedAccount(acct: acctCap)
-acct.storage.save(<-ownedAccount, to: HybridCustody.OwnedAccountStoragePath)
-}
-
-        for c in acct.capabilities.storage.getControllers(forPath: HybridCustody.OwnedAccountStoragePath) {
-            c.delete()
-        }
-
-
-        acct.capabilities.storage.issue<&{HybridCustody.BorrowableAccount, HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath)
-        acct.capabilities.publish(
-            acct.capabilities.storage.issue<&{HybridCustody.OwnedAccountPublic, ViewResolver.Resolver}>(HybridCustody.OwnedAccountStoragePath),
-            at: HybridCustody.OwnedAccountPublicPath
-        )
-
-        let owned = acct.storage.borrow<auth(HybridCustody.Owner) &HybridCustody.OwnedAccount>(from: HybridCustody.OwnedAccountStoragePath)
-            ?? panic("owned account not found")
-
-        // Set the display metadata for the OwnedAccount
-        if name != nil && desc != nil && thumbnailURL != nil {
-            let thumbnail = MetadataViews.HTTPFile(url: thumbnailURL!)
-            let display = MetadataViews.Display(name: name!, description: desc!, thumbnail: thumbnail)
-            owned.setDisplay(display)
-        }
-
-        // Get CapabilityFactory & CapabilityFilter Capabilities
-        let factory = getAccount(factoryAddress).capabilities.get<&CapabilityFactory.Manager>(CapabilityFactory.PublicPath)
-        assert(factory.check(), message: "factory address is not configured properly")
-
-        let filter = getAccount(filterAddress).capabilities.get<&{CapabilityFilter.Filter}>(CapabilityFilter.PublicPath)
-        assert(filter.check(), message: "capability filter is not configured properly")
-
-        // Finally publish a ChildAccount capability on the signing account to the specified parent
-        owned.publishToParent(parentAddress: parent, factory: factory, filter: filter)
-    }
-
-}
-
-6. Verify Step 5 redeem_account
-
-get_redeemed_status
-
-import "HybridCustody"
-
-access(all) fun main(child: Address, parent: Address): Bool {
-let ownedAcct = getAccount(child)
-.capabilities
-.get<&{HybridCustody.OwnedAccountPublic}>(HybridCustody.OwnedAccountPublicPath)
-.borrow()
-?? panic("OwnedAccount not found")
-
-    return ownedAcct.getRedeemedStatus(addr: parent) == true
-
-}
-
-7. Verify collection data from storage of parent
-
-get_all_collection_data_from_storage
-
-import "NonFungibleToken"
-import "MetadataViews"
-import "HybridCustody"
-
-/// Helper function that retrieves data about all publicly accessible NFTs in an account
-///
-access(all) fun getAllViewsFromAddress(\_ address: Address): [MetadataViews.NFTCollectionData] {
-
-    let account = getAuthAccount<auth(BorrowValue) &Account>(address)
-    let data: [MetadataViews.NFTCollectionData] = []
-
-    let collectionType: Type = Type<@{NonFungibleToken.Collection}>()
-    let viewType: Type = Type<MetadataViews.NFTCollectionData>()
-
-    // Iterate over each public path
-    account.storage.forEachStored(fun (path: StoragePath, type: Type): Bool {
-        // Return early if the collection is broken or is not the type we're looking for
-        if type.isRecovered || (!type.isInstance(collectionType) && !type.isSubtype(of: collectionType)) {
-            return true
-        }
-        if let collectionRef = account.storage.borrow<&{NonFungibleToken.Collection}>(from: path) {
-            // Return early if no Resolver found in the Collection
-            let ids: [UInt64]= collectionRef.getIDs()
-            if ids.length == 0 {
-                return true
-            }
-            // Otherwise, attempt to get the NFTCollectionData & append if exists
-            if let resolver = collectionRef.borrowViewResolver(id: ids[0]) {
-                if let dataView = resolver.resolveView(viewType) as! MetadataViews.NFTCollectionData? {
-                    data.append(dataView)
-                }
-            }
-        }
-        return true
-    })
-    return data
-
-}
-
-/// Script that retrieve data about all NFT Collections in the storage of an account and any of its child accounts
-///
-access(all) fun main(address: Address): {Address: [MetadataViews.NFTCollectionData]} {
-
-    let allNFTData: {Address: [MetadataViews.NFTCollectionData]} = {address: getAllViewsFromAddress(address)}
-    let seen: [Address] = [address]
-
-    /* Iterate over any child accounts */
-    //
-    if let managerRef = getAccount(address).capabilities.borrow<&HybridCustody.Manager>(HybridCustody.ManagerPublicPath) {
-
-        for childAddress in managerRef.getChildAddresses() {
-            allNFTData.insert(key: childAddress, getAllViewsFromAddress(childAddress))
-        }
-
-        for ownedAddress in managerRef.getOwnedAddresses() {
-            if seen.contains(ownedAddress) == false {
-                allNFTData.insert(key: ownedAddress, getAllViewsFromAddress(ownedAddress))
-                seen.append(ownedAddress)
-            }
-        }
-    }
-    return allNFTData
-
-}
-
-8. Verify nft_collection_public_cap of child
-
-import "HybridCustody"
-import "NonFungibleToken"
-
-// Verify capabilities for a specific child account
-access(all) fun main(parent: Address, child: Address): Bool {
-// Get the parent account's manager
-let parentAcct = getAuthAccount<auth(Storage) &Account>(parent)
-let manager = parentAcct.storage.borrow<auth(HybridCustody.Manage) &HybridCustody.Manager>(from: HybridCustody.ManagerStoragePath)
-?? panic("Hybrid Custody Manager does not exist")
-
-    // Borrow the child account
-    let childAcct = manager.borrowAccount(addr: child)
-        ?? panic("Child account not found")
-
-    let type = Type<&{NonFungibleToken.CollectionPublic}>()
-    let controllerId = childAcct.getControllerIDForType(type: type, forPath: /storage/MomentCollection)
-        ?? panic("no controller ID found for desired type")
-
-    let nakedCap = childAcct.getCapability(controllerID: controllerId, type: type)
-        ?? panic("capability not found")
-
-    let cap = nakedCap as! Capability<&{NonFungibleToken.CollectionPublic}>
-    cap.borrow() ?? panic("unable to borrow nft provider collection")
-
-    return true
-
-}
-
-Which scripts dont work..
-
-fetchNFTsFromLinkedAccts
-get_child_nft_caps
-
-Parent - 0xa1d297b2610cba6a
-Child - 0xdbdfa235bf22428f
+Testnet Addresses
+https://testnet.flowscan.io/account/0x332ffc0ae9bba9c1

@@ -1,26 +1,42 @@
-import "TopShotShardedCollectionWrapper"
+import "TopShotShardedCollectionV2"
 
-// This script retrieves a list of all moment IDs from the wrapped sharded collection
+// This script retrieves a list of all moment IDs from the sharded collection
 // owned by the specified account.
-
+//
 // Parameters:
-// account: The Flow Address of the account whose wrapped sharded collection data needs to be read
-
+// - account: The Flow Address of the account whose sharded collection data needs to be read.
+//
 // Returns: [UInt64]
-// List of all moment IDs in the wrapped sharded collection
+// List of all moment IDs in the sharded collection.
 
 access(all) fun main(account: Address): [UInt64] {
-
+    // Get the account's public object
     let acct = getAccount(account)
 
-    // Borrow the wrapper's public capability
-    let wrapperRef = acct.capabilities.borrow<&TopShotShardedCollectionWrapper.CollectionWrapper>(/public/ShardedCollectionWrapper)
-        ?? panic("Could not borrow the collection wrapper reference")
+    // Borrow the public capability for the ShardedCollection
+    let shardedCollectionRef = acct
+        .capabilities
+        .get<&TopShotShardedCollectionV2.ShardedCollection>(/public/MomentCollection)
+        .borrow()
+        ?? panic("Could not borrow the ShardedCollection reference")
 
-    // Get and log the moment IDs from the wrapper
-    let momentIDs = wrapperRef.getIDs()
-    log(momentIDs)
+    // Get the total number of buckets (shards) in the collection
+    let numBuckets = shardedCollectionRef.getNumBuckets()
 
-    // Return the list of moment IDs
-    return momentIDs
+    // Initialize an array to store all moment IDs
+    var allMomentIDs: [UInt64] = []
+
+    // Iterate through each shard to collect all IDs
+    var i: UInt64 = 0
+    while i < numBuckets {
+        let shardIDs = shardedCollectionRef.getShardIDs(shardIndex: i)
+        allMomentIDs.appendAll(shardIDs)
+        i = i + 1
+    }
+
+    // Log the aggregated IDs for debugging
+    log(allMomentIDs)
+
+    // Return the complete list of moment IDs
+    return allMomentIDs
 }

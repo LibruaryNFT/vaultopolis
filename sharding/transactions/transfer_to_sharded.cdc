@@ -1,6 +1,6 @@
 import "TopShot"
 import "NonFungibleToken"
-import "TopShotShardedCollection"
+import "TopShotShardedCollectionV2"
 
 // This transaction transfers a moment to a recipient
 
@@ -36,7 +36,7 @@ transaction(recipient: Address, withdrawID: UInt64) {
         let recipient = getAccount(recipient)
 
         // get the Collection reference for the receiver
-        let receiverRef = recipient.capabilities.borrow<&TopShotShardedCollection.ShardedCollection>(/public/MomentCollection)!
+        let receiverRef = recipient.capabilities.borrow<&TopShotShardedCollectionV2.ShardedCollection>(/public/MomentCollection)!
 
         // deposit the NFT in the receivers collection
         receiverRef.deposit(token: <-self.transferToken)

@@ -1,5 +1,5 @@
 import "TopShot"
-import "TopShotShardedCollection"
+import "TopShotShardedCollectionV2"
 import "NonFungibleToken"
 
 // Transaction to mint moments and deposit them into the recipient's sharded collection
@@ -26,7 +26,7 @@ transaction(setID: UInt32, playID: UInt32, quantity: UInt64, recipientAddr: Addr
         let recipient = getAccount(recipientAddr)
 
         // Borrow the recipient's sharded collection from their storage directly
-        let receiverRef = recipient.storage.borrow<auth(NonFungibleToken.Withdraw) &TopShotShardedCollection.ShardedCollection>(from: /storage/ShardedMomentCollection)
+        let receiverRef = recipient.storage.borrow<auth(NonFungibleToken.Withdraw) &TopShotShardedCollectionV2.ShardedCollection>(from: /storage/ShardedMomentCollection)
             ?? panic("Could not borrow recipient's Sharded Moment collection from storage")
 
         // Deposit the minted moments into the recipient's sharded collection

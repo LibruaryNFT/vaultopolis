@@ -3,9 +3,10 @@ import "NonFungibleToken"
 import "TopShot"
 import "TSHOT"
 import "TopShotTiers"
-import "TopShotShardedCollection"
+import "TopShotShardedCollectionV2"
 import "RandomConsumer"
 import "Burner"
+import "Xorshift128plus"
 
 access(all) contract MomentSwapTSHOT {
 
@@ -40,9 +41,13 @@ access(all) contract MomentSwapTSHOT {
 
     // Swap common NFTs for TSHOT tokens
     access(all) fun swapNFTsForTSHOT(nftIDs: @[TopShot.NFT], address: Address) {
+        pre {
+    nftIDs.length > 0: "Cannot swap! No NFTs provided."
+}
+
         let adminCollection = self.account
             .storage
-            .borrow<&TopShotShardedCollection.ShardedCollection>(from: self.nftCollectionPath)
+            .borrow<&TopShotShardedCollectionV2.ShardedCollection>(from: self.nftCollectionPath)
             ?? panic("Could not borrow admin's TopShot Collection")
 
         let recipientAccount = getAccount(address)
@@ -104,6 +109,8 @@ access(all) contract MomentSwapTSHOT {
             "Cannot commit to the swap! The provided vault's balance is 0.0."
             bet.getType() == Type<@TSHOT.Vault>():
             "Cannot commit to swap! The type of the provided vault <".concat(bet.getType().identifier).concat("> is invalid. The vault must be a TSHOTToken Vault.")
+            bet.balance % 1.0 == 0.0:
+            "Cannot commit to the swap! The bet amount must be a whole number."
         }
         let request <- self.consumer.requestRandomness()
         let receipt <- create Receipt(
@@ -117,7 +124,7 @@ access(all) contract MomentSwapTSHOT {
 
     // --- Reveal --- //
 
-   access(all) fun swapTSHOTForNFTs(address: Address, receipt: @Receipt) {
+  access(all) fun swapTSHOTForNFTs(address: Address, receipt: @Receipt) {
 
     pre {
         receipt.request != nil:
@@ -139,33 +146,38 @@ access(all) contract MomentSwapTSHOT {
     // Burn the TSHOT tokens using the contract's burnTokens function
     TSHOT.burnTokens(from: <-payment)
 
-    // Pop the randomness request from the receipt
-    let randomSeed <- receipt.popRequest()
-
-    // Use the randomness from the randomSeed and generate a random number
-    let baseRandomValue = self.consumer.fulfillRandomInRange(
-        request: <-randomSeed,
-        min: 0,
-        max: UInt64.max
-    )
+    // Fulfill the randomness request and obtain a PRG
+    let prg = self.consumer.fulfillWithPRG(request: <-receipt.popRequest())
 
     // Now that the receipt has been fully used, we burn it
     Burner.burn(<-receipt)
 
+    let prgRef: &Xorshift128plus.PRG = &prg
+
     // Borrow the admin's TopShot Collection
     let adminCollection = self.account
         .storage
-        .borrow<auth(NonFungibleToken.Withdraw) &TopShotShardedCollection.ShardedCollection>(from: self.nftCollectionPath)
+        .borrow<auth(NonFungibleToken.Withdraw) &TopShotShardedCollectionV2.ShardedCollection>(from: self.nftCollectionPath)
         ?? panic("Could not borrow admin's TopShot Collection")
 
     // Get the number of shards (buckets)
     let numBuckets = adminCollection.getNumBuckets()
 
-    // Select a random shard based on the baseRandomValue
-    let shardIndex = baseRandomValue % numBuckets
+    // Check if there are any shards available
+if numBuckets == 0 {
+    panic("No shards available for selection.")
+}
+
+    // Select a random shard based on the PRG
+    let shardIndex = RandomConsumer.getNumberInRange(
+        prg: prgRef,
+        min: 0,
+        max: numBuckets - 1
+    )
 
     // Get the list of NFT IDs in the selected shard
     let nftIDs: [UInt64] = adminCollection.getShardIDs(shardIndex: shardIndex)
+
     if nftIDs.length == 0 {
         panic("No NFTs available in the selected shard")
     }
@@ -175,18 +187,24 @@ access(all) contract MomentSwapTSHOT {
         panic("Not enough NFTs available in the selected shard to fulfill the swap")
     }
 
-    // Set up a list to store selected NFT IDs and a counter for the loop
+    // Set up a list to store selected NFT IDs
     var selectedNFTIDs: [UInt64] = []
-    var remainingNFTIDs = nftIDs
-    var counter = 0
 
-    // Loop to generate a list of unique random indices for NFT selection
-    while counter < Int(tokenAmount) {
-        let derivedRandomValue = (baseRandomValue + UInt64(counter)) % UInt64(remainingNFTIDs.length)
-        let selectedNFTID = remainingNFTIDs.remove(at: Int(derivedRandomValue))
-        selectedNFTIDs.append(selectedNFTID)
-        counter = counter + 1
-    }
+    // Loop to select unique NFT IDs using PRG
+var remainingNFTIDs = nftIDs
+var counter = 0
+
+while counter < Int(tokenAmount) {
+    let randomIndex = RandomConsumer.getNumberInRange(
+        prg: prgRef,
+        min: 0,
+        max: UInt64(remainingNFTIDs.length - 1)
+    )
+    let selectedNFTID = remainingNFTIDs.remove(at: Int(randomIndex))
+    selectedNFTIDs.append(selectedNFTID)
+    counter = counter + 1
+}
+
 
     // Batch withdraw the selected NFTs from the shard
     let selectedNFTs <- adminCollection.batchWithdrawFromShard(
@@ -204,8 +222,6 @@ access(all) contract MomentSwapTSHOT {
     // Deposit all selected NFTs into the user's account
     receiverRef.batchDeposit(tokens: <-selectedNFTs)
 }
-
-
 
     init() {
         // Set the storage paths for the admin NFT vault and FT admin resources

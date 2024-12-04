@@ -8,3 +8,4 @@ flow.json
 /venv
 *.log
 /node_modules
+.env

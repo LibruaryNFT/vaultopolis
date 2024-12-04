@@ -57,7 +57,8 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
 
       {/* Series */}
       <p className="text-center text-xs text-gray-400">
-        Series {nft?.seriesID || "?"}
+        Series{" "}
+        {nft?.series !== undefined && nft?.series !== null ? nft.series : "?"}
       </p>
 
       {/* Tier */}

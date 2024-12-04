@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Home from "./components/Home";
 import Vault from "./components/Vault";
 import Earn from "./components/Earn";
+import Admin from "./components/Admin";
 
 // Create the router
 const router = createBrowserRouter(
@@ -33,6 +34,14 @@ const router = createBrowserRouter(
         <>
           <Header />
           <Earn />
+        </>
+      ),
+    },
+    {
+      path: "/admin",
+      element: (
+        <>
+          <Admin />
         </>
       ),
     },

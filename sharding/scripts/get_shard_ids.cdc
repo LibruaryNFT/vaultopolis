@@ -1,22 +1,25 @@
-import "TopShotShardedCollectionWrapper"
+import "TopShotShardedCollectionV2"
 
-// This script retrieves all shard IDs (bucket indices) in the sharded collection of a given account
-
+// This script retrieves all shard IDs (bucket indices) in the sharded collection of a given account.
+//
 // Parameters:
-// account: The Flow Address of the account whose sharded collection data needs to be read
-
+// - account: The Flow Address of the account whose sharded collection data needs to be read.
+//
 // Returns: [UInt64]
-// An array of shard IDs (bucket indices)
+// An array of shard IDs (bucket indices).
 
 access(all) fun main(account: Address): [UInt64] {
     let acct = getAccount(account)
 
-    // Borrow the wrapper's public capability
-    let wrapperRef = acct.capabilities.borrow<&TopShotShardedCollectionWrapper.CollectionWrapper>(/public/ShardedCollectionWrapper)
-        ?? panic("Could not borrow the collection wrapper reference")
+    // Borrow the public capability for the ShardedCollection
+    let shardedCollectionRef = acct
+        .capabilities
+        .get<&TopShotShardedCollectionV2.ShardedCollection>(/public/MomentCollection)
+        .borrow()
+        ?? panic("Could not borrow the ShardedCollection reference")
 
     // Get the total number of shards (buckets) in the sharded collection
-    let numShards = wrapperRef.getNumBuckets()
+    let numShards = shardedCollectionRef.getNumBuckets()
 
     // Initialize an array to hold the shard IDs
     var shardIDs: [UInt64] = []

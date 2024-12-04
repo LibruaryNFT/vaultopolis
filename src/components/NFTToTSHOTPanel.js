@@ -226,30 +226,32 @@ const NFTToTSHOTPanel = ({
       </button>
 
       {/* Account Selector Section */}
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-1">
-          Account Selection
-        </h3>
-        <p className="text-sm text-yellow-400 mb-3">
-          Note: $TSHOT will be sent to the parent account.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {renderAccountBox(
-            "Parent Account",
-            user?.addr,
-            accountData,
-            activeAccountAddr === user?.addr
-          )}
-          {accountData.childrenData.map((child) =>
-            renderAccountBox(
-              "Child Account",
-              child.addr,
-              child,
-              activeAccountAddr === child.addr
-            )
-          )}
+      {user.loggedIn && (
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-1">
+            Account Selection
+          </h3>
+          <p className="text-sm text-yellow-400 mb-3">
+            Note: $TSHOT will be sent to the parent account.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {renderAccountBox(
+              "Parent Account",
+              user?.addr,
+              accountData,
+              activeAccountAddr === user?.addr
+            )}
+            {accountData.childrenData.map((child) =>
+              renderAccountBox(
+                "Child Account",
+                child.addr,
+                child,
+                activeAccountAddr === child.addr
+              )
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
