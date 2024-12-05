@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useRef } from "react"; // Add useRef
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import useTransaction from "../hooks/useTransaction";
@@ -20,8 +20,10 @@ const NFTToTSHOTPanel = ({
     dispatch,
     refreshBalances,
     setSelectedAccount,
+    isRefreshing, // Add this from updated context
   } = useContext(UserContext);
 
+  const prevAddrRef = useRef(null); // Add ref for tracking previous address
   const activeAccountAddr = selectedAccount || user?.addr;
   const isParentAccount = selectedAccountType === "parent";
 
@@ -35,15 +37,25 @@ const NFTToTSHOTPanel = ({
     tshotBalance = 0,
   } = activeAccountData || {};
 
+  // Updated effect to use ref and prevent unnecessary refreshes
   useEffect(() => {
     if (activeAccountAddr) {
-      dispatch({ type: "RESET_SELECTED_NFTS" });
-      refreshBalances(activeAccountAddr);
+      const prevAddr = prevAddrRef.current;
+      if (prevAddr !== activeAccountAddr) {
+        dispatch({ type: "RESET_SELECTED_NFTS" });
+        refreshBalances(activeAccountAddr);
+        prevAddrRef.current = activeAccountAddr;
+      }
     }
   }, [activeAccountAddr]);
 
   const handleMomentClick = (momentId) => {
     dispatch({ type: "SET_SELECTED_NFTS", payload: momentId });
+  };
+
+  const handleManualRefresh = async () => {
+    if (!activeAccountAddr) return;
+    await refreshBalances(activeAccountAddr);
   };
 
   const { sendTransaction } = useTransaction();
@@ -228,13 +240,29 @@ const NFTToTSHOTPanel = ({
       {/* Account Selector Section */}
       {user.loggedIn && (
         <div>
-          <h3 className="text-lg font-semibold text-white mb-1">
-            Account Selection
-          </h3>
-          <p className="text-sm text-yellow-400 mb-3">
-            Note: $TSHOT will be sent to the parent account.
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-col space-y-3">
+            <h3 className="text-lg font-semibold text-white">
+              Account Selection
+            </h3>
+            <div className="flex items-center">
+              <button
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
+                  isRefreshing
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : "bg-gray-700 hover:bg-gray-600"
+                }`}
+              >
+                <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
+                {isRefreshing ? "Refreshing..." : "Refresh Collection"}
+              </button>
+            </div>
+            <p className="text-sm text-yellow-400">
+              Note: $TSHOT will be sent to the parent account.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-3">
             {renderAccountBox(
               "Parent Account",
               user?.addr,

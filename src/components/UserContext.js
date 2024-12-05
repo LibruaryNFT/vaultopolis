@@ -36,6 +36,7 @@ const initialState = {
   selectedAccount: null,
   selectedAccountType: "parent",
   selectedNFTs: [],
+  isRefreshing: false,
 };
 
 function userReducer(state, action) {
@@ -74,6 +75,8 @@ function userReducer(state, action) {
           childrenData: action.payload,
         },
       };
+    case "SET_REFRESHING_STATE":
+      return { ...state, isRefreshing: action.payload };
     case "SET_CHILDREN_ADDRESSES":
       return {
         ...state,
@@ -99,55 +102,58 @@ export const UserProvider = ({ children }) => {
     });
   };
 
+  // Update refreshBalances to handle errors better
   const refreshBalances = async (address) => {
     if (!address || !address.startsWith("0x")) return;
 
+    dispatch({ type: "SET_REFRESHING_STATE", payload: true });
     try {
-      const [tshotBalance, collectionData, receiptDetails] = await Promise.all([
-        fetchTSHOTBalance(address),
+      const [collectionData, receiptDetails] = await Promise.allSettled([
         fetchTopShotCollection(address),
         fetchReceiptDetails(address),
       ]);
 
       const isParentAccount = state.accountData.parentAddress === address;
 
-      if (isParentAccount) {
-        dispatch({
-          type: "SET_ACCOUNT_DATA",
-          payload: {
-            tshotBalance,
-            nftDetails: collectionData.details || [],
-            hasCollection: collectionData.hasCollection,
-            tierCounts:
-              collectionData.tierCounts || initialState.accountData.tierCounts,
-            receiptDetails,
-            hasReceipt: receiptDetails && receiptDetails.betAmount > 0,
-          },
-        });
-      } else {
-        const updatedChildrenData = state.accountData.childrenData.map(
-          (child) =>
-            child.addr === address
-              ? {
-                  ...child,
-                  tshotBalance,
-                  nftDetails: collectionData.details || [],
-                  hasCollection: collectionData.hasCollection,
-                  tierCounts:
-                    collectionData.tierCounts ||
-                    initialState.accountData.tierCounts,
-                  receiptDetails,
-                  hasReceipt: receiptDetails && receiptDetails.betAmount > 0,
-                }
-              : child
-        );
-        dispatch({
-          type: "SET_CHILDREN_DATA",
-          payload: updatedChildrenData,
-        });
+      // Only update with successful responses
+      const updates = {
+        ...(collectionData.status === "fulfilled"
+          ? {
+              nftDetails: collectionData.value.details || [],
+              hasCollection: collectionData.value.hasCollection,
+              tierCounts:
+                collectionData.value.tierCounts ||
+                initialState.accountData.tierCounts,
+            }
+          : {}),
+        ...(receiptDetails.status === "fulfilled"
+          ? {
+              receiptDetails: receiptDetails.value,
+              hasReceipt:
+                receiptDetails.value && receiptDetails.value.betAmount > 0,
+            }
+          : {}),
+      };
+
+      if (Object.keys(updates).length > 0) {
+        if (isParentAccount) {
+          dispatch({
+            type: "SET_ACCOUNT_DATA",
+            payload: updates,
+          });
+        } else {
+          const updatedChildrenData = state.accountData.childrenData.map(
+            (child) =>
+              child.addr === address ? { ...child, ...updates } : child
+          );
+          dispatch({ type: "SET_CHILDREN_DATA", payload: updatedChildrenData });
+        }
       }
     } catch (error) {
       console.error("Error refreshing balances:", error);
+      // State remains unchanged if there's an error
+    } finally {
+      dispatch({ type: "SET_REFRESHING_STATE", payload: false });
     }
   };
 
@@ -264,11 +270,18 @@ export const UserProvider = ({ children }) => {
   };
 
   const fetchTSHOTBalance = async (address) => {
-    const balance = await fcl.query({
-      cadence: getTSHOTBalance,
-      args: (arg, t) => [arg(address, t.Address)],
-    });
-    return balance;
+    try {
+      const balance = await fcl.query({
+        cadence: getTSHOTBalance,
+        args: (arg, t) => [arg(address, t.Address)],
+      });
+      return balance;
+    } catch (error) {
+      console.error(`Error fetching TSHOT balance: ${error.message}`);
+      // Return last known balance instead of failing
+      const currentBalance = state.accountData.tshotBalance || 0;
+      return currentBalance;
+    }
   };
 
   const fetchTopShotCollection = async (address) => {
@@ -291,8 +304,8 @@ export const UserProvider = ({ children }) => {
         args: (arg, t) => [arg(address, t.Address)],
       });
 
-      const batchSize = 1500;
-      const concurrencyLimit = 5;
+      const batchSize = 500;
+      const concurrencyLimit = 10;
       const limit = pLimit(concurrencyLimit);
 
       const batches = [];
@@ -349,36 +362,70 @@ export const UserProvider = ({ children }) => {
   };
 
   const enrichNFTMetadata = async (details) => {
+    if (!details?.length) return details;
+
     try {
+      // Get unique setIDs and playIDs
+      const uniqueSetIDs = [...new Set(details.map((nft) => nft.setID))];
+      const uniquePlayIDs = [...new Set(details.map((nft) => nft.playID))];
+
+      // Batch metadata requests by unique IDs
       const [editions, tiers, sets, plays] = await Promise.all([
-        fetchMetadata("topshot-editions"),
-        fetchMetadata("topshot-tiers"),
-        fetchMetadata("topshot-sets"),
-        fetchMetadata("topshot-plays"),
+        Promise.all(
+          uniqueSetIDs.map((setID) =>
+            Promise.all(
+              uniquePlayIDs.map((playID) =>
+                fetchMetadata("topshot-editions", { setID, playID })
+              )
+            )
+          )
+        ).then((results) => results.flat(2)),
+        Promise.all(
+          uniqueSetIDs.map((setID) =>
+            Promise.all(
+              uniquePlayIDs.map((playID) =>
+                fetchMetadata("topshot-tiers", { setID, playID })
+              )
+            )
+          )
+        ).then((results) => results.flat(2)),
+        Promise.all(
+          uniqueSetIDs.map((setID) =>
+            fetchMetadata("topshot-sets", { id: setID })
+          )
+        ).then((results) => results.flat()),
+        Promise.all(
+          uniquePlayIDs.map((playID) =>
+            fetchMetadata("topshot-plays", { playID: playID })
+          )
+        ).then((results) => results.flat()),
       ]);
 
-      // Create maps for metadata with numeric keys
-      const editionsMap = createMetadataMap(editions, ["setID", "playID"]);
-      const tiersMap = createMetadataMap(tiers, ["setID", "playID"]);
-      const setsMap = createMetadataMap(sets, ["id"]);
-      const playsMap = createMetadataMap(plays, ["PlayID"]);
+      // Create optimized lookup maps
+      const editionsMap = createMetadataMap(editions.filter(Boolean), [
+        "setID",
+        "playID",
+      ]);
+      const tiersMap = createMetadataMap(tiers.filter(Boolean), [
+        "setID",
+        "playID",
+      ]);
+      const setsMap = createMetadataMap(sets.filter(Boolean), ["id"]);
+      const playsMap = createMetadataMap(plays.filter(Boolean), ["PlayID"]);
 
       return details.map((nft) => {
         const key = `${nft.setID}-${nft.playID}`;
-        const setMetadata = setsMap[nft.setID];
-        const playMetadata = playsMap[nft.playID];
-        const editionMetadata = editionsMap[key];
-        const tierMetadata = tiersMap[key];
+        const setMetadata = setsMap[nft.setID] || {};
+        const playMetadata = playsMap[nft.playID] || {};
+        const editionMetadata = editionsMap[key] || {};
+        const tierMetadata = tiersMap[key] || {};
 
         return {
           ...nft,
           numMomentsInEdition: editionMetadata?.momentCount || null,
           tier: tierMetadata?.tier || null,
           setName: setMetadata?.name || null,
-          series:
-            setMetadata && setMetadata.series !== undefined
-              ? setMetadata.series
-              : null,
+          series: setMetadata?.series ?? null,
           playerName:
             playMetadata?.FullName ||
             (playMetadata?.FirstName && playMetadata?.LastName
@@ -392,11 +439,40 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const fetchMetadata = async (endpoint) => {
-    const response = await fetch(
-      `https://flowconnectbackend-864654c6a577.herokuapp.com/${endpoint}`
-    );
-    return response.json();
+  const fetchMetadata = async (endpoint, params = {}) => {
+    try {
+      // Filter out null/undefined values and convert numbers to strings
+      const validParams = Object.entries(params)
+        .filter(([_, value]) => value !== null && value !== undefined)
+        .reduce((acc, [key, value]) => {
+          acc[key] = String(value);
+          return acc;
+        }, {});
+
+      const queryString = new URLSearchParams(validParams).toString();
+      const baseUrl =
+        process.env.REACT_APP_API_BASE_URL ||
+        "https://flowconnectbackend-864654c6a577.herokuapp.com";
+      const url = `${baseUrl}/${endpoint}${
+        queryString ? `?${queryString}` : ""
+      }`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching ${endpoint} metadata:`, error);
+      return [];
+    }
   };
 
   const createMetadataMap = (data, keys) =>
@@ -407,33 +483,92 @@ export const UserProvider = ({ children }) => {
     }, {});
 
   useEffect(() => {
-    const unsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
+    const userUnsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
 
       if (currentUser?.loggedIn) {
+        // Initial load of data
         await loadParentData(currentUser.addr);
         await checkForChildren(currentUser.addr);
         setSelectedAccount(currentUser.addr);
-        await refreshAllBalances();
       } else {
         dispatch({ type: "RESET_STATE" });
       }
     });
 
     return () => {
-      if (unsubscribe) unsubscribe();
+      userUnsubscribe();
     };
   }, []);
 
+  // Update the balance refresh effect
+  useEffect(() => {
+    let isSubscribed = true;
+    const interval = setInterval(async () => {
+      if (state.user?.loggedIn && state.user?.addr) {
+        try {
+          const balance = await fetchTSHOTBalance(state.user.addr);
+          if (isSubscribed) {
+            dispatch({
+              type: "SET_ACCOUNT_DATA",
+              payload: { tshotBalance: balance },
+            });
+          }
+
+          // Update children's TSHOT balances if any
+          if (state.accountData.childrenAddresses.length > 0) {
+            const childrenUpdates = await Promise.allSettled(
+              state.accountData.childrenAddresses.map(async (childAddr) => {
+                const childBalance = await fetchTSHOTBalance(childAddr);
+                return { addr: childAddr, balance: childBalance };
+              })
+            );
+
+            if (isSubscribed) {
+              const updatedChildrenData = state.accountData.childrenData.map(
+                (child) => {
+                  const update = childrenUpdates.find(
+                    (result) =>
+                      result.status === "fulfilled" &&
+                      result.value.addr === child.addr
+                  );
+                  return update
+                    ? { ...child, tshotBalance: update.value.balance }
+                    : child;
+                }
+              );
+              dispatch({
+                type: "SET_CHILDREN_DATA",
+                payload: updatedChildrenData,
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error in balance refresh:", error);
+          // Don't update state if there's an error - keep previous values
+        }
+      }
+    }, 5000);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [state.user?.addr, state.accountData.childrenAddresses]);
+
+  // Keep the existing collection refresh interval
   useEffect(() => {
     const interval = setInterval(() => {
       if (state.user?.loggedIn) {
-        refreshAllBalances();
+        refreshBalances(state.user.addr);
+        state.accountData.childrenAddresses.forEach((addr) =>
+          refreshBalances(addr)
+        );
       }
-    }, 30000);
+    }, 30000); // Collection updates every 30 seconds
 
     return () => clearInterval(interval);
-  }, [state.user, state.accountData]);
+  }, [state.user, state.accountData.childrenAddresses]);
 
   useEffect(() => {
     console.log("Updated UserContext State:", state);

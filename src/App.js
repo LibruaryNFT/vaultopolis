@@ -6,6 +6,8 @@ import Home from "./components/Home";
 import Vault from "./components/Vault";
 import Earn from "./components/Earn";
 import Admin from "./components/Admin";
+import TermsAndService from "./components/TermsAndPrivacy";
+import Footer from "./components/Footer";
 
 // Create the router
 const router = createBrowserRouter(
@@ -16,6 +18,7 @@ const router = createBrowserRouter(
         <>
           <Header />
           <Home />
+          <Footer />
         </>
       ),
     },
@@ -25,6 +28,7 @@ const router = createBrowserRouter(
         <>
           <Header />
           <Vault />
+          <Footer />
         </>
       ),
     },
@@ -34,6 +38,17 @@ const router = createBrowserRouter(
         <>
           <Header />
           <Earn />
+          <Footer />
+        </>
+      ),
+    },
+    {
+      path: "/terms",
+      element: (
+        <>
+          <Header />
+          <TermsAndService />
+          <Footer />
         </>
       ),
     },

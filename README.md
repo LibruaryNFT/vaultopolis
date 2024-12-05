@@ -100,3 +100,14 @@ This project is licensed under the [MIT License](./LICENSE).
 
 Testnet Addresses
 https://testnet.flowscan.io/account/0x332ffc0ae9bba9c1
+
+## Flow Connect Endpoints
+
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-sets
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-sets?setID=56
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-editions
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-editions?setID=1&playID=1
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-plays
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-plays?playID=2
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-tiers
+https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-tiers?setID=2&playID=95
