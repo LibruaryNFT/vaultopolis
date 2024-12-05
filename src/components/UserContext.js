@@ -155,10 +155,7 @@ export const UserProvider = ({ children }) => {
     const parentAddress = state.accountData.parentAddress;
     if (!parentAddress) return;
 
-    // Refresh parent balances
     await refreshBalances(parentAddress);
-
-    // Refresh children balances
     await Promise.all(
       state.accountData.childrenAddresses.map((childAddr) =>
         refreshBalances(childAddr)
@@ -242,191 +239,6 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
-      dispatch({ type: "SET_USER", payload: currentUser });
-
-      if (currentUser?.loggedIn) {
-        await loadParentData(currentUser.addr);
-        const hasChildren = await checkForChildren(currentUser.addr);
-        setSelectedAccount(currentUser.addr);
-
-        refreshAllBalances();
-      } else {
-        dispatch({ type: "RESET_STATE" });
-      }
-    });
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (state.user?.loggedIn) {
-        refreshAllBalances();
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [state.user, state.accountData]);
-
-  const fetchTSHOTBalance = async (address) => {
-    const balance = await fcl.query({
-      cadence: getTSHOTBalance,
-      args: (arg, t) => [arg(address, t.Address)],
-    });
-    return balance;
-  };
-
-  const fetchTopShotCollection = async (address) => {
-    if (!address || !address.startsWith("0x")) {
-      return { hasCollection: false, details: [], tierCounts: {} };
-    }
-
-    try {
-      const hasCollection = await fcl.query({
-        cadence: verifyTopShotCollection,
-        args: (arg, t) => [arg(address, t.Address)],
-      });
-
-      if (hasCollection) {
-        // Step 1: Get all NFT IDs
-        const ids = await fcl.query({
-          cadence: getTopShotCollectionIDs,
-          args: (arg, t) => [arg(address, t.Address)],
-        });
-
-        // Step 2: Process IDs in batches
-        const batchSize = 200; // Adjust as needed
-        const concurrencyLimit = 5; // Limit the number of concurrent batches
-        const limit = pLimit(concurrencyLimit);
-
-        const batches = [];
-        for (let i = 0; i < ids.length; i += batchSize) {
-          const batch = ids.slice(i, i + batchSize);
-          batches.push(batch);
-        }
-
-        // Step 3: Fetch NFT details with concurrency control
-        const batchPromises = batches.map((batch) =>
-          limit(() =>
-            fcl.query({
-              cadence: getTopShotCollectionBatched,
-              args: (arg, t) => [
-                arg(address, t.Address),
-                arg(batch, t.Array(t.UInt64)),
-              ],
-            })
-          )
-        );
-
-        const batchResults = await Promise.all(batchPromises);
-        const details = batchResults.flat();
-
-        // Step 4: Fetch editions data from your endpoint using GET
-        const editionsResponse = await fetch(
-          "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-editions"
-        );
-        const editionsData = await editionsResponse.json();
-
-        // Build a map of { 'setID-playID': numMomentsInEdition }
-        const numMomentsInEditionMap = {};
-        editionsData.forEach((edition) => {
-          const key = `${edition.setID}-${edition.playID}`;
-          numMomentsInEditionMap[key] = edition.momentCount; // Using 'momentCount' from the database
-        });
-
-        // Step 5: Fetch tiers data from your endpoint using GET
-        const tiersResponse = await fetch(
-          "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-tiers"
-        );
-        const tiersData = await tiersResponse.json();
-
-        // Build a map of { 'setID-playID': tier }
-        const tierMap = {};
-        tiersData.forEach((item) => {
-          const key = `${item.setID}-${item.playID}`;
-          tierMap[key] = item.tier;
-        });
-
-        // Step 6: Fetch sets data to get setName and series
-        const setsResponse = await fetch(
-          "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-sets"
-        );
-        const setsData = await setsResponse.json();
-
-        // Build a map of { setID: { setName, series } }
-        const setMap = {};
-        setsData.forEach((set) => {
-          setMap[set.id] = {
-            setName: set.name,
-            series: set.series, // Use 'series' instead of 'seriesID'
-          };
-        });
-
-        // Step 7: Fetch plays data to get playerName
-        const playsResponse = await fetch(
-          "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-plays"
-        );
-        const playsData = await playsResponse.json();
-
-        // Build a map of { playID: playerName }
-        const playMap = {};
-        playsData.forEach((play) => {
-          playMap[play.PlayID] =
-            play.FullName || `${play.FirstName} ${play.LastName}`;
-        });
-
-        // Step 8: Enrich NFT details with additional data
-        const enrichedDetails = details.map((nft) => {
-          const key = `${nft.setID}-${nft.playID}`;
-          const numMomentsInEdition = numMomentsInEditionMap[key] || null;
-          const tier = tierMap[key] || nft.tier || null;
-
-          const setData = setMap[nft.setID] || {};
-          const setName = setData.setName || null;
-          const series = setData.series !== undefined ? setData.series : null; // Adjusted here
-
-          const playerName = playMap[nft.playID] || null;
-
-          return {
-            ...nft,
-            numMomentsInEdition,
-            tier,
-            setName,
-            series, // Updated property
-            playerName,
-          };
-        });
-
-        // Step 9: Calculate tier counts
-        const tierCounts = {
-          common: 0,
-          rare: 0,
-          fandom: 0,
-          legendary: 0,
-          ultimate: 0,
-        };
-
-        enrichedDetails.forEach((nft) => {
-          const tier = nft.tier?.toLowerCase();
-          if (tier && tierCounts.hasOwnProperty(tier)) {
-            tierCounts[tier]++;
-          }
-        });
-
-        return { hasCollection: true, details: enrichedDetails, tierCounts };
-      } else {
-        return { hasCollection: false, details: [], tierCounts: {} };
-      }
-    } catch (error) {
-      console.error(`Error fetching collection for address ${address}:`, error);
-      return { hasCollection: false, details: [], tierCounts: {} };
-    }
-  };
-
   const fetchReceiptDetails = async (address) => {
     const receiptDetails = await fcl.query({
       cadence: getReceiptDetails,
@@ -450,6 +262,178 @@ export const UserProvider = ({ children }) => {
     });
     return children;
   };
+
+  const fetchTSHOTBalance = async (address) => {
+    const balance = await fcl.query({
+      cadence: getTSHOTBalance,
+      args: (arg, t) => [arg(address, t.Address)],
+    });
+    return balance;
+  };
+
+  const fetchTopShotCollection = async (address) => {
+    if (!address || !address.startsWith("0x")) {
+      return { hasCollection: false, details: [], tierCounts: {} };
+    }
+
+    try {
+      const hasCollection = await fcl.query({
+        cadence: verifyTopShotCollection,
+        args: (arg, t) => [arg(address, t.Address)],
+      });
+
+      if (!hasCollection) {
+        return { hasCollection: false, details: [], tierCounts: {} };
+      }
+
+      const ids = await fcl.query({
+        cadence: getTopShotCollectionIDs,
+        args: (arg, t) => [arg(address, t.Address)],
+      });
+
+      const batchSize = 1500;
+      const concurrencyLimit = 5;
+      const limit = pLimit(concurrencyLimit);
+
+      const batches = [];
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize);
+        batches.push(batch);
+      }
+
+      const batchPromises = batches.map((batch) =>
+        limit(() =>
+          fcl.query({
+            cadence: getTopShotCollectionBatched,
+            args: (arg, t) => [
+              arg(address, t.Address),
+              arg(batch, t.Array(t.UInt64)),
+            ],
+          })
+        )
+      );
+
+      const batchResults = await Promise.all(batchPromises);
+      const details = batchResults.flat();
+
+      // Ensure correct data types
+      const processedDetails = details.map((nft) => ({
+        ...nft,
+        id: Number(nft.id),
+        setID: Number(nft.setID),
+        playID: Number(nft.playID),
+        serialNumber: Number(nft.serialNumber),
+        isLocked: Boolean(nft.isLocked),
+      }));
+
+      // Enrich metadata
+      const enrichedDetails = await enrichNFTMetadata(processedDetails);
+
+      // Tier counts
+      const tierCounts = enrichedDetails.reduce(
+        (counts, nft) => {
+          const tier = nft.tier?.toLowerCase();
+          if (tier && counts.hasOwnProperty(tier)) {
+            counts[tier]++;
+          }
+          return counts;
+        },
+        { ...initialState.accountData.tierCounts }
+      );
+
+      return { hasCollection: true, details: enrichedDetails, tierCounts };
+    } catch (error) {
+      console.error(`Error fetching collection for ${address}:`, error);
+      return { hasCollection: false, details: [], tierCounts: {} };
+    }
+  };
+
+  const enrichNFTMetadata = async (details) => {
+    try {
+      const [editions, tiers, sets, plays] = await Promise.all([
+        fetchMetadata("topshot-editions"),
+        fetchMetadata("topshot-tiers"),
+        fetchMetadata("topshot-sets"),
+        fetchMetadata("topshot-plays"),
+      ]);
+
+      // Create maps for metadata with numeric keys
+      const editionsMap = createMetadataMap(editions, ["setID", "playID"]);
+      const tiersMap = createMetadataMap(tiers, ["setID", "playID"]);
+      const setsMap = createMetadataMap(sets, ["id"]);
+      const playsMap = createMetadataMap(plays, ["PlayID"]);
+
+      return details.map((nft) => {
+        const key = `${nft.setID}-${nft.playID}`;
+        const setMetadata = setsMap[nft.setID];
+        const playMetadata = playsMap[nft.playID];
+        const editionMetadata = editionsMap[key];
+        const tierMetadata = tiersMap[key];
+
+        return {
+          ...nft,
+          numMomentsInEdition: editionMetadata?.momentCount || null,
+          tier: tierMetadata?.tier || null,
+          setName: setMetadata?.name || null,
+          series:
+            setMetadata && setMetadata.series !== undefined
+              ? setMetadata.series
+              : null,
+          playerName:
+            playMetadata?.FullName ||
+            (playMetadata?.FirstName && playMetadata?.LastName
+              ? `${playMetadata.FirstName} ${playMetadata.LastName}`
+              : null),
+        };
+      });
+    } catch (error) {
+      console.error("Error enriching NFT metadata:", error);
+      return details;
+    }
+  };
+
+  const fetchMetadata = async (endpoint) => {
+    const response = await fetch(
+      `https://flowconnectbackend-864654c6a577.herokuapp.com/${endpoint}`
+    );
+    return response.json();
+  };
+
+  const createMetadataMap = (data, keys) =>
+    data.reduce((map, item) => {
+      const compositeKey = keys.map((k) => item[k]).join("-");
+      map[compositeKey] = item;
+      return map;
+    }, {});
+
+  useEffect(() => {
+    const unsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
+      dispatch({ type: "SET_USER", payload: currentUser });
+
+      if (currentUser?.loggedIn) {
+        await loadParentData(currentUser.addr);
+        await checkForChildren(currentUser.addr);
+        setSelectedAccount(currentUser.addr);
+        await refreshAllBalances();
+      } else {
+        dispatch({ type: "RESET_STATE" });
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (state.user?.loggedIn) {
+        refreshAllBalances();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [state.user, state.accountData]);
 
   useEffect(() => {
     console.log("Updated UserContext State:", state);
