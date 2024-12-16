@@ -19,7 +19,7 @@ const Footer = () => {
               />
             </div>
             <p className="text-sm text-gray-400">
-              Decentralized NFT swapping platform for NBA Top Shot Moments
+              Decentralized NFT swapping platform
             </p>
           </div>
 

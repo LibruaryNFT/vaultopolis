@@ -18,7 +18,7 @@ const Header = () => {
   const location = useLocation();
   const buttonRef = useRef(null);
 
-  const activeAddress = selectedAccount || user?.addr; // Address of active account
+  const activeAddress = selectedAccount || user?.addr;
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
@@ -29,132 +29,146 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-transparent text-white py-4 w-full flex items-center justify-between relative z-50">
-      {/* Logo and Mobile Menu Icon */}
-      <div className="flex items-center space-x-4 pl-4">
-        <Link to="/" className="flex-shrink-0">
-          {/* Show "MS" text on small screens, full logo on larger screens */}
-          <span className="text-2xl font-bold md:hidden">MS</span>
-          <img
-            src="https://storage.googleapis.com/momentswap/images/MomentSwapWhite.png"
-            alt="MomentSwap Logo"
-            className="hidden md:block max-h-8"
-          />
-        </Link>
-        {/* Hamburger Icon next to Logo on Mobile */}
-        <button
-          onClick={toggleMobileMenu}
-          className="md:hidden focus:outline-none"
-        >
-          <FaBars size={20} />
-        </button>
-      </div>
-
-      {/* Desktop Navigation Links */}
-      <div className="hidden md:flex space-x-4">
-        <NavLink to="/" isActive={location.pathname === "/"}>
-          Swap
-        </NavLink>
-        <NavLink to="/vault" isActive={location.pathname === "/vault"}>
-          Vault
-        </NavLink>
-        <NavLink to="/earn" isActive={location.pathname === "/earn"}>
-          Overview
-        </NavLink>
-
-        {/* Staking Dropdown for Desktop */}
-        <div className="relative group">
-          <button className="flex items-center space-x-2 py-2 px-4 rounded-md text-gray-400 hover:text-white">
-            <span>Staking & Liquidity</span>
-            <FaChevronDown size={14} />
+    <header className="bg-transparent text-white py-4 w-full relative z-50">
+      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+        {/* Logo and Mobile Menu Icon */}
+        <div className="flex items-center space-x-4">
+          <Link to="/" className="flex-shrink-0">
+            <span className="text-2xl font-bold lg:hidden">MS</span>
+            <img
+              src="https://storage.googleapis.com/momentswap/images/MomentSwapWhite.png"
+              alt="MomentSwap Logo"
+              className="hidden lg:block max-h-8"
+            />
+          </Link>
+          <button
+            onClick={toggleMobileMenu}
+            className="lg:hidden focus:outline-none"
+          >
+            <FaBars size={20} />
           </button>
-          <div className="absolute top-full left-0 bg-gray-800 rounded-md shadow-lg w-48 flex-col hidden group-hover:flex group-hover:flex-col z-10">
-            <NavLink to="https://app.increment.fi/" external>
-              Flow Cadence
-            </NavLink>
-            <NavLink to="https://www.kittypunch.xyz/" external>
-              Flow EVM
-            </NavLink>
-          </div>
         </div>
-      </div>
 
-      {/* Mobile Navigation Menu */}
-      {isMobileMenuOpen && (
-        <div className="absolute top-16 left-0 w-full bg-gray-800 text-white flex flex-col items-start p-4 md:hidden">
-          <NavLink
-            to="/"
-            isActive={location.pathname === "/"}
-            onClick={toggleMobileMenu}
-          >
-            Swap
-          </NavLink>
-          <NavLink
-            to="/vault"
-            isActive={location.pathname === "/vault"}
-            onClick={toggleMobileMenu}
-          >
-            Vault
-          </NavLink>
-          <NavLink
-            to="/earn"
-            isActive={location.pathname === "/earn"}
-            onClick={toggleMobileMenu}
-          >
-            Overview
-          </NavLink>
+        {/* Desktop Navigation Links */}
+        <nav className="hidden lg:flex items-center space-x-2 flex-grow justify-center max-w-2xl">
+          <div className="flex items-center space-x-2">
+            <NavLink to="/" isActive={location.pathname === "/"}>
+              Swap
+            </NavLink>
+            <NavLink to="/vault" isActive={location.pathname === "/vault"}>
+              Vault
+            </NavLink>
+            <NavLink to="/earn" isActive={location.pathname === "/earn"}>
+              Overview
+            </NavLink>
 
-          {/* Staking Expandable Menu for Mobile */}
-          <div
-            onClick={toggleStaking}
-            className="flex items-center justify-between w-full py-2 px-4 cursor-pointer"
-          >
-            <span>Staking & Liquidity</span>
-            <span className="-ml-2">
-              {isStakingOpen ? (
+            {/* Staking Dropdown for Desktop */}
+            <div className="relative group">
+              <button className="flex items-center whitespace-nowrap space-x-2 py-2 px-4 rounded-md text-gray-400 hover:text-white">
+                <span>Staking & Liquidity</span>
                 <FaChevronDown size={14} />
-              ) : (
-                <FaChevronRight size={14} />
-              )}
-            </span>
-          </div>
-          {isStakingOpen && (
-            <div className="ml-6 flex flex-col">
-              <NavLink to="https://app.increment.fi/" external>
-                Flow Cadence
-              </NavLink>
-              <NavLink to="https://www.kittypunch.xyz/" external>
-                Flow EVM
-              </NavLink>
+              </button>
+              <div className="absolute top-full left-0 bg-gray-800 rounded-md shadow-lg w-48 flex-col hidden group-hover:flex z-10">
+                <NavLink to="https://app.increment.fi/liquidity" external>
+                  Flow Cadence - Increment.fi
+                </NavLink>
+                <NavLink
+                  to="https://swap.kittypunch.xyz/?tab=liquidity&mode=add"
+                  external
+                >
+                  Flow EVM - KittyPunch
+                </NavLink>
+              </div>
             </div>
+          </div>
+        </nav>
+
+        {/* Mobile Navigation Menu */}
+        {isMobileMenuOpen && (
+          <div className="absolute top-16 left-0 w-full bg-gray-800 text-white lg:hidden">
+            <div className="flex flex-col divide-y divide-gray-700">
+              <MobileNavLink
+                to="/"
+                isActive={location.pathname === "/"}
+                onClick={toggleMobileMenu}
+              >
+                Swap
+              </MobileNavLink>
+              <MobileNavLink
+                to="/vault"
+                isActive={location.pathname === "/vault"}
+                onClick={toggleMobileMenu}
+              >
+                Vault
+              </MobileNavLink>
+              <MobileNavLink
+                to="/earn"
+                isActive={location.pathname === "/earn"}
+                onClick={toggleMobileMenu}
+              >
+                Overview
+              </MobileNavLink>
+
+              <div className="w-full">
+                <button
+                  onClick={toggleStaking}
+                  className="w-full flex items-center justify-between px-6 py-4 text-gray-400 hover:text-white hover:bg-gray-700"
+                >
+                  <span>Staking & Liquidity</span>
+                  <span className="ml-2">
+                    {isStakingOpen ? (
+                      <FaChevronDown size={14} />
+                    ) : (
+                      <FaChevronRight size={14} />
+                    )}
+                  </span>
+                </button>
+                {isStakingOpen && (
+                  <div className="bg-gray-700">
+                    <MobileNavLink
+                      to="https://app.increment.fi/liquidity"
+                      external
+                    >
+                      Flow Cadence - Increment.fi
+                    </MobileNavLink>
+                    <MobileNavLink
+                      to="https://swap.kittypunch.xyz/?tab=liquidity&mode=add"
+                      external
+                    >
+                      Flow EVM - KittyPunch
+                    </MobileNavLink>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User Profile and Connect Button */}
+        <div className="flex items-center">
+          {user.loggedIn ? (
+            <div className="relative">
+              <UserButton
+                ref={buttonRef}
+                onClick={toggleMenu}
+                activeAddress={activeAddress}
+              />
+              {isMenuOpen && (
+                <DropdownMenu
+                  closeMenu={() => setIsMenuOpen(false)}
+                  buttonRef={buttonRef}
+                />
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={connectWallet}
+              className="px-4 py-2 bg-flow-dark rounded hover:bg-flow-darkest focus:outline-none focus:ring-2 focus:ring-green-500"
+            >
+              Connect
+            </button>
           )}
         </div>
-      )}
-
-      {/* User Profile and Connect Button */}
-      <div className="flex justify-end items-center pr-4">
-        {user.loggedIn ? (
-          <div className="relative">
-            <UserButton
-              ref={buttonRef}
-              onClick={toggleMenu}
-              activeAddress={activeAddress}
-            />
-            {isMenuOpen && (
-              <DropdownMenu
-                closeMenu={() => setIsMenuOpen(false)}
-                buttonRef={buttonRef}
-              />
-            )}
-          </div>
-        ) : (
-          <button
-            onClick={connectWallet}
-            className="px-4 py-2 bg-flow-dark rounded hover:bg-flow-darkest focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            Connect
-          </button>
-        )}
       </div>
     </header>
   );
@@ -177,7 +191,30 @@ const NavLink = ({ to, isActive, children, onClick, external }) =>
       onClick={onClick}
       className={`${
         isActive ? "text-white" : "text-gray-400"
-      } hover:text-white transition-colors py-2 px-4 rounded-md`}
+      } hover:text-white transition-colors py-2 px-4 rounded-md whitespace-nowrap`}
+    >
+      {children}
+    </Link>
+  );
+
+const MobileNavLink = ({ to, isActive, children, onClick, external }) =>
+  external ? (
+    <a
+      href={to}
+      onClick={onClick}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block px-6 py-4 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+    >
+      {children}
+    </a>
+  ) : (
+    <Link
+      to={to}
+      onClick={onClick}
+      className={`block px-6 py-4 ${
+        isActive ? "text-white" : "text-gray-400"
+      } hover:text-white hover:bg-gray-700 transition-colors`}
     >
       {children}
     </Link>
@@ -191,7 +228,7 @@ const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
     style={{ zIndex: 50 }}
   >
     <FaUserCircle className="mr-2" size={20} />
-    {activeAddress}
+    <span className="truncate max-w-[120px]">{activeAddress}</span>
   </button>
 ));
 

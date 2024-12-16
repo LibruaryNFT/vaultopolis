@@ -9,6 +9,8 @@ flow scripts execute ./sharding/scripts/get_nftids_by_shard.cdc 0xf8d6e0586b0a20
 flow scripts execute ./sharding/scripts/get_shard_ids.cdc 0xf8d6e0586b0a20c7 0
 flow scripts execute ./sharding/scripts/verify_collection_details.cdc 0xf8d6e0586b0a20c7
 
+flow scripts execute ./sharding/scripts/get_collection_ids.cdc 0x332ffc0ae9bba9c1 --network=testnet
+
 # Transactions
 
 flow transactions send ./sharding/transactions/batch_from_sharded.cdc 0x179b6b1cb6755e31 [54,55,56]

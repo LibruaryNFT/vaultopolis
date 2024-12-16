@@ -244,7 +244,7 @@ const NFTToTSHOTPanel = ({
             <h3 className="text-lg font-semibold text-white">
               Account Selection
             </h3>
-            <div className="flex items-center">
+            <div className="flex items-center text-white">
               <button
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}

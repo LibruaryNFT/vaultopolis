@@ -1,12 +1,11 @@
 import React, { useContext, useEffect, useRef } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
-import { FaSignOutAlt, FaClipboard } from "react-icons/fa";
+import { FaSignOutAlt, FaClipboard, FaWallet, FaCube } from "react-icons/fa";
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const { user, accountData, dispatch } = useContext(UserContext);
   const { parentAddress, tshotBalance, tierCounts, childrenData } = accountData;
-
   const popoutRef = useRef(null);
 
   useEffect(() => {
@@ -24,10 +23,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       () => document.addEventListener("mousedown", handleClickOutside),
       0
     );
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeMenu, buttonRef]);
 
   const handleCopyAddress = (address) => {
@@ -63,7 +59,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       );
 
     const combinedTierCounts = { ...tierCounts };
-
     childrenData.forEach((child) => {
       for (const tier in child.tierCounts) {
         combinedTierCounts[tier] =
@@ -72,7 +67,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     });
 
     const totalMoments = calculateTotalMoments(combinedTierCounts);
-
     return { totalTshot, totalMoments, combinedTierCounts };
   };
 
@@ -97,77 +91,122 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
   return (
     <div
       ref={popoutRef}
-      className="absolute top-12 right-0 mt-2 w-96 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 p-2"
+      className="absolute top-12 right-0 mt-2 w-96 bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"
     >
       {/* Header Section */}
-      <div className="flex justify-between items-center">
-        <div className="flex flex-col text-left">
-          <span
-            className="cursor-pointer hover:underline flex items-center text-blue-400 text-sm"
-            onClick={() => handleCopyAddress(user.addr)}
+      <div className="bg-gray-900 px-6 py-4 border-b border-gray-700">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-3">
+            <div className="h-9 w-9 rounded-full bg-blue-500 flex items-center justify-center">
+              <FaWallet className="text-white text-lg" />
+            </div>
+            <div className="flex flex-col">
+              <button
+                onClick={() => handleCopyAddress(user.addr)}
+                className="text-sm text-gray-300 hover:text-white flex items-center group"
+              >
+                <span className="truncate max-w-[180px]">{user.addr}</span>
+                <FaClipboard className="ml-2 text-gray-400 group-hover:text-white transition-colors" />
+              </button>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            title="Disconnect"
           >
-            {user.addr} <FaClipboard className="ml-1" />
-          </span>
+            <FaSignOutAlt size={18} />
+          </button>
         </div>
-        <button
-          onClick={handleLogout}
-          className="text-white bg-red-600 hover:bg-red-700 rounded-full p-2 shadow-md"
-          title="Disconnect"
-        >
-          <FaSignOutAlt size={16} />
-        </button>
       </div>
 
-      {/* All Accounts Summary */}
-      <div className="p-3 rounded-md bg-gray-700 mt-3">
-        <h4 className="text-xl font-bold text-blue-400">All Accounts</h4>
-        <div className="mt-1">
-          <p className="text-base font-semibold text-white">
-            {parseFloat(totalTshot || 0).toFixed(1)} $TSHOT
-          </p>
-          <p className="text-base font-semibold text-white">
-            {totalMoments} Total Moments
-          </p>
+      {/* Portfolio Summary Section */}
+      <div className="px-6 py-5">
+        <div className="flex items-center space-x-3 mb-3">
+          <FaCube className="text-blue-400 text-lg" />
+          <h4 className="text-lg font-medium text-white">Portfolio Summary</h4>
         </div>
-        <div className="mt-2 text-sm text-gray-300">
-          {getTierBreakdown(combinedTierCounts).map((tier) => (
-            <p key={tier.label}>
-              {tier.label}: {tier.count}
-            </p>
-          ))}
+        <div className="bg-gray-700 rounded-lg p-4">
+          {/* Summary Stats */}
+          <div className="bg-gray-800 p-4 rounded-lg mb-4">
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Total TSHOT</p>
+                <p className="text-xl font-bold text-white">
+                  {parseFloat(totalTshot || 0).toFixed(1)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400 mb-1">Total Moments</p>
+                <p className="text-xl font-bold text-white">{totalMoments}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tier Breakdown */}
+          <div className="grid grid-cols-3 gap-3">
+            {getTierBreakdown(combinedTierCounts).map((tier) => (
+              <div key={tier.label} className="bg-gray-800 p-3 rounded-lg">
+                <p className="text-xs text-gray-400 mb-1">{tier.label}</p>
+                <p className="text-sm font-semibold text-white">{tier.count}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Individual Accounts */}
-      <div className="mt-2 space-y-2">
-        {allAccounts.map((account) => (
-          <div
-            key={account.address}
-            className="p-2 rounded-md bg-gray-700 hover:bg-gray-600 transition-colors"
-          >
-            <h5 className="text-sm font-semibold text-blue-400">
-              {account.label}
-            </h5>
-            <p className="text-xs text-gray-400 truncate">
-              Address: {account.address}
-            </p>
-            <div className="mt-1">
-              <p className="text-base font-semibold text-white">
-                {parseFloat(account.tshotBalance || 0).toFixed(1)} $TSHOT
-              </p>
-              <p className="text-base font-semibold text-white">
-                {calculateTotalMoments(account.tierCounts)} Total Moments
-              </p>
+      <div className="px-6 pb-6">
+        <div className="space-y-4">
+          {allAccounts.map((account) => (
+            <div
+              key={account.address}
+              className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <h5 className="text-sm font-medium text-white">
+                  {account.label}
+                </h5>
+                <button
+                  onClick={() => handleCopyAddress(account.address)}
+                  className="text-xs text-gray-400 hover:text-white flex items-center"
+                >
+                  <span className="truncate max-w-[140px]">
+                    {account.address}
+                  </span>
+                  <FaClipboard className="ml-2" />
+                </button>
+              </div>
+              {/* Account Stats */}
+              <div className="bg-gray-800 p-4 rounded-lg mb-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">TSHOT Balance</p>
+                    <p className="text-sm font-semibold text-white">
+                      {parseFloat(account.tshotBalance || 0).toFixed(1)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-1">Total Moments</p>
+                    <p className="text-sm font-semibold text-white">
+                      {calculateTotalMoments(account.tierCounts)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {getTierBreakdown(account.tierCounts).map((tier) => (
+                  <div key={tier.label} className="bg-gray-800 p-3 rounded-lg">
+                    <p className="text-xs text-gray-400 mb-1">{tier.label}</p>
+                    <p className="text-sm font-semibold text-white">
+                      {tier.count}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="mt-2 text-sm text-gray-300">
-              {getTierBreakdown(account.tierCounts).map((tier) => (
-                <p key={tier.label}>
-                  {tier.label}: {tier.count}
-                </p>
-              ))}
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

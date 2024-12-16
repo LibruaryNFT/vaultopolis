@@ -8,6 +8,7 @@ import Earn from "./components/Earn";
 import Admin from "./components/Admin";
 import TermsAndService from "./components/TermsAndPrivacy";
 import Footer from "./components/Footer";
+import Layout from "./components/Layout";
 
 // Create the router
 const router = createBrowserRouter(
@@ -15,55 +16,43 @@ const router = createBrowserRouter(
     {
       path: "/",
       element: (
-        <>
-          <Header />
+        <Layout>
           <Home />
-          <Footer />
-        </>
+        </Layout>
       ),
     },
     {
       path: "/vault",
       element: (
-        <>
-          <Header />
+        <Layout>
           <Vault />
-          <Footer />
-        </>
+        </Layout>
       ),
     },
     {
       path: "/earn",
       element: (
-        <>
-          <Header />
+        <Layout>
           <Earn />
-          <Footer />
-        </>
+        </Layout>
       ),
     },
     {
       path: "/terms",
       element: (
-        <>
-          <Header />
+        <Layout>
           <TermsAndService />
-          <Footer />
-        </>
+        </Layout>
       ),
     },
     {
       path: "/admin",
-      element: (
-        <>
-          <Admin />
-        </>
-      ),
+      element: <Admin />,
     },
   ],
   {
     future: {
-      v7_startTransition: true, // Opt-in to React Router v7 behavior
+      v7_startTransition: true,
     },
   }
 );
@@ -83,8 +72,7 @@ function App() {
         {/* Overlay */}
         <div className="absolute inset-0 bg-black bg-opacity-50 z-10"></div>
         {/* Main Content */}
-        <div className="relative z-20 min-h-screen flex flex-col items-center text-white">
-          {/* Provide the router to your app */}
+        <div className="relative z-20 min-h-screen">
           <RouterProvider router={router} />
         </div>
       </div>
