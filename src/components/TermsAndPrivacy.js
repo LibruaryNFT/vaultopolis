@@ -4,16 +4,16 @@ const TermsAndPrivacy = () => {
   return (
     <div className="max-w-4xl mx-auto p-8 bg-gray-900 rounded-lg shadow-xl m-4">
       <h1 className="text-3xl font-bold mb-8 text-white">
-        MomentSwap Terms of Service and Privacy Policy
+        Vaultopolis Terms of Service and Privacy Policy
       </h1>
       <div className="space-y-8 text-gray-300">
         <section className="mb-12">
           <p className="mb-6 text-lg font-semibold bg-gray-800 p-4 rounded">
-            PLEASE READ THESE TERMS CAREFULLY. BY USING MOMENTSWAP OR ANY OF OUR
-            SERVICES, YOU AGREE TO BE BOUND BY THESE TERMS AND CONDITIONS.
+            PLEASE READ THESE TERMS CAREFULLY. BY USING VAULTOPOLIS OR ANY OF
+            OUR SERVICES, YOU AGREE TO BE BOUND BY THESE TERMS AND CONDITIONS.
           </p>
           <p className="mb-4">
-            MomentSwap ("we," "us," or "our") is a decentralized application
+            Vaultopolis ("we," "us," or "our") is a decentralized application
             that enables users to swap NBA Top Shot NFTs for TSHOT tokens and
             back again through smart contracts on the blockchain (collectively,
             the "App").
@@ -26,7 +26,7 @@ const TermsAndPrivacy = () => {
           </h2>
           <div className="space-y-4">
             <p>
-              MomentSwap operates as an independent, decentralized platform. We
+              Vaultopolis operates as an independent, decentralized platform. We
               are not affiliated with, endorsed by, or connected to Dapper Labs,
               NBA Top Shot, the National Basketball Association, or any of their
               affiliates or subsidiaries.
@@ -89,7 +89,7 @@ const TermsAndPrivacy = () => {
             4. User Responsibilities
           </h2>
           <div className="space-y-4">
-            <p>By using MomentSwap, you represent and warrant that:</p>
+            <p>By using Vaultopolis, you represent and warrant that:</p>
             <ul className="list-disc pl-6 space-y-2">
               <li>You are the rightful owner of any NFTs you swap</li>
               <li>

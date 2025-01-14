@@ -6,7 +6,7 @@ const Earn = () => {
     <div className="max-w-4xl mx-auto p-6 text-white">
       {/* Introduction */}
       <section className="mb-10 bg-gray-800 bg-opacity-75 p-6 rounded-lg">
-        <h1 className="text-3xl font-bold mb-4">MomentSwap Protocol</h1>
+        <h1 className="text-3xl font-bold mb-4">Vaultopolis Protocol</h1>
 
         <p className="text-xl mb-6">
           Swap your common Top Shot moments for $TSHOT tokens (and back)
@@ -26,7 +26,7 @@ const Earn = () => {
                 Get random moments from the vault - chance for better ones
               </p>
               <a
-                href="https://momentswap.xyz/vault"
+                href="https://vaultopolis.com/vault"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-block px-6 py-2 bg-purple-500 hover:bg-purple-600 rounded-lg text-sm font-semibold w-full text-center"

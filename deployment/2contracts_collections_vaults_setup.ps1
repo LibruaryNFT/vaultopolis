@@ -47,7 +47,7 @@ Measure-ExecutionTime "Deploying contracts" {
 
 # Step 2: Setup sharded collection
 Measure-ExecutionTime "Executing setup_sharded_collection transaction" {
-    flow transactions send .\sharding\transactions\setup_sharded_collection.cdc 50 true
+    flow transactions send .\sharding\transactions\setup_sharded_collection.cdc 10 true
 }
 
 # Step 3: Verify sharded collection details
@@ -66,24 +66,24 @@ Measure-ExecutionTime "Verifying TopShot collection for justin" {
 }
 
 # Step 6: Setup TSHOT vault
-Measure-ExecutionTime "Setting up TSHOT vault" {
-    flow transactions send ./momentswap/transactions/setup_vault_tshot.cdc
-}
+#Measure-ExecutionTime "Setting up TSHOT vault" {
+#    flow transactions send ./momentswap/transactions/setup_vault_tshot.cdc
+#}
 
 # Step 7: Verify TSHOT vault
-Measure-ExecutionTime "Verifying TSHOT vault for emulator account" {
-    flow scripts execute ./momentswap/scripts/verify_vault_tshot.cdc 0xf8d6e0586b0a20c7
-}
+#Measure-ExecutionTime "Verifying TSHOT vault for emulator account" {
+#    flow scripts execute ./momentswap/scripts/verify_vault_tshot.cdc 0xf8d6e0586b0a20c7
+#}
 
 # Step 8: Setup TSHOT vault for `justin`
-Measure-ExecutionTime "Setting up TSHOT vault for justin" {
-    flow transactions send ./momentswap/transactions/setup_vault_tshot.cdc --signer=justin
-}
+#Measure-ExecutionTime "Setting up TSHOT vault for justin" {
+#    flow transactions send ./momentswap/transactions/setup_vault_tshot.cdc --signer=justin
+# }
 
 # Step 9: Verify TSHOT vault for `justin`
-Measure-ExecutionTime "Verifying TSHOT vault for justin" {
-    flow scripts execute ./momentswap/scripts/verify_vault_tshot.cdc 0x179b6b1cb6755e31
-}
+# Measure-ExecutionTime "Verifying TSHOT vault for justin" {
+#    flow scripts execute ./momentswap/scripts/verify_vault_tshot.cdc 0x179b6b1cb6755e31
+# }
 
 # Log script completion
 Log-Message "Script execution completed."

@@ -11,10 +11,10 @@ python .\tiers\tools\add_tiers_by_playid_open_sets.py
  flow scripts execute ./tiers/scripts/get_tier.cdc 0x179b6b1cb6755e31 1
 
  #rare
- flow scripts execute ./tiers/scripts/get_tier.cdc 0x179b6b1cb6755e31 2
+ flow scripts execute ./tiers/scripts/get_tier.cdc 0x179b6b1cb6755e31 301
 
  #legendary
- flow scripts execute ./tiers/scripts/get_tier.cdc 0x179b6b1cb6755e31 3
+ flow scripts execute ./tiers/scripts/get_tier.cdc 0x179b6b1cb6755e31 302
 
  #common
  flow scripts execute ./tiers/scripts/get_tier.cdc 0x179b6b1cb6755e31 4

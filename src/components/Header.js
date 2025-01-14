@@ -36,7 +36,7 @@ const Header = () => {
           <Link to="/" className="flex-shrink-0">
             <span className="text-2xl font-bold lg:hidden">MS</span>
             <img
-              src="https://storage.googleapis.com/momentswap/images/MomentSwapWhite.png"
+              src="https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
               alt="MomentSwap Logo"
               className="hidden lg:block max-h-8"
             />

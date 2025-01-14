@@ -1,6 +1,8 @@
 import "FungibleToken"
 import "NonFungibleToken"
 import "TopShot"
+import "TopShotTiers"
+import "TopShotShardedCollectionV2"
 
 access(all) contract TopShotFloors {
 
@@ -24,6 +26,20 @@ access(all) contract TopShotFloors {
         return self.flowPerNFT
     }
 
+     // Function to check if an NFT is a common tier moment
+    access(all) fun validateNFT(nft: &TopShot.NFT, ftType: String): Bool {
+        // Retrieve the tier of the given NFT using the TopShotTiers contract
+        let nftTier = TopShotTiers.getTier(nft: nft)
+        let nftTierStr = TopShotTiers.tierToString(tier: nftTier!)
+
+        // Define the valid tier for each FT type
+        if ftType == "TSHOT" {
+            return nftTierStr == "common"
+        } else {
+            panic("Invalid FT type provided.")
+        }
+    }
+
     // Admin resource definition with entitlement applied to the function
     access(all) resource Admin {
 
@@ -40,11 +56,22 @@ access(all) contract TopShotFloors {
         nfts: @[TopShot.NFT],
         address: Address
     ) {
+
+        pre {
+    nfts.length > 0: "Cannot swap! No NFTs provided."
+        }
+
         // Borrow the admin's TopShot Collection
+        //let adminCollection = self.account
+         //   .storage
+         //   .borrow<&TopShot.Collection>(from: self.nftCollectionPath)
+          //  ?? panic("Could not borrow admin's TopShot Collection")
+
+         // Borrow the admin's TopShot Collection
         let adminCollection = self.account
-            .storage
-            .borrow<&TopShot.Collection>(from: self.nftCollectionPath)
-            ?? panic("Could not borrow admin's TopShot Collection")
+                .storage
+                .borrow<&TopShotShardedCollectionV2.ShardedCollection>(from: self.nftCollectionPath)
+                ?? panic("Could not borrow admin's TopShot Collection")
 
         // Store the number of NFTs before they are moved
         let numberOfNFTs = nfts.length
@@ -52,6 +79,12 @@ access(all) contract TopShotFloors {
         // Deposit all NFTs into the admin's collection
         while nfts.length > 0 {
             let nft <- nfts.removeFirst()
+
+             // Validate the NFT tier for TSHOT (common-tier moments)
+            if !self.validateNFT(nft: &nft as &TopShot.NFT, ftType: "TSHOT") {
+                panic("NFT tier is not valid for TSHOT. Only common-tier moments are allowed.")
+            }
+
             adminCollection.deposit(token: <-nft)
         }
 
@@ -88,7 +121,7 @@ access(all) contract TopShotFloors {
     // Contract initializer
     init() {
         self.flowVaultPath = /storage/flowTokenVault
-        self.nftCollectionPath = /storage/MomentCollection
+        self.nftCollectionPath = /storage/ShardedMomentCollection
         self.flowPerNFT = 0.5
 
          // Initialize and save the Admin resource in storage

@@ -13,21 +13,21 @@ const Footer = () => {
           <div>
             <div className="mb-4">
               <img
-                src="https://storage.googleapis.com/momentswap/images/MomentSwapWhite.png"
-                alt="MomentSwap Logo"
+                src="https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
+                alt="Vaultopolis Logo"
                 className="max-h-8"
               />
             </div>
             <p className="text-sm text-gray-400">
-              Decentralized NFT swapping platform
+              Decentralized vault platform
             </p>
           </div>
 
           {/* Disclaimer Section */}
           <div>
             <p className="text-sm text-gray-400">
-              MomentSwap is not affiliated with NBA Top Shot or Dapper Labs. All
-              operations are executed through decentralized smart contracts.
+              Vaultopolis is not affiliated with NBA Top Shot or Dapper Labs.
+              All operations are executed through decentralized smart contracts.
             </p>
           </div>
         </div>
@@ -35,7 +35,7 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="text-sm text-gray-400 mb-4 md:mb-0">
-            © {new Date().getFullYear()} MomentSwap
+            © {new Date().getFullYear()} Vaultopolis
           </div>
           <div>
             <button
