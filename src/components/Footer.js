@@ -5,7 +5,7 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <footer className="bg-gray-900 text-white w-full z-40 border-t border-gray-800">
+    <footer className="bg-gray-700 text-white w-full z-40 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -19,7 +19,7 @@ const Footer = () => {
               />
             </div>
             <p className="text-sm text-gray-400">
-              Decentralized vault platform
+              Ownership Evolved, Possibilities Unlocked
             </p>
           </div>
 
