@@ -5,7 +5,8 @@ import { FaSignOutAlt, FaClipboard, FaWallet, FaCube } from "react-icons/fa";
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const { user, accountData, dispatch } = useContext(UserContext);
-  const { parentAddress, tshotBalance, tierCounts, childrenData } = accountData;
+  // Destructure FLOW instead of TSHOT
+  const { parentAddress, flowBalance, tierCounts, childrenData } = accountData;
   const popoutRef = useRef(null);
 
   useEffect(() => {
@@ -37,27 +38,32 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     closeMenu();
   };
 
-  const calculateTotalMoments = (tierCounts) =>
-    Object.values(tierCounts || {}).reduce((sum, count) => sum + count, 0);
+  // Calculate total Moments by summing tierCounts
+  const calculateTotalMoments = (counts) =>
+    Object.values(counts || {}).reduce((sum, count) => sum + count, 0);
 
-  const getTierBreakdown = (tierCounts) => {
+  // Filter out 0-tier counts and create a label
+  const getTierBreakdown = (counts) => {
     const tiers = ["common", "fandom", "rare", "legendary", "ultimate"];
     return tiers
-      .filter((tier) => tierCounts[tier] > 0)
+      .filter((tier) => counts[tier] > 0)
       .map((tier) => ({
         label: tier.charAt(0).toUpperCase() + tier.slice(1),
-        count: tierCounts[tier],
+        count: counts[tier],
       }));
   };
 
+  // Summation for all accounts: parent + children
   const calculateAllAccountTotals = () => {
-    const totalTshot =
-      parseFloat(tshotBalance || 0) +
+    // 1) Flow: add parent's flowBalance plus all children's flowBalance
+    const totalFlow =
+      parseFloat(flowBalance || 0) +
       childrenData.reduce(
-        (sum, child) => sum + parseFloat(child.tshotBalance || 0),
+        (sum, child) => sum + parseFloat(child.flowBalance || 0),
         0
       );
 
+    // 2) Combine tier counts
     const combinedTierCounts = { ...tierCounts };
     childrenData.forEach((child) => {
       for (const tier in child.tierCounts) {
@@ -66,24 +72,27 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       }
     });
 
+    // 3) Total moments
     const totalMoments = calculateTotalMoments(combinedTierCounts);
-    return { totalTshot, totalMoments, combinedTierCounts };
+
+    return { totalFlow, totalMoments, combinedTierCounts };
   };
 
-  const { totalTshot, totalMoments, combinedTierCounts } =
+  const { totalFlow, totalMoments, combinedTierCounts } =
     calculateAllAccountTotals();
 
+  // Build a unified array of accounts
   const allAccounts = [
     {
       label: "Parent Account",
       address: parentAddress,
-      tshotBalance,
+      flowBalance,
       tierCounts,
     },
     ...childrenData.map((child, index) => ({
       label: `Child Account ${index + 1}`,
       address: child.addr,
-      tshotBalance: child.tshotBalance,
+      flowBalance: child.flowBalance,
       tierCounts: child.tierCounts,
     })),
   ];
@@ -131,9 +140,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           <div className="bg-gray-800 p-4 rounded-lg mb-4">
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Total TSHOT</p>
+                <p className="text-sm text-gray-400 mb-1">Total Flow</p>
                 <p className="text-xl font-bold text-white">
-                  {parseFloat(totalTshot || 0).toFixed(1)}
+                  {parseFloat(totalFlow || 0).toFixed(2)}
                 </p>
               </div>
               <div>
@@ -181,9 +190,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
               <div className="bg-gray-800 p-4 rounded-lg mb-3">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">TSHOT Balance</p>
+                    <p className="text-xs text-gray-400 mb-1">Flow Balance</p>
                     <p className="text-sm font-semibold text-white">
-                      {parseFloat(account.tshotBalance || 0).toFixed(1)}
+                      {parseFloat(account.flowBalance || 0).toFixed(2)}
                     </p>
                   </div>
                   <div>

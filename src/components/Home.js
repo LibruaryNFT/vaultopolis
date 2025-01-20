@@ -1,13 +1,11 @@
 // Home.js
 import React from "react";
-import ExchangePanel from "./ExchangePanel";
-import TransactionModal from "./TransactionModal";
-import TestingSetupPrompt from "./TestingSetupPrompt";
+import Sell from "./Sell";
 
 function Home() {
   return (
     <div className="w-full flex flex-col items-center p-4 mt-2">
-      Add generic landing
+      Add stuff here
     </div>
   );
 }

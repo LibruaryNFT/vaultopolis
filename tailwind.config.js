@@ -14,6 +14,15 @@ module.exports = {
           dark: "#02D87E", // flow-dark
           darkest: "#029A5C", // flow-darkest
         },
+        vault: {
+          DEFAULT: "#ffc700", // main "vault" color
+          light: "#ffe15c",
+        },
+
+        opolis: {
+          DEFAULT: "#50c878",
+          dark: "#40A060",
+        },
       },
     },
   },

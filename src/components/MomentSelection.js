@@ -1,227 +1,169 @@
-import React, { useState, useMemo } from "react";
-import { Search, ChevronDown, X } from "lucide-react";
+import React, { useContext, useMemo, useState } from "react";
+import { UserContext } from "./UserContext";
+import MomentCard from "./MomentCard";
 
-const MomentFilters = ({ nftDetails, onFilterChange }) => {
-  const [showSetsDropdown, setShowSetsDropdown] = useState(false);
-  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
-  const [searchSet, setSearchSet] = useState("");
-  const [searchSeries, setSearchSeries] = useState("");
-  const [selectedSets, setSelectedSets] = useState([]);
+const MomentSelection = () => {
+  const { accountData, selectedAccount, selectedNFTs, dispatch } =
+    useContext(UserContext);
+
+  // Determine the active account (selected child or parent account)
+  const activeAccount =
+    accountData.childrenData.find((child) => child.addr === selectedAccount) ||
+    accountData;
+
+  const { nftDetails = [] } = activeAccount; // Get NFT details from the active account
+
+  const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
+  // If you don't need selectedSeries or sortBy right now, remove them.
   const [selectedSeries, setSelectedSeries] = useState([]);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Extract unique sets and series
-  const { uniqueSets, uniqueSeries } = useMemo(() => {
-    const sets = new Map();
-    const series = new Map();
+  // Compute the "eligibleMoments": filtered + sorted
+  const eligibleMoments = useMemo(() => {
+    if (!nftDetails || nftDetails.length === 0) return [];
 
-    nftDetails?.forEach((nft) => {
-      if (nft.setName && !sets.has(nft.setName)) {
-        sets.set(nft.setName, { id: nft.setID, name: nft.setName });
-      }
-      if (nft.seriesID && !series.has(nft.seriesID)) {
-        series.set(nft.seriesID, {
-          id: nft.seriesID,
-          name: `Series ${nft.seriesID}`,
-        });
-      }
+    // Filter
+    let filtered = nftDetails.filter((nft) => {
+      const serialNumber = parseInt(nft.serialNumber, 10);
+      const numMomentsInEdition = parseInt(nft.numMomentsInEdition, 10);
+      const jerseyNumber = nft.jerseyNumber
+        ? parseInt(nft.jerseyNumber, 10)
+        : null;
+
+      const isSpecialSerial =
+        serialNumber === 1 ||
+        serialNumber === numMomentsInEdition ||
+        (jerseyNumber && jerseyNumber === serialNumber);
+
+      // If you had series: use nft.series instead of nft.seriesID
+      // For now, ignoring series filtering:
+      // const isSeriesSelected =
+      //   selectedSeries.length === 0 ||
+      //   selectedSeries.includes(parseInt(nft.seriesID, 10));
+
+      return (
+        nft.tier?.toLowerCase() === "common" && // Only common
+        !nft.isLocked && // not locked
+        (!excludeSpecialSerials || !isSpecialSerial) &&
+        !selectedNFTs.includes(nft.id) // not already selected
+      );
     });
 
-    return {
-      uniqueSets: Array.from(sets.values()).sort((a, b) =>
-        a.name.localeCompare(b.name)
-      ),
-      uniqueSeries: Array.from(series.values()).sort(
-        (a, b) => parseInt(b.id) - parseInt(a.id)
-      ),
-    };
-  }, [nftDetails]);
+    // Now sort highest serialNumber first
+    filtered.sort((a, b) => {
+      const serialA = parseInt(a.serialNumber, 10);
+      const serialB = parseInt(b.serialNumber, 10);
+      return serialB - serialA; // descending
+    });
 
-  const filteredSets = uniqueSets.filter((set) =>
-    set.name.toLowerCase().includes(searchSet.toLowerCase())
-  );
+    return filtered;
+  }, [nftDetails, excludeSpecialSerials, selectedNFTs]);
 
-  const filteredSeries = uniqueSeries.filter((series) =>
-    series.name.toLowerCase().includes(searchSeries.toLowerCase())
-  );
+  // Paginate
+  const paginatedMoments = useMemo(() => {
+    return eligibleMoments.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [eligibleMoments, currentPage, itemsPerPage]);
 
-  const toggleSet = (setId) => {
-    const newSelection = selectedSets.includes(setId)
-      ? selectedSets.filter((id) => id !== setId)
-      : [...selectedSets, setId];
-    setSelectedSets(newSelection);
-    onFilterChange({ selectedSets: newSelection, selectedSeries });
+  const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
+
+  const handleNFTSelection = (id) => {
+    dispatch({ type: "SET_SELECTED_NFTS", payload: id });
   };
 
-  const toggleSeries = (seriesId) => {
-    const newSelection = selectedSeries.includes(seriesId)
-      ? selectedSeries.filter((id) => id !== seriesId)
-      : [...selectedSeries, seriesId];
-    setSelectedSeries(newSelection);
-    onFilterChange({ selectedSets, selectedSeries: newSelection });
+  const toggleExcludeSpecialSerials = () => {
+    setExcludeSpecialSerials(!excludeSpecialSerials);
+    setCurrentPage(1);
   };
 
-  const clearSetSelections = () => {
-    setSelectedSets([]);
-    onFilterChange({ selectedSets: [], selectedSeries });
-  };
+  const renderPaginationButtons = () => {
+    const paginationRange = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) paginationRange.push(i);
+    } else {
+      if (currentPage <= 4) {
+        paginationRange.push(1, 2, 3, 4, 5, "...", totalPages);
+      } else if (currentPage > totalPages - 4) {
+        paginationRange.push(
+          1,
+          "...",
+          totalPages - 4,
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages
+        );
+      } else {
+        paginationRange.push(
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages
+        );
+      }
+    }
 
-  const clearSeriesSelections = () => {
-    setSelectedSeries([]);
-    onFilterChange({ selectedSets, selectedSeries: [] });
+    return paginationRange.map((page, index) => (
+      <button
+        key={index}
+        onClick={() => setCurrentPage(page)}
+        className={`px-3 py-1 mx-1 rounded ${
+          currentPage === page
+            ? "bg-blue-500 text-white"
+            : "bg-gray-700 text-gray-300"
+        } ${page === "..." ? "pointer-events-none" : ""}`}
+      >
+        {page}
+      </button>
+    ));
   };
 
   return (
-    <div className="flex flex-col gap-4 mb-4">
-      {/* Sets Filter */}
-      <div className="relative">
-        <button
-          onClick={() => setShowSetsDropdown(!showSetsDropdown)}
-          className="w-full flex items-center justify-between px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600"
-        >
-          <span>
-            {selectedSets.length
-              ? `${selectedSets.length} Sets Selected`
-              : "Select Sets"}
-          </span>
-          <ChevronDown className="w-4 h-4" />
-        </button>
+    <div className="w-full">
+      {/* Available Eligible Moments Section */}
+      <div className="bg-gray-700 p-2 rounded-lg mt-4">
+        <h2 className="text-white text-lg font-semibold">
+          Available Eligible Moments
+        </h2>
+        <p className="text-gray-400">
+          Total Available: {eligibleMoments.length}
+        </p>
 
-        {showSetsDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-gray-800 rounded-lg shadow-lg">
-            <div className="p-2 border-b border-gray-700">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search sets..."
-                  value={searchSet}
-                  onChange={(e) => setSearchSet(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-700 text-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="max-h-60 overflow-y-auto">
-              {filteredSets.map((set) => (
-                <div
-                  key={set.id}
-                  onClick={() => toggleSet(set.id)}
-                  className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedSets.includes(set.id)}
-                    onChange={() => {}}
-                    className="mr-2"
-                  />
-                  <span className="text-gray-300">{set.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Exclude Special Serials Toggle */}
+        <div className="flex items-center mb-2">
+          <input
+            type="checkbox"
+            checked={excludeSpecialSerials}
+            onChange={toggleExcludeSpecialSerials}
+            className="mr-2"
+          />
+          <label className="text-gray-300">
+            Exclude special serials (#1, last serial, or jersey match)
+          </label>
+        </div>
 
-        {selectedSets.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {selectedSets.map((setId) => {
-              const set = uniqueSets.find((s) => s.id === setId);
-              return (
-                <span
-                  key={setId}
-                  className="flex items-center gap-1 px-2 py-1 bg-gray-700 text-gray-300 rounded-md text-sm"
-                >
-                  {set?.name}
-                  <button
-                    onClick={() => toggleSet(setId)}
-                    className="hover:text-gray-100"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              );
-            })}
-            <button
-              onClick={clearSetSelections}
-              className="text-sm text-gray-400 hover:text-gray-300"
-            >
-              Clear all
-            </button>
-          </div>
-        )}
-      </div>
+        {/* Display eligible moments: highest serial first */}
+        <div className="flex flex-wrap gap-2 mt-2">
+          {paginatedMoments.map((nft) => (
+            <MomentCard
+              key={nft.id}
+              nft={nft}
+              handleNFTSelection={handleNFTSelection}
+              isSelected={selectedNFTs.includes(nft.id)}
+            />
+          ))}
+        </div>
 
-      {/* Series Filter */}
-      <div className="relative">
-        <button
-          onClick={() => setShowSeriesDropdown(!showSeriesDropdown)}
-          className="w-full flex items-center justify-between px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600"
-        >
-          <span>
-            {selectedSeries.length
-              ? `${selectedSeries.length} Series Selected`
-              : "Select Series"}
-          </span>
-          <ChevronDown className="w-4 h-4" />
-        </button>
-
-        {showSeriesDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-gray-800 rounded-lg shadow-lg">
-            <div className="p-2 border-b border-gray-700">
-              <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search series..."
-                  value={searchSeries}
-                  onChange={(e) => setSearchSeries(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-700 text-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-            <div className="max-h-60 overflow-y-auto">
-              {filteredSeries.map((series) => (
-                <div
-                  key={series.id}
-                  onClick={() => toggleSeries(series.id)}
-                  className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedSeries.includes(series.id)}
-                    onChange={() => {}}
-                    className="mr-2"
-                  />
-                  <span className="text-gray-300">{series.name}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {selectedSeries.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {selectedSeries.map((seriesId) => {
-              const series = uniqueSeries.find((s) => s.id === seriesId);
-              return (
-                <span
-                  key={seriesId}
-                  className="flex items-center gap-1 px-2 py-1 bg-gray-700 text-gray-300 rounded-md text-sm"
-                >
-                  {series?.name}
-                  <button
-                    onClick={() => toggleSeries(seriesId)}
-                    className="hover:text-gray-100"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              );
-            })}
-            <button
-              onClick={clearSeriesSelections}
-              className="text-sm text-gray-400 hover:text-gray-300"
-            >
-              Clear all
-            </button>
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center mt-4">
+            {renderPaginationButtons()}
           </div>
         )}
       </div>
@@ -229,4 +171,4 @@ const MomentFilters = ({ nftDetails, onFilterChange }) => {
   );
 };
 
-export default MomentFilters;
+export default MomentSelection;

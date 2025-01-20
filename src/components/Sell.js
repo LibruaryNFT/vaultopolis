@@ -1,17 +1,17 @@
 // Home.js
 import React from "react";
-import ExchangePanel from "./ExchangePanel";
+import SellPanel from "./SellPanel";
 import TransactionModal from "./TransactionModal";
 import TestingSetupPrompt from "./TestingSetupPrompt";
 
-function Home() {
+function Sell() {
   return (
     <div className="w-full flex flex-col items-center p-4 mt-2">
       <TestingSetupPrompt />
-      <ExchangePanel />
+      <SellPanel />
       <TransactionModal />
     </div>
   );
 }
 
-export default Home;
+export default Sell;

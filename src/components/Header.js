@@ -152,7 +152,7 @@ const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button
     ref={ref}
     onClick={onClick}
-    className="flex items-center px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+    className="flex items-center px-4 py-2 bg-gray-700 rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500"
     style={{ zIndex: 50 }}
   >
     <FaUserCircle className="mr-2" size={20} />

@@ -22,12 +22,28 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
   return (
     <div
       onClick={() => handleNFTSelection(nft?.id)}
-      className={`border rounded bg-black cursor-pointer relative p-1 ${
-        isSelected ? "border-green-500" : "border-gray-600"
-      } font-inter text-white`}
+      className={`
+        border
+        bg-black
+        rounded
+        cursor-pointer
+        relative
+        p-1
+        font-inter
+        text-white
+        transition-colors
+        duration-200
+
+        // Hover effect: 2px opolis border
+        hover:border-2
+        hover:border-opolis
+
+        // Default border style depends on selection
+        ${isSelected ? "border-green-500" : "border-gray-600"}
+      `}
       style={{
-        width: "fit-content", // Ensure the card's width fits its content
-        maxWidth: "7rem", // Set a maximum width constraint
+        width: "fit-content",
+        maxWidth: "7rem",
       }}
     >
       {/* Image Section */}
@@ -35,8 +51,8 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
         <div
           className="relative overflow-hidden rounded mx-auto"
           style={{
-            height: "80px", // Adjust container height
-            width: "80px", // Adjust container width
+            height: "80px",
+            width: "80px",
           }}
         >
           <img
@@ -44,7 +60,7 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
             alt={`${nft?.playerName || "Unknown Player"} moment`}
             className="object-cover w-full h-full transform scale-150"
             style={{
-              objectPosition: "center", // Ensure the zoom focuses on the center
+              objectPosition: "center",
             }}
           />
         </div>
@@ -57,8 +73,7 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
 
       {/* Series */}
       <p className="text-center text-xs text-gray-400">
-        Series{" "}
-        {nft?.series !== undefined && nft?.series !== null ? nft.series : "?"}
+        Series {nft?.series ?? "?"}
       </p>
 
       {/* Tier */}

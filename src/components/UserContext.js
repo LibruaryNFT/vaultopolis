@@ -7,6 +7,7 @@ import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
+import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getReceiptDetails } from "../flow/getReceiptDetails";
 import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
 import { getChildren } from "../flow/getChildren";
@@ -19,6 +20,7 @@ const initialState = {
     parentAddress: null,
     nftDetails: [],
     tshotBalance: null,
+    flowBalance: null,
     hasCollection: null,
     tierCounts: {
       common: 0,
@@ -173,17 +175,20 @@ export const UserProvider = ({ children }) => {
     if (!address.startsWith("0x")) return;
 
     try {
-      const [tshotBalance, collectionData, receiptDetails] = await Promise.all([
-        fetchTSHOTBalance(address),
-        fetchTopShotCollection(address),
-        fetchReceiptDetails(address),
-      ]);
+      const [tshotBalance, flowBalance, collectionData, receiptDetails] =
+        await Promise.all([
+          fetchTSHOTBalance(address),
+          fetchFLOWBalance(address),
+          fetchTopShotCollection(address),
+          fetchReceiptDetails(address),
+        ]);
 
       dispatch({
         type: "SET_ACCOUNT_DATA",
         payload: {
           parentAddress: address,
           tshotBalance,
+          flowBalance,
           nftDetails: collectionData.details || [],
           hasCollection: collectionData.hasCollection,
           tierCounts:
@@ -210,9 +215,10 @@ export const UserProvider = ({ children }) => {
 
         const childrenData = await Promise.all(
           childrenAddresses.map(async (childAddr) => {
-            const [tshotBalance, collectionData, receiptDetails] =
+            const [tshotBalance, flowBalance, collectionData, receiptDetails] =
               await Promise.all([
                 fetchTSHOTBalance(childAddr),
+                fetchFLOWBalance(childAddr),
                 fetchTopShotCollection(childAddr),
                 fetchReceiptDetails(childAddr),
               ]);
@@ -220,6 +226,7 @@ export const UserProvider = ({ children }) => {
             return {
               addr: childAddr,
               tshotBalance,
+              flowBalance,
               nftDetails: collectionData.details || [],
               hasCollection: collectionData.hasCollection,
               tierCounts:
@@ -281,6 +288,21 @@ export const UserProvider = ({ children }) => {
       // Return last known balance instead of failing
       const currentBalance = state.accountData.tshotBalance || 0;
       return currentBalance;
+    }
+  };
+
+  const fetchFLOWBalance = async (address) => {
+    try {
+      const balance = await fcl.query({
+        cadence: getFLOWBalance, // must import getFLOWBalance at top
+        args: (arg, t) => [arg(address, t.Address)],
+      });
+      return balance;
+    } catch (error) {
+      console.error(`Error fetching FLOW balance: ${error.message}`);
+      // Return last known if needed
+      const currentFlow = state.accountData.flowBalance || 0;
+      return currentFlow;
     }
   };
 
@@ -507,20 +529,31 @@ export const UserProvider = ({ children }) => {
     const interval = setInterval(async () => {
       if (state.user?.loggedIn && state.user?.addr) {
         try {
-          const balance = await fetchTSHOTBalance(state.user.addr);
+          // 1) Fetch parent's TSHOT + FLOW
+          const [parentTSHOT, parentFLOW] = await Promise.all([
+            fetchTSHOTBalance(state.user.addr),
+            fetchFLOWBalance(state.user.addr),
+          ]);
+
           if (isSubscribed) {
             dispatch({
               type: "SET_ACCOUNT_DATA",
-              payload: { tshotBalance: balance },
+              payload: {
+                tshotBalance: parentTSHOT,
+                flowBalance: parentFLOW,
+              },
             });
           }
 
-          // Update children's TSHOT balances if any
+          // 2) Update children's TSHOT + FLOW if any
           if (state.accountData.childrenAddresses.length > 0) {
             const childrenUpdates = await Promise.allSettled(
               state.accountData.childrenAddresses.map(async (childAddr) => {
-                const childBalance = await fetchTSHOTBalance(childAddr);
-                return { addr: childAddr, balance: childBalance };
+                const [childTSHOT, childFLOW] = await Promise.all([
+                  fetchTSHOTBalance(childAddr),
+                  fetchFLOWBalance(childAddr),
+                ]);
+                return { addr: childAddr, tshot: childTSHOT, flow: childFLOW };
               })
             );
 
@@ -533,7 +566,11 @@ export const UserProvider = ({ children }) => {
                       result.value.addr === child.addr
                   );
                   return update
-                    ? { ...child, tshotBalance: update.value.balance }
+                    ? {
+                        ...child,
+                        tshotBalance: update.value.tshot,
+                        flowBalance: update.value.flow,
+                      }
                     : child;
                 }
               );
