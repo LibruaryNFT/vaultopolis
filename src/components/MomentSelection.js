@@ -127,10 +127,7 @@ const MomentSelection = () => {
   return (
     <div className="w-full">
       {/* Available Eligible Moments Section */}
-      <div className="bg-gray-700 p-2 rounded-lg mt-4">
-        <h2 className="text-white text-lg font-semibold">
-          Available Eligible Moments
-        </h2>
+      <div className="bg-gray-700 p-2 rounded-lg">
         <p className="text-gray-400">
           Total Available: {eligibleMoments.length}
         </p>

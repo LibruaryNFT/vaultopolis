@@ -168,11 +168,11 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
   };
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col space-y-1">
       {/* Selected Moments Section */}
       <div className="bg-gray-700 p-4 rounded-lg flex flex-col items-start w-full">
         <div className="text-white text-sm mb-1 font-semibold">Give</div>
-        <p className="text-gray-400 mb-2">
+        <p className="text-gray-400 mb-1">
           Selected Moments:{" "}
           {selectedNFTs.length > 0 ? selectedNFTs.length : "0"}
         </p>
@@ -198,7 +198,7 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
       <div className="bg-gray-700 p-4 rounded-lg flex flex-col items-start w-full">
         <div className="text-white text-sm font-semibold mb-2">Receive</div>
         <p className="text-2xl font-bold text-white">
-          {selectedNFTs.length || 0} FLOW
+          {(selectedNFTs.length * 0.5).toFixed(1)} FLOW
         </p>
       </div>
 
@@ -218,9 +218,9 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
       {/* Account Selector Section */}
       {user.loggedIn && (
         <div>
-          <div className="flex flex-col space-y-3">
+          <div className="flex flex-col space-y-1">
             <h3 className="text-lg font-semibold text-white">
-              Account Selection
+              Account and Moment Selection
             </h3>
             <div className="flex items-center text-white">
               <button

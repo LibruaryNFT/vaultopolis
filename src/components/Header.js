@@ -41,7 +41,7 @@ const Header = () => {
         </Link>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden lg:flex items-center space-x-2 flex-grow justify-center max-w-2xl">
+        <nav className="hidden md:flex items-center space-x-2 flex-grow justify-center max-w-2xl">
           <div className="flex items-center space-x-2">
             <NavLink to="/sell" isActive={location.pathname === "/sell"}>
               Sell
@@ -74,10 +74,10 @@ const Header = () => {
             </button>
           )}
 
-          {/* Mobile Menu Button moved to the right */}
+          {/* Mobile Menu Button */}
           <button
             onClick={toggleMobileMenu}
-            className="lg:hidden focus:outline-none"
+            className="md:hidden focus:outline-none"
           >
             <FaBars size={20} />
           </button>
@@ -85,7 +85,7 @@ const Header = () => {
 
         {/* Mobile Navigation Menu */}
         {isMobileMenuOpen && (
-          <div className="absolute top-16 left-0 w-full bg-gray-800 text-white lg:hidden">
+          <div className="absolute top-16 left-0 w-full bg-gray-800 text-white md:hidden">
             <div className="flex flex-col divide-y divide-gray-700">
               <MobileNavLink
                 to="/sell"
