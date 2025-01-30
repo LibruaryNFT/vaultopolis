@@ -31,9 +31,9 @@ def execute_transaction(set_id, play_ids, tier_raw_value):
         f"[{play_ids_str}]",  # Array of PlayIDs
         str(tier_raw_value),  # TierRawValue
         "--network",
-        "emulator",  # Adjust based on your network: emulator, testnet, mainnet
+        "mainnet",  # Adjust based on your network: emulator, testnet, mainnet
         "--signer",
-        "emulator-account",  # Replace with your signer configuration
+        "mainnet-account2",  # Replace with your signer configuration
     ]
 
     # Debugging: Print the constructed command

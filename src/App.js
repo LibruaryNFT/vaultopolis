@@ -11,6 +11,7 @@ import Footer from "./components/Footer";
 import Layout from "./components/Layout";
 import Sell from "./components/Sell";
 import Swap from "./components/Swap";
+import MomentViewer from "./components/MomentViewer";
 
 // Create the router
 const router = createBrowserRouter(
@@ -66,6 +67,10 @@ const router = createBrowserRouter(
     {
       path: "/admin",
       element: <Admin />,
+    },
+    {
+      path: "/viewer",
+      element: <MomentViewer />,
     },
   ],
   {

@@ -11,7 +11,7 @@ access(all) fun main(): {String: [UInt32]} {
 
     // Manually query each set and add to the dictionary
     let setIDs: [UInt32] = [
-        1, 2
+        164,165,166,167,168,169,170,171,172,173,174,175,176,177
     ]
 
     // Iterate over each set ID and get the plays

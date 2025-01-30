@@ -55,92 +55,45 @@ access(all) contract TopShotFloorsV2 {
        }
    }
 
-   access(all) fun exchangeNFTsForFlow(
-       nftIDs: [UInt64],
-       nftProviderCap: Capability<auth(NonFungibleToken.Withdraw) &{NonFungibleToken.Collection}>,
-       address: Address
-   ) {
-       pre {
-           nftIDs.length > 0: "Cannot swap! No NFTs provided."
-       }
+  access(all) fun exchangeNFTsForFlow(
+    nftIDs: [UInt64],
+    nftProviderCap: Capability<auth(NonFungibleToken.Withdraw) &{NonFungibleToken.Collection}>,
+    acct: auth(Storage, Capabilities) &Account
+) {
+    pre {
+        nftIDs.length > 0: "Cannot swap! No NFTs provided."
+    }
 
-       let adminCollection = self.account
-           .storage
-           .borrow<&TopShotShardedCollectionV2.ShardedCollection>(from: self.nftCollectionPath)
-           ?? panic("Could not borrow admin's TopShot Collection")
+    let storefront = acct.storage.borrow<auth(NFTStorefrontV2.CreateListing) &NFTStorefrontV2.Storefront>(
+            from: NFTStorefrontV2.StorefrontStoragePath
+        ) ?? panic("Missing Storefront")
 
-       let storefront = self.account
-           .storage
-           .borrow<auth(NFTStorefrontV2.CreateListing) &NFTStorefrontV2.Storefront>(from: self.storefrontPath)
-           ?? panic("Could not borrow admin's NFTStorefront")
+    for nftID in nftIDs {
+        let listingResourceID = storefront.createListing(
+            nftProviderCapability: nftProviderCap,
+            nftType: Type<@TopShot.NFT>(),
+            nftID: nftID,
+            salePaymentVaultType: Type<@{FungibleToken.Vault}>(),
+            saleCuts: [
+                NFTStorefrontV2.SaleCut(
+                    receiver: acct.capabilities
+                        .get<&{FungibleToken.Receiver}>(/public/flowTokenReceiver)!,
+                    amount: self.flowPerNFT
+                )
+            ],
+            marketplacesCapability: nil,
+            customID: nil,
+            commissionAmount: 0.0,
+            expiry: UInt64(getCurrentBlock().timestamp) + UInt64(86400)
+        )
+    }
 
-       let numberOfNFTs = nftIDs.length
-       let totalFlowAmount = self.flowPerNFT * UFix64(numberOfNFTs)
-
-       for nftID in nftIDs {
-           let receiverCap = self.account.capabilities
-               .get<&{FungibleToken.Receiver}>(/public/flowTokenReceiver)
-
-           let marketplaceCap = getAccount(self.commissionReceiver)
-               .capabilities
-               .get<&{FungibleToken.Receiver}>(/public/flowTokenReceiver)
-
-           let commissionAmount = self.flowPerNFT * (self.commissionPercent / 100.0)
-
-           // Create listing
-           let listingResourceID = storefront.createListing(
-               nftProviderCapability: nftProviderCap,
-               nftType: Type<@TopShot.NFT>(),
-               nftID: nftID,
-               salePaymentVaultType: Type<@{FungibleToken.Vault}>(),
-               saleCuts: [
-                   NFTStorefrontV2.SaleCut(
-                       receiver: receiverCap!,
-                       amount: self.flowPerNFT
-                   )
-               ],
-               marketplacesCapability: [marketplaceCap!],
-               customID: nil,
-               commissionAmount: commissionAmount,
-               expiry: UInt64(getCurrentBlock().timestamp) + UInt64(86400)
-           )
-
-           let paymentVault <- self.account
-               .storage
-               .borrow<auth(FungibleToken.Withdraw) &{FungibleToken.Vault}>(from: self.flowVaultPath)!
-               .withdraw(amount: self.flowPerNFT)
-
-           // Purchase NFT through listing
-           let purchasedNFT <- storefront
-               .borrowListing(listingResourceID: listingResourceID)!
-               .purchase(
-                   payment: <-paymentVault,
-                   commissionRecipient: marketplaceCap
-               )
-
-           adminCollection.deposit(token: <-purchasedNFT)
-       }
-
-       let adminFlowVault = self.account
-           .storage
-           .borrow<auth(FungibleToken.Withdraw) &{FungibleToken.Vault}>(from: self.flowVaultPath)
-           ?? panic("Could not borrow admin's Flow Vault")
-
-       let flowTokens <- adminFlowVault.withdraw(amount: totalFlowAmount)
-
-       let receiver = getAccount(address)
-           .capabilities
-           .borrow<&{FungibleToken.Receiver}>(/public/flowTokenReceiver)
-           ?? panic("Could not borrow Flow token receiver")
-
-       receiver.deposit(from: <-flowTokens)
-
-       emit NFTsExchanged(
-           address: address,
-           numberOfNFTs: numberOfNFTs,
-           totalFlowAmount: totalFlowAmount
-       )
-   }
+    emit NFTsExchanged(
+        address: acct.address,
+        numberOfNFTs: nftIDs.length,
+        totalFlowAmount: self.flowPerNFT * UFix64(nftIDs.length) 
+    )
+}
 
    init() {
        self.flowVaultPath = /storage/flowTokenVault
