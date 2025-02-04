@@ -27,17 +27,13 @@ access(all) contract TopShotFloors {
     }
 
      // Function to check if an NFT is a common tier moment
-    access(all) fun validateNFT(nft: &TopShot.NFT, ftType: String): Bool {
-        // Retrieve the tier of the given NFT using the TopShotTiers contract
-        let nftTier = TopShotTiers.getTier(nft: nft)
-        let nftTierStr = TopShotTiers.tierToString(tier: nftTier!)
+    access(all) fun validateNFT(nft: &TopShot.NFT): Bool {
+        let nftTier = TopShotTiers.getTier(nft: nft) 
+            ?? panic("Could not determine NFT tier")
 
-        // Define the valid tier for each FT type
-        if ftType == "TSHOT" {
-            return nftTierStr == "common"
-        } else {
-            panic("Invalid FT type provided.")
-        }
+        let nftTierStr = TopShotTiers.tierToString(tier: nftTier)
+        
+        return nftTierStr == "common"
     }
 
     // Admin resource definition with entitlement applied to the function
@@ -61,12 +57,6 @@ access(all) contract TopShotFloors {
     nfts.length > 0: "Cannot swap! No NFTs provided."
         }
 
-        // Borrow the admin's TopShot Collection
-        //let adminCollection = self.account
-         //   .storage
-         //   .borrow<&TopShot.Collection>(from: self.nftCollectionPath)
-          //  ?? panic("Could not borrow admin's TopShot Collection")
-
          // Borrow the admin's TopShot Collection
         let adminCollection = self.account
                 .storage
@@ -80,9 +70,9 @@ access(all) contract TopShotFloors {
         while nfts.length > 0 {
             let nft <- nfts.removeFirst()
 
-             // Validate the NFT tier for TSHOT (common-tier moments)
-            if !self.validateNFT(nft: &nft as &TopShot.NFT, ftType: "TSHOT") {
-                panic("NFT tier is not valid for TSHOT. Only common-tier moments are allowed.")
+             // Validate the NFT tier 
+            if !self.validateNFT(nft: &nft as &TopShot.NFT) {
+                panic("Only common-tier moments are allowed.")
             }
 
             adminCollection.deposit(token: <-nft)
