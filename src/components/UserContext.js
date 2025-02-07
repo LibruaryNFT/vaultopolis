@@ -1,14 +1,11 @@
 // src/contexts/UserContext.js
-
 import React, { createContext, useReducer, useEffect, useMemo } from "react";
 import * as fcl from "@onflow/fcl";
 import pLimit from "p-limit";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
-import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
-import { getReceiptDetails } from "../flow/getReceiptDetails";
 import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
 import { getChildren } from "../flow/getChildren";
 
@@ -19,18 +16,8 @@ const initialState = {
   accountData: {
     parentAddress: null,
     nftDetails: [],
-    tshotBalance: null,
     flowBalance: null,
     hasCollection: null,
-    tierCounts: {
-      common: 0,
-      rare: 0,
-      fandom: 0,
-      legendary: 0,
-      ultimate: 0,
-    },
-    receiptDetails: {},
-    hasReceipt: null,
     hasChildren: false,
     childrenData: [],
     childrenAddresses: [],
@@ -39,12 +26,22 @@ const initialState = {
   selectedAccountType: "parent",
   selectedNFTs: [],
   isRefreshing: false,
+  isLoadingChildren: false,
+  metadataCache: null,
+};
+
+// Optional: Enrich NFT details with metadata if available.
+// For now, we simply return the details as-is.
+const enrichWithMetadata = async (details) => {
+  return details;
 };
 
 function userReducer(state, action) {
   switch (action.type) {
     case "SET_USER":
       return { ...state, user: action.payload };
+    case "SET_METADATA_CACHE":
+      return { ...state, metadataCache: action.payload };
     case "SET_ACCOUNT_DATA":
       return {
         ...state,
@@ -79,6 +76,8 @@ function userReducer(state, action) {
       };
     case "SET_REFRESHING_STATE":
       return { ...state, isRefreshing: action.payload };
+    case "SET_LOADING_CHILDREN":
+      return { ...state, isLoadingChildren: action.payload };
     case "SET_CHILDREN_ADDRESSES":
       return {
         ...state,
@@ -95,264 +94,88 @@ function userReducer(state, action) {
 export const UserProvider = ({ children }) => {
   const [state, dispatch] = useReducer(userReducer, initialState);
 
-  const setSelectedAccount = (address) => {
-    const isChild = state.accountData.childrenAddresses.includes(address);
-    const accountType = isChild ? "child" : "parent";
-    dispatch({
-      type: "SET_SELECTED_ACCOUNT",
-      payload: { address, type: accountType },
-    });
-  };
-
-  // Update refreshBalances to handle errors better
-  const refreshBalances = async (address) => {
-    if (!address || !address.startsWith("0x")) return;
-
-    dispatch({ type: "SET_REFRESHING_STATE", payload: true });
+  // Load Top Shot metadata from your backend and cache it in localStorage.
+  const loadTopShotMetadata = async () => {
     try {
-      const [collectionData, receiptDetails] = await Promise.allSettled([
-        fetchTopShotCollection(address),
-        fetchReceiptDetails(address),
-      ]);
-
-      const isParentAccount = state.accountData.parentAddress === address;
-
-      // Only update with successful responses
-      const updates = {
-        ...(collectionData.status === "fulfilled"
-          ? {
-              nftDetails: collectionData.value.details || [],
-              hasCollection: collectionData.value.hasCollection,
-              tierCounts:
-                collectionData.value.tierCounts ||
-                initialState.accountData.tierCounts,
-            }
-          : {}),
-        ...(receiptDetails.status === "fulfilled"
-          ? {
-              receiptDetails: receiptDetails.value,
-              hasReceipt:
-                receiptDetails.value && receiptDetails.value.betAmount > 0,
-            }
-          : {}),
-      };
-
-      if (Object.keys(updates).length > 0) {
-        if (isParentAccount) {
-          dispatch({
-            type: "SET_ACCOUNT_DATA",
-            payload: updates,
-          });
-        } else {
-          const updatedChildrenData = state.accountData.childrenData.map(
-            (child) =>
-              child.addr === address ? { ...child, ...updates } : child
-          );
-          dispatch({ type: "SET_CHILDREN_DATA", payload: updatedChildrenData });
-        }
-      }
-    } catch (error) {
-      console.error("Error refreshing balances:", error);
-      // State remains unchanged if there's an error
-    } finally {
-      dispatch({ type: "SET_REFRESHING_STATE", payload: false });
-    }
-  };
-
-  const refreshAllBalances = async () => {
-    const parentAddress = state.accountData.parentAddress;
-    if (!parentAddress) return;
-
-    await refreshBalances(parentAddress);
-    await Promise.all(
-      state.accountData.childrenAddresses.map((childAddr) =>
-        refreshBalances(childAddr)
-      )
-    );
-  };
-
-  const loadParentData = async (address) => {
-    if (!address.startsWith("0x")) return;
-
-    try {
-      const [tshotBalance, flowBalance, collectionData, receiptDetails] =
-        await Promise.all([
-          fetchTSHOTBalance(address),
-          fetchFLOWBalance(address),
-          fetchTopShotCollection(address),
-          fetchReceiptDetails(address),
-        ]);
-
-      dispatch({
-        type: "SET_ACCOUNT_DATA",
-        payload: {
-          parentAddress: address,
-          tshotBalance,
-          flowBalance,
-          nftDetails: collectionData.details || [],
-          hasCollection: collectionData.hasCollection,
-          tierCounts:
-            collectionData.tierCounts || initialState.accountData.tierCounts,
-          receiptDetails,
-          hasReceipt: receiptDetails && receiptDetails.betAmount > 0,
-        },
-      });
-    } catch (error) {
-      console.error("Error loading parent account data:", error);
-    }
-  };
-
-  const checkForChildren = async (parentAddress) => {
-    try {
-      const hasChildrenStatus = await fetchHasChildren(parentAddress);
-      dispatch({
-        type: "SET_ACCOUNT_DATA",
-        payload: { hasChildren: hasChildrenStatus },
-      });
-
-      if (hasChildrenStatus) {
-        const childrenAddresses = await fetchChildrenAddresses(parentAddress);
-
-        const childrenData = await Promise.all(
-          childrenAddresses.map(async (childAddr) => {
-            const [tshotBalance, flowBalance, collectionData, receiptDetails] =
-              await Promise.all([
-                fetchTSHOTBalance(childAddr),
-                fetchFLOWBalance(childAddr),
-                fetchTopShotCollection(childAddr),
-                fetchReceiptDetails(childAddr),
-              ]);
-
-            return {
-              addr: childAddr,
-              tshotBalance,
-              flowBalance,
-              nftDetails: collectionData.details || [],
-              hasCollection: collectionData.hasCollection,
-              tierCounts:
-                collectionData.tierCounts ||
-                initialState.accountData.tierCounts,
-              receiptDetails,
-              hasReceipt: receiptDetails && receiptDetails.betAmount > 0,
-            };
-          })
-        );
-
-        dispatch({ type: "SET_CHILDREN_DATA", payload: childrenData });
+      const cachedData = localStorage.getItem("topshotMetadata");
+      if (cachedData) {
         dispatch({
-          type: "SET_CHILDREN_ADDRESSES",
-          payload: childrenAddresses,
+          type: "SET_METADATA_CACHE",
+          payload: JSON.parse(cachedData),
         });
+        return;
       }
-
-      return hasChildrenStatus;
+      const baseUrl =
+        process.env.REACT_APP_API_BASE_URL ||
+        "https://flowconnectbackend-864654c6a577.herokuapp.com";
+      const response = await fetch(`${baseUrl}/topshot-data`);
+      if (!response.ok)
+        throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      // Create a lookup map for metadata.
+      const metadataMap = data.reduce((acc, item) => {
+        const key = `${item.setID}-${item.playID}`;
+        acc[key] = item;
+        return acc;
+      }, {});
+      localStorage.setItem("topshotMetadata", JSON.stringify(metadataMap));
+      dispatch({ type: "SET_METADATA_CACHE", payload: metadataMap });
     } catch (error) {
-      console.error("Error fetching children data:", error);
-      return false;
+      console.error("Error loading TopShot metadata:", error);
     }
   };
 
-  const fetchReceiptDetails = async (address) => {
-    const receiptDetails = await fcl.query({
-      cadence: getReceiptDetails,
-      args: (arg, t) => [arg(address, t.Address)],
-    });
-    return receiptDetails;
-  };
-
-  const fetchHasChildren = async (address) => {
-    const hasChildren = await fcl.query({
-      cadence: hasChildrenCadence,
-      args: (arg, t) => [arg(address, t.Address)],
-    });
-    return hasChildren;
-  };
-
-  const fetchChildrenAddresses = async (parentAddress) => {
-    const children = await fcl.query({
-      cadence: getChildren,
-      args: (arg, t) => [arg(parentAddress, t.Address)],
-    });
-    return children;
-  };
-
-  const fetchTSHOTBalance = async (address) => {
-    try {
-      const balance = await fcl.query({
-        cadence: getTSHOTBalance,
-        args: (arg, t) => [arg(address, t.Address)],
-      });
-      return balance;
-    } catch (error) {
-      console.error(`Error fetching TSHOT balance: ${error.message}`);
-      // Return last known balance instead of failing
-      const currentBalance = state.accountData.tshotBalance || 0;
-      return currentBalance;
-    }
-  };
-
-  const fetchFLOWBalance = async (address) => {
-    try {
-      const balance = await fcl.query({
-        cadence: getFLOWBalance, // must import getFLOWBalance at top
-        args: (arg, t) => [arg(address, t.Address)],
-      });
-      return balance;
-    } catch (error) {
-      console.error(`Error fetching FLOW balance: ${error.message}`);
-      // Return last known if needed
-      const currentFlow = state.accountData.flowBalance || 0;
-      return currentFlow;
-    }
-  };
-
+  // --- Optimized fetchTopShotCollection ---
   const fetchTopShotCollection = async (address) => {
-    if (!address || !address.startsWith("0x")) {
-      return { hasCollection: false, details: [], tierCounts: {} };
-    }
+    if (!address?.startsWith("0x"))
+      return { hasCollection: false, details: [] };
 
     try {
+      // First, verify that the collection exists.
       const hasCollection = await fcl.query({
         cadence: verifyTopShotCollection,
         args: (arg, t) => [arg(address, t.Address)],
       });
-
       if (!hasCollection) {
-        return { hasCollection: false, details: [], tierCounts: {} };
+        return { hasCollection: false, details: [] };
       }
 
+      // Fetch the NFT IDs.
       const ids = await fcl.query({
         cadence: getTopShotCollectionIDs,
         args: (arg, t) => [arg(address, t.Address)],
       });
 
-      const batchSize = 500;
-      const concurrencyLimit = 10;
-      const limit = pLimit(concurrencyLimit);
-
-      const batches = [];
-      for (let i = 0; i < ids.length; i += batchSize) {
-        const batch = ids.slice(i, i + batchSize);
-        batches.push(batch);
+      // If no IDs are returned, assume the collection is empty.
+      if (!ids || ids.length === 0) {
+        return { hasCollection: true, details: [] };
       }
 
-      const batchPromises = batches.map((batch) =>
-        limit(() =>
-          fcl.query({
-            cadence: getTopShotCollectionBatched,
-            args: (arg, t) => [
-              arg(address, t.Address),
-              arg(batch, t.Array(t.UInt64)),
-            ],
-          })
+      // Split the IDs into batches with a batch size of 2500.
+      const batchSize = 2500;
+      const batches = [];
+      for (let i = 0; i < ids.length; i += batchSize) {
+        batches.push(ids.slice(i, i + batchSize));
+      }
+
+      // Increase concurrency by using pLimit(30).
+      const limit = pLimit(30);
+      const batchResults = await Promise.all(
+        batches.map((batch) =>
+          limit(() =>
+            fcl.query({
+              cadence: getTopShotCollectionBatched,
+              args: (arg, t) => [
+                arg(address, t.Address),
+                arg(batch, t.Array(t.UInt64)),
+              ],
+            })
+          )
         )
       );
 
-      const batchResults = await Promise.all(batchPromises);
-      const details = batchResults.flat();
-
-      // Ensure correct data types
-      const processedDetails = details.map((nft) => ({
+      // Process the returned NFT details.
+      const details = batchResults.flat().map((nft) => ({
         ...nft,
         id: Number(nft.id),
         setID: Number(nft.setID),
@@ -361,254 +184,220 @@ export const UserProvider = ({ children }) => {
         isLocked: Boolean(nft.isLocked),
       }));
 
-      // Enrich metadata
-      const enrichedDetails = await enrichNFTMetadata(processedDetails);
+      // Enrich the NFT details with metadata if available.
+      const enrichedDetails = state.metadataCache
+        ? await enrichWithMetadata(details)
+        : details;
 
-      // Tier counts
-      const tierCounts = enrichedDetails.reduce(
-        (counts, nft) => {
-          const tier = nft.tier?.toLowerCase();
-          if (tier && counts.hasOwnProperty(tier)) {
-            counts[tier]++;
-          }
-          return counts;
-        },
-        { ...initialState.accountData.tierCounts }
-      );
-
-      return { hasCollection: true, details: enrichedDetails, tierCounts };
+      return { hasCollection: true, details: enrichedDetails };
     } catch (error) {
       console.error(`Error fetching collection for ${address}:`, error);
-      return { hasCollection: false, details: [], tierCounts: {} };
+      return { hasCollection: false, details: [] };
     }
   };
+  // --- End optimized fetchTopShotCollection ---
 
-  const enrichNFTMetadata = async (details) => {
-    if (!details?.length) return details;
-
+  // Fetch the FLOW balance.
+  const fetchFLOWBalance = async (address) => {
     try {
-      // Get unique setIDs and playIDs
-      const uniqueSetIDs = [...new Set(details.map((nft) => nft.setID))];
-      const uniquePlayIDs = [...new Set(details.map((nft) => nft.playID))];
-
-      // Batch metadata requests by unique IDs
-      const [editions, tiers, sets, plays] = await Promise.all([
-        Promise.all(
-          uniqueSetIDs.map((setID) =>
-            Promise.all(
-              uniquePlayIDs.map((playID) =>
-                fetchMetadata("topshot-editions", { setID, playID })
-              )
-            )
-          )
-        ).then((results) => results.flat(2)),
-        Promise.all(
-          uniqueSetIDs.map((setID) =>
-            Promise.all(
-              uniquePlayIDs.map((playID) =>
-                fetchMetadata("topshot-tiers", { setID, playID })
-              )
-            )
-          )
-        ).then((results) => results.flat(2)),
-        Promise.all(
-          uniqueSetIDs.map((setID) =>
-            fetchMetadata("topshot-sets", { id: setID })
-          )
-        ).then((results) => results.flat()),
-        Promise.all(
-          uniquePlayIDs.map((playID) =>
-            fetchMetadata("topshot-plays", { playID: playID })
-          )
-        ).then((results) => results.flat()),
-      ]);
-
-      // Create optimized lookup maps
-      const editionsMap = createMetadataMap(editions.filter(Boolean), [
-        "setID",
-        "playID",
-      ]);
-      const tiersMap = createMetadataMap(tiers.filter(Boolean), [
-        "setID",
-        "playID",
-      ]);
-      const setsMap = createMetadataMap(sets.filter(Boolean), ["id"]);
-      const playsMap = createMetadataMap(plays.filter(Boolean), ["PlayID"]);
-
-      return details.map((nft) => {
-        const key = `${nft.setID}-${nft.playID}`;
-        const setMetadata = setsMap[nft.setID] || {};
-        const playMetadata = playsMap[nft.playID] || {};
-        const editionMetadata = editionsMap[key] || {};
-        const tierMetadata = tiersMap[key] || {};
-
-        return {
-          ...nft,
-          numMomentsInEdition: editionMetadata?.momentCount || null,
-          tier: tierMetadata?.tier || null,
-          setName: setMetadata?.name || null,
-          series: setMetadata?.series ?? null,
-          playerName:
-            playMetadata?.FullName ||
-            (playMetadata?.FirstName && playMetadata?.LastName
-              ? `${playMetadata.FirstName} ${playMetadata.LastName}`
-              : null),
-        };
+      const balance = await fcl.query({
+        cadence: getFLOWBalance,
+        args: (arg, t) => [arg(address, t.Address)],
       });
+      return balance;
     } catch (error) {
-      console.error("Error enriching NFT metadata:", error);
-      return details;
+      console.error(
+        `Error fetching FLOW balance for ${address}: ${error.message}`
+      );
+      return state.accountData.flowBalance || 0;
     }
   };
 
-  const fetchMetadata = async (endpoint, params = {}) => {
+  const setSelectedAccount = (address) => {
+    const isChild = state.accountData.childrenAddresses.includes(address);
+    dispatch({
+      type: "SET_SELECTED_ACCOUNT",
+      payload: { address, type: isChild ? "child" : "parent" },
+    });
+  };
+
+  // Load parent account data: FLOW balance and Top Shot collection details.
+  const loadParentData = async (address) => {
+    if (!address?.startsWith("0x")) return;
     try {
-      // Filter out null/undefined values and convert numbers to strings
-      const validParams = Object.entries(params)
-        .filter(([_, value]) => value !== null && value !== undefined)
-        .reduce((acc, [key, value]) => {
-          acc[key] = String(value);
-          return acc;
-        }, {});
-
-      const queryString = new URLSearchParams(validParams).toString();
-      const baseUrl =
-        process.env.REACT_APP_API_BASE_URL ||
-        "https://flowconnectbackend-864654c6a577.herokuapp.com";
-      const url = `${baseUrl}/${endpoint}${
-        queryString ? `?${queryString}` : ""
-      }`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
+      dispatch({ type: "SET_REFRESHING_STATE", payload: true });
+      const [flowBalance, collectionData] = await Promise.all([
+        fetchFLOWBalance(address),
+        fetchTopShotCollection(address),
+      ]);
+      dispatch({
+        type: "SET_ACCOUNT_DATA",
+        payload: {
+          parentAddress: address,
+          flowBalance,
+          nftDetails: collectionData.details || [],
+          hasCollection: collectionData.hasCollection,
         },
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return await response.json();
     } catch (error) {
-      console.error(`Error fetching ${endpoint} metadata:`, error);
-      return [];
+      console.error("Error loading parent account data:", error);
+    } finally {
+      dispatch({ type: "SET_REFRESHING_STATE", payload: false });
     }
   };
 
-  const createMetadataMap = (data, keys) =>
-    data.reduce((map, item) => {
-      const compositeKey = keys.map((k) => item[k]).join("-");
-      map[compositeKey] = item;
-      return map;
-    }, {});
+  // Load children account data concurrently.
+  const loadChildrenData = async (childrenAddresses) => {
+    try {
+      const childrenData = await Promise.all(
+        childrenAddresses.map(async (childAddr) => {
+          const [flowBalance, collectionData] = await Promise.all([
+            fetchFLOWBalance(childAddr),
+            fetchTopShotCollection(childAddr),
+          ]);
+          return {
+            addr: childAddr,
+            flowBalance,
+            nftDetails: collectionData.details || [],
+            hasCollection: collectionData.hasCollection,
+          };
+        })
+      );
+      dispatch({ type: "SET_CHILDREN_DATA", payload: childrenData });
+      dispatch({
+        type: "SET_CHILDREN_ADDRESSES",
+        payload: childrenAddresses,
+      });
+    } catch (error) {
+      console.error("Error loading children data:", error);
+    }
+  };
 
+  // Check if the parent account has child accounts and load them.
+  const checkForChildren = async (parentAddress) => {
+    dispatch({ type: "SET_LOADING_CHILDREN", payload: true });
+    try {
+      const hasChildrenStatus = await fcl.query({
+        cadence: hasChildrenCadence,
+        args: (arg, t) => [arg(parentAddress, t.Address)],
+      });
+      dispatch({
+        type: "SET_ACCOUNT_DATA",
+        payload: { hasChildren: hasChildrenStatus },
+      });
+      if (hasChildrenStatus) {
+        const children = await fcl.query({
+          cadence: getChildren,
+          args: (arg, t) => [arg(parentAddress, t.Address)],
+        });
+        await loadChildrenData(children);
+      }
+      return hasChildrenStatus;
+    } catch (error) {
+      console.error("Error fetching children data:", error);
+      return false;
+    } finally {
+      dispatch({ type: "SET_LOADING_CHILDREN", payload: false });
+    }
+  };
+
+  // Refresh data (FLOW balance and collection details) for a given address.
+  const refreshBalances = async (address) => {
+    if (!address || !address.startsWith("0x")) return;
+    dispatch({ type: "SET_REFRESHING_STATE", payload: true });
+    try {
+      const [flowBalance, collectionData] = await Promise.all([
+        fetchFLOWBalance(address),
+        fetchTopShotCollection(address),
+      ]);
+      const isParentAccount = state.accountData.parentAddress === address;
+      if (isParentAccount) {
+        dispatch({
+          type: "SET_ACCOUNT_DATA",
+          payload: {
+            flowBalance,
+            nftDetails: collectionData.details || [],
+            hasCollection: collectionData.hasCollection,
+          },
+        });
+      } else {
+        const updatedChildrenData = state.accountData.childrenData.map(
+          (child) =>
+            child.addr === address
+              ? {
+                  ...child,
+                  flowBalance,
+                  nftDetails: collectionData.details || [],
+                  hasCollection: collectionData.hasCollection,
+                }
+              : child
+        );
+        dispatch({ type: "SET_CHILDREN_DATA", payload: updatedChildrenData });
+      }
+    } catch (error) {
+      console.error("Error refreshing data for", address, error);
+    } finally {
+      dispatch({ type: "SET_REFRESHING_STATE", payload: false });
+    }
+  };
+
+  // Refresh data for parent and all child accounts.
+  const refreshAllBalances = async () => {
+    const parentAddress = state.accountData.parentAddress;
+    if (!parentAddress) return;
+    try {
+      dispatch({ type: "SET_REFRESHING_STATE", payload: true });
+      await Promise.all([
+        refreshBalances(parentAddress),
+        ...state.accountData.childrenAddresses.map((addr) =>
+          refreshBalances(addr)
+        ),
+      ]);
+    } catch (error) {
+      console.error("Error refreshing all balances:", error);
+    } finally {
+      dispatch({ type: "SET_REFRESHING_STATE", payload: false });
+    }
+  };
+
+  // Load initial data for the signed-in user.
+  const loadInitialData = async (address) => {
+    try {
+      await Promise.all([loadParentData(address), checkForChildren(address)]);
+    } catch (error) {
+      console.error("Error in initial load:", error);
+    }
+  };
+
+  // Load metadata on mount.
+  useEffect(() => {
+    loadTopShotMetadata();
+  }, []);
+
+  // Subscribe to FCL user authentication changes.
   useEffect(() => {
     const userUnsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
-
       if (currentUser?.loggedIn) {
-        // Initial load of data
-        await loadParentData(currentUser.addr);
-        await checkForChildren(currentUser.addr);
+        if (!state.metadataCache) {
+          await loadTopShotMetadata();
+        }
+        await loadInitialData(currentUser.addr);
         setSelectedAccount(currentUser.addr);
       } else {
         dispatch({ type: "RESET_STATE" });
       }
     });
-
     return () => {
       userUnsubscribe();
     };
   }, []);
 
-  // Update the balance refresh effect
+  // (Optional) Log state changes in development.
   useEffect(() => {
-    let isSubscribed = true;
-    const interval = setInterval(async () => {
-      if (state.user?.loggedIn && state.user?.addr) {
-        try {
-          // 1) Fetch parent's TSHOT + FLOW
-          const [parentTSHOT, parentFLOW] = await Promise.all([
-            fetchTSHOTBalance(state.user.addr),
-            fetchFLOWBalance(state.user.addr),
-          ]);
-
-          if (isSubscribed) {
-            dispatch({
-              type: "SET_ACCOUNT_DATA",
-              payload: {
-                tshotBalance: parentTSHOT,
-                flowBalance: parentFLOW,
-              },
-            });
-          }
-
-          // 2) Update children's TSHOT + FLOW if any
-          if (state.accountData.childrenAddresses.length > 0) {
-            const childrenUpdates = await Promise.allSettled(
-              state.accountData.childrenAddresses.map(async (childAddr) => {
-                const [childTSHOT, childFLOW] = await Promise.all([
-                  fetchTSHOTBalance(childAddr),
-                  fetchFLOWBalance(childAddr),
-                ]);
-                return { addr: childAddr, tshot: childTSHOT, flow: childFLOW };
-              })
-            );
-
-            if (isSubscribed) {
-              const updatedChildrenData = state.accountData.childrenData.map(
-                (child) => {
-                  const update = childrenUpdates.find(
-                    (result) =>
-                      result.status === "fulfilled" &&
-                      result.value.addr === child.addr
-                  );
-                  return update
-                    ? {
-                        ...child,
-                        tshotBalance: update.value.tshot,
-                        flowBalance: update.value.flow,
-                      }
-                    : child;
-                }
-              );
-              dispatch({
-                type: "SET_CHILDREN_DATA",
-                payload: updatedChildrenData,
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Error in balance refresh:", error);
-          // Don't update state if there's an error - keep previous values
-        }
-      }
-    }, 5000);
-
-    return () => {
-      isSubscribed = false;
-      clearInterval(interval);
-    };
-  }, [state.user?.addr, state.accountData.childrenAddresses]);
-
-  // Keep the existing collection refresh interval
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (state.user?.loggedIn) {
-        refreshBalances(state.user.addr);
-        state.accountData.childrenAddresses.forEach((addr) =>
-          refreshBalances(addr)
-        );
-      }
-    }, 30000); // Collection updates every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [state.user, state.accountData.childrenAddresses]);
-
-  useEffect(() => {
-    console.log("Updated UserContext State:", state);
+    if (process.env.NODE_ENV === "development") {
+      console.log("UserContext State:", state);
+    }
   }, [state]);
 
   const value = useMemo(
@@ -624,3 +413,5 @@ export const UserProvider = ({ children }) => {
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
+
+export default UserProvider;

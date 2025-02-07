@@ -17,50 +17,33 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
     refreshBalances,
     setSelectedAccount,
     isRefreshing,
+    isLoadingChildren,
   } = useContext(UserContext);
 
-  // Track the previously used address so we only refresh if address changes
   const prevAddrRef = useRef(null);
   const activeAccountAddr = selectedAccount || user?.addr;
   const isParentAccount = selectedAccountType === "parent";
 
-  // If you track a separate flowBalance, rename the variable or adapt:
   const activeAccountData = isParentAccount
     ? accountData
-    : accountData.childrenData.find((child) => child.addr === selectedAccount);
+    : accountData?.childrenData?.find(
+        (child) => child?.addr === selectedAccount
+      );
 
-  const {
-    nftDetails = [],
-    tierCounts = {},
-    // If you store flowBalance in your context, rename below:
-    // flowBalance = 0,
-  } = activeAccountData || {};
+  const { nftDetails = [] } = activeAccountData || {};
 
-  // Refresh on address change
-  useEffect(() => {
-    if (activeAccountAddr) {
-      const prevAddr = prevAddrRef.current;
-      if (prevAddr !== activeAccountAddr) {
-        dispatch({ type: "RESET_SELECTED_NFTS" });
-        refreshBalances(activeAccountAddr);
-        prevAddrRef.current = activeAccountAddr;
-      }
-    }
-  }, [activeAccountAddr, dispatch, refreshBalances]);
-
-  const handleMomentClick = (momentId) => {
-    // Toggle select/deselect for the NFT
-    dispatch({ type: "SET_SELECTED_NFTS", payload: momentId });
-  };
-
+  // Handle manual refresh
   const handleManualRefresh = async () => {
     if (!activeAccountAddr) return;
     await refreshBalances(activeAccountAddr);
   };
 
+  const handleMomentClick = (momentId) => {
+    dispatch({ type: "SET_SELECTED_NFTS", payload: momentId });
+  };
+
   const { sendTransaction } = useTransaction();
 
-  // Main swap function: NFTs -> FLOW
   const handleSwap = async () => {
     if (!user.loggedIn) {
       fcl.authenticate();
@@ -73,16 +56,13 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
     }
 
     const nftCount = selectedNFTs.length;
-    // If 1 NFT => 1 FLOW (or any other rate), you can set this:
-    const flowAmount = nftCount;
+    const flowAmount = nftCount * 0.5; // Each NFT is worth 0.5 FLOW
 
-    // Pick the correct script depending on parent vs child
     const cadenceScript = isParentAccount
       ? exchangeNFTForFLOW
       : exchangeNFTForFLOW_child;
 
     try {
-      // Let the parent know the transaction is about to start
       onTransactionStart?.({
         status: "Awaiting Approval",
         txId: null,
@@ -103,7 +83,6 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
               ],
         limit: 9999,
         onUpdate: (transactionData) => {
-          // This is optional if you want to show real-time transaction status
           onTransactionStart?.({
             ...transactionData,
             nftCount,
@@ -113,7 +92,6 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
         },
       });
 
-      // Refresh balances and reset selected NFTs
       await refreshBalances(activeAccountAddr);
       dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (error) {
@@ -121,20 +99,20 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
     }
   };
 
-  // Renders an account box for parent/child selection
   const renderAccountBox = (label, accountAddr, data, isSelected) => {
-    const { flowBalance = 0, tierCounts = {} } = data;
-    const commonMoments = tierCounts.common || 0;
+    const { flowBalance = 0, nftDetails = [] } = data || {};
+
+    // Count NFTs by tier
+    const tierCounts = nftDetails.reduce((acc, nft) => {
+      const tier = nft.tier || "unknown";
+      acc[tier] = (acc[tier] || 0) + 1;
+      return acc;
+    }, {});
 
     return (
       <div
         key={accountAddr}
-        onClick={() =>
-          setSelectedAccount(
-            accountAddr,
-            accountAddr === user.addr ? "parent" : "child"
-          )
-        }
+        onClick={() => setSelectedAccount(accountAddr)}
         className={`p-4 w-full sm:w-60 flex-shrink-0 text-left rounded-lg border-2 ${
           isSelected
             ? "border-opolis bg-gray-700"
@@ -158,10 +136,12 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
             </span>{" "}
             $FLOW
           </p>
-          <p className="text-sm text-gray-300">
-            <span className="font-bold text-white">{commonMoments}</span> Common
-            Moments
-          </p>
+          {Object.entries(tierCounts).map(([tier, count]) => (
+            <p key={tier} className="text-sm text-gray-300">
+              <span className="font-bold text-white">{count}</span>{" "}
+              {tier.charAt(0).toUpperCase() + tier.slice(1)} Moments
+            </p>
+          ))}
         </div>
       </div>
     );
@@ -169,7 +149,6 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
 
   return (
     <div className="flex flex-col space-y-1">
-      {/* Selected Moments Section */}
       <div className="bg-gray-700 p-4 rounded-lg flex flex-col items-start w-full">
         <div className="text-white text-sm mb-1 font-semibold">Give</div>
         <p className="text-gray-400 mb-1">
@@ -194,7 +173,6 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
         )}
       </div>
 
-      {/* FLOW Amount Section */}
       <div className="bg-gray-700 p-4 rounded-lg flex flex-col items-start w-full">
         <div className="text-white text-sm font-semibold mb-2">Receive</div>
         <p className="text-2xl font-bold text-white">
@@ -202,7 +180,6 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
         </p>
       </div>
 
-      {/* Swap Button */}
       <button
         onClick={handleSwap}
         className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
@@ -215,7 +192,6 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
         {user.loggedIn ? "Sell" : "Connect Wallet"}
       </button>
 
-      {/* Account Selector Section */}
       {user.loggedIn && (
         <div>
           <div className="flex flex-col space-y-1">
@@ -248,12 +224,19 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
               accountData,
               activeAccountAddr === user?.addr
             )}
-            {accountData.childrenData.map((child) =>
-              renderAccountBox(
-                "Child Account",
-                child.addr,
-                child,
-                activeAccountAddr === child.addr
+            {isLoadingChildren ? (
+              <div className="flex items-center justify-center p-4">
+                <span className="animate-spin mr-2">⟳</span>
+                Loading children...
+              </div>
+            ) : (
+              accountData.childrenData.map((child) =>
+                renderAccountBox(
+                  "Child Account",
+                  child.addr,
+                  child,
+                  activeAccountAddr === child.addr
+                )
               )
             )}
           </div>

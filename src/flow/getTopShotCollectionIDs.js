@@ -1,6 +1,8 @@
 export const getTopShotCollectionIDs = `
 
-import TopShot from 0x332ffc0ae9bba9c1
+//import TopShot from 0x332ffc0ae9bba9c1
+
+import TopShot from 0x0b2a3299cc857e29
 
 // This is the script to get a list of all the moments' ids an account owns
 // Just change the argument to to whatever account you want

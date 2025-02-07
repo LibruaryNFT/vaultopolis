@@ -5,8 +5,8 @@ import { FaSignOutAlt, FaClipboard, FaWallet, FaCube } from "react-icons/fa";
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const { user, accountData, dispatch } = useContext(UserContext);
-  // Destructure FLOW instead of TSHOT
-  const { parentAddress, flowBalance, tierCounts, childrenData } = accountData;
+  // Destructure properties updated from context
+  const { parentAddress, flowBalance, nftDetails, childrenData } = accountData;
   const popoutRef = useRef(null);
 
   useEffect(() => {
@@ -20,6 +20,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         closeMenu();
       }
     };
+    // Delay the event listener so that click on the button doesn't immediately trigger close
     setTimeout(
       () => document.addEventListener("mousedown", handleClickOutside),
       0
@@ -38,24 +39,12 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     closeMenu();
   };
 
-  // Calculate total Moments by summing tierCounts
-  const calculateTotalMoments = (counts) =>
-    Object.values(counts || {}).reduce((sum, count) => sum + count, 0);
-
-  // Filter out 0-tier counts and create a label
-  const getTierBreakdown = (counts) => {
-    const tiers = ["common", "fandom", "rare", "legendary", "ultimate"];
-    return tiers
-      .filter((tier) => counts[tier] > 0)
-      .map((tier) => ({
-        label: tier.charAt(0).toUpperCase() + tier.slice(1),
-        count: counts[tier],
-      }));
-  };
+  // Calculate total NFTs by counting the items in nftDetails array
+  const calculateTotalNFTs = (nfts) => (nfts ? nfts.length : 0);
 
   // Summation for all accounts: parent + children
   const calculateAllAccountTotals = () => {
-    // 1) Flow: add parent's flowBalance plus all children's flowBalance
+    // 1) Total Flow: add parent's flowBalance plus all children's flowBalance
     const totalFlow =
       parseFloat(flowBalance || 0) +
       childrenData.reduce(
@@ -63,37 +52,32 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         0
       );
 
-    // 2) Combine tier counts
-    const combinedTierCounts = { ...tierCounts };
-    childrenData.forEach((child) => {
-      for (const tier in child.tierCounts) {
-        combinedTierCounts[tier] =
-          (combinedTierCounts[tier] || 0) + (child.tierCounts[tier] || 0);
-      }
-    });
+    // 2) Total NFTs: parent's nft count plus all children's nft count
+    const totalNFTs =
+      calculateTotalNFTs(nftDetails) +
+      childrenData.reduce(
+        (sum, child) => sum + calculateTotalNFTs(child.nftDetails),
+        0
+      );
 
-    // 3) Total moments
-    const totalMoments = calculateTotalMoments(combinedTierCounts);
-
-    return { totalFlow, totalMoments, combinedTierCounts };
+    return { totalFlow, totalNFTs };
   };
 
-  const { totalFlow, totalMoments, combinedTierCounts } =
-    calculateAllAccountTotals();
+  const { totalFlow, totalNFTs } = calculateAllAccountTotals();
 
-  // Build a unified array of accounts
+  // Build a unified array of accounts for display
   const allAccounts = [
     {
       label: "Parent Account",
       address: parentAddress,
       flowBalance,
-      tierCounts,
+      nftCount: calculateTotalNFTs(nftDetails),
     },
     ...childrenData.map((child, index) => ({
       label: `Child Account ${index + 1}`,
       address: child.addr,
       flowBalance: child.flowBalance,
-      tierCounts: child.tierCounts,
+      nftCount: calculateTotalNFTs(child.nftDetails),
     })),
   ];
 
@@ -146,20 +130,10 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-400 mb-1">Total Moments</p>
-                <p className="text-xl font-bold text-white">{totalMoments}</p>
+                <p className="text-sm text-gray-400 mb-1">Total NFTs</p>
+                <p className="text-xl font-bold text-white">{totalNFTs}</p>
               </div>
             </div>
-          </div>
-
-          {/* Tier Breakdown */}
-          <div className="grid grid-cols-3 gap-3">
-            {getTierBreakdown(combinedTierCounts).map((tier) => (
-              <div key={tier.label} className="bg-gray-800 p-3 rounded-lg">
-                <p className="text-xs text-gray-400 mb-1">{tier.label}</p>
-                <p className="text-sm font-semibold text-white">{tier.count}</p>
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -196,22 +170,12 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 mb-1">Total Moments</p>
+                    <p className="text-xs text-gray-400 mb-1">NFT Count</p>
                     <p className="text-sm font-semibold text-white">
-                      {calculateTotalMoments(account.tierCounts)}
+                      {account.nftCount}
                     </p>
                   </div>
                 </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {getTierBreakdown(account.tierCounts).map((tier) => (
-                  <div key={tier.label} className="bg-gray-800 p-3 rounded-lg">
-                    <p className="text-xs text-gray-400 mb-1">{tier.label}</p>
-                    <p className="text-sm font-semibold text-white">
-                      {tier.count}
-                    </p>
-                  </div>
-                ))}
               </div>
             </div>
           ))}

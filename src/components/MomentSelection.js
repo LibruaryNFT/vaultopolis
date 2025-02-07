@@ -3,86 +3,83 @@ import { UserContext } from "./UserContext";
 import MomentCard from "./MomentCard";
 
 const MomentSelection = () => {
-  const { accountData, selectedAccount, selectedNFTs, dispatch } =
-    useContext(UserContext);
+  const {
+    user,
+    accountData,
+    selectedAccount,
+    selectedNFTs,
+    dispatch,
+    isRefreshing,
+  } = useContext(UserContext);
 
-  // Determine the active account (selected child or parent account)
+  // Determine the active account: if a child is selected use that, otherwise the parent account
   const activeAccount =
-    accountData.childrenData.find((child) => child.addr === selectedAccount) ||
+    accountData.childrenData?.find((child) => child.addr === selectedAccount) ||
     accountData;
+  const { nftDetails = [] } = activeAccount;
 
-  const { nftDetails = [] } = activeAccount; // Get NFT details from the active account
-
+  // Local state for filtering and pagination
   const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
-  // If you don't need selectedSeries or sortBy right now, remove them.
-  const [selectedSeries, setSelectedSeries] = useState([]);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  // (Optionally, you can add state for series filtering if needed)
+  const [itemsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Compute the "eligibleMoments": filtered + sorted
+  // Compute eligible moments: filter for "common" tier, unlocked,
+  // not already selected, and (if enabled) exclude special serials
+  // where a "special" moment is one whose serial is either the first,
+  // the last, or (if available) matches the jersey number.
   const eligibleMoments = useMemo(() => {
     if (!nftDetails || nftDetails.length === 0) return [];
-
-    // Filter
-    let filtered = nftDetails.filter((nft) => {
+    const filtered = nftDetails.filter((nft) => {
       const serialNumber = parseInt(nft.serialNumber, 10);
       const numMomentsInEdition = parseInt(nft.numMomentsInEdition, 10);
       const jerseyNumber = nft.jerseyNumber
         ? parseInt(nft.jerseyNumber, 10)
         : null;
-
       const isSpecialSerial =
         serialNumber === 1 ||
         serialNumber === numMomentsInEdition ||
         (jerseyNumber && jerseyNumber === serialNumber);
 
-      // If you had series: use nft.series instead of nft.seriesID
-      // For now, ignoring series filtering:
-      // const isSeriesSelected =
-      //   selectedSeries.length === 0 ||
-      //   selectedSeries.includes(parseInt(nft.seriesID, 10));
-
       return (
-        nft.tier?.toLowerCase() === "common" && // Only common
-        !nft.isLocked && // not locked
-        (!excludeSpecialSerials || !isSpecialSerial) &&
-        !selectedNFTs.includes(nft.id) // not already selected
+        nft.tier?.toLowerCase() === "common" && // Only "common" moments
+        !nft.isLocked && // Must not be locked
+        (!excludeSpecialSerials || !isSpecialSerial) && // Optionally filter out special serials
+        !selectedNFTs.includes(nft.id) // Exclude already-selected moments
       );
     });
 
-    // Now sort highest serialNumber first
-    filtered.sort((a, b) => {
-      const serialA = parseInt(a.serialNumber, 10);
-      const serialB = parseInt(b.serialNumber, 10);
-      return serialB - serialA; // descending
-    });
-
-    return filtered;
+    // Sort by serialNumber descending (highest first)
+    return filtered.sort(
+      (a, b) => parseInt(b.serialNumber, 10) - parseInt(a.serialNumber, 10)
+    );
   }, [nftDetails, excludeSpecialSerials, selectedNFTs]);
 
-  // Paginate
+  // Pagination calculations
+  const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
   const paginatedMoments = useMemo(() => {
-    return eligibleMoments.slice(
-      (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
-    );
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return eligibleMoments.slice(startIndex, startIndex + itemsPerPage);
   }, [eligibleMoments, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
-
+  // Handler to toggle NFT selection in context
   const handleNFTSelection = (id) => {
     dispatch({ type: "SET_SELECTED_NFTS", payload: id });
   };
 
+  // Toggle filtering of special serials and reset the page to 1
   const toggleExcludeSpecialSerials = () => {
-    setExcludeSpecialSerials(!excludeSpecialSerials);
+    setExcludeSpecialSerials((prev) => !prev);
     setCurrentPage(1);
   };
 
+  // Render pagination buttons with ellipsis when many pages exist
   const renderPaginationButtons = () => {
     const paginationRange = [];
     if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) paginationRange.push(i);
+      for (let i = 1; i <= totalPages; i++) {
+        paginationRange.push(i);
+      }
     } else {
       if (currentPage <= 4) {
         paginationRange.push(1, 2, 3, 4, 5, "...", totalPages);
@@ -108,13 +105,14 @@ const MomentSelection = () => {
         );
       }
     }
-
     return paginationRange.map((page, index) => (
       <button
         key={index}
-        onClick={() => setCurrentPage(page)}
+        onClick={() => {
+          if (page !== "...") setCurrentPage(page);
+        }}
         className={`px-3 py-1 mx-1 rounded ${
-          currentPage === page
+          page === currentPage
             ? "bg-blue-500 text-white"
             : "bg-gray-700 text-gray-300"
         } ${page === "..." ? "pointer-events-none" : ""}`}
@@ -124,15 +122,25 @@ const MomentSelection = () => {
     ));
   };
 
+  if (!user?.loggedIn) return null;
+
   return (
     <div className="w-full">
-      {/* Available Eligible Moments Section */}
       <div className="bg-gray-700 p-2 rounded-lg">
-        <p className="text-gray-400">
-          Total Available: {eligibleMoments.length}
-        </p>
+        {/* Top section: total count and loading indicator */}
+        <div className="flex justify-between items-center mb-2">
+          <p className="text-gray-400">
+            Total Available: {eligibleMoments.length}
+          </p>
+          {isRefreshing && (
+            <span className="text-gray-400">
+              <span className="animate-spin inline-block mr-2">⟳</span>
+              Loading...
+            </span>
+          )}
+        </div>
 
-        {/* Exclude Special Serials Toggle */}
+        {/* Filter toggle for excluding special serials */}
         <div className="flex items-center mb-2">
           <input
             type="checkbox"
@@ -145,7 +153,7 @@ const MomentSelection = () => {
           </label>
         </div>
 
-        {/* Display eligible moments: highest serial first */}
+        {/* Display the eligible NFT moments */}
         <div className="flex flex-wrap gap-2 mt-2">
           {paginatedMoments.map((nft) => (
             <MomentCard
@@ -157,7 +165,7 @@ const MomentSelection = () => {
           ))}
         </div>
 
-        {/* Pagination Controls */}
+        {/* Pagination controls (if needed) */}
         {totalPages > 1 && (
           <div className="flex justify-center mt-4">
             {renderPaginationButtons()}

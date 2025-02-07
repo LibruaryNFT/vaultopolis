@@ -96,13 +96,6 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
       <p className="text-center text-gray-400 text-xs truncate">
         {nft?.setName || "Unknown Set"}
       </p>
-
-      {/* Locked Icon */}
-      {nft?.isLocked && (
-        <div className="text-center mt-1">
-          <span className="text-red-500 text-xs">Locked</span>
-        </div>
-      )}
     </div>
   );
 };
