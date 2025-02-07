@@ -30,10 +30,31 @@ const initialState = {
   metadataCache: null,
 };
 
-// Optional: Enrich NFT details with metadata if available.
-// For now, we simply return the details as-is.
-const enrichWithMetadata = async (details) => {
-  return details;
+/**
+ * Enrich the NFT details with metadata loaded from our single API endpoint.
+ * Each NFT is looked up by a composite key: "setID-playID".
+ */
+const enrichWithMetadata = async (details, metadataCache) => {
+  if (!metadataCache) return details;
+  return details.map((nft) => {
+    const key = `${nft.setID}-${nft.playID}`;
+    const meta = metadataCache[key];
+    if (meta) {
+      return {
+        ...nft,
+        // Use the metadata values from the endpoint.
+        tier: meta.tier, // e.g., "ultimate"
+        fullName: meta.FullName, // e.g., "Trae Young"
+        momentCount: Number(meta.momentCount), // e.g., 1
+        jerseyNumber: meta.JerseyNumber, // e.g., "11"
+        retired: meta.retired,
+        playOrder: meta.playOrder,
+        series: meta.series,
+        name: meta.name,
+      };
+    }
+    return nft;
+  });
 };
 
 function userReducer(state, action) {
@@ -94,7 +115,20 @@ function userReducer(state, action) {
 export const UserProvider = ({ children }) => {
   const [state, dispatch] = useReducer(userReducer, initialState);
 
-  // Load Top Shot metadata from your backend and cache it in localStorage.
+  // -------------------------------
+  // Helper: Set the selected account.
+  // -------------------------------
+  const setSelectedAccount = (address) => {
+    const isChild = state.accountData.childrenAddresses.includes(address);
+    dispatch({
+      type: "SET_SELECTED_ACCOUNT",
+      payload: { address, type: isChild ? "child" : "parent" },
+    });
+  };
+
+  // -------------------------------
+  // Helper: Load metadata from the API endpoint.
+  // -------------------------------
   const loadTopShotMetadata = async () => {
     try {
       const cachedData = localStorage.getItem("topshotMetadata");
@@ -112,7 +146,7 @@ export const UserProvider = ({ children }) => {
       if (!response.ok)
         throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      // Create a lookup map for metadata.
+      // Create a lookup map keyed by "setID-playID".
       const metadataMap = data.reduce((acc, item) => {
         const key = `${item.setID}-${item.playID}`;
         acc[key] = item;
@@ -125,9 +159,11 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // --- Optimized fetchTopShotCollection ---
+  // -------------------------------
+  // Fetch and enrich the Top Shot collection from Flow.
+  // -------------------------------
   const fetchTopShotCollection = async (address) => {
-    if (!address?.startsWith("0x"))
+    if (!address || !address.startsWith("0x"))
       return { hasCollection: false, details: [] };
 
     try {
@@ -146,19 +182,18 @@ export const UserProvider = ({ children }) => {
         args: (arg, t) => [arg(address, t.Address)],
       });
 
-      // If no IDs are returned, assume the collection is empty.
       if (!ids || ids.length === 0) {
         return { hasCollection: true, details: [] };
       }
 
-      // Split the IDs into batches with a batch size of 2500.
+      // Split the IDs into batches.
       const batchSize = 2500;
       const batches = [];
       for (let i = 0; i < ids.length; i += batchSize) {
         batches.push(ids.slice(i, i + batchSize));
       }
 
-      // Increase concurrency by using pLimit(30).
+      // Query batches concurrently.
       const limit = pLimit(30);
       const batchResults = await Promise.all(
         batches.map((batch) =>
@@ -174,7 +209,7 @@ export const UserProvider = ({ children }) => {
         )
       );
 
-      // Process the returned NFT details.
+      // Normalize NFT details.
       const details = batchResults.flat().map((nft) => ({
         ...nft,
         id: Number(nft.id),
@@ -184,9 +219,9 @@ export const UserProvider = ({ children }) => {
         isLocked: Boolean(nft.isLocked),
       }));
 
-      // Enrich the NFT details with metadata if available.
+      // Enrich using the metadata cache.
       const enrichedDetails = state.metadataCache
-        ? await enrichWithMetadata(details)
+        ? await enrichWithMetadata(details, state.metadataCache)
         : details;
 
       return { hasCollection: true, details: enrichedDetails };
@@ -195,9 +230,10 @@ export const UserProvider = ({ children }) => {
       return { hasCollection: false, details: [] };
     }
   };
-  // --- End optimized fetchTopShotCollection ---
 
+  // -------------------------------
   // Fetch the FLOW balance.
+  // -------------------------------
   const fetchFLOWBalance = async (address) => {
     try {
       const balance = await fcl.query({
@@ -213,17 +249,11 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const setSelectedAccount = (address) => {
-    const isChild = state.accountData.childrenAddresses.includes(address);
-    dispatch({
-      type: "SET_SELECTED_ACCOUNT",
-      payload: { address, type: isChild ? "child" : "parent" },
-    });
-  };
-
-  // Load parent account data: FLOW balance and Top Shot collection details.
+  // -------------------------------
+  // Load parent account data: balance and NFT collection.
+  // -------------------------------
   const loadParentData = async (address) => {
-    if (!address?.startsWith("0x")) return;
+    if (!address || !address.startsWith("0x")) return;
     try {
       dispatch({ type: "SET_REFRESHING_STATE", payload: true });
       const [flowBalance, collectionData] = await Promise.all([
@@ -246,7 +276,9 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Load children account data concurrently.
+  // -------------------------------
+  // Load children account data.
+  // -------------------------------
   const loadChildrenData = async (childrenAddresses) => {
     try {
       const childrenData = await Promise.all(
@@ -264,16 +296,15 @@ export const UserProvider = ({ children }) => {
         })
       );
       dispatch({ type: "SET_CHILDREN_DATA", payload: childrenData });
-      dispatch({
-        type: "SET_CHILDREN_ADDRESSES",
-        payload: childrenAddresses,
-      });
+      dispatch({ type: "SET_CHILDREN_ADDRESSES", payload: childrenAddresses });
     } catch (error) {
       console.error("Error loading children data:", error);
     }
   };
 
-  // Check if the parent account has child accounts and load them.
+  // -------------------------------
+  // Check for children accounts.
+  // -------------------------------
   const checkForChildren = async (parentAddress) => {
     dispatch({ type: "SET_LOADING_CHILDREN", payload: true });
     try {
@@ -301,7 +332,9 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Refresh data (FLOW balance and collection details) for a given address.
+  // -------------------------------
+  // Refresh balances and collection for an address.
+  // -------------------------------
   const refreshBalances = async (address) => {
     if (!address || !address.startsWith("0x")) return;
     dispatch({ type: "SET_REFRESHING_STATE", payload: true });
@@ -341,7 +374,9 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Refresh data for parent and all child accounts.
+  // -------------------------------
+  // Refresh data for parent and all children.
+  // -------------------------------
   const refreshAllBalances = async () => {
     const parentAddress = state.accountData.parentAddress;
     if (!parentAddress) return;
@@ -360,7 +395,9 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Load initial data for the signed-in user.
+  // -------------------------------
+  // Initial data load for the signed-in user.
+  // -------------------------------
   const loadInitialData = async (address) => {
     try {
       await Promise.all([loadParentData(address), checkForChildren(address)]);
@@ -369,6 +406,9 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  // -------------------------------
+  // Effects
+  // -------------------------------
   // Load metadata on mount.
   useEffect(() => {
     loadTopShotMetadata();
@@ -393,7 +433,7 @@ export const UserProvider = ({ children }) => {
     };
   }, []);
 
-  // (Optional) Log state changes in development.
+  // Log state changes in development.
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
       console.log("UserContext State:", state);

@@ -33,17 +33,15 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
         text-white
         transition-colors
         duration-200
-
-        // Hover effect: 2px opolis border
         hover:border-2
         hover:border-opolis
-
-        // Default border style depends on selection
         ${isSelected ? "border-green-500" : "border-gray-600"}
+        overflow-hidden
       `}
+      // Fixed dimensions so that the card size remains constant
       style={{
-        width: "fit-content",
-        maxWidth: "7rem",
+        width: "7rem",
+        height: "12rem",
       }}
     >
       {/* Image Section */}
@@ -57,7 +55,7 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
         >
           <img
             src={imageUrl}
-            alt={`${nft?.playerName || "Unknown Player"} moment`}
+            alt={`${nft?.fullName || "Unknown Player"} moment`}
             className="object-cover w-full h-full transform scale-150"
             style={{
               objectPosition: "center",
@@ -67,12 +65,12 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
       )}
 
       {/* Player Name */}
-      <h3 className="text-center text-white mt-1 text-xs font-semibold truncate">
-        {nft?.playerName || "Unknown Player"}
+      <h3 className="text-center text-white mt-1 text-xs font-semibold truncate whitespace-nowrap">
+        {nft?.fullName || nft?.playerName || "Unknown Player"}
       </h3>
 
       {/* Series */}
-      <p className="text-center text-xs text-gray-400">
+      <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
         Series {nft?.series ?? "?"}
       </p>
 
@@ -80,7 +78,7 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
       <p
         className={`text-center ${
           tierStyles[nft?.tier?.toLowerCase()] || "text-gray-400"
-        } text-xs`}
+        } text-xs truncate whitespace-nowrap`}
       >
         {nft?.tier
           ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
@@ -88,13 +86,13 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
       </p>
 
       {/* Serial Number and Edition Size */}
-      <p className="text-center text-xs text-gray-400">
-        {nft?.serialNumber || "?"} / {nft?.numMomentsInEdition || "?"}
+      <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
+        {nft?.serialNumber ?? "?"} / {nft?.momentCount ?? "?"}
       </p>
 
       {/* Set Name */}
-      <p className="text-center text-gray-400 text-xs truncate">
-        {nft?.setName || "Unknown Set"}
+      <p className="text-center text-gray-400 text-xs truncate whitespace-nowrap">
+        {nft?.name || "Unknown Set"}
       </p>
     </div>
   );

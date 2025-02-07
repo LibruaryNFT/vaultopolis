@@ -9,7 +9,7 @@ import FlowPriceChart from "./FlowPriceChart";
 function Sell() {
   return (
     <div className="w-full flex flex-col items-center p-4 mt-2">
-      <TestingSetupPrompt />
+      <FlowPriceDashboard />
       <SellPanel />
       <TransactionModal />
     </div>

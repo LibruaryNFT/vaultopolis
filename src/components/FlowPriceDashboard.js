@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
+import * as fcl from "@onflow/fcl";
+import { getFlowPricePerNFT } from "../flow/getFlowPerNFT";
 
 const FloorPriceDashboard = () => {
   const [data, setData] = useState(null);
@@ -7,13 +9,36 @@ const FloorPriceDashboard = () => {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  // Helper to query onchain for Flow per NFT using the Cadence script.
+  const fetchOnchainFlowPerNFT = async () => {
+    try {
+      const result = await fcl.query({
+        cadence: getFlowPricePerNFT,
+        args: (arg, t) => [], // no arguments required
+      });
+      return Number(result); // ensure we convert to a number
+    } catch (error) {
+      console.error("Error fetching onchain Flow per NFT:", error);
+      return null;
+    }
+  };
+
+  // Fetch API data and merge with onchainFlowPerNFT value.
   const fetchData = async () => {
     try {
+      // Fetch API data
       const response = await fetch(
         "https://flowconnectbackend-864654c6a577.herokuapp.com/api/floor-price"
       );
       if (!response.ok) throw new Error("Failed to fetch data");
       const result = await response.json();
+
+      // Fetch onchain Flow per NFT and override the API value.
+      const onchainFlow = await fetchOnchainFlowPerNFT();
+      if (onchainFlow !== null) {
+        result.onchainFlowPerNFT = onchainFlow;
+      }
+
       setData(result);
       setLastUpdated(new Date());
       setError(null);
@@ -26,7 +51,7 @@ const FloorPriceDashboard = () => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60000);
+    const interval = setInterval(fetchData, 60000); // Update every minute
     return () => clearInterval(interval);
   }, []);
 
@@ -65,6 +90,7 @@ const FloorPriceDashboard = () => {
     );
   }
 
+  // Calculate premium and vaultopolis rate
   const premiumPercentage = calculatePremium(
     data.onchainFlowPerNFT,
     data.pricePerFloorNFTFlow
