@@ -2,14 +2,12 @@
 import React from "react";
 import SellPanel from "./SellPanel";
 import TransactionModal from "./TransactionModal";
-import TestingSetupPrompt from "./TestingSetupPrompt";
-import FlowPriceDashboard from "./FlowPriceDashboard";
-import FlowPriceChart from "./FlowPriceChart";
+import SellDashboard from "./SellDashboard";
 
 function Sell() {
   return (
-    <div className="w-full flex flex-col items-center p-4 mt-2">
-      <FlowPriceDashboard />
+    <div className="w-full flex flex-col items-center py-4 px-2 mt-1">
+      <SellDashboard />
       <SellPanel />
       <TransactionModal />
     </div>

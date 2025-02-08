@@ -42,7 +42,6 @@ const enrichWithMetadata = async (details, metadataCache) => {
     if (meta) {
       return {
         ...nft,
-        // Use the metadata values from the endpoint.
         tier: meta.tier, // e.g., "ultimate"
         fullName: meta.FullName, // e.g., "Trae Young"
         momentCount: Number(meta.momentCount), // e.g., 1
@@ -133,11 +132,12 @@ export const UserProvider = ({ children }) => {
     try {
       const cachedData = localStorage.getItem("topshotMetadata");
       if (cachedData) {
+        const parsed = JSON.parse(cachedData);
         dispatch({
           type: "SET_METADATA_CACHE",
-          payload: JSON.parse(cachedData),
+          payload: parsed,
         });
-        return;
+        return parsed;
       }
       const baseUrl =
         process.env.REACT_APP_API_BASE_URL ||
@@ -154,6 +154,7 @@ export const UserProvider = ({ children }) => {
       }, {});
       localStorage.setItem("topshotMetadata", JSON.stringify(metadataMap));
       dispatch({ type: "SET_METADATA_CACHE", payload: metadataMap });
+      return metadataMap;
     } catch (error) {
       console.error("Error loading TopShot metadata:", error);
     }
@@ -167,7 +168,7 @@ export const UserProvider = ({ children }) => {
       return { hasCollection: false, details: [] };
 
     try {
-      // First, verify that the collection exists.
+      // Verify that the collection exists.
       const hasCollection = await fcl.query({
         cadence: verifyTopShotCollection,
         args: (arg, t) => [arg(address, t.Address)],
@@ -219,11 +220,16 @@ export const UserProvider = ({ children }) => {
         isLocked: Boolean(nft.isLocked),
       }));
 
-      // Enrich using the metadata cache.
-      const enrichedDetails = state.metadataCache
-        ? await enrichWithMetadata(details, state.metadataCache)
-        : details;
+      // Use effective metadata: prefer state, fallback to localStorage.
+      const effectiveMetadata =
+        state.metadataCache ||
+        JSON.parse(localStorage.getItem("topshotMetadata") || "{}");
 
+      // Enrich NFT details.
+      const enrichedDetails = await enrichWithMetadata(
+        details,
+        effectiveMetadata
+      );
       return { hasCollection: true, details: enrichedDetails };
     } catch (error) {
       console.error(`Error fetching collection for ${address}:`, error);
@@ -419,9 +425,8 @@ export const UserProvider = ({ children }) => {
     const userUnsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
       if (currentUser?.loggedIn) {
-        if (!state.metadataCache) {
-          await loadTopShotMetadata();
-        }
+        // Always load metadata (or reload) so that we have it available.
+        await loadTopShotMetadata();
         await loadInitialData(currentUser.addr);
         setSelectedAccount(currentUser.addr);
       } else {

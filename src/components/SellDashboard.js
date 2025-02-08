@@ -3,7 +3,7 @@ import { RefreshCw } from "lucide-react";
 import * as fcl from "@onflow/fcl";
 import { getFlowPricePerNFT } from "../flow/getFlowPerNFT";
 
-const FloorPriceDashboard = () => {
+const SellDashboard = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,7 +16,7 @@ const FloorPriceDashboard = () => {
         cadence: getFlowPricePerNFT,
         args: (arg, t) => [], // no arguments required
       });
-      return Number(result); // ensure we convert to a number
+      return Number(result); // convert result to a number
     } catch (error) {
       console.error("Error fetching onchain Flow per NFT:", error);
       return null;
@@ -90,88 +90,67 @@ const FloorPriceDashboard = () => {
     );
   }
 
-  // Calculate premium and vaultopolis rate
+  // Calculate premium and vaultopolis rate.
   const premiumPercentage = calculatePremium(
     data.onchainFlowPerNFT,
     data.pricePerFloorNFTFlow
   );
-  const vaultopolisUSD = data.onchainFlowPerNFT * data.flowPriceUSD;
-
-  const ValueDisplay = ({ usd, flow, label }) => (
-    <div>
-      <div className="text-lg font-bold text-white">USD {formatUSD(usd)}</div>
-      {flow !== 1 && (
-        <div className="text-sm font-medium text-flow-light">
-          {formatNumber(flow)} FLOW
-        </div>
-      )}
-      <div className="text-xs text-gray-400">{label}</div>
-    </div>
-  );
 
   return (
-    <div className="p-3 max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-3">
+    <div className="p-2 max-w-4xl mx-auto px-1">
+      {/* Top row: Always 3 columns horizontally */}
+      <div className="grid grid-cols-3 gap-1">
+        {/* Vaultopolis Rate */}
+        <div className="bg-gray-700 rounded-lg p-2">
+          <div className="text-sm mb-1">
+            <span className="text-vault font-bold">Vault</span>
+            <span className="text-opolis font-bold">opolis</span>
+            <span className="text-gray-300"> Rate</span>
+          </div>
+          <div className="text-lg font-bold text-white">
+            {formatNumber(data.onchainFlowPerNFT)} FLOW
+          </div>
+          <div
+            className={`text-xs font-medium mt-1 ${
+              premiumPercentage >= 0 ? "text-opolis" : "text-red-500"
+            }`}
+          >
+            {premiumPercentage}% above floor
+          </div>
+        </div>
+
+        {/* Market Floor Price */}
+        <div className="bg-gray-700 rounded-lg p-2">
+          <div className="text-sm mb-1 text-gray-300">Market Floor Price</div>
+          <div className="text-lg font-bold text-white">
+            {formatUSD(data.floorPriceUSD)}
+          </div>
+        </div>
+
+        {/* FLOW Price */}
+        <div className="bg-gray-700 rounded-lg p-2">
+          <div className="text-sm mb-1 text-gray-300">FLOW Price</div>
+          <div className="text-lg font-bold text-white">
+            {formatUSD(data.flowPriceUSD)}
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom row: Updated time and Refresh button */}
+      <div className="flex justify-between items-center mt-2">
         <div className="text-xs text-gray-400">
           Updated: {lastUpdated?.toLocaleTimeString()}
         </div>
+        <button
+          onClick={fetchData}
+          className="px-2 py-1 bg-opolis hover:bg-opolis-dark text-white text-xs rounded-lg flex items-center gap-1 transition-colors"
+        >
+          <RefreshCw className="h-3 w-3" />
+          Refresh
+        </button>
       </div>
-
-      <div className="grid gap-3">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-gray-700 rounded-lg p-3 col-span-1">
-            <div className="text-sm text-gray-300 mb-2">FLOW Price</div>
-            <ValueDisplay
-              usd={data.flowPriceUSD}
-              flow={1}
-              label="Market price"
-            />
-          </div>
-
-          <div className="bg-gray-700 rounded-lg p-3 col-span-2">
-            <div className="text-sm text-gray-300 mb-2">
-              <span className="text-vault">Vault</span>
-              <span className="text-opolis">opolis</span>
-              <span> Rate</span>
-              <span className="text-gray-400 ml-2">
-                ({premiumPercentage}% above floor)
-              </span>
-            </div>
-            <ValueDisplay
-              usd={vaultopolisUSD}
-              flow={data.onchainFlowPerNFT}
-              label="Exchange rate per moment"
-            />
-          </div>
-        </div>
-
-        <div className="bg-gray-700 rounded-lg p-3">
-          <div className="text-sm text-gray-300 mb-2">Market Floor Price</div>
-          <ValueDisplay
-            usd={data.floorPriceUSD}
-            flow={data.pricePerFloorNFTFlow}
-            label="Excluding bottom 100 listings"
-          />
-        </div>
-
-        <div className="bg-gray-700 rounded-lg p-3">
-          <div className="text-sm text-gray-300">Total Listings Under $1</div>
-          <div className="text-lg font-bold text-white">
-            {data.totalListings.toLocaleString()}
-          </div>
-          <div className="text-xs text-gray-400">On 3rd party marketplaces</div>
-        </div>
-      </div>
-
-      <button
-        onClick={fetchData}
-        className="mt-3 px-2 py-1 bg-opolis hover:bg-opolis-dark text-white text-xs rounded-lg flex items-center gap-1 transition-colors"
-      >
-        <RefreshCw className="h-3 w-3" />
-        Refresh
-      </button>
     </div>
   );
 };
 
-export default FloorPriceDashboard;
+export default SellDashboard;

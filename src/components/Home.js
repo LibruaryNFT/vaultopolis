@@ -1,11 +1,15 @@
 // Home.js
 import React from "react";
-import Sell from "./Sell";
+import SellPanel from "./SellPanel";
+import TransactionModal from "./TransactionModal";
+import SellDashboard from "./SellDashboard";
 
 function Home() {
   return (
-    <div className="w-full flex flex-col items-center p-4 mt-2">
-      <Sell />
+    <div className="w-full flex flex-col items-center py-4 px-2 mt-1">
+      <SellDashboard />
+      <SellPanel />
+      <TransactionModal />
     </div>
   );
 }
