@@ -35,12 +35,44 @@ const MomentSelection = () => {
   }, [seriesOptions, selectedSeries]);
 
   // -----------------------------------------------------------
-  // Tier filter: We want to show all tiers but only allow "Common" to be toggled.
+  // Tier Filter
+  // We want the options to appear in this order:
+  // common, fandom, rare, legendary, ultimate.
+  // By default, common and fandom are selected.
+  // We'll also add a toggle that enables the user to change the selection for the other tiers.
   // -----------------------------------------------------------
-  const tierOptions = ["common", "rare", "fandom", "legendary", "ultimate"];
-  // We don't need a state for tiers because we're forcing filtering to "common".
-  // The UI will display all options, but only "Common" will be enabled.
-  // We'll add a dummy onChange handler for disabled inputs.
+  const tierOptions = ["common", "fandom", "rare", "legendary", "ultimate"];
+  const [selectedTiers, setSelectedTiers] = useState(["common", "fandom"]);
+  const [enableNonCommon, setEnableNonCommon] = useState(false);
+
+  // Mapping of tier names to Tailwind text colour classes.
+  const tierTextColors = {
+    common: "text-gray-400",
+    rare: "text-blue-500",
+    fandom: "text-lime-400",
+    legendary: "text-orange-500",
+    ultimate: "text-pink-500",
+  };
+
+  // If non-common tiers are disabled, force selected tiers to only be common and fandom.
+  useEffect(() => {
+    if (!enableNonCommon) {
+      setSelectedTiers(["common", "fandom"]);
+    }
+  }, [enableNonCommon]);
+
+  // Handler for toggling a tier checkbox.
+  const handleToggleTier = (tierVal) => {
+    // If the tier is non-common/fandom and non-common is not enabled, do nothing.
+    if (!enableNonCommon && tierVal !== "common" && tierVal !== "fandom")
+      return;
+
+    setSelectedTiers((prev) =>
+      prev.includes(tierVal)
+        ? prev.filter((val) => val !== tierVal)
+        : [...prev, tierVal]
+    );
+  };
 
   // -----------------------------------------------------------
   // Local state for filtering and pagination.
@@ -78,7 +110,8 @@ const MomentSelection = () => {
         (jerseyNumber && jerseyNumber === serialNumber);
 
       return (
-        nft.tier?.toLowerCase() === "common" && // Force filter: only "common" moments
+        // Instead of forcing "common", check that the NFT tier (lowercased) is in selectedTiers.
+        selectedTiers.includes(nft.tier?.toLowerCase()) &&
         selectedSeries.includes(nft.series) && // And only those in the selected series
         (!excludeSpecialSerials || !isSpecialSerial) && // Optionally filter out special serials
         !selectedNFTs.includes(nft.id)
@@ -89,7 +122,13 @@ const MomentSelection = () => {
     return filtered.sort(
       (a, b) => parseInt(b.serialNumber, 10) - parseInt(a.serialNumber, 10)
     );
-  }, [nftDetails, excludeSpecialSerials, selectedNFTs, selectedSeries]);
+  }, [
+    nftDetails,
+    excludeSpecialSerials,
+    selectedNFTs,
+    selectedSeries,
+    selectedTiers,
+  ]);
 
   // -----------------------------------------------------------
   // Pagination calculations.
@@ -206,22 +245,41 @@ const MomentSelection = () => {
               ))}
             </div>
           </div>
-          {/* Tier Filter - Display all tiers, but only "Common" is enabled */}
+
+          {/* Tier Filter */}
           <div>
             <p className="text-gray-300 text-sm font-semibold">
               Filter by Tier:
             </p>
+            {/* Toggle for including non-common/fandom tier moments (experimental) */}
+            <div className="mb-1">
+              <label className="text-gray-300 text-xs flex items-center">
+                <input
+                  type="checkbox"
+                  checked={enableNonCommon}
+                  onChange={() => setEnableNonCommon((prev) => !prev)}
+                  className="mr-1"
+                />
+                Include non-common/fandom tier moments (experimental)
+              </label>
+            </div>
             <div className="flex flex-wrap gap-2 mt-1">
               {tierOptions.map((tierVal) => (
                 <label
                   key={`tier-${tierVal}`}
-                  className="text-gray-300 text-xs flex items-center"
+                  className={`text-xs flex items-center ${tierTextColors[tierVal]}`}
                 >
                   <input
                     type="checkbox"
-                    checked={tierVal === "common"}
-                    disabled={tierVal !== "common"}
-                    onChange={() => {}}
+                    // Checkbox is checked if the tier is in selectedTiers.
+                    checked={selectedTiers.includes(tierVal)}
+                    // Disable the input if this tier is non-common/fandom and the toggle is off.
+                    disabled={
+                      tierVal !== "common" &&
+                      tierVal !== "fandom" &&
+                      !enableNonCommon
+                    }
+                    onChange={() => handleToggleTier(tierVal)}
                     className="mr-1"
                   />
                   {tierVal.charAt(0).toUpperCase() + tierVal.slice(1)}

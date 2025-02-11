@@ -1,11 +1,10 @@
 import React, { useContext, useEffect, useRef } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
-import { FaSignOutAlt, FaClipboard, FaWallet, FaCube } from "react-icons/fa";
+import { FaClipboard, FaWallet, FaCube } from "react-icons/fa";
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const { user, accountData, dispatch } = useContext(UserContext);
-  // Destructure properties updated from context
   const { parentAddress, flowBalance, nftDetails, childrenData } = accountData;
   const popoutRef = useRef(null);
 
@@ -20,7 +19,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         closeMenu();
       }
     };
-    // Delay the event listener so that click on the button doesn't immediately trigger close
+    // Delay adding the event listener so that a click on the button doesn't immediately trigger close
     setTimeout(
       () => document.addEventListener("mousedown", handleClickOutside),
       0
@@ -39,45 +38,90 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     closeMenu();
   };
 
-  // Calculate total NFTs by counting the items in nftDetails array
-  const calculateTotalNFTs = (nfts) => (nfts ? nfts.length : 0);
+  // Helper: compute total TopShot moments from an array of NFT details.
+  const calculateTotalTopShotCounts = (nfts) => (nfts ? nfts.length : 0);
 
-  // Summation for all accounts: parent + children
+  // Compute aggregated totals for parent and children.
   const calculateAllAccountTotals = () => {
-    // 1) Total Flow: add parent's flowBalance plus all children's flowBalance
     const totalFlow =
       parseFloat(flowBalance || 0) +
       childrenData.reduce(
         (sum, child) => sum + parseFloat(child.flowBalance || 0),
         0
       );
-
-    // 2) Total NFTs: parent's nft count plus all children's nft count
-    const totalNFTs =
-      calculateTotalNFTs(nftDetails) +
+    const totalTopShotCounts =
+      calculateTotalTopShotCounts(nftDetails) +
       childrenData.reduce(
-        (sum, child) => sum + calculateTotalNFTs(child.nftDetails),
+        (sum, child) => sum + calculateTotalTopShotCounts(child.nftDetails),
         0
       );
-
-    return { totalFlow, totalNFTs };
+    return { totalFlow, totalTopShotCounts };
   };
 
-  const { totalFlow, totalNFTs } = calculateAllAccountTotals();
+  const { totalFlow, totalTopShotCounts } = calculateAllAccountTotals();
 
-  // Build a unified array of accounts for display
+  // Helper: compute tier breakdown from an array of NFTs.
+  const calculateTierBreakdown = (nfts) => {
+    return (nfts || []).reduce((acc, nft) => {
+      const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
+      acc[tier] = (acc[tier] || 0) + 1;
+      return acc;
+    }, {});
+  };
+
+  // Mapping of tier names to Tailwind text colour classes.
+  const tierTextColors = {
+    common: "text-gray-400",
+    rare: "text-blue-500",
+    fandom: "text-lime-400",
+    legendary: "text-orange-500",
+    ultimate: "text-pink-500",
+  };
+
+  // Render the tier breakdown vertically as text lines.
+  // If the count is 1, use the singular "Moment"; otherwise, use "Moments".
+  const renderBreakdownVertical = (breakdown) => {
+    const tiers = ["common", "fandom", "rare", "legendary", "ultimate"];
+    return tiers
+      .filter((t) => breakdown[t])
+      .map((t) => (
+        <p key={t} className="text-sm mb-1 whitespace-nowrap">
+          {breakdown[t]}{" "}
+          <span className={tierTextColors[t]}>
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </span>{" "}
+          <span className="text-gray-400">
+            {breakdown[t] === 1 ? "Moment" : "Moments"}
+          </span>
+        </p>
+      ));
+  };
+
+  // Aggregate breakdown for all accounts.
+  const aggregatedBreakdown = { ...calculateTierBreakdown(nftDetails) };
+  childrenData.forEach((child) => {
+    const childBreakdown = calculateTierBreakdown(child.nftDetails);
+    Object.keys(childBreakdown).forEach((tier) => {
+      aggregatedBreakdown[tier] =
+        (aggregatedBreakdown[tier] || 0) + childBreakdown[tier];
+    });
+  });
+
+  // Build a unified array of accounts for display.
   const allAccounts = [
     {
       label: "Parent Account",
       address: parentAddress,
       flowBalance,
-      nftCount: calculateTotalNFTs(nftDetails),
+      topShotCount: calculateTotalTopShotCounts(nftDetails),
+      breakdown: calculateTierBreakdown(nftDetails),
     },
     ...childrenData.map((child, index) => ({
       label: `Child Account ${index + 1}`,
       address: child.addr,
       flowBalance: child.flowBalance,
-      nftCount: calculateTotalNFTs(child.nftDetails),
+      topShotCount: calculateTotalTopShotCounts(child.nftDetails),
+      breakdown: calculateTierBreakdown(child.nftDetails),
     })),
   ];
 
@@ -87,67 +131,62 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       className="absolute top-12 right-0 mt-2 w-96 bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"
     >
       {/* Header Section */}
-      <div className="bg-gray-900 px-6 py-4 border-b border-gray-700">
+      <div className="bg-gray-900 px-4 py-2 border-b border-gray-700">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <div className="h-9 w-9 rounded-full bg-blue-500 flex items-center justify-center">
-              <FaWallet className="text-white text-lg" />
+            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
+              <FaWallet className="text-white text-xl" />
             </div>
             <div className="flex flex-col">
-              <button
-                onClick={() => handleCopyAddress(user.addr)}
-                className="text-sm text-gray-300 hover:text-white flex items-center group"
-              >
-                <span className="truncate max-w-[180px]">{user.addr}</span>
-                <FaClipboard className="ml-2 text-gray-400 group-hover:text-white transition-colors" />
-              </button>
+              <span className="text-sm text-gray-300 font-medium">
+                {user.addr}
+              </span>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+            className="px-4 py-2 text-sm font-semibold text-red-500 hover:text-white hover:bg-red-600 rounded transition-colors"
             title="Disconnect"
           >
-            <FaSignOutAlt size={18} />
+            Disconnect
           </button>
         </div>
       </div>
 
       {/* Portfolio Summary Section */}
-      <div className="px-6 py-5">
-        <div className="flex items-center space-x-3 mb-3">
-          <FaCube className="text-blue-400 text-lg" />
-          <h4 className="text-lg font-medium text-white">Portfolio Summary</h4>
-        </div>
-        <div className="bg-gray-700 rounded-lg p-4">
-          {/* Summary Stats */}
-          <div className="bg-gray-800 p-4 rounded-lg mb-4">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Total Flow</p>
-                <p className="text-xl font-bold text-white">
-                  {parseFloat(totalFlow || 0).toFixed(2)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-400 mb-1">Total NFTs</p>
-                <p className="text-xl font-bold text-white">{totalNFTs}</p>
-              </div>
-            </div>
+      <div className="px-4 py-3">
+        <div className="flex">
+          {/* Left Column: Totals (30% width) */}
+          <div className="w-[30%]">
+            <p className="text-sm text-gray-400 mb-1">Total Flow</p>
+            <p className="text-2xl font-bold text-white">
+              {parseFloat(totalFlow || 0).toFixed(2)}
+            </p>
+            <p className="text-sm text-gray-400 mt-3 mb-1">TopShot Total</p>
+            <p className="text-2xl font-bold text-white">
+              {totalTopShotCounts}
+            </p>
           </div>
+          {/* Right Column: Tier Breakdown (70% width) */}
+          {totalTopShotCounts > 0 &&
+            Object.keys(aggregatedBreakdown).length > 0 && (
+              <div className="w-[70%] pl-2">
+                {renderBreakdownVertical(aggregatedBreakdown)}
+              </div>
+            )}
         </div>
       </div>
 
-      {/* Individual Accounts */}
-      <div className="px-6 pb-6">
-        <div className="space-y-4">
+      {/* Individual Accounts Section */}
+      <div className="px-4 pb-4">
+        <div className="space-y-3">
           {allAccounts.map((account) => (
             <div
               key={account.address}
-              className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-colors"
+              className="bg-gray-700 rounded-lg p-3 hover:bg-gray-650 transition-colors"
             >
-              <div className="flex justify-between items-start mb-3">
-                <h5 className="text-sm font-medium text-white">
+              <div className="flex justify-between items-start mb-2">
+                <h5 className="text-lg font-medium text-white">
                   {account.label}
                 </h5>
                 <button
@@ -160,21 +199,28 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                   <FaClipboard className="ml-2" />
                 </button>
               </div>
-              {/* Account Stats */}
-              <div className="bg-gray-800 p-4 rounded-lg mb-3">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+              <div className="bg-gray-800 p-3 rounded-lg mb-2">
+                <div className="flex">
+                  {/* Left Column: Account Totals (30% width) */}
+                  <div className="w-[30%]">
                     <p className="text-xs text-gray-400 mb-1">Flow Balance</p>
                     <p className="text-sm font-semibold text-white">
                       {parseFloat(account.flowBalance || 0).toFixed(2)}
                     </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 mb-1">NFT Count</p>
+                    <p className="text-xs text-gray-400 mt-3 mb-1">
+                      TopShot Total
+                    </p>
                     <p className="text-sm font-semibold text-white">
-                      {account.nftCount}
+                      {account.topShotCount}
                     </p>
                   </div>
+                  {/* Right Column: Account Tier Breakdown (70% width) */}
+                  {account.topShotCount > 0 &&
+                    Object.keys(account.breakdown).length > 0 && (
+                      <div className="w-[70%] pl-2">
+                        {renderBreakdownVertical(account.breakdown)}
+                      </div>
+                    )}
                 </div>
               </div>
             </div>

@@ -148,11 +148,21 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
     }
   };
 
+  // Render account box function.
+  // This shows the account info and a breakdown of tier counts with colour.
+  const tierTextColors = {
+    common: "text-gray-400",
+    rare: "text-blue-500",
+    fandom: "text-lime-400",
+    legendary: "text-orange-500",
+    ultimate: "text-pink-500",
+  };
+
   const renderAccountBox = (label, accountAddr, data, isSelected) => {
     const { flowBalance = 0, nftDetails = [] } = data || {};
 
     const tierCounts = nftDetails.reduce((acc, nft) => {
-      const tier = nft.tier || "unknown";
+      const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
       acc[tier] = (acc[tier] || 0) + 1;
       return acc;
     }, {});
@@ -185,9 +195,14 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
             $FLOW
           </p>
           {Object.entries(tierCounts).map(([tier, count]) => (
-            <p key={tier} className="text-sm text-gray-300">
+            <p key={tier} className="text-sm">
               <span className="font-bold text-white">{count}</span>{" "}
-              {tier.charAt(0).toUpperCase() + tier.slice(1)} Moments
+              <span className={tierTextColors[tier.toLowerCase()]}>
+                {tier.charAt(0).toUpperCase() + tier.slice(1)}
+              </span>{" "}
+              <span className="text-gray-400">
+                {count === 1 ? "Moment" : "Moments"}
+              </span>
             </p>
           ))}
         </div>

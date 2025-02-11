@@ -110,6 +110,18 @@ const SellDashboard = () => {
 
   return (
     <div className="p-2 max-w-4xl mx-auto px-1">
+      {/* Dashboard Header */}
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-white text-center">
+          TopShot Moments Dashboard
+        </h1>
+        <p className="text-sm text-gray-400 text-center">
+          Metrics for moments in the{" "}
+          <span className="text-gray-400 font-semibold">Common</span>/
+          <span className="text-lime-400 font-semibold">Fandom</span> tier
+        </p>
+      </div>
+
       {/* Use a responsive grid: 1 column on mobile, 3 on larger screens */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
         {/* Vaultopolis Buy Price */}
@@ -134,10 +146,10 @@ const SellDashboard = () => {
           </div>
         </div>
 
-        {/* Common Floor Price */}
+        {/* Floor Price */}
         <div className="bg-gray-700 rounded-lg p-2">
           <div className="text-sm mb-1 text-gray-300 text-center h-8 flex items-center justify-center">
-            Common Floor Price
+            Floor Price
           </div>
           <div className="text-lg font-bold text-white text-center">
             {formatNumber(data.pricePerFloorNFTFlow)} FLOW

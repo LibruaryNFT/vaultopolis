@@ -26,12 +26,14 @@ access(all) contract TopShotFloors {
         return self.flowPerNFT
     }
 
-    // Updated function to validate an NFT using the new filter.
-    // This now instantiates a CommonFandomFilter (which accepts moments with tier "common" or "fandom")
-    // and returns whether the NFT is supported.
+     // Function to check if an NFT is a common tier moment
     access(all) fun validateNFT(nft: &TopShot.NFT): Bool {
-        let filter: {TopShotShardedCollectionV2.MomentFilter} = TopShotShardedCollectionV2.CommonFandomFilter()
-        return filter.isSupported(moment: nft)
+        let nftTier = TopShotTiers.getTier(nft: nft) 
+            ?? panic("Could not determine NFT tier")
+
+        let nftTierStr = TopShotTiers.tierToString(tier: nftTier)
+        
+        return nftTierStr == "common"
     }
 
     // Admin resource definition with entitlement applied to the function
@@ -52,14 +54,14 @@ access(all) contract TopShotFloors {
     ) {
 
         pre {
-            nfts.length > 0: "Cannot swap! No NFTs provided."
+    nfts.length > 0: "Cannot swap! No NFTs provided."
         }
 
-        // Borrow the admin's TopShot Collection
+         // Borrow the admin's TopShot Collection
         let adminCollection = self.account
-            .storage
-            .borrow<&TopShotShardedCollectionV2.ShardedCollection>(from: self.nftCollectionPath)
-            ?? panic("Could not borrow admin's TopShot Collection")
+                .storage
+                .borrow<&TopShotShardedCollectionV2.ShardedCollection>(from: self.nftCollectionPath)
+                ?? panic("Could not borrow admin's TopShot Collection")
 
         // Store the number of NFTs before they are moved
         let numberOfNFTs = nfts.length
@@ -68,9 +70,9 @@ access(all) contract TopShotFloors {
         while nfts.length > 0 {
             let nft <- nfts.removeFirst()
 
-            // Validate the NFT using the new filter
+             // Validate the NFT tier 
             if !self.validateNFT(nft: &nft as &TopShot.NFT) {
-                panic("Only common or fandom-tier moments are allowed.")
+                panic("Only common-tier moments are allowed.")
             }
 
             adminCollection.deposit(token: <-nft)
@@ -112,7 +114,7 @@ access(all) contract TopShotFloors {
         self.nftCollectionPath = /storage/ShardedMomentCollection
         self.flowPerNFT = 0.5
 
-        // Initialize and save the Admin resource in storage
+         // Initialize and save the Admin resource in storage
         self.account.storage.save<@Admin>(<-create Admin(), to: /storage/TopShotFloorsAdmin)
 
         emit FlowPerNFTUpdated(newAmount: self.flowPerNFT)

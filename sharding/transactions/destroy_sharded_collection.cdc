@@ -1,5 +1,5 @@
 import "TopShot"
-import "TopShotShardedCollection"
+import "TopShotShardedCollectionV2"
 import "NonFungibleToken"
 
 transaction {
@@ -7,7 +7,7 @@ transaction {
     prepare(acct: auth(Storage, Capabilities) &Account) {
 
         // Load the sharded collection from storage
-        let shardedCollection <- acct.storage.load<@TopShotShardedCollection.ShardedCollection>(from: /storage/ShardedMomentCollection)
+        let shardedCollection <- acct.storage.load<@TopShotShardedCollectionV2.ShardedCollection>(from: /storage/ShardedMomentCollection)
             ?? panic("Could not load sharded collection from storage")
 
         // Ensure the collection is empty

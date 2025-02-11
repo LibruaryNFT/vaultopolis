@@ -3,24 +3,20 @@ import "TopShotShardedCollectionV2"
 import "NonFungibleToken"
 
 // This transaction creates and stores an empty moment collection 
-// with an optional filter for common OR fandom TopShot moments.
+// that applies the CommonFandomFilter for TopShot moments.
 // Moments are split into a number of buckets for efficiency.
 //
-// Parameters:
-//
+// Parameter:
 // numBuckets: The number of buckets to split Moments into
-// useCommonFilter: If true, a CommonFandomFilter is applied; otherwise, no filter is applied.
-transaction(numBuckets: UInt64, useCommonFilter: Bool) {
+
+transaction(numBuckets: UInt64) {
 
     prepare(acct: auth(Storage, Capabilities) &Account) {
 
         if acct.storage.borrow<&TopShotShardedCollectionV2.ShardedCollection>(from: /storage/ShardedMomentCollection) == nil {
 
-            var filter: {TopShotShardedCollectionV2.MomentFilter}? = nil
-
-            if useCommonFilter {
-                filter = TopShotShardedCollectionV2.CommonFandomFilter()
-            }
+            // Explicitly use the CommonFandomFilter
+            let filter: {TopShotShardedCollectionV2.MomentFilter}? = TopShotShardedCollectionV2.CommonFandomFilter()
 
             let collection <- TopShotShardedCollectionV2.createEmptyCollection(
                 numBuckets: numBuckets, 

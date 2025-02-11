@@ -1,5 +1,10 @@
-//import "TopShotTiers"
-import TopShotTiers from 0x0b2a3299cc857e29
+import "TopShotTiers"
+
+        // common = 0
+        // fandom = 1
+        // rare = 2
+        // legendary = 3
+        // ultimate = 4
 
 transaction(setID: UInt32, tierRawValue: UInt8?) {
     let adminRef: &TopShotTiers.Admin
