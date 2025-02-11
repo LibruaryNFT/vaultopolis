@@ -13,13 +13,13 @@ const SellPanel = () => {
   const activeAccountAddr = selectedAccount || user?.addr;
   const isLoggedIn = Boolean(user?.loggedIn);
 
-  // Opens the transaction modal with data
+  // Open the transaction modal with data.
   const handleOpenModal = (data) => {
     setTransactionData(data);
     setShowModal(true);
   };
 
-  // Closes the transaction modal
+  // Close the transaction modal.
   const handleCloseModal = () => {
     setShowModal(false);
     setTransactionData({});
@@ -27,19 +27,14 @@ const SellPanel = () => {
 
   return (
     <div className="w-full mx-auto mt-1 flex flex-col items-center space-y-4">
-      {/* AnimatePresence to smoothly mount/unmount the modal */}
       <AnimatePresence>
         {showModal && transactionData.status && (
           <TransactionModal {...transactionData} onClose={handleCloseModal} />
         )}
       </AnimatePresence>
-
-      {/* Main Panel: NFT -> FLOW */}
       <div className="w-full md:w-3/4 bg-transparent rounded-lg">
         <NFTToFLOWPanel onTransactionStart={handleOpenModal} />
       </div>
-
-      {/* Moment Selection: only displayed if user is logged in */}
       {isLoggedIn && (
         <div className="w-full md:w-3/4 bg-transparent rounded-lg">
           <MomentSelection />

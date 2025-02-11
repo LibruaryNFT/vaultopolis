@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { RefreshCw } from "lucide-react";
 import * as fcl from "@onflow/fcl";
-import { getFlowPricePerNFT } from "../flow/getFlowPerNFT";
+import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT";
 
 const SellDashboard = () => {
   const [data, setData] = useState(null);
@@ -23,7 +23,7 @@ const SellDashboard = () => {
     }
   };
 
-  // Fetch API data and merge with onchainFlowPerNFT value.
+  // Fetch API data and merge with onchain Flow per NFT value.
   const fetchData = async () => {
     try {
       // Fetch API data
@@ -55,12 +55,15 @@ const SellDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Formatter functions
+  // Format FLOW numbers to exactly 2 decimal places.
   const formatNumber = (num) =>
     new Intl.NumberFormat("en-US", {
       minimumFractionDigits: 2,
-      maximumFractionDigits: 4,
+      maximumFractionDigits: 2,
     }).format(num);
 
+  // Format USD values to 2 decimal places with a currency symbol.
   const formatUSD = (num) =>
     new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -69,8 +72,11 @@ const SellDashboard = () => {
       maximumFractionDigits: 2,
     }).format(num);
 
-  const calculatePremium = (vaultopolisRate, floorPrice) => {
-    const premium = ((vaultopolisRate - floorPrice) / floorPrice) * 100;
+  // Calculate premium percentage based on Vaultopolis Buy Price vs. Common Floor Price (both in FLOW)
+  const calculatePremium = (vaultopolisBuyPrice, commonFloorPriceFlow) => {
+    const premium =
+      ((vaultopolisBuyPrice - commonFloorPriceFlow) / commonFloorPriceFlow) *
+      100;
     return premium.toFixed(1);
   };
 
@@ -90,28 +96,37 @@ const SellDashboard = () => {
     );
   }
 
-  // Calculate premium and vaultopolis rate.
+  // For premium calculation:
+  // - data.onchainFlowPerNFT is the Vaultopolis Buy Price (in FLOW)
+  // - data.pricePerFloorNFTFlow is the Common Floor Price in FLOW
   const premiumPercentage = calculatePremium(
     data.onchainFlowPerNFT,
     data.pricePerFloorNFTFlow
   );
 
+  // Compute the USD equivalent of the Vaultopolis Buy Price.
+  // (Vaultopolis Buy Price is in FLOW so we multiply by the current FLOW token price in USD.)
+  const vaultopolisBuyPriceUSD = data.onchainFlowPerNFT * data.flowPriceUSD;
+
   return (
     <div className="p-2 max-w-4xl mx-auto px-1">
-      {/* Top row: Always 3 columns horizontally */}
-      <div className="grid grid-cols-3 gap-1">
-        {/* Vaultopolis Rate */}
+      {/* Use a responsive grid: 1 column on mobile, 3 on larger screens */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-1">
+        {/* Vaultopolis Buy Price */}
         <div className="bg-gray-700 rounded-lg p-2">
-          <div className="text-sm mb-1">
+          <div className="text-sm mb-1 text-center h-8 flex flex-wrap items-center justify-center">
             <span className="text-vault font-bold">Vault</span>
             <span className="text-opolis font-bold">opolis</span>
-            <span className="text-gray-300"> Rate</span>
+            <span className="text-gray-300 ml-2">Buy Price</span>
           </div>
-          <div className="text-lg font-bold text-white">
+          <div className="text-lg font-bold text-white text-center">
             {formatNumber(data.onchainFlowPerNFT)} FLOW
           </div>
+          <div className="text-sm font-normal text-gray-400 text-center">
+            {formatUSD(vaultopolisBuyPriceUSD)} USD
+          </div>
           <div
-            className={`text-xs font-medium mt-1 ${
+            className={`text-xs font-medium mt-1 text-center ${
               premiumPercentage >= 0 ? "text-opolis" : "text-red-500"
             }`}
           >
@@ -119,19 +134,26 @@ const SellDashboard = () => {
           </div>
         </div>
 
-        {/* Market Floor Price */}
+        {/* Common Floor Price */}
         <div className="bg-gray-700 rounded-lg p-2">
-          <div className="text-sm mb-1 text-gray-300">Market Floor Price</div>
-          <div className="text-lg font-bold text-white">
-            {formatUSD(data.floorPriceUSD)}
+          <div className="text-sm mb-1 text-gray-300 text-center h-8 flex items-center justify-center">
+            Common Floor Price
+          </div>
+          <div className="text-lg font-bold text-white text-center">
+            {formatNumber(data.pricePerFloorNFTFlow)} FLOW
+          </div>
+          <div className="text-sm font-normal text-gray-400 text-center">
+            {formatUSD(data.floorPriceUSD)} USD
           </div>
         </div>
 
         {/* FLOW Price */}
         <div className="bg-gray-700 rounded-lg p-2">
-          <div className="text-sm mb-1 text-gray-300">FLOW Price</div>
-          <div className="text-lg font-bold text-white">
-            {formatUSD(data.flowPriceUSD)}
+          <div className="text-sm mb-1 text-gray-300 text-center h-8 flex items-center justify-center">
+            FLOW Price
+          </div>
+          <div className="text-lg font-bold text-white text-center">
+            {formatUSD(data.flowPriceUSD)} USD
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ const TransactionModal = ({
   tshotAmount,
   swapType,
   transactionAction,
+  flowAmount, // New prop for FLOW amount
   onClose,
 }) => {
   console.log("Rendering TransactionModal with status:", status);
@@ -53,6 +54,11 @@ const TransactionModal = ({
     transactionMessage = `Swapping ${tshotAmount} $TSHOT for ${Math.round(
       nftCount || 0
     )} Random Common(s)`;
+  } else if (swapType === "NFT_TO_FLOW") {
+    // New case: format flowAmount to 2 decimal places
+    transactionMessage = `Swapping ${nftCount} TopShot Common(s) for ${Number(
+      flowAmount
+    ).toFixed(2)} FLOW`;
   }
 
   const getStatusIcon = () => {
@@ -130,7 +136,7 @@ const TransactionModal = ({
         </div>
         {txId && (
           <a
-            href={`https://testnet.flowscan.io/tx/${txId}`}
+            href={`https://flowscan.io/tx/${txId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="block mt-4 text-center text-blue-400 underline"

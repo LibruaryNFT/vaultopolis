@@ -11,98 +11,25 @@ access(all) contract TopShotShardedCollectionV2 {
         access(all) fun unsupportedError(moment: &TopShot.NFT): String
     }
 
-    // Filter for common-tier moments
+    // Implementation of a filter to validate "common-tier" moments
     access(all) struct TSHOTCommonFilter: MomentFilter {
         access(all) fun isSupported(moment: &TopShot.NFT): Bool {
+            // Use TopShotTiers to determine the tier of the NFT
             let nftTier = TopShotTiers.getTier(nft: moment)
             let nftTierStr = TopShotTiers.tierToString(tier: nftTier!)
             return nftTierStr == "common"
         }
+
         access(all) fun unsupportedError(moment: &TopShot.NFT): String {
             return "Moment is not supported. Only common-tier moments are allowed."
         }
     }
 
-    // Filter for fandom-tier moments
-    access(all) struct TSHOTFandomFilter: MomentFilter {
-        access(all) fun isSupported(moment: &TopShot.NFT): Bool {
-            let nftTier = TopShotTiers.getTier(nft: moment)
-            let nftTierStr = TopShotTiers.tierToString(tier: nftTier!)
-            return nftTierStr == "fandom"
-        }
-        access(all) fun unsupportedError(moment: &TopShot.NFT): String {
-            return "Moment is not supported. Only fandom-tier moments are allowed."
-        }
-    }
-
-    // Filter for rare-tier moments
-    access(all) struct TSHOTRareFilter: MomentFilter {
-        access(all) fun isSupported(moment: &TopShot.NFT): Bool {
-            let nftTier = TopShotTiers.getTier(nft: moment)
-            let nftTierStr = TopShotTiers.tierToString(tier: nftTier!)
-            return nftTierStr == "rare"
-        }
-        access(all) fun unsupportedError(moment: &TopShot.NFT): String {
-            return "Moment is not supported. Only rare-tier moments are allowed."
-        }
-    }
-
-    // Filter for legendary-tier moments
-    access(all) struct TSHOTLegendaryFilter: MomentFilter {
-        access(all) fun isSupported(moment: &TopShot.NFT): Bool {
-            let nftTier = TopShotTiers.getTier(nft: moment)
-            let nftTierStr = TopShotTiers.tierToString(tier: nftTier!)
-            return nftTierStr == "legendary"
-        }
-        access(all) fun unsupportedError(moment: &TopShot.NFT): String {
-            return "Moment is not supported. Only legendary-tier moments are allowed."
-        }
-    }
-
-    // Filter for ultimate-tier moments
-    access(all) struct TSHOTUltimateFilter: MomentFilter {
-        access(all) fun isSupported(moment: &TopShot.NFT): Bool {
-            let nftTier = TopShotTiers.getTier(nft: moment)
-            let nftTierStr = TopShotTiers.tierToString(tier: nftTier!)
-            return nftTierStr == "ultimate"
-        }
-        access(all) fun unsupportedError(moment: &TopShot.NFT): String {
-            return "Moment is not supported. Only ultimate-tier moments are allowed."
-        }
-    }
-
-    // Union Filter: Accepts a moment if it passes at least one of the provided filters.
-    // For example, this can be used to allow a moment that is either common OR fandom.
-    access(all) struct TSHOTUnionFilter: MomentFilter {
-        pub let filters: [ {MomentFilter} ]
-
-        init(filters: [ {MomentFilter} ]) {
-            self.filters = filters
-        }
-
-        access(all) fun isSupported(moment: &TopShot.NFT): Bool {
-            for filter in self.filters {
-                if filter.isSupported(moment: moment) {
-                    return true
-                }
-            }
-            return false
-        }
-
-        access(all) fun unsupportedError(moment: &TopShot.NFT): String {
-            return "Moment is not supported. It does not match any of the accepted tier filters."
-        }
-    }
-
     // ShardedCollection resource stores a dictionary of TopShot Collections
-    access(all) resource ShardedCollection: TopShot.MomentCollectionPublic,
-                                            NonFungibleToken.CollectionPublic,
-                                            NonFungibleToken.Provider,
-                                            NonFungibleToken.Receiver {
+    access(all) resource ShardedCollection: TopShot.MomentCollectionPublic, NonFungibleToken.CollectionPublic, NonFungibleToken.Provider, NonFungibleToken.Receiver {
 
         access(contract) var collections: @{UInt64: TopShot.Collection}
         access(all) let numBuckets: UInt64
-        // Optional filter: if nil, any NFT is accepted.
         access(all) let filter: {MomentFilter}?
 
         init(numBuckets: UInt64, filter: {MomentFilter}?) {
@@ -241,9 +168,6 @@ access(all) contract TopShotShardedCollectionV2 {
         }
     }
 
-    // A helper function to create an empty sharded collection.
-    // The optional "filter" parameter allows you to create a collection with no filtering,
-    // or with one (or a composite) filter applied.
     access(all) fun createEmptyCollection(numBuckets: UInt64, filter: {MomentFilter}?): @ShardedCollection {
         return <-create ShardedCollection(numBuckets: numBuckets, filter: filter)
     }
