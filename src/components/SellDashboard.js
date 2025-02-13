@@ -111,10 +111,7 @@ const SellDashboard = () => {
   return (
     <div className="p-2 max-w-4xl mx-auto px-1">
       {/* Dashboard Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-white text-center">
-          TopShot Moments Dashboard
-        </h1>
+      <div className="mb-1">
         <p className="text-sm text-gray-400 text-center">
           Metrics for moments in the{" "}
           <span className="text-gray-400 font-semibold">Common</span>/

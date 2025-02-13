@@ -70,7 +70,6 @@ access(all) contract TSHOT: FungibleToken {
             return amount <= self.balance
         }
 
-        /// Added simply to conform to FT-V2 interface.
         access(all) view fun getViews(): [Type] { return [] }
         access(all) fun resolveView(_ view: Type): AnyStruct? { return nil }
 
@@ -118,14 +117,13 @@ access(all) contract TSHOT: FungibleToken {
         return <-create Vault(balance: 0.0)
     }
 
-    /// Added simply to conform to FT-V2 interface.
     access(all) view fun getContractViews(resourceType: Type?): [Type] { return [] }
     access(all) fun resolveContractView(resourceType: Type?, viewType: Type): AnyStruct? { return nil }
 
     // Mint tokens
     //
-    // $TSHOT token can only be minted by the TopShotExchange contract.
-    // This function allows the TopShotExchange contract to mint tokens 
+    // $TSHOT token can only be minted by the TSHOTExchange contract.
+    // This function allows the TSHOTExchange contract to mint tokens 
     // in exchange for a user's NFT.
 
     // Admin resource definition with entitlement applied to the function

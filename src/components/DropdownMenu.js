@@ -1,11 +1,31 @@
-import React, { useContext, useEffect, useRef } from "react";
+// DropdownMenu.jsx
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
-import { FaClipboard, FaWallet, FaCube } from "react-icons/fa";
+import { FaClipboard, FaSignOutAlt, FaSpinner } from "react-icons/fa";
+
+// Helper component: If a value exists, display it; otherwise, render a skeleton placeholder.
+const ValueOrSkeleton = ({
+  value,
+  className = "",
+  skeletonWidth = "w-20",
+  skeletonHeight = "h-6",
+}) => {
+  if (value !== undefined && value !== null) {
+    return <span className={className}>{value}</span>;
+  }
+  return (
+    <div
+      className={`${skeletonWidth} ${skeletonHeight} bg-gray-600 rounded animate-pulse`}
+    />
+  );
+};
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
-  const { user, accountData, dispatch } = useContext(UserContext);
+  const { user, accountData, isRefreshing, dispatch } = useContext(UserContext);
   const { parentAddress, flowBalance, nftDetails, childrenData } = accountData;
+  // Data is assumed to be in context; no artificial delay.
+  const [isLoading, setIsLoading] = useState(false);
   const popoutRef = useRef(null);
 
   useEffect(() => {
@@ -19,7 +39,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         closeMenu();
       }
     };
-    // Delay adding the event listener so that a click on the button doesn't immediately trigger close
     setTimeout(
       () => document.addEventListener("mousedown", handleClickOutside),
       0
@@ -27,9 +46,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeMenu, buttonRef]);
 
+  // Copying an address should not close the dropdown.
   const handleCopyAddress = (address) => {
     navigator.clipboard.writeText(address);
-    closeMenu();
   };
 
   const handleLogout = () => {
@@ -38,10 +57,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     closeMenu();
   };
 
-  // Helper: compute total TopShot moments from an array of NFT details.
+  // --- Calculation Helpers ---
   const calculateTotalTopShotCounts = (nfts) => (nfts ? nfts.length : 0);
 
-  // Compute aggregated totals for parent and children.
   const calculateAllAccountTotals = () => {
     const totalFlow =
       parseFloat(flowBalance || 0) +
@@ -60,7 +78,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
 
   const { totalFlow, totalTopShotCounts } = calculateAllAccountTotals();
 
-  // Helper: compute tier breakdown from an array of NFTs.
   const calculateTierBreakdown = (nfts) => {
     return (nfts || []).reduce((acc, nft) => {
       const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
@@ -69,7 +86,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     }, {});
   };
 
-  // Mapping of tier names to Tailwind text colour classes.
   const tierTextColors = {
     common: "text-gray-400",
     rare: "text-blue-500",
@@ -78,26 +94,23 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     ultimate: "text-pink-500",
   };
 
-  // Render the tier breakdown vertically as text lines.
-  // If the count is 1, use the singular "Moment"; otherwise, use "Moments".
   const renderBreakdownVertical = (breakdown) => {
     const tiers = ["common", "fandom", "rare", "legendary", "ultimate"];
     return tiers
       .filter((t) => breakdown[t])
       .map((t) => (
-        <p key={t} className="text-sm mb-1 whitespace-nowrap">
-          {breakdown[t]}{" "}
-          <span className={tierTextColors[t]}>
+        <div
+          key={t}
+          className="grid grid-cols-[3rem,auto] items-center gap-x-2 mb-1"
+        >
+          <div className="text-right">{breakdown[t]}</div>
+          <div className={tierTextColors[t]}>
             {t.charAt(0).toUpperCase() + t.slice(1)}
-          </span>{" "}
-          <span className="text-gray-400">
-            {breakdown[t] === 1 ? "Moment" : "Moments"}
-          </span>
-        </p>
+          </div>
+        </div>
       ));
   };
 
-  // Aggregate breakdown for all accounts.
   const aggregatedBreakdown = { ...calculateTierBreakdown(nftDetails) };
   childrenData.forEach((child) => {
     const childBreakdown = calculateTierBreakdown(child.nftDetails);
@@ -107,7 +120,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     });
   });
 
-  // Build a unified array of accounts for display.
   const allAccounts = [
     {
       label: "Parent Account",
@@ -125,52 +137,66 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     })),
   ];
 
+  if (isLoading) {
+    return (
+      <div
+        ref={popoutRef}
+        className="absolute top-12 right-0 mt-2 w-[calc(100vw-32px)] md:w-96 bg-gray-800 shadow-xl overflow-hidden rounded-lg border border-gray-600/50 flex items-center justify-center p-4"
+        aria-busy="true"
+      >
+        <FaSpinner className="animate-spin text-white text-2xl" />
+        <span className="sr-only">Loading...</span>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={popoutRef}
-      className="absolute top-12 right-0 mt-2 w-96 bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-700"
+      className="absolute top-12 right-0 mt-2 w-[calc(100vw-32px)] md:w-96 bg-gray-800 shadow-xl overflow-hidden rounded-lg border border-gray-600/50"
     >
-      {/* Header Section */}
-      <div className="bg-gray-900 px-4 py-2 border-b border-gray-700">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center">
-              <FaWallet className="text-white text-xl" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-300 font-medium">
-                {user.addr}
-              </span>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 text-sm font-semibold text-red-500 hover:text-white hover:bg-red-600 rounded transition-colors"
-            title="Disconnect"
-          >
-            Disconnect
-          </button>
-        </div>
+      {/* Top Header with Disconnect Button and Refresh Indicator */}
+      <div className="bg-gray-900 px-4 py-1 border-b border-gray-700 flex justify-end items-center">
+        {isRefreshing && (
+          <FaSpinner className="animate-spin text-white mr-2" size={16} />
+        )}
+        <button
+          onClick={handleLogout}
+          className="p-1 text-red-500 hover:text-white hover:bg-red-600 rounded transition-colors"
+          title="Disconnect"
+        >
+          <FaSignOutAlt size={20} />
+        </button>
       </div>
 
       {/* Portfolio Summary Section */}
-      <div className="px-4 py-3">
+      <div className="px-4 py-2 border-b border-gray-700">
         <div className="flex">
-          {/* Left Column: Totals (30% width) */}
-          <div className="w-[30%]">
-            <p className="text-sm text-gray-400 mb-1">Total Flow</p>
-            <p className="text-2xl font-bold text-white">
-              {parseFloat(totalFlow || 0).toFixed(2)}
-            </p>
-            <p className="text-sm text-gray-400 mt-3 mb-1">TopShot Total</p>
-            <p className="text-2xl font-bold text-white">
-              {totalTopShotCounts}
-            </p>
+          {/* Left Column: Totals */}
+          <div className="w-1/3">
+            <div>
+              <p className="text-sm text-gray-400 m-0">Flow Total</p>
+              <ValueOrSkeleton
+                value={parseFloat(totalFlow).toFixed(2)}
+                className="text-xl font-semibold text-white m-0"
+                skeletonWidth="w-24"
+                skeletonHeight="h-7"
+              />
+            </div>
+            <div className="mt-2">
+              <p className="text-sm text-gray-400 m-0">TopShot Total</p>
+              <ValueOrSkeleton
+                value={totalTopShotCounts}
+                className="text-xl font-semibold text-white m-0"
+                skeletonWidth="w-16"
+                skeletonHeight="h-7"
+              />
+            </div>
           </div>
-          {/* Right Column: Tier Breakdown (70% width) */}
+          {/* Right Column: Tier Breakdown */}
           {totalTopShotCounts > 0 &&
             Object.keys(aggregatedBreakdown).length > 0 && (
-              <div className="w-[70%] pl-2">
+              <div className="w-2/3 pl-4">
                 {renderBreakdownVertical(aggregatedBreakdown)}
               </div>
             )}
@@ -178,53 +204,67 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       </div>
 
       {/* Individual Accounts Section */}
-      <div className="px-4 pb-4">
-        <div className="space-y-3">
-          {allAccounts.map((account) => (
-            <div
-              key={account.address}
-              className="bg-gray-700 rounded-lg p-3 hover:bg-gray-650 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h5 className="text-lg font-medium text-white">
-                  {account.label}
-                </h5>
-                <button
-                  onClick={() => handleCopyAddress(account.address)}
-                  className="text-xs text-gray-400 hover:text-white flex items-center"
-                >
-                  <span className="truncate max-w-[140px]">
-                    {account.address}
-                  </span>
-                  <FaClipboard className="ml-2" />
-                </button>
-              </div>
-              <div className="bg-gray-800 p-3 rounded-lg mb-2">
-                <div className="flex">
-                  {/* Left Column: Account Totals (30% width) */}
-                  <div className="w-[30%]">
-                    <p className="text-xs text-gray-400 mb-1">Flow Balance</p>
-                    <p className="text-sm font-semibold text-white">
-                      {parseFloat(account.flowBalance || 0).toFixed(2)}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-3 mb-1">
-                      TopShot Total
-                    </p>
-                    <p className="text-sm font-semibold text-white">
-                      {account.topShotCount}
-                    </p>
-                  </div>
-                  {/* Right Column: Account Tier Breakdown (70% width) */}
-                  {account.topShotCount > 0 &&
-                    Object.keys(account.breakdown).length > 0 && (
-                      <div className="w-[70%] pl-2">
+      <div className="pb-0">
+        <div className="divide-y divide-gray-700">
+          {allAccounts.map((account) => {
+            const hasBreakdown =
+              account.topShotCount > 0 &&
+              Object.keys(account.breakdown).length > 0;
+            return (
+              <div
+                key={account.address}
+                className="w-full hover:shadow-xl transition-shadow"
+              >
+                {/* Title Row with darker background */}
+                <div className="bg-gray-900 px-2 py-1 flex justify-between items-center">
+                  <h5 className="text-base md:text-lg font-medium text-white m-0">
+                    {account.label}
+                  </h5>
+                  <button
+                    onClick={() => handleCopyAddress(account.address)}
+                    className="text-xs text-gray-400 hover:text-white flex items-center"
+                  >
+                    <span className="truncate max-w-[140px]">
+                      {account.address}
+                    </span>
+                    <FaClipboard className="ml-2" />
+                  </button>
+                </div>
+                {/* Details Section with background matching the portfolio summary */}
+                <div className="bg-gray-800 px-2 py-2 w-full">
+                  <div className="flex w-full">
+                    {/* Left Column: Flow and TopShot Data */}
+                    <div className="w-1/3">
+                      <div>
+                        <p className="text-sm text-gray-400 m-0">Flow</p>
+                        <ValueOrSkeleton
+                          value={parseFloat(account.flowBalance).toFixed(2)}
+                          className="text-xl font-semibold text-white m-0"
+                          skeletonWidth="w-24"
+                          skeletonHeight="h-7"
+                        />
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-400 m-0">TopShot</p>
+                        <ValueOrSkeleton
+                          value={account.topShotCount}
+                          className="text-xl font-semibold text-white m-0"
+                          skeletonWidth="w-16"
+                          skeletonHeight="h-7"
+                        />
+                      </div>
+                    </div>
+                    {/* Right Column: Tier Breakdown */}
+                    {hasBreakdown && (
+                      <div className="w-2/3 pl-4">
                         {renderBreakdownVertical(account.breakdown)}
                       </div>
                     )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

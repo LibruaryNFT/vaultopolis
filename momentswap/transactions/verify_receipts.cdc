@@ -4,7 +4,7 @@ transaction {
 
     prepare(signer: auth(Storage) &Account) {
         // Hardcoded storage path based on the contract address
-        let receiptStoragePath = /storage/MomentSwapReceipt_0xf8d6e0586b0a20c7
+        let receiptStoragePath = /storage/TSHOTReceipt_0xf8d6e0586b0a20c7
 
         // Borrow the Receipt from the user's storage using the hardcoded path
         let receiptRef = signer.storage.borrow<&MomentSwapTSHOT.Receipt>(from: receiptStoragePath)

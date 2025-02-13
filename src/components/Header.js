@@ -1,20 +1,14 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useRef } from "react";
 import { UserContext } from "./UserContext";
 import { Link, useLocation } from "react-router-dom";
 import DropdownMenu from "./DropdownMenu";
-import {
-  FaUserCircle,
-  FaBars,
-  FaChevronDown,
-  FaChevronRight,
-} from "react-icons/fa";
+import { FaUserCircle, FaBars } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 const Header = () => {
-  const { user, selectedAccount, accountData } = useContext(UserContext);
+  const { user, selectedAccount } = useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isStakingOpen, setIsStakingOpen] = useState(false);
   const location = useLocation();
   const buttonRef = useRef(null);
 
@@ -22,7 +16,6 @@ const Header = () => {
 
   const toggleMenu = () => setIsMenuOpen((prev) => !prev);
   const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
-  const toggleStaking = () => setIsStakingOpen((prev) => !prev);
 
   const connectWallet = () => {
     fcl.authenticate();
@@ -30,26 +23,36 @@ const Header = () => {
 
   return (
     <header className="bg-transparent text-white py-4 w-full relative z-50">
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="flex-shrink-0">
-          <img
-            src="https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
-            alt="Vaultopolis Logo"
-            className="max-h-8"
-          />
-        </Link>
+      <div className="max-w-7xl mx-auto px-2 md:px-4 flex items-center justify-between">
+        {/* Left container: Hamburger icon and Logo */}
+        <div className="flex items-center">
+          {/* Mobile Hamburger Icon (visible on mobile only) */}
+          <button
+            onClick={toggleMobileMenu}
+            className="md:hidden focus:outline-none"
+          >
+            <FaBars size={20} />
+          </button>
+          {/* Logo (visible on screens per your config; appears next to hamburger) */}
+          <Link to="/" className="hidden xs:block ml-2">
+            <img
+              src="https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
+              alt="Vaultopolis Logo"
+              className="max-h-8"
+            />
+          </Link>
+        </div>
 
-        {/* Desktop Navigation Links */}
+        {/* Desktop Navigation Links (centered) */}
         <nav className="hidden md:flex items-center space-x-2 flex-grow justify-center max-w-2xl">
           <div className="flex items-center space-x-2">
             <NavLink to="/sell" isActive={location.pathname === "/sell"}>
-              Sell
+              Exchange
             </NavLink>
           </div>
         </nav>
 
-        {/* User Profile/Connect Button and Mobile Menu Button */}
+        {/* Right container: User Profile/Connect Button */}
         <div className="flex items-center space-x-4">
           {user.loggedIn ? (
             <div className="relative">
@@ -73,31 +76,23 @@ const Header = () => {
               Connect
             </button>
           )}
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={toggleMobileMenu}
-            className="md:hidden focus:outline-none"
-          >
-            <FaBars size={20} />
-          </button>
         </div>
-
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className="absolute top-16 left-0 w-full bg-gray-800 text-white md:hidden">
-            <div className="flex flex-col divide-y divide-gray-700">
-              <MobileNavLink
-                to="/sell"
-                isActive={location.pathname === "/sell"}
-                onClick={toggleMobileMenu}
-              >
-                Sell
-              </MobileNavLink>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Mobile Navigation Menu */}
+      {isMobileMenuOpen && (
+        <div className="absolute top-16 left-0 w-full bg-gray-800 text-white md:hidden">
+          <div className="flex flex-col divide-y divide-gray-700">
+            <MobileNavLink
+              to="/sell"
+              isActive={location.pathname === "/sell"}
+              onClick={toggleMobileMenu}
+            >
+              Exchange
+            </MobileNavLink>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

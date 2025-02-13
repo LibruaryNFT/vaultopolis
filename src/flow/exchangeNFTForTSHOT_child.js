@@ -1,10 +1,17 @@
 export const exchangeNFTForTSHOT_child = `
-import MomentSwapTSHOT from 0x332ffc0ae9bba9c1
-import NonFungibleToken from 0x631e88ae7f1d7c20
-import TopShot from 0x332ffc0ae9bba9c1
-import FungibleToken from 0x9a0766d93b6608b7
-import TSHOT from 0x332ffc0ae9bba9c1
-import HybridCustody from 0x294e44e1ec6993c6
+//import MomentSwapTSHOT from 0x332ffc0ae9bba9c1
+//import NonFungibleToken from 0x631e88ae7f1d7c20
+//import TopShot from 0x332ffc0ae9bba9c1
+//import FungibleToken from 0x9a0766d93b6608b7
+//import TSHOT from 0x332ffc0ae9bba9c1
+//import HybridCustody from 0x294e44e1ec6993c6
+
+import TSHOT from 0x05b67ba314000b2d
+import TSHOTExchange from 0x05b67ba314000b2d
+import NonFungibleToken from 0x1d7e57aa55817448
+import TopShot from 0x0b2a3299cc857e29
+import FungibleToken from 0xf233dcee88fe0abe
+import HybridCustody from 0xd8a7e05a7ac670c0
 
 transaction(childAddress: Address, nftIDs: [UInt64]) {
 
@@ -56,8 +63,8 @@ transaction(childAddress: Address, nftIDs: [UInt64]) {
     }
 
     execute {
-        // Call the swapNFTForTSHOT function in the MomentSwap contract
-        MomentSwapTSHOT.swapNFTsForTSHOT(
+        // Call the swapNFTForTSHOT function in the TSHOTExchange contract
+        TSHOTExchange.swapNFTsForTSHOT(
             nftIDs: <-self.nfts,
             address: self.signerAddress
         )

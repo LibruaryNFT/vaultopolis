@@ -1,7 +1,7 @@
 export const isLocked = `
 
-import "TopShot"
-import "TopShotLocking"
+//import "TopShot"
+//import "TopShotLocking"
 
 import TopShot from 0x0b2a3299cc857e29
 import TopShotLocking from 0x0b2a3299cc857e29
