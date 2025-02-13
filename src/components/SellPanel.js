@@ -4,6 +4,7 @@ import NFTToFLOWPanel from "./NFTToFLOWPanel";
 import MomentSelection from "./MomentSelection";
 import TransactionModal from "./TransactionModal";
 import { AnimatePresence } from "framer-motion";
+import SellDashboard from "./SellDashboard";
 
 const SellPanel = () => {
   const [showModal, setShowModal] = useState(false);
@@ -27,6 +28,7 @@ const SellPanel = () => {
 
   return (
     <div className="w-full mx-auto mt-1 flex flex-col items-center space-y-4">
+      <SellDashboard />
       <AnimatePresence>
         {showModal && transactionData.status && (
           <TransactionModal {...transactionData} onClose={handleCloseModal} />

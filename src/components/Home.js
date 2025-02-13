@@ -6,11 +6,7 @@ import SellDashboard from "./SellDashboard";
 
 function Home() {
   return (
-    <div className="w-full flex flex-col items-center py-4 px-2 mt-1">
-      <SellDashboard />
-      <SellPanel />
-      <TransactionModal />
-    </div>
+    <div className="w-full flex flex-col items-center py-4 px-2 mt-1">Home</div>
   );
 }
 

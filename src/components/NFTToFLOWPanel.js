@@ -1,11 +1,11 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import useTransaction from "../hooks/useTransaction";
 import { exchangeNFTForFLOW } from "../flow/exchangeNFTForFLOW";
 import { exchangeNFTForFLOW_child } from "../flow/exchangeNFTForFLOW_child";
 import MomentCard from "./MomentCard";
-import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT"; // Updated import
+import AccountSelection from "./AccountSelection";
 
 const NFTToFLOWPanel = ({ onTransactionStart }) => {
   const {
@@ -16,44 +16,22 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
     selectedNFTs,
     dispatch,
     refreshBalances,
-    refreshAllBalances,
     setSelectedAccount,
     isRefreshing,
     isLoadingChildren,
   } = useContext(UserContext);
 
-  // Use a default value until we fetch the on-chain FLOW per NFT.
-  const [flowPerNFT, setFlowPerNFT] = useState(0.5);
+  // This panel is fixed to NFT-to-FLOW mode.
+  const swapMode = "NFT_TO_FLOW";
+
   const activeAccountAddr = selectedAccount || user?.addr;
   const isParentAccount = selectedAccountType === "parent";
-
   const activeAccountData = isParentAccount
     ? accountData
     : accountData?.childrenData?.find(
         (child) => child?.addr === selectedAccount
       );
   const { nftDetails = [] } = activeAccountData || {};
-
-  // Fetch the current on-chain FLOW per NFT value when the component mounts.
-  useEffect(() => {
-    const fetchFlowPerNFT = async () => {
-      try {
-        const result = await fcl.query({
-          cadence: getFlowPricePerNFT,
-          args: (arg, t) => [],
-        });
-        const price = Number(result);
-        if (!isNaN(price)) {
-          console.log("Fetched flow per NFT:", price);
-          setFlowPerNFT(price);
-        }
-      } catch (error) {
-        console.error("Error fetching onchain Flow per NFT:", error);
-      }
-    };
-
-    fetchFlowPerNFT();
-  }, []);
 
   const handleManualRefresh = async () => {
     if (!activeAccountAddr) return;
@@ -79,7 +57,7 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
     }
 
     const nftCount = selectedNFTs.length;
-    const flowAmount = nftCount * flowPerNFT;
+    // Remove any FLOW conversion calculations since it's handled elsewhere.
     const cadenceScript = isParentAccount
       ? exchangeNFTForFLOW
       : exchangeNFTForFLOW_child;
@@ -90,14 +68,12 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
         txId: null,
         error: null,
         nftCount,
-        flowAmount,
-        swapType: "NFT_TO_FLOW",
+        swapType: swapMode,
       });
 
       console.log("Sending transaction with details:", {
         nftCount,
-        flowAmount,
-        swapType: "NFT_TO_FLOW",
+        swapType: swapMode,
       });
 
       await sendTransaction({
@@ -115,8 +91,7 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
           onTransactionStart?.({
             ...transactionData,
             nftCount,
-            flowAmount,
-            swapType: "NFT_TO_FLOW",
+            swapType: swapMode,
           });
         },
       });
@@ -128,11 +103,7 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
       console.log("Refreshing parent's account:", user.addr);
       await refreshBalances(user.addr);
       console.log("Parent account refreshed.");
-      if (
-        accountData &&
-        accountData.childrenData &&
-        accountData.childrenData.length > 0
-      ) {
+      if (accountData?.childrenData?.length > 0) {
         console.log("Refreshing children accounts...");
         await Promise.all(
           accountData.childrenData.map((child) => {
@@ -146,68 +117,6 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
     } catch (error) {
       console.error("Transaction failed:", error);
     }
-  };
-
-  // Render account box function.
-  // This shows the account info and a breakdown of tier counts with colour.
-  const tierTextColors = {
-    common: "text-gray-400",
-    rare: "text-blue-500",
-    fandom: "text-lime-400",
-    legendary: "text-orange-500",
-    ultimate: "text-pink-500",
-  };
-
-  const renderAccountBox = (label, accountAddr, data, isSelected) => {
-    const { flowBalance = 0, nftDetails = [] } = data || {};
-
-    const tierCounts = nftDetails.reduce((acc, nft) => {
-      const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
-      acc[tier] = (acc[tier] || 0) + 1;
-      return acc;
-    }, {});
-
-    return (
-      <div
-        key={accountAddr}
-        onClick={() => setSelectedAccount(accountAddr)}
-        className={`p-4 w-full sm:w-60 flex-shrink-0 text-left rounded-lg border-2 ${
-          isSelected
-            ? "border-opolis bg-gray-700"
-            : "border-gray-500 bg-gray-700"
-        } cursor-pointer hover:bg-gray-800 transition-all`}
-      >
-        <div className="mb-2">
-          <h4
-            className={`text-sm font-semibold ${
-              isSelected ? "text-green-400" : "text-white"
-            }`}
-          >
-            {label}
-          </h4>
-          <p className="text-xs text-gray-400 truncate">{accountAddr}</p>
-        </div>
-        <div className="mt-2">
-          <p className="text-sm text-gray-300">
-            <span className="font-bold text-white">
-              {parseFloat(flowBalance).toFixed(2)}
-            </span>{" "}
-            $FLOW
-          </p>
-          {Object.entries(tierCounts).map(([tier, count]) => (
-            <p key={tier} className="text-sm">
-              <span className="font-bold text-white">{count}</span>{" "}
-              <span className={tierTextColors[tier.toLowerCase()]}>
-                {tier.charAt(0).toUpperCase() + tier.slice(1)}
-              </span>{" "}
-              <span className="text-gray-400">
-                {count === 1 ? "Moment" : "Moments"}
-              </span>
-            </p>
-          ))}
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -239,8 +148,9 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
       {/* Receive Section */}
       <div className="bg-gray-700 p-4 rounded-lg flex flex-col items-start w-full">
         <div className="text-white text-sm font-semibold mb-2">Receive</div>
+        {/* For now, we assume a 1:1 conversion. Update this if necessary. */}
         <p className="text-2xl font-bold text-white">
-          {(selectedNFTs.length * flowPerNFT).toFixed(1)} FLOW
+          {selectedNFTs.length} FLOW
         </p>
       </div>
 
@@ -254,58 +164,20 @@ const NFTToFLOWPanel = ({ onTransactionStart }) => {
         }`}
         disabled={selectedNFTs.length === 0}
       >
-        {user.loggedIn ? "Sell" : "Connect Wallet"}
+        {user.loggedIn ? "Swap" : "Connect Wallet"}
       </button>
 
-      {/* Account and Collection Section */}
+      {/* Account Selection Section */}
       {user.loggedIn && (
-        <div>
-          <div className="flex flex-col space-y-1">
-            <h3 className="text-lg font-semibold text-white">
-              Account and Moment Selection
-            </h3>
-            <div className="flex items-center text-white">
-              <button
-                onClick={handleManualRefresh}
-                disabled={isRefreshing}
-                className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
-                  isRefreshing
-                    ? "bg-gray-700 cursor-not-allowed"
-                    : "bg-gray-700 hover:bg-gray-800"
-                }`}
-              >
-                <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
-                {isRefreshing ? "Refreshing..." : "Refresh Collection"}
-              </button>
-            </div>
-            <p className="text-sm text-yellow-400">
-              Note: FLOW will always be deposited to the parent account.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {renderAccountBox(
-              "Parent Account",
-              user?.addr,
-              accountData,
-              activeAccountAddr === user?.addr
-            )}
-            {isLoadingChildren ? (
-              <div className="flex items-center justify-center p-4">
-                <span className="animate-spin mr-2">⟳</span>
-                Loading children...
-              </div>
-            ) : (
-              accountData.childrenData.map((child) =>
-                renderAccountBox(
-                  "Child Account",
-                  child.addr,
-                  child,
-                  activeAccountAddr === child.addr
-                )
-              )
-            )}
-          </div>
-        </div>
+        <AccountSelection
+          parentAccount={{ addr: user.addr, ...accountData }}
+          childrenAccounts={accountData.childrenData || []}
+          selectedAccount={activeAccountAddr}
+          onSelectAccount={setSelectedAccount}
+          onRefresh={handleManualRefresh}
+          isRefreshing={isRefreshing}
+          isLoadingChildren={isLoadingChildren}
+        />
       )}
     </div>
   );

@@ -1,10 +1,4 @@
 export const exchangeNFTForTSHOT_child = `
-//import MomentSwapTSHOT from 0x332ffc0ae9bba9c1
-//import NonFungibleToken from 0x631e88ae7f1d7c20
-//import TopShot from 0x332ffc0ae9bba9c1
-//import FungibleToken from 0x9a0766d93b6608b7
-//import TSHOT from 0x332ffc0ae9bba9c1
-//import HybridCustody from 0x294e44e1ec6993c6
 
 import TSHOT from 0x05b67ba314000b2d
 import TSHOTExchange from 0x05b67ba314000b2d
@@ -17,14 +11,36 @@ transaction(childAddress: Address, nftIDs: [UInt64]) {
 
     let nfts: @[TopShot.NFT]
     let signerAddress: Address
-    let provider: auth(NonFungibleToken.Withdraw) &{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}
+    let provider: auth(NonFungibleToken.Withdraw) & {NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}
 
-    prepare(signer: auth(Storage, Capabilities) &Account) {
-        // Store the signer's address for use in the execute phase
+    prepare(signer: auth(Storage, Capabilities) & Account) {
+        // Store the signer's (parent's) address for use in the execute phase
         self.signerAddress = signer.address
 
-        // Get a reference to the signer's HybridCustody.Manager from storage with Storage authorization
-        let managerRef = signer.storage.borrow<auth(HybridCustody.Manage) &HybridCustody.Manager>(
+        // --- Setup TSHOT Vault on the parent (signer) if not already set up ---
+        let tokenVaultPath = /storage/TSHOTTokenVault
+        let tokenReceiverPath = /public/TSHOTTokenReceiver
+        let tokenBalancePath = /public/TSHOTTokenBalance
+
+        if signer.storage.borrow<&TSHOT.Vault>(from: tokenVaultPath) == nil {
+            // Create a new empty Vault for TSHOT
+            let vault <- TSHOT.createEmptyVault(vaultType: Type<@TSHOT.Vault>())
+            // Save the Vault in the parent's storage
+            signer.storage.save(<-vault, to: tokenVaultPath)
+            // Publish the public capability for the receiver
+            let receiverCap = signer.capabilities.storage.issue<&{FungibleToken.Receiver}>(tokenVaultPath)
+            signer.capabilities.publish(receiverCap, at: tokenReceiverPath)
+            // Publish the public capability for the balance
+            let balanceCap = signer.capabilities.storage.issue<&{FungibleToken.Balance}>(tokenVaultPath)
+            signer.capabilities.publish(balanceCap, at: tokenBalancePath)
+            log("Parent account vault setup complete.")
+        } else {
+            log("Parent account vault already exists.")
+        }
+        // ---------------------------------------------------------------------
+
+        // Get a reference to the signer's HybridCustody.Manager from storage
+        let managerRef = signer.storage.borrow<auth(HybridCustody.Manage) & HybridCustody.Manager>(
             from: HybridCustody.ManagerStoragePath
         ) ?? panic("Could not borrow reference to HybridCustody.Manager!")
 
@@ -32,9 +48,9 @@ transaction(childAddress: Address, nftIDs: [UInt64]) {
         let childAccount = managerRef.borrowAccount(addr: childAddress)
             ?? panic("Signer does not have access to specified child account")
 
-        let capType = Type<auth(NonFungibleToken.Withdraw) &{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>()
+        let capType = Type<auth(NonFungibleToken.Withdraw) & {NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>()
 
-        // Determine the controller ID for the TopShot collection capability
+        // Determine the controller ID for the TopShot collection capability in the child account
         let controllerID = childAccount.getControllerIDForType(
             type: capType,
             forPath: /storage/MomentCollection
@@ -46,8 +62,7 @@ transaction(childAddress: Address, nftIDs: [UInt64]) {
             type: capType
         ) ?? panic("Could not get capability for the child's TopShot collection")
 
-        let providerCap = cap as! Capability<auth(NonFungibleToken.Withdraw) &{NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>
-
+        let providerCap = cap as! Capability<auth(NonFungibleToken.Withdraw) & {NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}>
         assert(providerCap.check(), message: "invalid provider capability")
 
         self.provider = providerCap.borrow()!
@@ -63,12 +78,12 @@ transaction(childAddress: Address, nftIDs: [UInt64]) {
     }
 
     execute {
-        // Call the swapNFTForTSHOT function in the TSHOTExchange contract
+        // Call the swapNFTsForTSHOT function in the TSHOTExchange contract,
+        // passing the withdrawn NFTs and the parent's address.
         TSHOTExchange.swapNFTsForTSHOT(
             nftIDs: <-self.nfts,
             address: self.signerAddress
         )
     }
 }
-
 `;

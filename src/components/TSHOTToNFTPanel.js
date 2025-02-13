@@ -5,15 +5,19 @@ import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import useTransaction from "../hooks/useTransaction";
 import { getReceiptDetails } from "../flow/getReceiptDetails";
+import AccountSelection from "./AccountSelection"; // Import the AccountSelection component
 
 const TSHOTToNFTPanel = ({
   isNFTToTSHOT,
   setIsNFTToTSHOT,
   onTransactionStart,
 }) => {
-  const { accountData, selectedAccount, user } = useContext(UserContext);
+  const { accountData, selectedAccount, user, setSelectedAccount } =
+    useContext(UserContext);
 
+  // Use the selectedAccount from context or default to the parent's address
   const activeAccountAddr = selectedAccount || accountData.parentAddress;
+
   const {
     tshotBalance = 0,
     childrenData = [],
@@ -29,7 +33,7 @@ const TSHOTToNFTPanel = ({
 
   useEffect(() => {
     const fetchBetAmount = async () => {
-      if (hasReceipt) {
+      if (hasReceipt && activeAccountAddr) {
         try {
           const result = await fcl.query({
             cadence: getReceiptDetails,
@@ -180,6 +184,16 @@ const TSHOTToNFTPanel = ({
         </span>
       </div>
 
+      {/* Account Selection Section */}
+      {user.loggedIn && (
+        <AccountSelection
+          parentAccount={{ addr: accountData.parentAddress, ...accountData }}
+          childrenAccounts={childrenData || []}
+          selectedAccount={activeAccountAddr}
+          onSelectAccount={setSelectedAccount}
+        />
+      )}
+
       {/* Step 1: Deposit $TSHOT */}
       <div
         className={`relative flex flex-col items-start bg-gray-800 p-4 rounded-lg ${
@@ -194,20 +208,20 @@ const TSHOTToNFTPanel = ({
           </div>
         )}
         <h3 className="text-lg font-semibold text-white mb-2">
-          Step 1: Deposit $TSHOT
+          Step 1: Deposit $TSHOT (from {activeAccountAddr})
         </h3>
         <div className="flex items-center">
           <input
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
-            value={tshotAmount || 0} // Default to 0 when tshotAmount is falsy
+            value={tshotAmount || 0}
             onChange={(e) => {
               const value = e.target.value;
               if (/^\d+$/.test(value)) {
-                setTshotAmount(parseInt(value, 10) || 0); // Update value if it's a number
+                setTshotAmount(parseInt(value, 10) || 0);
               } else if (value === "") {
-                setTshotAmount(0); // Prevent deletion, revert to 0
+                setTshotAmount(0);
               }
             }}
             className="text-2xl font-bold bg-gray-700 text-white rounded-lg text-center px-2 py-1 mr-2 appearance-none focus:outline-none"

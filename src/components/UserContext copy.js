@@ -6,7 +6,6 @@ import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
-import { getReceiptDetails } from "../flow/getReceiptDetails"; // NEW: import receipt details cadence script
 import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
 import { getChildren } from "../flow/getChildren";
 import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT"; // Import cadence script for FLOW per NFT
@@ -42,11 +41,8 @@ const initialState = {
     parentAddress: null,
     nftDetails: [],
     flowBalance: null,
-    tshotBalance: null, // TSHOT balance for the parent
+    tshotBalance: null, // TSHot balance for the parent
     hasCollection: null,
-    // NEW: Add receipt details and flag
-    receiptDetails: {},
-    hasReceipt: null,
     hasChildren: false,
     childrenData: [],
     childrenAddresses: [],
@@ -110,7 +106,7 @@ function userReducer(state, action) {
           childrenAddresses: action.payload,
         },
       };
-    case "SET_FLOW_PRICE_PER_NFT":
+    case "SET_FLOW_PRICE_PER_NFT": // New action to store FLOW price per NFT
       return { ...state, flowPricePerNFT: action.payload };
     default:
       return state;
@@ -161,7 +157,7 @@ export const UserProvider = ({ children }) => {
 
   const fetchTopShotCollection = async (address) => {
     if (!address || !address.startsWith("0x"))
-      return { hasCollection: false, details: [], tierCounts: {} };
+      return { hasCollection: false, details: [] };
 
     try {
       const hasCollection = await fcl.query({
@@ -169,7 +165,7 @@ export const UserProvider = ({ children }) => {
         args: (arg, t) => [arg(address, t.Address)],
       });
       if (!hasCollection) {
-        return { hasCollection: false, details: [], tierCounts: {} };
+        return { hasCollection: false, details: [] };
       }
 
       const ids = await fcl.query({
@@ -178,7 +174,7 @@ export const UserProvider = ({ children }) => {
       });
 
       if (!ids || ids.length === 0) {
-        return { hasCollection: true, details: [], tierCounts: {} };
+        return { hasCollection: true, details: [] };
       }
 
       const batchSize = 2500;
@@ -219,20 +215,10 @@ export const UserProvider = ({ children }) => {
         details,
         effectiveMetadata
       );
-
-      // Calculate tierCounts based on enriched details
-      const tierCounts = enrichedDetails.reduce((counts, nft) => {
-        const tier = nft.tier?.toLowerCase();
-        if (tier) {
-          counts[tier] = (counts[tier] || 0) + 1;
-        }
-        return counts;
-      }, {});
-
-      return { hasCollection: true, details: enrichedDetails, tierCounts };
+      return { hasCollection: true, details: enrichedDetails };
     } catch (error) {
       console.error(`Error fetching collection for ${address}:`, error);
-      return { hasCollection: false, details: [], tierCounts: {} };
+      return { hasCollection: false, details: [] };
     }
   };
 
@@ -251,6 +237,7 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  // New: Fetch TSHot balance
   const fetchTSHOTBalance = async (address) => {
     try {
       const balance = await fcl.query({
@@ -260,29 +247,13 @@ export const UserProvider = ({ children }) => {
       return balance;
     } catch (error) {
       console.error(
-        `Error fetching TSHOT balance for ${address}: ${error.message}`
+        `Error fetching TSHot balance for ${address}: ${error.message}`
       );
       return state.accountData.tshotBalance || 0;
     }
   };
 
-  // NEW: Fetch receipt details
-  const fetchReceiptDetails = async (address) => {
-    try {
-      const receiptDetails = await fcl.query({
-        cadence: getReceiptDetails,
-        args: (arg, t) => [arg(address, t.Address)],
-      });
-      return receiptDetails;
-    } catch (error) {
-      console.error(
-        `Error fetching receipt details for ${address}: ${error.message}`
-      );
-      return {};
-    }
-  };
-
-  // Refresh functions for balances and collection
+  // Separate refresh functions for FLOW balance and NFT collection
   const refreshFLOWBalanceOnly = async (address) => {
     if (!address || !address.startsWith("0x")) return;
     try {
@@ -306,6 +277,7 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  // New: Refresh TSHot balance only
   const refreshTSHOTBalanceOnly = async (address) => {
     if (!address || !address.startsWith("0x")) return;
     try {
@@ -325,7 +297,7 @@ export const UserProvider = ({ children }) => {
         dispatch({ type: "SET_CHILDREN_DATA", payload: updatedChildrenData });
       }
     } catch (error) {
-      console.error("Error refreshing TSHOT balance for", address, error);
+      console.error("Error refreshing TSHot balance for", address, error);
     }
   };
 
@@ -342,7 +314,6 @@ export const UserProvider = ({ children }) => {
           payload: {
             nftDetails: collectionData.details || [],
             hasCollection: collectionData.hasCollection,
-            tierCounts: collectionData.tierCounts || {},
           },
         });
       } else {
@@ -353,7 +324,6 @@ export const UserProvider = ({ children }) => {
                   ...child,
                   nftDetails: collectionData.details || [],
                   hasCollection: collectionData.hasCollection,
-                  tierCounts: collectionData.tierCounts || {},
                 }
               : child
         );
@@ -366,46 +336,15 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Main refresh function that now also refreshes receipt details
+  // Main refresh function that can be used to refresh all balances and collection
   const refreshBalances = async (address) => {
     if (!address || !address.startsWith("0x")) return;
     dispatch({ type: "SET_REFRESHING_STATE", payload: true });
     try {
-      // Refresh collection and receipt details concurrently
-      const [collectionResult, receiptResult] = await Promise.allSettled([
-        fetchTopShotCollection(address),
-        fetchReceiptDetails(address),
-      ]);
-
-      const updates = {};
-      if (collectionResult.status === "fulfilled") {
-        updates.nftDetails = collectionResult.value.details || [];
-        updates.hasCollection = collectionResult.value.hasCollection;
-        updates.tierCounts = collectionResult.value.tierCounts || {};
-      }
-      if (receiptResult.status === "fulfilled") {
-        updates.receiptDetails = receiptResult.value;
-        updates.hasReceipt =
-          receiptResult.value && receiptResult.value.betAmount > 0;
-      }
-
-      const isParent = state.accountData.parentAddress === address;
-      if (isParent) {
-        dispatch({
-          type: "SET_ACCOUNT_DATA",
-          payload: updates,
-        });
-      } else {
-        const updatedChildrenData = state.accountData.childrenData.map(
-          (child) => (child.addr === address ? { ...child, ...updates } : child)
-        );
-        dispatch({ type: "SET_CHILDREN_DATA", payload: updatedChildrenData });
-      }
-
-      // Also refresh balances
       await Promise.all([
         refreshFLOWBalanceOnly(address),
         refreshTSHOTBalanceOnly(address),
+        refreshNFTCollectionOnly(address),
       ]);
     } catch (error) {
       console.error("Error refreshing data for", address, error);
@@ -418,13 +357,11 @@ export const UserProvider = ({ children }) => {
     if (!address || !address.startsWith("0x")) return;
     try {
       dispatch({ type: "SET_REFRESHING_STATE", payload: true });
-      const [flowBalance, tshotBalance, collectionData, receiptDetails] =
-        await Promise.all([
-          fetchFLOWBalance(address),
-          fetchTSHOTBalance(address),
-          fetchTopShotCollection(address),
-          fetchReceiptDetails(address),
-        ]);
+      const [flowBalance, tshotBalance, collectionData] = await Promise.all([
+        fetchFLOWBalance(address),
+        fetchTSHOTBalance(address),
+        fetchTopShotCollection(address),
+      ]);
       dispatch({
         type: "SET_ACCOUNT_DATA",
         payload: {
@@ -433,9 +370,6 @@ export const UserProvider = ({ children }) => {
           tshotBalance,
           nftDetails: collectionData.details || [],
           hasCollection: collectionData.hasCollection,
-          tierCounts: collectionData.tierCounts || {},
-          receiptDetails,
-          hasReceipt: receiptDetails && receiptDetails.betAmount > 0,
         },
       });
     } catch (error) {
@@ -449,22 +383,19 @@ export const UserProvider = ({ children }) => {
     try {
       const childrenData = await Promise.all(
         childrenAddresses.map(async (childAddr) => {
-          const [flowBalance, tshotBalance, collectionData, receiptDetails] =
-            await Promise.all([
+          const [flowBalance, tshotBalance, collectionData] = await Promise.all(
+            [
               fetchFLOWBalance(childAddr),
               fetchTSHOTBalance(childAddr),
               fetchTopShotCollection(childAddr),
-              fetchReceiptDetails(childAddr),
-            ]);
+            ]
+          );
           return {
             addr: childAddr,
             flowBalance,
             tshotBalance,
             nftDetails: collectionData.details || [],
             hasCollection: collectionData.hasCollection,
-            tierCounts: collectionData.tierCounts || {},
-            receiptDetails,
-            hasReceipt: receiptDetails && receiptDetails.betAmount > 0,
           };
         })
       );
@@ -510,10 +441,12 @@ export const UserProvider = ({ children }) => {
     }
   };
 
+  // Effect for loading metadata on mount
   useEffect(() => {
     loadTopShotMetadata();
   }, []);
 
+  // New: Effect to load FLOW price per NFT on mount
   useEffect(() => {
     const loadFlowPrice = async () => {
       try {
@@ -529,6 +462,7 @@ export const UserProvider = ({ children }) => {
     loadFlowPrice();
   }, []);
 
+  // Effect for FCL authentication subscription
   useEffect(() => {
     const userUnsubscribe = fcl.currentUser.subscribe(async (currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
@@ -545,6 +479,7 @@ export const UserProvider = ({ children }) => {
     };
   }, []);
 
+  // Effect for polling FLOW and TSHot balances (not NFTs)
   useEffect(() => {
     if (state.user && state.user.addr) {
       console.log("Starting polling for balance refresh...");
@@ -563,7 +498,7 @@ export const UserProvider = ({ children }) => {
             refreshTSHOTBalanceOnly(addr);
           });
         }
-      }, 30000);
+      }, 30000); // Poll every 30 seconds for balances only
 
       return () => {
         clearInterval(intervalId);
@@ -572,6 +507,7 @@ export const UserProvider = ({ children }) => {
     }
   }, [state.user, state.accountData.childrenAddresses]);
 
+  // Development logging
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
       console.log("UserContext State:", state);

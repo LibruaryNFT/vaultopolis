@@ -9,7 +9,8 @@ import Admin from "./components/Admin";
 import TermsAndService from "./components/TermsAndPrivacy";
 import Footer from "./components/Footer";
 import Layout from "./components/Layout";
-import Sell from "./components/Sell";
+import SellPanel from "./components/SellPanel";
+import ExchangePanel from "./components/ExchangePanel";
 import Swap from "./components/Swap";
 
 // Enforce HTTPS only in production
@@ -37,15 +38,15 @@ const router = createBrowserRouter(
       path: "/sell",
       element: (
         <Layout>
-          <Sell />
+          <SellPanel />
         </Layout>
       ),
     },
     {
-      path: "/swap",
+      path: "/exchange",
       element: (
         <Layout>
-          <Swap />
+          <ExchangePanel />
         </Layout>
       ),
     },

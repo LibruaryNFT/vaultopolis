@@ -1,10 +1,18 @@
-import React, { useContext, useEffect, useRef } from "react"; // Add useRef
+import React, { useContext, useEffect, useRef } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import useTransaction from "../hooks/useTransaction";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 import { exchangeNFTForTSHOT_child } from "../flow/exchangeNFTForTSHOT_child";
 import MomentCard from "./MomentCard";
+
+const tierTextColors = {
+  common: "text-gray-400",
+  rare: "text-blue-500",
+  fandom: "text-lime-400",
+  legendary: "text-orange-500",
+  ultimate: "text-pink-500",
+};
 
 const NFTToTSHOTPanel = ({
   isNFTToTSHOT,
@@ -20,34 +28,35 @@ const NFTToTSHOTPanel = ({
     dispatch,
     refreshBalances,
     setSelectedAccount,
-    isRefreshing, // Add this from updated context
+    isRefreshing,
   } = useContext(UserContext);
 
-  const prevAddrRef = useRef(null); // Add ref for tracking previous address
+  // useRef to track changes in active account
+  const prevAddrRef = useRef(null);
   const activeAccountAddr = selectedAccount || user?.addr;
   const isParentAccount = selectedAccountType === "parent";
 
+  // Retrieve active account data (for parent or child)
   const activeAccountData = isParentAccount
     ? accountData
-    : accountData.childrenData.find((child) => child.addr === selectedAccount);
+    : accountData?.childrenData?.find(
+        (child) => child.addr === selectedAccount
+      );
 
-  const {
-    nftDetails = [],
-    tierCounts = {},
-    tshotBalance = 0,
-  } = activeAccountData || {};
+  // Destructure NFT details and TSHOT balance from the active account data
+  const { nftDetails = [], tshotBalance = 0 } = activeAccountData || {};
 
-  // Updated effect to use ref and prevent unnecessary refreshes
+  // Refresh balances when the active account changes
   useEffect(() => {
     if (activeAccountAddr) {
       const prevAddr = prevAddrRef.current;
       if (prevAddr !== activeAccountAddr) {
         dispatch({ type: "RESET_SELECTED_NFTS" });
-        refreshBalances(activeAccountAddr);
+        //refreshBalances(activeAccountAddr);
         prevAddrRef.current = activeAccountAddr;
       }
     }
-  }, [activeAccountAddr]);
+  }, [activeAccountAddr, dispatch, refreshBalances]);
 
   const handleMomentClick = (momentId) => {
     dispatch({ type: "SET_SELECTED_NFTS", payload: momentId });
@@ -65,14 +74,14 @@ const NFTToTSHOTPanel = ({
       fcl.authenticate();
       return;
     }
-
     if (selectedNFTs.length === 0) {
       alert("No NFTs selected for exchange.");
       return;
     }
 
     const nftCount = selectedNFTs.length;
-    const tshotAmount = nftCount;
+    const tshotAmount = nftCount; // Assume a 1:1 conversion
+
     const cadenceScript =
       selectedAccountType === "child"
         ? exchangeNFTForTSHOT_child
@@ -115,19 +124,20 @@ const NFTToTSHOTPanel = ({
     }
   };
 
+  // Render an account box using only the account's own data.
   const renderAccountBox = (label, accountAddr, accountData, isSelected) => {
-    const { tshotBalance = 0, tierCounts = {} } = accountData;
-    const commonMoments = tierCounts.common || 0;
+    const { nftDetails = [], tshotBalance = 0 } = accountData || {};
+    // Compute tier counts from this account's nftDetails
+    const tierCounts = nftDetails.reduce((acc, nft) => {
+      const tier = nft.tier ? nft.tier.toLowerCase() : "common";
+      acc[tier] = (acc[tier] || 0) + 1;
+      return acc;
+    }, {});
 
     return (
       <div
         key={accountAddr}
-        onClick={() =>
-          setSelectedAccount(
-            accountAddr,
-            accountAddr === user.addr ? "parent" : "child"
-          )
-        }
+        onClick={() => setSelectedAccount(accountAddr)}
         className={`p-4 w-full sm:w-60 flex-shrink-0 text-left rounded-lg border-2 ${
           isSelected
             ? "border-green-500 bg-gray-700"
@@ -151,10 +161,18 @@ const NFTToTSHOTPanel = ({
             </span>{" "}
             $TSHOT
           </p>
-          <p className="text-sm text-gray-300">
-            <span className="font-bold text-white">{commonMoments}</span> Common
-            Moments
-          </p>
+          {Object.entries(tierCounts).length > 0 &&
+            Object.entries(tierCounts).map(([tier, count]) => (
+              <p key={tier} className="text-sm">
+                <span className="font-bold text-white">{count}</span>{" "}
+                <span className={tierTextColors[tier] || "text-gray-400"}>
+                  {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                </span>{" "}
+                <span className="text-gray-400">
+                  {count === 1 ? "Moment" : "Moments"}
+                </span>
+              </p>
+            ))}
         </div>
       </div>
     );
