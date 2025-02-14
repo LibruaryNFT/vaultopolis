@@ -1,4 +1,4 @@
-import "MomentSwapTSHOT"
+import "TSHOTExchange"
 
 // Script that retrieves specific fields from the Receipt associated with MomentSwapTSHOT
 access(all) fun main(userAddress: Address): {String: AnyStruct} {
@@ -8,7 +8,7 @@ access(all) fun main(userAddress: Address): {String: AnyStruct} {
     // Try to borrow a reference to the Receipt from the public capability path
     let receiptRef = userAccount
         .capabilities
-        .borrow<&MomentSwapTSHOT.Receipt>(/public/TSHOTReceipt)
+        .borrow<&TSHOTExchange.Receipt>(/public/TSHOTReceipt)
     
     // Check if the Receipt exists and return its fields, otherwise return an empty result
     if let receipt = receiptRef {

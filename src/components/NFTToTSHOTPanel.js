@@ -14,11 +14,7 @@ const tierTextColors = {
   ultimate: "text-pink-500",
 };
 
-const NFTToTSHOTPanel = ({
-  isNFTToTSHOT,
-  setIsNFTToTSHOT,
-  onTransactionStart,
-}) => {
+const NFTToTSHOTPanel = ({ onTransactionStart }) => {
   const {
     user,
     accountData,
@@ -43,7 +39,7 @@ const NFTToTSHOTPanel = ({
         (child) => child.addr === selectedAccount
       );
 
-  // Destructure NFT details and TSHOT balance from the active account data
+  // Destructure Moments details and $TSHOT balance from the active account data
   const { nftDetails = [], tshotBalance = 0 } = activeAccountData || {};
 
   // Refresh balances when the active account changes
@@ -52,11 +48,10 @@ const NFTToTSHOTPanel = ({
       const prevAddr = prevAddrRef.current;
       if (prevAddr !== activeAccountAddr) {
         dispatch({ type: "RESET_SELECTED_NFTS" });
-        //refreshBalances(activeAccountAddr);
         prevAddrRef.current = activeAccountAddr;
       }
     }
-  }, [activeAccountAddr, dispatch, refreshBalances]);
+  }, [activeAccountAddr, dispatch]);
 
   const handleMomentClick = (momentId) => {
     dispatch({ type: "SET_SELECTED_NFTS", payload: momentId });
@@ -75,12 +70,21 @@ const NFTToTSHOTPanel = ({
       return;
     }
     if (selectedNFTs.length === 0) {
-      alert("No NFTs selected for exchange.");
+      alert("No moments selected for exchange.");
       return;
     }
 
-    const nftCount = selectedNFTs.length;
-    const tshotAmount = nftCount; // Assume a 1:1 conversion
+    // Ensure active account address is valid.
+    if (!activeAccountAddr || !activeAccountAddr.startsWith("0x")) {
+      console.error("Invalid active account address:", activeAccountAddr);
+      alert(
+        "Error: Invalid account address. Please log in again or select a valid account."
+      );
+      return;
+    }
+
+    const momentCount = selectedNFTs.length;
+    const tshotAmount = momentCount; // 1:1 conversion
 
     const cadenceScript =
       selectedAccountType === "child"
@@ -92,9 +96,9 @@ const NFTToTSHOTPanel = ({
         status: "Awaiting Approval",
         txId: null,
         error: null,
-        nftCount,
+        nftCount: momentCount,
         tshotAmount,
-        swapType: "NFT_TO_TSHOT",
+        swapType: "MOMENTS_TO_TSHOT",
       });
 
       await sendTransaction({
@@ -110,9 +114,9 @@ const NFTToTSHOTPanel = ({
         onUpdate: (transactionData) => {
           onTransactionStart({
             ...transactionData,
-            nftCount,
+            nftCount: momentCount,
             tshotAmount,
-            swapType: "NFT_TO_TSHOT",
+            swapType: "MOMENTS_TO_TSHOT",
           });
         },
       });
@@ -127,7 +131,7 @@ const NFTToTSHOTPanel = ({
   // Render an account box using only the account's own data.
   const renderAccountBox = (label, accountAddr, accountData, isSelected) => {
     const { nftDetails = [], tshotBalance = 0 } = accountData || {};
-    // Compute tier counts from this account's nftDetails
+    // Compute tier counts from this account's moments (nftDetails)
     const tierCounts = nftDetails.reduce((acc, nft) => {
       const tier = nft.tier ? nft.tier.toLowerCase() : "common";
       acc[tier] = (acc[tier] || 0) + 1;
@@ -180,33 +184,7 @@ const NFTToTSHOTPanel = ({
 
   return (
     <div className="flex flex-col space-y-4">
-      {/* Swap Mode Section */}
-      <div className="flex items-center justify-center space-x-4 mb-4">
-        <span
-          className={`text-gray-400 font-semibold ${
-            isNFTToTSHOT ? "text-white" : ""
-          }`}
-        >
-          Moment to $TSHOT
-        </span>
-        <div
-          className="relative w-12 h-6 bg-gray-700 rounded-full cursor-pointer"
-          onClick={() => setIsNFTToTSHOT(!isNFTToTSHOT)}
-        >
-          <div
-            className={`absolute top-0.5 w-5 h-5 bg-flow-dark rounded-full transition-transform ${
-              isNFTToTSHOT ? "translate-x-0.5" : "translate-x-6"
-            }`}
-          />
-        </div>
-        <span
-          className={`text-gray-400 font-semibold ${
-            !isNFTToTSHOT ? "text-white" : ""
-          }`}
-        >
-          $TSHOT to Moment
-        </span>
-      </div>
+      {/* (Old toggle removed—mode is now controlled externally) */}
 
       {/* Selected Moments Section */}
       <div className="bg-gray-800 p-4 rounded-lg flex flex-col items-start w-full">
@@ -219,12 +197,12 @@ const NFTToTSHOTPanel = ({
         </p>
         {selectedNFTs.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {selectedNFTs.map((nftId) => {
-              const nft = nftDetails.find((item) => item.id === nftId);
+            {selectedNFTs.map((momentId) => {
+              const moment = nftDetails.find((item) => item.id === momentId);
               return (
                 <MomentCard
-                  key={nftId}
-                  nft={nft}
+                  key={momentId}
+                  nft={moment}
                   handleNFTSelection={handleMomentClick}
                   isSelected={true}
                 />
@@ -234,7 +212,7 @@ const NFTToTSHOTPanel = ({
         )}
       </div>
 
-      {/* TSHOT Amount Section */}
+      {/* $TSHOT Amount Section */}
       <div className="bg-gray-800 p-4 rounded-lg flex flex-col items-start w-full">
         <div className="text-white text-sm font-semibold mb-2">Receive</div>
         <p className="text-2xl font-bold text-white">

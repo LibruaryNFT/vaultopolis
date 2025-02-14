@@ -78,9 +78,6 @@ const AccountSelection = ({
   return (
     <div>
       <div className="flex flex-col space-y-1">
-        <h3 className="text-lg font-semibold text-white">
-          Account and Moment Selection
-        </h3>
         <div className="flex items-center text-white">
           <button
             onClick={onRefresh}
