@@ -1,17 +1,15 @@
 import React, { useEffect } from "react";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Navigate,
+} from "react-router-dom";
 import { UserProvider } from "./components/UserContext";
-import Header from "./components/Header";
-import Home from "./components/Home";
 import Vault from "./components/Vault";
 import Earn from "./components/Earn";
-import Admin from "./components/Admin";
 import TermsAndService from "./components/TermsAndPrivacy";
-import Footer from "./components/Footer";
 import Layout from "./components/Layout";
-import SellPanel from "./components/SellPanel";
 import ExchangePanel from "./components/ExchangePanel";
-import Swap from "./components/Swap";
 
 // Enforce HTTPS only in production
 function enforceHTTPS() {
@@ -28,19 +26,7 @@ const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: (
-        <Layout>
-          <Home />
-        </Layout>
-      ),
-    },
-    {
-      path: "/sell",
-      element: (
-        <Layout>
-          <SellPanel />
-        </Layout>
-      ),
+      element: <Navigate to="/exchange" replace />,
     },
     {
       path: "/exchange",
@@ -73,10 +59,6 @@ const router = createBrowserRouter(
           <TermsAndService />
         </Layout>
       ),
-    },
-    {
-      path: "/admin",
-      element: <Admin />,
     },
   ],
   {

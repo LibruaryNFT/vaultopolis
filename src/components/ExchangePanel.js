@@ -1,25 +1,42 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { UserContext } from "./UserContext";
-import NFTToTSHOTPanel from "./NFTToTSHOTPanel"; // Now, Moments → $TSHOT
-import TSHOTToNFTPanel from "./TSHOTToNFTPanel"; // Now, $TSHOT → Moments
-import NFTToFLOWPanel from "./NFTToFLOWPanel"; // Now, Moments → $FLOW
-import MomentSelection from "./MomentSelection";
+import NFTToTSHOTPanel from "./NFTToTSHOTPanel";
+import NFTToFLOWPanel from "./NFTToFLOWPanel";
+import TSHOTToNFTPanel from "./TSHOTToNFTPanel";
 import TransactionModal from "./TransactionModal";
 import { AnimatePresence } from "framer-motion";
 
 const ExchangePanel = () => {
-  // Define swap modes with updated labels.
-  const swapModes = [
-    { key: "MOMENTS_TO_TSHOT", label: "Moments → $TSHOT" },
-    { key: "TSHOT_TO_MOMENTS", label: "$TSHOT → Moments" },
-    { key: "MOMENTS_TO_FLOW", label: "Moments → $FLOW" },
-  ];
+  // Define asset options.
+  const sellOptions = ["TopShot Moments", "TSHOT"];
+  const buyOptionsMap = {
+    "TopShot Moments": ["TSHOT", "FLOW"],
+    TSHOT: ["TopShot Moments"],
+  };
 
-  const [selectedMode, setSelectedMode] = useState(swapModes[0].key);
+  // State for asset selections.
+  const [sellAsset, setSellAsset] = useState("TopShot Moments");
+  const [buyAsset, setBuyAsset] = useState("TSHOT");
+
+  // State for input amounts.
+  const [sellAmount, setSellAmount] = useState(0);
+  const [buyAmount, setBuyAmount] = useState(0);
+
+  // Update buyAmount when sellAmount changes.
+  useEffect(() => {
+    setBuyAmount(sellAmount);
+  }, [sellAmount, sellAsset, buyAsset]);
+
+  // Ensure the buy asset is valid for the chosen sell asset.
+  useEffect(() => {
+    if (!buyOptionsMap[sellAsset].includes(buyAsset)) {
+      setBuyAsset(buyOptionsMap[sellAsset][0]);
+    }
+  }, [sellAsset, buyAsset]);
+
+  // Transaction modal state.
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
-  const { user, selectedAccount } = useContext(UserContext);
-  const isLoggedIn = Boolean(user?.loggedIn);
 
   const handleOpenModal = (data) => {
     setTransactionData(data);
@@ -27,69 +44,149 @@ const ExchangePanel = () => {
   };
 
   const handleCloseModal = () => {
-    setShowModal(false);
     setTransactionData({});
+    setShowModal(false);
   };
 
-  // Render the appropriate panel based on selected mode.
-  const renderPanel = () => {
-    switch (selectedMode) {
-      case "MOMENTS_TO_TSHOT":
-        return (
-          <>
-            <NFTToTSHOTPanel
-              isNFTToTSHOT={true}
-              setIsNFTToTSHOT={() => {}}
-              onTransactionStart={handleOpenModal}
-            />
-            {isLoggedIn && <MomentSelection />}
-          </>
-        );
-      case "TSHOT_TO_MOMENTS":
-        return (
-          <TSHOTToNFTPanel
-            isNFTToTSHOT={false}
-            setIsNFTToTSHOT={() => {}}
-            onTransactionStart={handleOpenModal}
-          />
-        );
-      case "MOMENTS_TO_FLOW":
-        return <NFTToFLOWPanel onTransactionStart={handleOpenModal} />;
-      default:
-        return null;
+  // Get login state.
+  const { user } = useContext(UserContext);
+  const isLoggedIn = Boolean(user?.loggedIn);
+
+  // Render the appropriate swap panel.
+  const renderSwapPanel = () => {
+    if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
+      return (
+        <NFTToTSHOTPanel
+          sellAmount={sellAmount}
+          buyAmount={buyAmount}
+          onTransactionStart={handleOpenModal}
+        />
+      );
+    } else if (sellAsset === "TopShot Moments" && buyAsset === "FLOW") {
+      return (
+        <NFTToFLOWPanel
+          sellAmount={sellAmount}
+          buyAmount={buyAmount}
+          onTransactionStart={handleOpenModal}
+        />
+      );
+    } else if (sellAsset === "TSHOT" && buyAsset === "TopShot Moments") {
+      return (
+        <TSHOTToNFTPanel
+          sellAmount={sellAmount}
+          buyAmount={buyAmount}
+          onTransactionStart={handleOpenModal}
+        />
+      );
+    } else {
+      return (
+        <div className="p-4 text-gray-300">
+          Please select a valid asset pair.
+        </div>
+      );
     }
   };
 
   return (
-    <div className="w-full mx-auto mt-4 flex flex-col items-center space-y-4">
-      {/* Transaction Modal */}
+    <div className="max-w-md mx-auto p-4 bg-gray-700 rounded-lg">
       <AnimatePresence>
         {showModal && transactionData.status && (
           <TransactionModal {...transactionData} onClose={handleCloseModal} />
         )}
       </AnimatePresence>
 
-      {/* Mode Selector */}
-      <div className="w-full md:w-3/4 flex justify-center space-x-4 bg-gray-800 p-4 rounded-lg">
-        {swapModes.map((mode) => (
-          <button
-            key={mode.key}
-            onClick={() => setSelectedMode(mode.key)}
-            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-              selectedMode === mode.key
-                ? "bg-flow-dark text-white"
-                : "bg-gray-600 text-gray-300 hover:bg-gray-700"
-            }`}
-          >
-            {mode.label}
-          </button>
-        ))}
+      {/* Sell Section */}
+      <div className="bg-gray-600 p-4 rounded-lg mb-4">
+        <div className="flex items-center">
+          <div className="flex-grow">
+            <label className="block text-sm text-white">Sell</label>
+            <input
+              type="number"
+              min="0"
+              value={isLoggedIn ? sellAmount : 0}
+              onChange={(e) => setSellAmount(Number(e.target.value))}
+              className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl"
+              placeholder="0"
+              style={{
+                WebkitAppearance: "none",
+                MozAppearance: "textfield",
+                appearance: "none",
+                overflow: "hidden",
+              }}
+            />
+          </div>
+          <div className="ml-2">
+            <select
+              value={sellAsset}
+              onChange={(e) => setSellAsset(e.target.value)}
+              className="bg-gray-700 text-white p-2 rounded-lg border border-gray-200 text-xl custom-select"
+            >
+              {sellOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
 
-      {/* Swap Panel */}
-      <div className="w-full md:w-3/4 bg-transparent rounded-lg shadow-xl">
-        {renderPanel()}
+      {/* Down Arrow */}
+      <div className="flex justify-center mb-4">
+        <span className="text-2xl text-white">↓</span>
       </div>
+
+      {/* Buy Section */}
+      <div className="bg-gray-600 p-4 rounded-lg mb-4">
+        <div className="flex items-center">
+          <div className="flex-grow">
+            <label className="block text-sm text-white">Buy</label>
+            <input
+              type="number"
+              readOnly
+              value={isLoggedIn ? buyAmount : 0}
+              className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl"
+              placeholder="0"
+              style={{
+                WebkitAppearance: "none",
+                MozAppearance: "textfield",
+                appearance: "none",
+                overflow: "hidden",
+              }}
+            />
+          </div>
+          <div className="ml-2">
+            <select
+              value={buyAsset}
+              onChange={(e) => setBuyAsset(e.target.value)}
+              className="bg-gray-700 text-white p-2 rounded-lg border border-gray-200 text-xl custom-select"
+            >
+              {buyOptionsMap[sellAsset].map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Swap Panel Section */}
+      <div className="bg-gray-700 p-4 rounded-lg">{renderSwapPanel()}</div>
+
+      {/* Global styles for custom select arrow */}
+      <style jsx global>{`
+        .custom-select {
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg width='16' height='16' viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 6l4 4 4-4H4z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.5rem center;
+          background-size: 1.5em;
+          padding-right: 2.5rem;
+        }
+      `}</style>
     </div>
   );
 };

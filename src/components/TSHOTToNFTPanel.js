@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
 import { commitSwap } from "../flow/commitSwap";
@@ -9,43 +9,30 @@ import AccountSelection from "./AccountSelection";
 
 const TSHOTToNFTPanel = ({ onTransactionStart }) => {
   const { accountData, selectedAccount, user } = useContext(UserContext);
+  const isLoggedIn = Boolean(user?.loggedIn);
 
-  // Fallback: if no selectedAccount, use parent's address, then user.addr.
-  const activeAccountAddr =
-    selectedAccount || accountData.parentAddress || user?.addr;
+  const initialAccount = isLoggedIn
+    ? selectedAccount || accountData?.parentAddress || user?.addr
+    : "";
+  const [depositAccount, setDepositAccount] = useState(initialAccount);
+  const [receiveAccount, setReceiveAccount] = useState(initialAccount);
+  const [tshotAmount, setTshotAmount] = useState(0);
+  const [betAmount, setBetAmount] = useState(0);
+  const { sendTransaction } = useTransaction();
 
-  // Separate states for deposit (Step 1) and receive (Step 2)
-  const [depositAccount, setDepositAccount] = useState(activeAccountAddr);
-  const [receiveAccount, setReceiveAccount] = useState(activeAccountAddr);
-
-  // Log key values for troubleshooting.
   useEffect(() => {
     console.log("User address:", user?.addr);
-    console.log("AccountData parent address:", accountData.parentAddress);
-    console.log("Active account (fallback):", activeAccountAddr);
-  }, [user, accountData.parentAddress, activeAccountAddr]);
+    console.log("AccountData parent address:", accountData?.parentAddress);
+    console.log("Active account (fallback):", initialAccount);
+  }, [user, accountData?.parentAddress, initialAccount]);
 
   useEffect(() => {
     console.log("Receive account updated:", receiveAccount);
   }, [receiveAccount]);
 
-  // Destructure common values from accountData.
-  const {
-    tshotBalance = 0,
-    childrenData = [],
-    hasReceipt = false,
-    tierCounts = {},
-  } = accountData || {};
-
-  const [tshotAmount, setTshotAmount] = useState(0);
-  const [betAmount, setBetAmount] = useState(0);
-
-  const { sendTransaction } = useTransaction();
-
-  // Fetch bet amount (number of moments) using the depositAccount address.
   useEffect(() => {
     const fetchBetAmount = async () => {
-      if (hasReceipt && depositAccount) {
+      if (accountData?.hasReceipt && depositAccount) {
         try {
           const result = await fcl.query({
             cadence: getReceiptDetails,
@@ -60,16 +47,22 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
       }
     };
     fetchBetAmount();
-  }, [hasReceipt, depositAccount]);
+  }, [accountData?.hasReceipt, depositAccount]);
 
-  // Handle deposit (Step 1) transaction.
+  if (!isLoggedIn) {
+    return (
+      <button
+        onClick={() => fcl.authenticate()}
+        className="w-full text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-0"
+      >
+        Connect Wallet
+      </button>
+    );
+  }
+
   const handleCommit = async () => {
-    if (!user.loggedIn) {
-      fcl.authenticate();
-      return;
-    }
     if (tshotAmount <= 0) {
-      alert("Please enter a valid $TSHOT amount.");
+      alert("Please enter a valid TSHOT amount.");
       return;
     }
     if (!depositAccount || !depositAccount.startsWith("0x")) {
@@ -77,7 +70,6 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
       alert("Error: Invalid deposit account address.");
       return;
     }
-
     const tshotAmountDecimal = `${tshotAmount.toFixed(1)}`;
     try {
       onTransactionStart({
@@ -106,32 +98,23 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
     }
   };
 
-  // Debug helper: check that the account exists using fcl.getAccount.
-  const debugGetAccount = async (addr) => {
-    try {
-      const response = await fcl.send([fcl.getAccount(addr)]);
-      const account = await fcl.decode(response);
-      console.log(`Debug: fcl.getAccount(${addr}) returned:`, account);
-      return account;
-    } catch (error) {
-      console.error(`Debug: Error fetching account ${addr}:`, error);
-      return null;
-    }
-  };
-
-  // Handle reveal (Step 2) transaction.
   const handleReveal = async () => {
-    if (!user.loggedIn) {
-      fcl.authenticate();
-      return;
-    }
     if (!receiveAccount || !receiveAccount.startsWith("0x")) {
       console.error("Invalid receive account address:", receiveAccount);
       alert("Error: Invalid receive account address.");
       return;
     }
-    console.log("Revealing with receiveAccount:", receiveAccount);
-    // Debug: verify the receive account exists.
+    const debugGetAccount = async (addr) => {
+      try {
+        const response = await fcl.send([fcl.getAccount(addr)]);
+        const account = await fcl.decode(response);
+        console.log(`Debug: fcl.getAccount(${addr}) returned:`, account);
+        return account;
+      } catch (error) {
+        console.error(`Debug: Error fetching account ${addr}:`, error);
+        return null;
+      }
+    };
     const debugAccount = await debugGetAccount(receiveAccount);
     if (!debugAccount || !debugAccount.address) {
       console.error("Selected receive account does not exist:", receiveAccount);
@@ -140,7 +123,6 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
       );
       return;
     }
-
     try {
       onTransactionStart({
         status: "Awaiting Approval",
@@ -170,12 +152,11 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
 
   return (
     <div className="rounded-lg space-y-4">
-      {/* Step 1: Deposit $TSHOT */}
-      <div className="bg-gray-800 p-4 rounded-lg flex flex-col items-start w-full relative">
-        {hasReceipt ? (
-          // When a receipt exists, disable Step 1 with a yellow banner.
-          <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center rounded-lg">
-            <p className="bg-yellow-500 text-black px-6 py-3 font-semibold text-lg rounded-lg w-full text-center">
+      {/* Step 1: Deposit TSHOT */}
+      <div className="bg-gray-700 p-4 rounded-lg mb-4">
+        {accountData?.hasReceipt ? (
+          <div className="flex items-center justify-center">
+            <p className="text-gray-300 px-6 py-3 font-semibold text-lg">
               Step 1 complete. Deposit disabled.
             </p>
           </div>
@@ -183,26 +164,24 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
           <>
             <div className="flex flex-col mb-4">
               <h3 className="text-lg font-semibold text-white">
-                Step 1: Deposit $TSHOT
+                Step 1: Deposit TSHOT
               </h3>
-              <p className="text-sm text-gray-400">
-                Select the account to deposit $TSHOT from:
+              <p className="text-sm text-white">
+                Select the account to deposit TSHOT from:
               </p>
               <AccountSelection
                 parentAccount={{
-                  addr: accountData.parentAddress,
+                  addr: accountData?.parentAddress,
                   ...accountData,
                 }}
-                childrenAccounts={childrenData || []}
+                childrenAccounts={accountData?.childrenData || []}
                 selectedAccount={depositAccount}
                 onSelectAccount={setDepositAccount}
               />
             </div>
             <div className="flex items-center">
               <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
+                type="number"
                 value={tshotAmount || 0}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -212,33 +191,35 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
                     setTshotAmount(0);
                   }
                 }}
-                className="text-2xl font-bold bg-gray-700 text-white rounded-lg text-center px-2 py-1 mr-2 appearance-none focus:outline-none"
-                style={{ width: "150px" }}
+                className="text-2xl font-bold bg-gray-700 text-white rounded-lg text-center px-2 py-1 mr-2 w-32"
+                placeholder="0"
+                style={{
+                  WebkitAppearance: "none",
+                  MozAppearance: "textfield",
+                  appearance: "none",
+                  overflow: "hidden",
+                }}
               />
               <span className="text-white text-lg font-bold">
-                {`$TSHOT = ${tshotAmount || 0} Random Commons`}
+                {`TSHOT = ${tshotAmount || 0} Random Commons`}
               </span>
             </div>
             <button
               onClick={handleCommit}
-              className={`mt-4 p-2 text-lg rounded-lg font-bold w-full ${
-                tshotAmount > 0
-                  ? "bg-flow-dark hover:bg-flow-darkest"
-                  : "bg-gray-600 cursor-not-allowed"
-              } text-white`}
+              className="mt-4 p-2 text-lg rounded-lg font-bold w-full bg-flow-dark hover:bg-flow-darkest text-white"
               disabled={tshotAmount <= 0}
             >
-              Deposit $TSHOT
+              Deposit TSHOT
             </button>
           </>
         )}
       </div>
 
       {/* Step 2: Receive Moments */}
-      <div className="relative flex flex-col items-start bg-gray-800 p-4 rounded-lg">
-        {!hasReceipt ? (
-          <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center rounded-lg">
-            <p className="bg-yellow-500 text-black px-6 py-3 font-semibold text-lg rounded-lg w-full text-center">
+      <div className="bg-gray-700 p-4 rounded-lg">
+        {!accountData?.hasReceipt ? (
+          <div className="flex items-center justify-center">
+            <p className="text-gray-300 px-6 py-3 font-semibold text-lg">
               Complete Step 1
             </p>
           </div>
@@ -248,15 +229,15 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
               <h3 className="text-lg font-semibold text-white">
                 Step 2: Receive Moments
               </h3>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-white">
                 Select the account to receive the moments:
               </p>
               <AccountSelection
                 parentAccount={{
-                  addr: accountData.parentAddress,
+                  addr: accountData?.parentAddress,
                   ...accountData,
                 }}
-                childrenAccounts={childrenData || []}
+                childrenAccounts={accountData?.childrenData || []}
                 selectedAccount={receiveAccount}
                 onSelectAccount={setReceiveAccount}
               />
@@ -271,12 +252,8 @@ const TSHOTToNFTPanel = ({ onTransactionStart }) => {
             </div>
             <button
               onClick={handleReveal}
-              className={`mt-4 p-2 text-lg rounded-lg font-bold w-full ${
-                hasReceipt
-                  ? "bg-flow-dark hover:bg-flow-darkest"
-                  : "bg-gray-600 cursor-not-allowed"
-              } text-white`}
-              disabled={!hasReceipt}
+              className="mt-4 p-2 text-lg rounded-lg font-bold w-full bg-flow-dark hover:bg-flow-darkest text-white"
+              disabled={!accountData?.hasReceipt}
             >
               Receive {betAmount} Random Common Moments
             </button>
