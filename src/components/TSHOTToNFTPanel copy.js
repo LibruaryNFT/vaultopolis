@@ -16,6 +16,7 @@ const TSHOTToNFTPanel = ({
   const { sendTransaction } = useTransaction();
   const isLoggedIn = Boolean(user?.loggedIn);
 
+  // Ensure the user is connected.
   if (!isLoggedIn) {
     return (
       <button
@@ -27,8 +28,10 @@ const TSHOTToNFTPanel = ({
     );
   }
 
+  // A receipt exists when the deposit has been made.
   const hasReceipt = accountData?.hasReceipt;
 
+  // Helper: Get data for the currently selected account.
   const getSelectedAccountData = () => {
     if (selectedAccount === accountData?.parentAddress) {
       return accountData;
@@ -45,7 +48,9 @@ const TSHOTToNFTPanel = ({
   // Always use the parent account for deposit.
   const activeParentAddress = accountData?.parentAddress || user?.addr;
 
+  // Deposit handler: trigger commitSwap.
   const handleDeposit = async () => {
+    // Force the selected account to the parent if necessary.
     if (selectedAccount !== activeParentAddress) {
       console.log(
         "Forcing deposit to use parent account:",
@@ -63,13 +68,15 @@ const TSHOTToNFTPanel = ({
       );
       return;
     }
+    // Convert sellAmount to a UFix64 string with one decimal.
     const betAmount = Number(sellAmount).toFixed(1);
+    // Trigger modal update to show "Awaiting Approval"
     if (onTransactionStart) {
       onTransactionStart({
         status: "Awaiting Approval",
         txId: null,
         error: null,
-        tshotAmount: betAmount,
+        tshotAmount: sellAmount,
         transactionAction: "COMMIT_SWAP",
       });
     }
@@ -89,7 +96,7 @@ const TSHOTToNFTPanel = ({
           if (onTransactionStart) {
             onTransactionStart({
               ...transactionData,
-              tshotAmount: betAmount,
+              tshotAmount: sellAmount,
               transactionAction: "COMMIT_SWAP",
             });
           }
@@ -100,6 +107,7 @@ const TSHOTToNFTPanel = ({
     }
   };
 
+  // Reveal handler when a receipt exists.
   const handleReveal = async () => {
     if (!selectedAccountData?.hasCollection) {
       alert(
@@ -121,10 +129,6 @@ const TSHOTToNFTPanel = ({
           if (onTransactionStart) {
             onTransactionStart({
               ...transactionData,
-              // Pass along the receipt amount from accountData if available; otherwise, use sellAmount.
-              tshotAmount: accountData?.receiptDetails?.betAmount
-                ? Number(accountData.receiptDetails.betAmount).toFixed(1)
-                : Number(sellAmount).toFixed(1),
               transactionAction: "REVEAL_SWAP",
             });
           }
@@ -138,6 +142,7 @@ const TSHOTToNFTPanel = ({
   return (
     <div className="space-y-6 max-w-md mx-auto">
       {!hasReceipt ? (
+        // If no receipt exists, show the deposit button.
         <button
           onClick={handleDeposit}
           disabled={depositDisabled}
@@ -151,6 +156,7 @@ const TSHOTToNFTPanel = ({
         </button>
       ) : (
         <>
+          {/* When a receipt exists, show the Reveal button */}
           <button
             onClick={handleReveal}
             className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"

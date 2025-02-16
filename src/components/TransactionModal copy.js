@@ -17,6 +17,7 @@ const TransactionModal = ({
   console.log("Rendering TransactionModal with status:", status);
 
   if (!status) {
+    // If status is null or undefined, don't render the modal
     return null;
   }
 
@@ -42,12 +43,13 @@ const TransactionModal = ({
     transactionAction === "REVEAL_SWAP" ||
     transactionAction === "RECEIVE"
   ) {
-    // Use tshotAmount (if provided) formatted to one decimal; otherwise, fall back to nftCount.
+    // If nftCount is provided and > 0, use its rounded value;
+    // otherwise, fall back to tshotAmount formatted with one decimal.
     const count =
-      tshotAmount && Number(tshotAmount) > 0
-        ? Number(tshotAmount).toFixed(1)
-        : nftCount
+      nftCount && nftCount > 0
         ? Math.round(nftCount)
+        : tshotAmount
+        ? Number(tshotAmount).toFixed(1)
         : "0.0";
     transactionMessage = `Receiving ${count} Random Moment(s)`;
   } else if (swapType === "NFT_TO_TSHOT") {

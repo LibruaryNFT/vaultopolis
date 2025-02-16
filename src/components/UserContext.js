@@ -1,3 +1,5 @@
+// UserContext.js
+
 import React, { createContext, useReducer, useEffect, useMemo } from "react";
 import * as fcl from "@onflow/fcl";
 import pLimit from "p-limit";
@@ -6,14 +8,14 @@ import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
-import { getReceiptDetails } from "../flow/getReceiptDetails"; // NEW: import receipt details cadence script
+import { getReceiptDetails } from "../flow/getReceiptDetails"; // receipt details cadence script
 import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
 import { getChildren } from "../flow/getChildren";
-import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT"; // Import cadence script for FLOW per NFT
+import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT"; // FLOW per NFT cadence script
 
 export const UserContext = createContext();
 
-// Define enrichWithMetadata at the top so it’s available everywhere in this file.
+// Updated enrichWithMetadata with fallbacks for missing fields
 const enrichWithMetadata = async (details, metadataCache) => {
   if (!metadataCache) return details;
   return details.map((nft) => {
@@ -22,14 +24,21 @@ const enrichWithMetadata = async (details, metadataCache) => {
     if (meta) {
       return {
         ...nft,
-        tier: meta.tier,
-        fullName: meta.FullName,
-        momentCount: Number(meta.momentCount),
-        jerseyNumber: meta.JerseyNumber,
-        retired: meta.retired,
-        playOrder: meta.playOrder,
-        series: meta.series,
-        name: meta.name,
+        // Use the metadata if available; fall back to the existing nft values
+        tier: meta.tier || nft.tier,
+        fullName:
+          meta.FullName ||
+          meta.fullName ||
+          nft.fullName ||
+          nft.playerName ||
+          "Unknown Player",
+        momentCount: Number(meta.momentCount) || nft.momentCount,
+        jerseyNumber:
+          meta.JerseyNumber || meta.jerseyNumber || nft.jerseyNumber,
+        retired: meta.retired !== undefined ? meta.retired : nft.retired,
+        playOrder: meta.playOrder || nft.playOrder,
+        series: meta.series || nft.series,
+        name: meta.name || nft.name,
       };
     }
     return nft;
@@ -44,7 +53,6 @@ const initialState = {
     flowBalance: null,
     tshotBalance: null, // TSHOT balance for the parent
     hasCollection: null,
-    // NEW: Add receipt details and flag
     receiptDetails: {},
     hasReceipt: null,
     hasChildren: false,
@@ -57,7 +65,7 @@ const initialState = {
   isRefreshing: false,
   isLoadingChildren: false,
   metadataCache: null,
-  flowPricePerNFT: null, // New property to store FLOW price per NFT
+  flowPricePerNFT: null,
 };
 
 function userReducer(state, action) {
@@ -133,10 +141,7 @@ export const UserProvider = ({ children }) => {
       const cachedData = localStorage.getItem("topshotMetadata");
       if (cachedData) {
         const parsed = JSON.parse(cachedData);
-        dispatch({
-          type: "SET_METADATA_CACHE",
-          payload: parsed,
-        });
+        dispatch({ type: "SET_METADATA_CACHE", payload: parsed });
         return parsed;
       }
       const baseUrl =
@@ -160,33 +165,36 @@ export const UserProvider = ({ children }) => {
   };
 
   const fetchTopShotCollection = async (address) => {
-    if (!address || !address.startsWith("0x"))
+    if (!address || !address.startsWith("0x")) {
+      console.error(
+        "Invalid address provided to fetchTopShotCollection:",
+        address
+      );
       return { hasCollection: false, details: [], tierCounts: {} };
-
+    }
+    console.log("Fetching TopShot collection for address:", address);
     try {
       const hasCollection = await fcl.query({
         cadence: verifyTopShotCollection,
         args: (arg, t) => [arg(address, t.Address)],
       });
+      console.log("Has collection:", hasCollection, "for", address);
       if (!hasCollection) {
         return { hasCollection: false, details: [], tierCounts: {} };
       }
-
       const ids = await fcl.query({
         cadence: getTopShotCollectionIDs,
         args: (arg, t) => [arg(address, t.Address)],
       });
-
+      console.log("TopShot IDs for", address, ":", ids);
       if (!ids || ids.length === 0) {
         return { hasCollection: true, details: [], tierCounts: {} };
       }
-
       const batchSize = 2500;
       const batches = [];
       for (let i = 0; i < ids.length; i += batchSize) {
         batches.push(ids.slice(i, i + batchSize));
       }
-
       const limit = pLimit(30);
       const batchResults = await Promise.all(
         batches.map((batch) =>
@@ -201,7 +209,6 @@ export const UserProvider = ({ children }) => {
           )
         )
       );
-
       const details = batchResults.flat().map((nft) => ({
         ...nft,
         id: Number(nft.id),
@@ -210,17 +217,13 @@ export const UserProvider = ({ children }) => {
         serialNumber: Number(nft.serialNumber),
         isLocked: Boolean(nft.isLocked),
       }));
-
       const effectiveMetadata =
         state.metadataCache ||
         JSON.parse(localStorage.getItem("topshotMetadata") || "{}");
-
       const enrichedDetails = await enrichWithMetadata(
         details,
         effectiveMetadata
       );
-
-      // Calculate tierCounts based on enriched details
       const tierCounts = enrichedDetails.reduce((counts, nft) => {
         const tier = nft.tier?.toLowerCase();
         if (tier) {
@@ -228,7 +231,6 @@ export const UserProvider = ({ children }) => {
         }
         return counts;
       }, {});
-
       return { hasCollection: true, details: enrichedDetails, tierCounts };
     } catch (error) {
       console.error(`Error fetching collection for ${address}:`, error);
@@ -237,11 +239,17 @@ export const UserProvider = ({ children }) => {
   };
 
   const fetchFLOWBalance = async (address) => {
+    if (!address || !address.startsWith("0x")) {
+      console.error("Invalid address provided to fetchFLOWBalance:", address);
+      return 0;
+    }
+    console.log("Fetching FLOW balance for address:", address);
     try {
       const balance = await fcl.query({
         cadence: getFLOWBalance,
         args: (arg, t) => [arg(address, t.Address)],
       });
+      console.log("FLOW balance for", address, ":", balance);
       return balance;
     } catch (error) {
       console.error(
@@ -252,11 +260,17 @@ export const UserProvider = ({ children }) => {
   };
 
   const fetchTSHOTBalance = async (address) => {
+    if (!address || !address.startsWith("0x")) {
+      console.error("Invalid address provided to fetchTSHOTBalance:", address);
+      return 0;
+    }
+    console.log("Fetching TSHOT balance for address:", address);
     try {
       const balance = await fcl.query({
         cadence: getTSHOTBalance,
         args: (arg, t) => [arg(address, t.Address)],
       });
+      console.log("TSHOT balance for", address, ":", balance);
       return balance;
     } catch (error) {
       console.error(
@@ -266,13 +280,21 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // NEW: Fetch receipt details
   const fetchReceiptDetails = async (address) => {
+    if (!address || !address.startsWith("0x")) {
+      console.error(
+        "Invalid address provided to fetchReceiptDetails:",
+        address
+      );
+      return {};
+    }
+    console.log("Fetching receipt details for address:", address);
     try {
       const receiptDetails = await fcl.query({
         cadence: getReceiptDetails,
         args: (arg, t) => [arg(address, t.Address)],
       });
+      console.log("Receipt details for", address, ":", receiptDetails);
       return receiptDetails;
     } catch (error) {
       console.error(
@@ -282,18 +304,13 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Refresh functions for balances and collection
   const refreshFLOWBalanceOnly = async (address) => {
     if (!address || !address.startsWith("0x")) return;
     try {
       const flowBalance = await fetchFLOWBalance(address);
       const isParent = state.accountData.parentAddress === address;
-
       if (isParent) {
-        dispatch({
-          type: "SET_ACCOUNT_DATA",
-          payload: { flowBalance },
-        });
+        dispatch({ type: "SET_ACCOUNT_DATA", payload: { flowBalance } });
       } else {
         const updatedChildrenData = state.accountData.childrenData.map(
           (child) =>
@@ -311,12 +328,8 @@ export const UserProvider = ({ children }) => {
     try {
       const tshotBalance = await fetchTSHOTBalance(address);
       const isParent = state.accountData.parentAddress === address;
-
       if (isParent) {
-        dispatch({
-          type: "SET_ACCOUNT_DATA",
-          payload: { tshotBalance },
-        });
+        dispatch({ type: "SET_ACCOUNT_DATA", payload: { tshotBalance } });
       } else {
         const updatedChildrenData = state.accountData.childrenData.map(
           (child) =>
@@ -335,7 +348,6 @@ export const UserProvider = ({ children }) => {
     try {
       const collectionData = await fetchTopShotCollection(address);
       const isParent = state.accountData.parentAddress === address;
-
       if (isParent) {
         dispatch({
           type: "SET_ACCOUNT_DATA",
@@ -366,17 +378,14 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  // Main refresh function that now also refreshes receipt details
   const refreshBalances = async (address) => {
     if (!address || !address.startsWith("0x")) return;
     dispatch({ type: "SET_REFRESHING_STATE", payload: true });
     try {
-      // Refresh collection and receipt details concurrently
       const [collectionResult, receiptResult] = await Promise.allSettled([
         fetchTopShotCollection(address),
         fetchReceiptDetails(address),
       ]);
-
       const updates = {};
       if (collectionResult.status === "fulfilled") {
         updates.nftDetails = collectionResult.value.details || [];
@@ -388,21 +397,15 @@ export const UserProvider = ({ children }) => {
         updates.hasReceipt =
           receiptResult.value && receiptResult.value.betAmount > 0;
       }
-
       const isParent = state.accountData.parentAddress === address;
       if (isParent) {
-        dispatch({
-          type: "SET_ACCOUNT_DATA",
-          payload: updates,
-        });
+        dispatch({ type: "SET_ACCOUNT_DATA", payload: updates });
       } else {
         const updatedChildrenData = state.accountData.childrenData.map(
           (child) => (child.addr === address ? { ...child, ...updates } : child)
         );
         dispatch({ type: "SET_CHILDREN_DATA", payload: updatedChildrenData });
       }
-
-      // Also refresh balances
       await Promise.all([
         refreshFLOWBalanceOnly(address),
         refreshTSHOTBalanceOnly(address),
@@ -476,12 +479,21 @@ export const UserProvider = ({ children }) => {
   };
 
   const checkForChildren = async (parentAddress) => {
+    if (!parentAddress || !parentAddress.startsWith("0x")) {
+      console.error(
+        "Invalid parent address provided to checkForChildren:",
+        parentAddress
+      );
+      return false;
+    }
+    console.log("Checking for children for parent address:", parentAddress);
     dispatch({ type: "SET_LOADING_CHILDREN", payload: true });
     try {
       const hasChildrenStatus = await fcl.query({
         cadence: hasChildrenCadence,
         args: (arg, t) => [arg(parentAddress, t.Address)],
       });
+      console.log("Has children for", parentAddress, ":", hasChildrenStatus);
       dispatch({
         type: "SET_ACCOUNT_DATA",
         payload: { hasChildren: hasChildrenStatus },
@@ -491,6 +503,7 @@ export const UserProvider = ({ children }) => {
           cadence: getChildren,
           args: (arg, t) => [arg(parentAddress, t.Address)],
         });
+        console.log("Children addresses for", parentAddress, ":", children);
         await loadChildrenData(children);
       }
       return hasChildrenStatus;
@@ -547,24 +560,20 @@ export const UserProvider = ({ children }) => {
 
   useEffect(() => {
     if (state.user && state.user.addr) {
-      console.log("Starting polling for balance refresh...");
+      console.log(
+        "Starting polling for balance refresh for parent address:",
+        state.user.addr
+      );
       const intervalId = setInterval(() => {
-        console.log(
-          "Polling balance refresh for parent account:",
-          state.user.addr
-        );
         refreshFLOWBalanceOnly(state.user.addr);
         refreshTSHOTBalanceOnly(state.user.addr);
-
         if (state.accountData.childrenAddresses.length > 0) {
           state.accountData.childrenAddresses.forEach((addr) => {
-            console.log("Polling balance refresh for child account:", addr);
             refreshFLOWBalanceOnly(addr);
             refreshTSHOTBalanceOnly(addr);
           });
         }
       }, 30000);
-
       return () => {
         clearInterval(intervalId);
         console.log("Polling for balance refresh stopped.");
