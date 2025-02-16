@@ -8,8 +8,16 @@ const tierTextColors = {
   ultimate: "text-pink-500",
 };
 
-const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
+const AccountBox = ({
+  label,
+  accountAddr,
+  data,
+  isSelected,
+  onSelect,
+  renderOptionLabel,
+}) => {
   const { flowBalance = 0, tshotBalance = 0, nftDetails = [] } = data || {};
+  const hasCollection = nftDetails && nftDetails.length > 0;
   const tierCounts = nftDetails.reduce((acc, nft) => {
     const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
     acc[tier] = (acc[tier] || 0) + 1;
@@ -57,6 +65,9 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
             </span>
           </p>
         ))}
+        {!hasCollection && (
+          <p className="text-xs text-red-500 mt-1">(No TopShot Collection)</p>
+        )}
       </div>
     </div>
   );
@@ -70,35 +81,20 @@ const AccountSelection = ({
   onRefresh,
   isRefreshing,
   isLoadingChildren,
+  containerClass,
+  selectClass,
+  renderOptionLabel,
 }) => {
   return (
-    <div>
-      <div className="flex flex-col space-y-1">
-        <div className="flex items-center text-white">
-          <button
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
-              isRefreshing
-                ? "bg-opolis cursor-not-allowed"
-                : "bg-opolis hover:bg-opolis-dark"
-            }`}
-          >
-            <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
-            {isRefreshing ? "Refreshing..." : "Refresh Collection"}
-          </button>
-        </div>
-        <p className="text-sm text-yellow-400">
-          Note: FLOW will always be deposited to the parent account.
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-2 mt-3">
+    <div className={containerClass}>
+      <div className="flex flex-wrap gap-2">
         <AccountBox
           label="Parent Account"
           accountAddr={parentAccount.addr}
           data={parentAccount}
           isSelected={selectedAccount === parentAccount.addr}
           onSelect={onSelectAccount}
+          renderOptionLabel={renderOptionLabel}
         />
         {isLoadingChildren ? (
           <div className="flex items-center justify-center p-4">
@@ -114,9 +110,24 @@ const AccountSelection = ({
               data={child}
               isSelected={selectedAccount === child.addr}
               onSelect={onSelectAccount}
+              renderOptionLabel={renderOptionLabel}
             />
           ))
         )}
+      </div>
+      <div className="mt-4 flex items-center text-white">
+        <button
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
+            isRefreshing
+              ? "bg-opolis cursor-not-allowed"
+              : "bg-opolis hover:bg-opolis-dark"
+          }`}
+        >
+          <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
+          {isRefreshing ? "Refreshing..." : "Refresh Data"}
+        </button>
       </div>
     </div>
   );

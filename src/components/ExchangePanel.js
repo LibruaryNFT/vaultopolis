@@ -6,7 +6,7 @@ import TSHOTToNFTPanel from "./TSHOTToNFTPanel";
 import MomentSelection from "./MomentSelection";
 import AccountSelection from "./AccountSelection";
 import TransactionModal from "./TransactionModal";
-import MomentCard from "./MomentCard"; // Displays NFT details
+import MomentCard from "./MomentCard";
 import { AnimatePresence } from "framer-motion";
 
 const ExchangePanel = () => {
@@ -17,9 +17,9 @@ const ExchangePanel = () => {
     TSHOT: ["TopShot Moments"],
   };
 
-  // Local state for manual input (used when not selling moments)
-  const [sellAmount, setSellAmount] = useState(0);
-  const [buyAmount, setBuyAmount] = useState(0);
+  // Use string states for sell and buy inputs.
+  const [sellInput, setSellInput] = useState("");
+  const [buyInput, setBuyInput] = useState("");
 
   // Transaction modal state
   const [showModal, setShowModal] = useState(false);
@@ -35,7 +35,7 @@ const ExchangePanel = () => {
     setShowModal(false);
   };
 
-  // Get user and account info from context
+  // Get user and account info from context.
   const {
     user,
     accountData,
@@ -54,50 +54,73 @@ const ExchangePanel = () => {
   const [sellAsset, setSellAsset] = useState("TopShot Moments");
   const [buyAsset, setBuyAsset] = useState("TSHOT");
 
-  // When not selling TopShot Moments, use manual input for buyAmount (1:1 conversion)
   useEffect(() => {
     if (sellAsset !== "TopShot Moments") {
-      setBuyAmount(sellAmount);
+      setBuyInput(sellInput);
     }
-  }, [sellAmount, sellAsset, buyAsset]);
+  }, [sellInput, sellAsset]);
 
-  // Ensure the selected buy asset is valid for the chosen sell asset
   useEffect(() => {
     if (!buyOptionsMap[sellAsset].includes(buyAsset)) {
       setBuyAsset(buyOptionsMap[sellAsset][0]);
     }
   }, [sellAsset, buyAsset]);
 
-  // When switching away from "TopShot Moments," clear selected NFTs.
   useEffect(() => {
     if (sellAsset !== "TopShot Moments") {
       dispatch({ type: "RESET_SELECTED_NFTS" });
     }
   }, [sellAsset, dispatch]);
 
-  // Compute amounts:
-  // For TopShot Moments, use the number of selected NFTs;
-  // Otherwise, use the manual input.
+  const tshotReceiptAmount =
+    accountData?.hasReceipt && accountData.receiptDetails
+      ? accountData.receiptDetails.betAmount
+      : null;
+
   const computedSellAmount =
     sellAsset === "TopShot Moments" && selectedNFTs.length > 0
       ? selectedNFTs.length
-      : sellAmount;
+      : sellAsset === "TSHOT" && accountData?.hasReceipt
+      ? tshotReceiptAmount
+      : sellInput === ""
+      ? 0
+      : Number(sellInput);
+
   const computedBuyAmount =
     sellAsset === "TopShot Moments"
       ? buyAsset === "FLOW"
         ? computedSellAmount * (flowPricePerNFT || 1)
         : computedSellAmount
-      : buyAmount;
+      : sellAsset === "TSHOT" && accountData?.hasReceipt
+      ? tshotReceiptAmount
+      : buyInput === ""
+      ? 0
+      : Number(buyInput);
 
-  // Render the appropriate swap panel.
-  // For moments (sellAsset === "TopShot Moments"), pass the NFT IDs.
-  // For TSHOT-to-Moments, use manual input values.
+  const formattedSellValue = Math.floor(computedSellAmount);
+  const formattedBuyValue = Math.floor(computedBuyAmount);
+
+  const handleNFTSelection = (momentId) => {
+    dispatch({ type: "SET_SELECTED_NFTS", payload: momentId });
+  };
+
+  const activeAccountForNFTs =
+    accountData.childrenData?.find((child) => child.addr === selectedAccount) ||
+    accountData;
+
+  const parentAccount = {
+    addr: accountData.parentAddress || user?.addr,
+    flowBalance: accountData.flowBalance,
+    tshotBalance: accountData.tshotBalance,
+    nftDetails: accountData.nftDetails,
+  };
+
   const renderSwapPanel = () => {
     if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
       return (
         <NFTToTSHOTPanel
           nftIds={selectedNFTs}
-          buyAmount={computedBuyAmount}
+          buyAmount={formattedBuyValue}
           onTransactionStart={handleOpenModal}
         />
       );
@@ -105,16 +128,16 @@ const ExchangePanel = () => {
       return (
         <NFTToFLOWPanel
           nftIds={selectedNFTs}
-          buyAmount={computedBuyAmount}
+          buyAmount={formattedBuyValue}
           onTransactionStart={handleOpenModal}
         />
       );
     } else if (sellAsset === "TSHOT" && buyAsset === "TopShot Moments") {
       return (
         <TSHOTToNFTPanel
-          sellAmount={computedSellAmount}
-          buyAmount={computedBuyAmount}
-          onTransactionStart={handleOpenModal}
+          sellAmount={formattedSellValue}
+          onDeposit={handleOpenModal} // deposit handler for TSHOT deposits
+          depositDisabled={false} // adjust as needed
         />
       );
     } else {
@@ -126,23 +149,8 @@ const ExchangePanel = () => {
     }
   };
 
-  // Determine active account for NFT details:
-  // If a child account is selected, use its data; otherwise, use the parent's.
-  const activeAccountForNFTs =
-    accountData.childrenData?.find((child) => child.addr === selectedAccount) ||
-    accountData;
-
-  // Build parent account object (for AccountSelection)
-  const parentAccount = {
-    addr: accountData.parentAddress || user?.addr,
-    flowBalance: accountData.flowBalance,
-    tshotBalance: accountData.tshotBalance,
-    nftDetails: accountData.nftDetails,
-  };
-
   return (
     <>
-      {/* Fixed-width Exchange Panel (Sell/Buy/Swap) */}
       <div className="max-w-md mx-auto p-4 space-y-4">
         <AnimatePresence>
           {showModal && transactionData.status && (
@@ -155,16 +163,30 @@ const ExchangePanel = () => {
           {/* Sell Section */}
           <div className="bg-gray-600 p-4 rounded-lg mb-2">
             <div className="flex items-center">
-              <div className="flex-grow">
+              <div className="flex-grow relative">
                 <label className="block text-sm text-white">Sell</label>
                 <input
-                  type="number"
-                  min="0"
-                  value={isLoggedIn ? computedSellAmount : 0}
-                  onChange={(e) => setSellAmount(Number(e.target.value))}
-                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl"
+                  autoFocus
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={isLoggedIn ? sellInput : ""}
+                  onChange={(e) => {
+                    if (!(sellAsset === "TSHOT" && accountData?.hasReceipt)) {
+                      let val = e.target.value;
+                      if (val.startsWith("0") && val.length > 1) {
+                        val = val.replace(/^0+/, "");
+                      }
+                      setSellInput(val);
+                    }
+                  }}
                   placeholder="0"
-                  readOnly={sellAsset === "TopShot Moments"}
+                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl text-left focus:outline-none"
+                  style={{
+                    WebkitAppearance: "none",
+                    MozAppearance: "textfield",
+                    appearance: "none",
+                  }}
                 />
               </div>
               <div className="ml-2">
@@ -179,11 +201,16 @@ const ExchangePanel = () => {
                     </option>
                   ))}
                 </select>
+                {sellAsset === "TSHOT" &&
+                  parentAccount.tshotBalance !== undefined && (
+                    <p className="mt-1 text-xs text-gray-300">
+                      Balance: {Math.floor(parentAccount.tshotBalance)} TSHOT
+                    </p>
+                  )}
               </div>
             </div>
           </div>
 
-          {/* Down Arrow */}
           <div className="flex justify-center mb-2">
             <span className="text-2xl text-white">↓</span>
           </div>
@@ -191,14 +218,29 @@ const ExchangePanel = () => {
           {/* Buy Section */}
           <div className="bg-gray-600 p-4 rounded-lg">
             <div className="flex items-center">
-              <div className="flex-grow">
+              <div className="flex-grow relative">
                 <label className="block text-sm text-white">Buy</label>
                 <input
-                  type="number"
-                  readOnly
-                  value={isLoggedIn ? computedBuyAmount : 0}
-                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={isLoggedIn ? buyInput : ""}
+                  onChange={(e) => {
+                    if (!(sellAsset === "TSHOT" && accountData?.hasReceipt)) {
+                      let val = e.target.value;
+                      if (val.startsWith("0") && val.length > 1) {
+                        val = val.replace(/^0+/, "");
+                      }
+                      setBuyInput(val);
+                    }
+                  }}
                   placeholder="0"
+                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl text-left focus:outline-none"
+                  style={{
+                    WebkitAppearance: "none",
+                    MozAppearance: "textfield",
+                    appearance: "none",
+                  }}
                 />
               </div>
               <div className="ml-2">
@@ -224,14 +266,11 @@ const ExchangePanel = () => {
         </div>
       </div>
 
-      {/* Extra Section: Account & Moment Selection (Fluid Width)
-          Only for TopShot Moments mode. For TSHOT-to-Moments, we rely solely on the sell input. */}
       {sellAsset === "TopShot Moments" &&
         isLoggedIn &&
         accountData.parentAddress && (
           <div className="w-full p-4">
             <div className="max-w-screen-lg mx-auto bg-gray-700 p-4 rounded-lg space-y-4">
-              {/* Display Selected Moments (if any) above the Account Selection */}
               {selectedNFTs.length > 0 && (
                 <div className="bg-gray-600 p-2 rounded">
                   <h4 className="text-white text-sm mb-2">Selected Moments:</h4>
