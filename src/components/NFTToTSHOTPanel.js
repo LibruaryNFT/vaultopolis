@@ -5,16 +5,20 @@ import useTransaction from "../hooks/useTransaction";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 import { exchangeNFTForTSHOT_child } from "../flow/exchangeNFTForTSHOT_child";
 
-const NFTToTSHOTPanel = ({ sellAmount, buyAmount, onTransactionStart }) => {
-  const { user, selectedAccount, selectedAccountType, refreshBalances } =
-    useContext(UserContext);
+const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
+  const {
+    user,
+    selectedAccount,
+    selectedAccountType,
+    refreshBalances,
+    dispatch,
+  } = useContext(UserContext);
   const isLoggedIn = Boolean(user?.loggedIn);
-  const momentCount = sellAmount; // 1:1 conversion
+  const momentCount = nftIds.length;
   const activeAccountAddr = selectedAccount || user?.addr;
   const isParentAccount = selectedAccountType === "parent";
   const { sendTransaction } = useTransaction();
 
-  // If not logged in, return only the Connect Wallet button (with no extra container)
   if (!isLoggedIn) {
     return (
       <button
@@ -28,14 +32,12 @@ const NFTToTSHOTPanel = ({ sellAmount, buyAmount, onTransactionStart }) => {
 
   const handleSwap = async () => {
     if (momentCount <= 0) {
-      alert("Enter a valid number of moments to exchange.");
+      alert("Select at least one moment to exchange.");
       return;
     }
     if (!activeAccountAddr || !activeAccountAddr.startsWith("0x")) {
       console.error("Invalid active account address:", activeAccountAddr);
-      alert(
-        "Error: Invalid account address. Please log in again or select a valid account."
-      );
+      alert("Error: Invalid account address.");
       return;
     }
     const cadenceScript = isParentAccount
@@ -54,8 +56,8 @@ const NFTToTSHOTPanel = ({ sellAmount, buyAmount, onTransactionStart }) => {
         cadence: cadenceScript,
         args: (arg, t) =>
           isParentAccount
-            ? [arg(momentCount, t.UInt64)]
-            : [arg(selectedAccount, t.Address), arg(momentCount, t.UInt64)],
+            ? [arg(nftIds, t.Array(t.UInt64))]
+            : [arg(selectedAccount, t.Address), arg(nftIds, t.Array(t.UInt64))],
         limit: 9999,
         onUpdate: (transactionData) => {
           onTransactionStart({
@@ -67,8 +69,11 @@ const NFTToTSHOTPanel = ({ sellAmount, buyAmount, onTransactionStart }) => {
         },
       });
       await refreshBalances(activeAccountAddr);
+      // On successful transaction, clear selected NFTs.
+      dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (error) {
       console.error("Transaction failed:", error);
+      // On failure, leave the selection intact.
     }
   };
 

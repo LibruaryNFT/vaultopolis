@@ -9,9 +9,7 @@ const tierTextColors = {
 };
 
 const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
-  // Destructure tshotBalance along with flowBalance and nftDetails
   const { flowBalance = 0, tshotBalance = 0, nftDetails = [] } = data || {};
-
   const tierCounts = nftDetails.reduce((acc, nft) => {
     const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
     acc[tier] = (acc[tier] || 0) + 1;
@@ -36,14 +34,12 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
         <p className="text-xs text-gray-400 truncate">{accountAddr}</p>
       </div>
       <div className="mt-2">
-        {/* Display FLOW Balance */}
         <p className="text-sm text-gray-300">
           <span className="font-bold text-white">
             {parseFloat(flowBalance).toFixed(2)}
           </span>{" "}
           $FLOW
         </p>
-        {/* Display TSHOT Balance */}
         <p className="text-sm text-gray-300">
           <span className="font-bold text-white">
             {parseFloat(tshotBalance).toFixed(2)}
@@ -84,8 +80,8 @@ const AccountSelection = ({
             disabled={isRefreshing}
             className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
               isRefreshing
-                ? "bg-gray-700 cursor-not-allowed"
-                : "bg-gray-700 hover:bg-gray-800"
+                ? "bg-opolis cursor-not-allowed"
+                : "bg-opolis hover:bg-opolis-dark"
             }`}
           >
             <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
