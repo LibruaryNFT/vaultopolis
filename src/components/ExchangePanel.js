@@ -11,63 +11,62 @@ import TransactionModal from "./TransactionModal";
 import MomentCard from "./MomentCard";
 import { AnimatePresence } from "framer-motion";
 
-const ExchangePanel = () => {
-  // Define asset options
-  const sellOptions = ["TopShot Moments", "TSHOT"];
-  const buyOptionsMap = {
-    "TopShot Moments": ["TSHOT", "FLOW"],
-    TSHOT: ["TopShot Moments"],
-  };
+const sellOptions = ["TopShot Moments", "TSHOT"];
+const buyOptionsMap = {
+  "TopShot Moments": ["TSHOT", "FLOW"],
+  TSHOT: ["TopShot Moments"],
+};
 
-  // Local state for sell and buy inputs
+const ExchangePanel = () => {
   const [sellInput, setSellInput] = useState("");
   const [buyInput, setBuyInput] = useState("");
-
-  // Transaction modal state
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
 
-  // Get user and account info from context.
   const {
     user,
     accountData,
     selectedAccount,
-    setSelectedAccount,
-    refreshBalances,
+    loadAllUserData,
     isRefreshing,
     isLoadingChildren,
     selectedNFTs,
     flowPricePerNFT,
     dispatch,
   } = useContext(UserContext);
+
+  // If your context doesn't provide setSelectedAccount, define a local function:
+  const setSelectedAccount = (address) => {
+    const isChild = accountData.childrenAddresses.includes(address);
+    dispatch({
+      type: "SET_SELECTED_ACCOUNT",
+      payload: { address, type: isChild ? "child" : "parent" },
+    });
+  };
+
   const isLoggedIn = Boolean(user?.loggedIn);
 
-  // Local state for asset selection (sell/buy types)
   const [sellAsset, setSellAsset] = useState("TopShot Moments");
   const [buyAsset, setBuyAsset] = useState("TSHOT");
 
-  // When sellAsset is not TopShot Moments, let sellInput drive buyInput.
   useEffect(() => {
     if (sellAsset !== "TopShot Moments") {
       setBuyInput(sellInput);
     }
   }, [sellInput, sellAsset]);
 
-  // If buy asset is not valid for the selected sell asset, update it.
   useEffect(() => {
     if (!buyOptionsMap[sellAsset].includes(buyAsset)) {
       setBuyAsset(buyOptionsMap[sellAsset][0]);
     }
   }, [sellAsset, buyAsset]);
 
-  // When using TopShot Moments, update sellInput to the number of selected NFTs.
   useEffect(() => {
     if (sellAsset === "TopShot Moments") {
       setSellInput(selectedNFTs.length.toString());
     }
   }, [selectedNFTs, sellAsset]);
 
-  // When using TopShot Moments, update buyInput based on mode.
   useEffect(() => {
     if (sellAsset === "TopShot Moments") {
       const newBuyValue =
@@ -78,8 +77,6 @@ const ExchangePanel = () => {
     }
   }, [selectedNFTs, sellAsset, buyAsset, flowPricePerNFT]);
 
-  // When in TSHOT mode and a receipt exists, populate inputs from the receipt
-  // and format them with one decimal.
   useEffect(() => {
     if (
       sellAsset === "TSHOT" &&
@@ -94,16 +91,13 @@ const ExchangePanel = () => {
     }
   }, [accountData.hasReceipt, accountData.receiptDetails, sellAsset]);
 
-  // Ensure that for TSHOT-to-NFT flow (sellAsset === "TSHOT") the selected account has a TopShot collection.
   useEffect(() => {
     if (sellAsset === "TSHOT") {
-      // If parent has a collection, default to parent.
       if (accountData?.hasCollection) {
         if (selectedAccount !== accountData.parentAddress) {
           setSelectedAccount(accountData.parentAddress);
         }
       } else if (accountData?.childrenData) {
-        // Otherwise, pick the first child with a collection.
         const validChild = accountData.childrenData.find(
           (child) => child.hasCollection
         );
@@ -112,9 +106,8 @@ const ExchangePanel = () => {
         }
       }
     }
-  }, [sellAsset, accountData, selectedAccount, setSelectedAccount]);
+  }, [sellAsset, accountData, selectedAccount]);
 
-  // Calculate computed amounts.
   const tshotReceiptAmount =
     accountData?.hasReceipt && accountData.receiptDetails
       ? accountData.receiptDetails.betAmount
@@ -143,7 +136,6 @@ const ExchangePanel = () => {
   const formattedSellValue = Number(computedSellAmount).toFixed(1);
   const formattedBuyValue = Number(computedBuyAmount).toFixed(1);
 
-  // Transaction modal handlers
   const handleOpenModal = (data) => {
     setTransactionData(data);
     setShowModal(true);
@@ -154,7 +146,6 @@ const ExchangePanel = () => {
     setShowModal(false);
   };
 
-  // Render the correct swap panel based on asset pair.
   const renderSwapPanel = () => {
     if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
       return (
@@ -200,7 +191,7 @@ const ExchangePanel = () => {
 
         {/* Sell & Buy Section */}
         <div className="bg-gray-700 p-4 rounded-lg">
-          {/* Sell Section */}
+          {/* Sell */}
           <div className="bg-gray-600 p-4 rounded-lg mb-2">
             <div className="flex items-center">
               <div className="flex-grow relative">
@@ -250,7 +241,7 @@ const ExchangePanel = () => {
             <span className="text-2xl text-white">↓</span>
           </div>
 
-          {/* Buy Section */}
+          {/* Buy */}
           <div className="bg-gray-600 p-4 rounded-lg">
             <div className="flex items-center">
               <div className="flex-grow relative">
@@ -290,12 +281,13 @@ const ExchangePanel = () => {
           </div>
         </div>
 
-        {/* Swap Panel Section */}
+        {/* Swap Panel */}
         <div className="bg-gray-700 p-2 rounded-lg shadow-md">
           {renderSwapPanel()}
         </div>
       </div>
 
+      {/* If selling Moments, show the AccountSelection + MomentSelection */}
       {sellAsset === "TopShot Moments" &&
         isLoggedIn &&
         accountData.parentAddress && (
@@ -306,7 +298,6 @@ const ExchangePanel = () => {
                   <h4 className="text-white text-sm mb-2">Selected Moments:</h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedNFTs.map((momentId) => {
-                      // Use active account (child if selected, else parent) for NFT lookup.
                       const activeAccountForNFTs =
                         accountData.childrenData?.find(
                           (child) => child.addr === selectedAccount
@@ -333,22 +324,21 @@ const ExchangePanel = () => {
                 </div>
               )}
 
-              {/* For receiving accounts, only allow those with a TopShot collection.
-                  If the parent has a collection, it is always valid; for children, filter accordingly. */}
               <AccountSelection
                 parentAccount={{
                   addr: accountData.parentAddress || user?.addr,
                   ...accountData,
                 }}
-                childrenAccounts={(accountData.childrenData || []).filter(
-                  (child) => child.hasCollection
-                )}
+                // We pass BOTH the addresses and the full child data
+                childrenAddresses={accountData.childrenAddresses || []}
+                childrenAccounts={accountData.childrenData || []}
                 selectedAccount={selectedAccount}
                 onSelectAccount={setSelectedAccount}
-                onRefresh={() => refreshBalances(user.addr)}
+                onRefresh={() => loadAllUserData(user.addr)}
                 isRefreshing={isRefreshing}
                 isLoadingChildren={isLoadingChildren}
               />
+
               <MomentSelection />
             </div>
           </div>

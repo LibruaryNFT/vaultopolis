@@ -1,3 +1,5 @@
+// AccountSelection.js
+
 import React from "react";
 
 const tierTextColors = {
@@ -8,16 +10,10 @@ const tierTextColors = {
   ultimate: "text-pink-500",
 };
 
-const AccountBox = ({
-  label,
-  accountAddr,
-  data,
-  isSelected,
-  onSelect,
-  renderOptionLabel,
-}) => {
+const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
   const { flowBalance = 0, tshotBalance = 0, nftDetails = [] } = data || {};
   const hasCollection = nftDetails && nftDetails.length > 0;
+
   const tierCounts = nftDetails.reduce((acc, nft) => {
     const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
     acc[tier] = (acc[tier] || 0) + 1;
@@ -57,7 +53,7 @@ const AccountBox = ({
         {Object.entries(tierCounts).map(([tier, count]) => (
           <p key={tier} className="text-sm">
             <span className="font-bold text-white">{count}</span>{" "}
-            <span className={tierTextColors[tier.toLowerCase()]}>
+            <span className={tierTextColors[tier] || ""}>
               {tier.charAt(0).toUpperCase() + tier.slice(1)}
             </span>{" "}
             <span className="text-gray-400">
@@ -75,47 +71,82 @@ const AccountBox = ({
 
 const AccountSelection = ({
   parentAccount,
-  childrenAccounts = [],
+  childrenAccounts = [], // array of full data objects
+  childrenAddresses = [], // array of addresses
   selectedAccount,
   onSelectAccount,
   onRefresh,
   isRefreshing,
   isLoadingChildren,
-  containerClass,
-  selectClass,
-  renderOptionLabel,
 }) => {
   return (
-    <div className={containerClass}>
-      <div className="flex flex-wrap gap-2">
+    <div className="relative">
+      {/* PARENT ACCOUNT BOX */}
+      <div className="mb-4">
         <AccountBox
           label="Parent Account"
           accountAddr={parentAccount.addr}
           data={parentAccount}
           isSelected={selectedAccount === parentAccount.addr}
           onSelect={onSelectAccount}
-          renderOptionLabel={renderOptionLabel}
         />
-        {isLoadingChildren ? (
-          <div className="flex items-center justify-center p-4">
-            <span className="animate-spin mr-2">⟳</span>
-            Loading children...
-          </div>
+      </div>
+
+      {/* CHILD ADDRESSES */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {childrenAddresses.length === 0 ? (
+          <p className="text-xs text-gray-300">
+            {isLoadingChildren ? "Checking for children..." : "No children."}
+          </p>
         ) : (
-          childrenAccounts.map((child) => (
-            <AccountBox
-              key={child.addr}
-              label="Child Account"
-              accountAddr={child.addr}
-              data={child}
-              isSelected={selectedAccount === child.addr}
-              onSelect={onSelectAccount}
-              renderOptionLabel={renderOptionLabel}
-            />
-          ))
+          childrenAddresses.map((childAddr) => {
+            // find the full data object for this child, if it's loaded
+            const childData = childrenAccounts.find(
+              (child) => child.addr === childAddr
+            );
+
+            if (!childData) {
+              // We know the address but haven't loaded the data yet
+              return (
+                <div
+                  key={childAddr}
+                  className="p-4 w-full sm:w-60 flex-shrink-0 text-left rounded-lg border-2 border-gray-500 bg-gray-700"
+                >
+                  <h4 className="text-sm font-semibold text-white mb-1">
+                    Child Account
+                  </h4>
+                  <p className="text-xs text-gray-400 truncate">{childAddr}</p>
+                  <p className="text-xs text-gray-300 mt-2">
+                    Loading child data...
+                  </p>
+                </div>
+              );
+            }
+
+            // Otherwise we have the data => normal AccountBox
+            return (
+              <AccountBox
+                key={childAddr}
+                label="Child Account"
+                accountAddr={childAddr}
+                data={childData}
+                isSelected={selectedAccount === childAddr}
+                onSelect={onSelectAccount}
+              />
+            );
+          })
         )}
       </div>
-      <div className="mt-4 flex items-center text-white">
+
+      {/* LOADING CHILDREN SPINNER (optional) */}
+      {isLoadingChildren && (
+        <div className="text-sm text-yellow-300 flex items-center gap-1 mb-4">
+          <span className="animate-spin">⟳</span> Fetching child data...
+        </div>
+      )}
+
+      {/* REFRESH BUTTON */}
+      <div className="mt-2">
         <button
           onClick={onRefresh}
           disabled={isRefreshing}

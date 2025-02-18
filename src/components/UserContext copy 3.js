@@ -64,14 +64,14 @@ const initialState = {
     receiptDetails: {},
     hasReceipt: null,
     hasChildren: false,
-    childrenAddresses: [],
     childrenData: [],
+    childrenAddresses: [],
   },
   selectedAccount: null,
   selectedAccountType: "parent",
   selectedNFTs: [],
-  isRefreshing: false, // overall "big" load state
-  isLoadingChildren: false, // specifically loading child data
+  isRefreshing: false, // Will only be toggled in loadAllUserData now
+  isLoadingChildren: false,
   metadataCache: null,
   flowPricePerNFT: null,
 };
@@ -112,9 +112,13 @@ function userReducer(state, action) {
         ...state,
         accountData: {
           ...state.accountData,
-          childrenData: action.payload, // an array of full child data objects
+          childrenData: action.payload,
         },
       };
+    case "SET_REFRESHING_STATE":
+      return { ...state, isRefreshing: action.payload };
+    case "SET_LOADING_CHILDREN":
+      return { ...state, isLoadingChildren: action.payload };
     case "SET_CHILDREN_ADDRESSES":
       return {
         ...state,
@@ -123,10 +127,6 @@ function userReducer(state, action) {
           childrenAddresses: action.payload,
         },
       };
-    case "SET_REFRESHING_STATE":
-      return { ...state, isRefreshing: action.payload };
-    case "SET_LOADING_CHILDREN":
-      return { ...state, isLoadingChildren: action.payload };
     case "SET_FLOW_PRICE_PER_NFT":
       return { ...state, flowPricePerNFT: action.payload };
     default:
@@ -140,14 +140,17 @@ function userReducer(state, action) {
 export const UserProvider = ({ children }) => {
   const [state, dispatch] = useReducer(userReducer, initialState);
 
-  // Prevent repeated loads
+  // Prevent repeated requests for this user session
   const [didLoad, setDidLoad] = useState(false);
 
   // ----------------------
   // Fetch Helpers
   // ----------------------
   const fetchFLOWBalance = useCallback(async (address) => {
-    if (!address || !address.startsWith("0x")) return 0;
+    if (!address || !address.startsWith("0x")) {
+      console.error("Invalid address for fetchFLOWBalance:", address);
+      return 0;
+    }
     try {
       const balance = await fcl.query({
         cadence: getFLOWBalance,
@@ -161,7 +164,10 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const fetchTSHOTBalance = useCallback(async (address) => {
-    if (!address || !address.startsWith("0x")) return 0;
+    if (!address || !address.startsWith("0x")) {
+      console.error("Invalid address for fetchTSHOTBalance:", address);
+      return 0;
+    }
     try {
       const balance = await fcl.query({
         cadence: getTSHOTBalance,
@@ -175,7 +181,9 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const fetchReceiptDetails = useCallback(async (address) => {
-    if (!address || !address.startsWith("0x")) return {};
+    if (!address || !address.startsWith("0x")) {
+      return {};
+    }
     try {
       const receiptDetails = await fcl.query({
         cadence: getReceiptDetails,
@@ -188,7 +196,6 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
-  // fetchTopShotCollection for a single address
   const fetchTopShotCollection = useCallback(
     async (address) => {
       if (!address || !address.startsWith("0x")) {
@@ -205,7 +212,7 @@ export const UserProvider = ({ children }) => {
           return { hasCollection: false, details: [], tierCounts: {} };
         }
 
-        // 2) Get IDs
+        // 2) Get NFT IDs
         const ids = await fcl.query({
           cadence: getTopShotCollectionIDs,
           args: (arg, t) => [arg(address, t.Address)],
@@ -214,7 +221,7 @@ export const UserProvider = ({ children }) => {
           return { hasCollection: true, details: [], tierCounts: {} };
         }
 
-        // 3) Batch fetch
+        // 3) Batch fetch details
         const batchSize = 2500;
         const batches = [];
         for (let i = 0; i < ids.length; i += batchSize) {
@@ -244,7 +251,7 @@ export const UserProvider = ({ children }) => {
           isLocked: Boolean(nft.isLocked),
         }));
 
-        // Enrich with metadata
+        // Enrich with local metadata
         const effectiveMetadata =
           state.metadataCache ||
           JSON.parse(localStorage.getItem("topshotMetadata") || "{}");
@@ -253,7 +260,7 @@ export const UserProvider = ({ children }) => {
           effectiveMetadata
         );
 
-        // Tier counts
+        // Tally tier counts
         const tierCounts = enrichedDetails.reduce((counts, nft) => {
           const tier = nft.tier?.toLowerCase();
           if (tier) {
@@ -268,10 +275,7 @@ export const UserProvider = ({ children }) => {
           tierCounts,
         };
       } catch (error) {
-        console.error(
-          `Error fetching TopShot collection for ${address}:`,
-          error
-        );
+        console.error(`Error fetching collection for ${address}:`, error);
         return { hasCollection: false, details: [], tierCounts: {} };
       }
     },
@@ -279,7 +283,7 @@ export const UserProvider = ({ children }) => {
   );
 
   // ----------------------
-  // Metadata Loader
+  // Metadata Cache
   // ----------------------
   const loadTopShotMetadata = useCallback(async () => {
     try {
@@ -314,11 +318,11 @@ export const UserProvider = ({ children }) => {
   // ----------------------
   // Core Loaders
   // ----------------------
-
-  // 1) loadParentData (no isRefreshing here)
+  // (1) loadParentData: Remove any SET_REFRESHING_STATE lines
   const loadParentData = useCallback(
     async (address) => {
       if (!address || !address.startsWith("0x")) return;
+      // DO NOT set isRefreshing here; let loadAllUserData control that
       try {
         const [flowBalance, tshotBalance, collectionData, receiptDetails] =
           await Promise.all([
@@ -344,6 +348,7 @@ export const UserProvider = ({ children }) => {
       } catch (error) {
         console.error("Error loading parent account data:", error);
       }
+      // No finally block that sets isRefreshing = false
     },
     [
       fetchFLOWBalance,
@@ -354,12 +359,13 @@ export const UserProvider = ({ children }) => {
     ]
   );
 
-  // 2) loadChildrenData (sets isLoadingChildren = true during fetch)
+  // (2) loadChildrenData: already uses its own SET_LOADING_CHILDREN, not isRefreshing
   const loadChildrenData = useCallback(
     async (childrenAddresses) => {
-      if (!childrenAddresses?.length) return;
-      dispatch({ type: "SET_LOADING_CHILDREN", payload: true });
+      if (!Array.isArray(childrenAddresses)) return;
       try {
+        dispatch({ type: "SET_LOADING_CHILDREN", payload: true });
+
         const childrenData = await Promise.all(
           childrenAddresses.map(async (childAddr) => {
             const [flowBalance, tshotBalance, collectionData, receiptDetails] =
@@ -381,7 +387,12 @@ export const UserProvider = ({ children }) => {
             };
           })
         );
+
         dispatch({ type: "SET_CHILDREN_DATA", payload: childrenData });
+        dispatch({
+          type: "SET_CHILDREN_ADDRESSES",
+          payload: childrenAddresses,
+        });
       } catch (error) {
         console.error("Error loading children data:", error);
       } finally {
@@ -397,7 +408,7 @@ export const UserProvider = ({ children }) => {
     ]
   );
 
-  // 3) checkForChildren => fetch addresses, set them immediately, THEN load
+  // (3) checkForChildren: sets isLoadingChildren, not isRefreshing
   const checkForChildren = useCallback(
     async (parentAddress) => {
       if (!parentAddress || !parentAddress.startsWith("0x")) return false;
@@ -411,21 +422,12 @@ export const UserProvider = ({ children }) => {
           type: "SET_ACCOUNT_DATA",
           payload: { hasChildren: hasChildrenStatus },
         });
-
         if (hasChildrenStatus) {
           const children = await fcl.query({
             cadence: getChildren,
             args: (arg, t) => [arg(parentAddress, t.Address)],
           });
-          // 1) Immediately store addresses => partial UI can show them
-          dispatch({ type: "SET_CHILDREN_ADDRESSES", payload: children });
-
-          // 2) Then load the full data
           await loadChildrenData(children);
-        } else {
-          // If no children, ensure these are cleared
-          dispatch({ type: "SET_CHILDREN_ADDRESSES", payload: [] });
-          dispatch({ type: "SET_CHILDREN_DATA", payload: [] });
         }
         return hasChildrenStatus;
       } catch (error) {
@@ -439,30 +441,34 @@ export const UserProvider = ({ children }) => {
   );
 
   // ----------------------
-  // "Big" loadAllUserData => sets isRefreshing
+  // Single "big" load call => controls isRefreshing
   // ----------------------
   const loadAllUserData = useCallback(
     async (address) => {
       if (!address) return;
       dispatch({ type: "SET_REFRESHING_STATE", payload: true });
       try {
+        // 1) load metadata
         await loadTopShotMetadata();
+        // 2) load parent
         await loadParentData(address);
+        // 3) load children
         await checkForChildren(address);
 
-        // optionally fetch price
+        // 4) optional: flow price
         try {
           const price = await fcl.query({
             cadence: getFlowPricePerNFT,
             args: (arg, t) => [],
           });
           dispatch({ type: "SET_FLOW_PRICE_PER_NFT", payload: price });
-        } catch (err) {
-          console.error("Error fetching flow price per NFT:", err);
+        } catch (error) {
+          console.error("Error fetching flow price per NFT:", error);
         }
       } catch (error) {
         console.error("loadAllUserData error:", error);
       } finally {
+        // All done (or failed)
         dispatch({ type: "SET_REFRESHING_STATE", payload: false });
       }
     },
@@ -473,14 +479,14 @@ export const UserProvider = ({ children }) => {
   // FCL user subscription
   // ----------------------
   useEffect(() => {
-    const unsub = fcl.currentUser.subscribe((currentUser) => {
+    const userUnsubscribe = fcl.currentUser.subscribe((currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
       if (!currentUser?.loggedIn) {
         dispatch({ type: "RESET_STATE" });
         setDidLoad(false);
       }
     });
-    return () => unsub();
+    return () => userUnsubscribe();
   }, [dispatch]);
 
   // ----------------------
@@ -497,7 +503,7 @@ export const UserProvider = ({ children }) => {
   }, [state.user, didLoad, loadAllUserData]);
 
   // ----------------------
-  // OPTIONAL: Polling
+  // OPTIONAL: Polling for balances
   // ----------------------
   useEffect(() => {
     const { loggedIn, addr } = state.user || {};
@@ -505,10 +511,8 @@ export const UserProvider = ({ children }) => {
 
     const intervalId = setInterval(async () => {
       try {
-        const [flowBalance, tshotBalance] = await Promise.all([
-          fetchFLOWBalance(addr),
-          fetchTSHOTBalance(addr),
-        ]);
+        const flowBalance = await fetchFLOWBalance(addr);
+        const tshotBalance = await fetchTSHOTBalance(addr);
         dispatch({
           type: "SET_ACCOUNT_DATA",
           payload: { flowBalance, tshotBalance },
@@ -521,7 +525,7 @@ export const UserProvider = ({ children }) => {
     return () => clearInterval(intervalId);
   }, [state.user, fetchFLOWBalance, fetchTSHOTBalance, dispatch]);
 
-  // Debug
+  // Debug/logging (optional)
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
       console.log("UserContext State:", state);
@@ -535,7 +539,7 @@ export const UserProvider = ({ children }) => {
     () => ({
       ...state,
       dispatch,
-      loadAllUserData,
+      loadAllUserData, // Exposed for "Refresh"
     }),
     [state, loadAllUserData]
   );

@@ -1,3 +1,5 @@
+// NFTToFLOWPanel.js
+
 import React, { useContext } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
@@ -10,9 +12,10 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
     user,
     selectedAccount,
     selectedAccountType,
-    refreshBalances,
+    loadAllUserData, // <--- instead of refreshBalances
     dispatch,
   } = useContext(UserContext);
+
   const isLoggedIn = Boolean(user?.loggedIn);
   const momentCount = nftIds.length;
   const activeAccountAddr = selectedAccount || user?.addr;
@@ -43,14 +46,15 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
     const cadenceScript = isParentAccount
       ? exchangeNFTForFLOW
       : exchangeNFTForFLOW_child;
+
     try {
       onTransactionStart({
         status: "Awaiting Approval",
         txId: null,
         error: null,
         nftCount: momentCount,
-        flowAmount: momentCount, // adjust if FLOW conversion differs
-        swapType: "MOMENTS_TO_FLOW",
+        flowAmount: momentCount,
+        swapType: "NFT_TO_FLOW",
       });
       await sendTransaction({
         cadence: cadenceScript,
@@ -64,16 +68,19 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
             ...transactionData,
             nftCount: momentCount,
             flowAmount: momentCount,
-            swapType: "MOMENTS_TO_FLOW",
+            swapType: "NFT_TO_FLOW",
           });
         },
       });
-      await refreshBalances(activeAccountAddr);
-      // Clear selected NFTs upon successful swap.
+
+      // Refresh all user data
+      await loadAllUserData(activeAccountAddr);
+
+      // Clear selected NFTs upon success
       dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (error) {
       console.error("Transaction failed:", error);
-      // Leave the selection intact on failure.
+      // If it fails, keep selection intact
     }
   };
 

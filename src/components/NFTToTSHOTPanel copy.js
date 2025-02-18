@@ -1,5 +1,3 @@
-// NFTToTSHOTPanel.js
-
 import React, { useContext } from "react";
 import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
@@ -13,20 +11,19 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
     selectedAccount,
     selectedAccountType,
     accountData,
-    loadAllUserData,
+    refreshBalances,
     dispatch,
   } = useContext(UserContext);
-
   const isLoggedIn = Boolean(user?.loggedIn);
   const momentCount = nftIds.length;
 
-  // If child, sign with parent's address
-  const isParentAccount = selectedAccountType === "parent";
+  // Use parent's address for signing if a child account is selected
   const activeAccountAddr =
     selectedAccountType === "child"
       ? accountData.parentAddress
       : selectedAccount || user?.addr;
 
+  const isParentAccount = selectedAccountType === "parent";
   const { sendTransaction } = useTransaction();
 
   if (!isLoggedIn) {
@@ -41,6 +38,7 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
   }
 
   const handleSwap = async () => {
+    console.log("Attempting swap. Signing with account:", activeAccountAddr);
     if (momentCount <= 0) {
       alert("Select at least one moment to exchange.");
       return;
@@ -53,7 +51,6 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
     const cadenceScript = isParentAccount
       ? exchangeNFTForTSHOT
       : exchangeNFTForTSHOT_child;
-
     try {
       onTransactionStart({
         status: "Awaiting Approval",
@@ -61,7 +58,7 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
         error: null,
         nftCount: momentCount,
         tshotAmount: momentCount,
-        swapType: "NFT_TO_TSHOT",
+        swapType: "MOMENTS_TO_TSHOT",
       });
       await sendTransaction({
         cadence: cadenceScript,
@@ -71,19 +68,16 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
             : [arg(selectedAccount, t.Address), arg(nftIds, t.Array(t.UInt64))],
         limit: 9999,
         onUpdate: (transactionData) => {
+          console.log("Transaction update:", transactionData);
           onTransactionStart({
             ...transactionData,
             nftCount: momentCount,
             tshotAmount: momentCount,
-            swapType: "NFT_TO_TSHOT",
+            swapType: "MOMENTS_TO_TSHOT",
           });
         },
       });
-
-      // Refresh all user data
-      await loadAllUserData(activeAccountAddr);
-
-      // Clear selection upon success
+      await refreshBalances(activeAccountAddr);
       dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (error) {
       console.error("Transaction failed:", error);
