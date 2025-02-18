@@ -23,13 +23,9 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
   return (
     <div
       onClick={() => onSelect(accountAddr)}
-      className={`p-4 rounded-lg border-2 transition-all cursor-pointer 
-        ${
-          isSelected
-            ? "border-opolis bg-gray-700"
-            : "border-gray-500 bg-gray-700"
-        } 
-        hover:bg-gray-800`}
+      className={`p-4 w-full sm:w-60 flex-shrink-0 text-left rounded-lg border-2 ${
+        isSelected ? "border-opolis bg-gray-700" : "border-gray-500 bg-gray-700"
+      } cursor-pointer hover:bg-gray-800 transition-all`}
     >
       <div className="mb-2">
         <h4
@@ -75,8 +71,8 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
 
 const AccountSelection = ({
   parentAccount,
-  childrenAccounts = [], // array of child data objects
-  childrenAddresses = [], // addresses for partial loading
+  childrenAccounts = [], // array of full data objects
+  childrenAddresses = [], // array of addresses
   selectedAccount,
   onSelectAccount,
   onRefresh,
@@ -84,31 +80,9 @@ const AccountSelection = ({
   isLoadingChildren,
 }) => {
   return (
-    <div className="space-y-4">
-      {/* REFRESH + MAIN SPINNER */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={onRefresh}
-          disabled={isRefreshing}
-          className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
-            isRefreshing
-              ? "bg-opolis cursor-not-allowed"
-              : "bg-opolis hover:bg-opolis-dark"
-          }`}
-        >
-          <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
-          {isRefreshing ? "Refreshing..." : "Refresh Data"}
-        </button>
-        {isLoadingChildren && (
-          <div className="text-sm text-yellow-300 flex items-center gap-1">
-            <span className="animate-spin">⟳</span> Fetching child data...
-          </div>
-        )}
-      </div>
-
-      {/* GRID LAYOUT FOR ACCOUNTS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {/* PARENT ACCOUNT */}
+    <div className="relative">
+      {/* PARENT ACCOUNT BOX */}
+      <div className="mb-4">
         <AccountBox
           label="Parent Account"
           accountAddr={parentAccount.addr}
@@ -116,20 +90,19 @@ const AccountSelection = ({
           isSelected={selectedAccount === parentAccount.addr}
           onSelect={onSelectAccount}
         />
+      </div>
 
-        {/* CHILD ACCOUNTS */}
+      {/* CHILD ADDRESSES */}
+      <div className="flex flex-wrap gap-2 mb-4">
         {childrenAddresses.length === 0 ? (
-          <div className="p-4 rounded-lg border-2 border-gray-500 bg-gray-700">
-            <h4 className="text-sm font-semibold text-white mb-1">Children</h4>
-            <p className="text-xs text-gray-400">
-              {isLoadingChildren ? "Checking for children..." : "No children."}
-            </p>
-          </div>
+          <p className="text-xs text-gray-300">
+            {isLoadingChildren ? "Checking for children..." : "No children."}
+          </p>
         ) : (
           childrenAddresses.map((childAddr) => {
-            // find the full data object for this child, if loaded
+            // find the full data object for this child, if it's loaded
             const childData = childrenAccounts.find(
-              (c) => c.addr === childAddr
+              (child) => child.addr === childAddr
             );
 
             if (!childData) {
@@ -137,7 +110,7 @@ const AccountSelection = ({
               return (
                 <div
                   key={childAddr}
-                  className="p-4 rounded-lg border-2 border-gray-500 bg-gray-700"
+                  className="p-4 w-full sm:w-60 flex-shrink-0 text-left rounded-lg border-2 border-gray-500 bg-gray-700"
                 >
                   <h4 className="text-sm font-semibold text-white mb-1">
                     Child Account
@@ -150,7 +123,7 @@ const AccountSelection = ({
               );
             }
 
-            // We have the data => normal AccountBox
+            // Otherwise we have the data => normal AccountBox
             return (
               <AccountBox
                 key={childAddr}
@@ -163,6 +136,29 @@ const AccountSelection = ({
             );
           })
         )}
+      </div>
+
+      {/* LOADING CHILDREN SPINNER (optional) */}
+      {isLoadingChildren && (
+        <div className="text-sm text-yellow-300 flex items-center gap-1 mb-4">
+          <span className="animate-spin">⟳</span> Fetching child data...
+        </div>
+      )}
+
+      {/* REFRESH BUTTON */}
+      <div className="mt-2">
+        <button
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className={`px-3 py-1 rounded text-sm flex items-center gap-2 ${
+            isRefreshing
+              ? "bg-opolis cursor-not-allowed"
+              : "bg-opolis hover:bg-opolis-dark"
+          }`}
+        >
+          <span className={isRefreshing ? "animate-spin" : ""}>⟳</span>
+          {isRefreshing ? "Refreshing..." : "Refresh Data"}
+        </button>
       </div>
     </div>
   );

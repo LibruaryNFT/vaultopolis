@@ -8,6 +8,7 @@ import TSHOTToNFTPanel from "./TSHOTToNFTPanel";
 import MomentSelection from "./MomentSelection";
 import AccountSelection from "./AccountSelection";
 import TransactionModal from "./TransactionModal";
+import ExchangeDashboard from "./ExchangeDashboard";
 import MomentCard from "./MomentCard";
 import { AnimatePresence } from "framer-motion";
 
@@ -35,7 +36,7 @@ const ExchangePanel = () => {
     dispatch,
   } = useContext(UserContext);
 
-  // If your context doesn't provide setSelectedAccount, define a local function:
+  // If your context doesn't provide setSelectedAccount, define locally
   const setSelectedAccount = (address) => {
     const isChild = accountData.childrenAddresses.includes(address);
     dispatch({
@@ -46,9 +47,26 @@ const ExchangePanel = () => {
 
   const isLoggedIn = Boolean(user?.loggedIn);
 
+  // Sell/Buy asset selection
   const [sellAsset, setSellAsset] = useState("TopShot Moments");
   const [buyAsset, setBuyAsset] = useState("TSHOT");
 
+  // Decide a "dashboardMode"
+  const getDashboardMode = () => {
+    if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
+      return "NFT_TO_TSHOT";
+    }
+    if (sellAsset === "TSHOT" && buyAsset === "TopShot Moments") {
+      return "TSHOT_TO_NFT";
+    }
+    if (sellAsset === "TopShot Moments" && buyAsset === "FLOW") {
+      return "NFT_TO_FLOW";
+    }
+    return null; // show no dashboard
+  };
+  const dashboardMode = getDashboardMode();
+
+  // Effects controlling inputs
   useEffect(() => {
     if (sellAsset !== "TopShot Moments") {
       setBuyInput(sellInput);
@@ -77,6 +95,7 @@ const ExchangePanel = () => {
     }
   }, [selectedNFTs, sellAsset, buyAsset, flowPricePerNFT]);
 
+  // If TSHOT has a receipt
   useEffect(() => {
     if (
       sellAsset === "TSHOT" &&
@@ -91,6 +110,7 @@ const ExchangePanel = () => {
     }
   }, [accountData.hasReceipt, accountData.receiptDetails, sellAsset]);
 
+  // If selling TSHOT => ensure the selected account has a TS collection
   useEffect(() => {
     if (sellAsset === "TSHOT") {
       if (accountData?.hasCollection) {
@@ -108,6 +128,7 @@ const ExchangePanel = () => {
     }
   }, [sellAsset, accountData, selectedAccount]);
 
+  // Computed amounts
   const tshotReceiptAmount =
     accountData?.hasReceipt && accountData.receiptDetails
       ? accountData.receiptDetails.betAmount
@@ -136,6 +157,7 @@ const ExchangePanel = () => {
   const formattedSellValue = Number(computedSellAmount).toFixed(1);
   const formattedBuyValue = Number(computedBuyAmount).toFixed(1);
 
+  // Transaction modal
   const handleOpenModal = (data) => {
     setTransactionData(data);
     setShowModal(true);
@@ -146,6 +168,7 @@ const ExchangePanel = () => {
     setShowModal(false);
   };
 
+  // Render the correct swap panel
   const renderSwapPanel = () => {
     if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
       return (
@@ -182,6 +205,13 @@ const ExchangePanel = () => {
 
   return (
     <>
+      {/* 1) Show the ExchangeDashboard if there's a recognized mode */}
+      {dashboardMode && (
+        <div className="mb-4">
+          <ExchangeDashboard mode={dashboardMode} />
+        </div>
+      )}
+
       <div className="max-w-md mx-auto p-4 space-y-4">
         <AnimatePresence>
           {showModal && transactionData.status && (
@@ -203,6 +233,7 @@ const ExchangePanel = () => {
                   pattern="[0-9]*"
                   value={isLoggedIn ? sellInput : ""}
                   onChange={(e) => {
+                    // If TSHOT has a receipt, disallow manual input
                     if (!(sellAsset === "TSHOT" && accountData?.hasReceipt)) {
                       let val = e.target.value;
                       if (val.startsWith("0") && val.length > 1) {
@@ -287,7 +318,7 @@ const ExchangePanel = () => {
         </div>
       </div>
 
-      {/* If selling Moments, show the AccountSelection + MomentSelection */}
+      {/* If selling Moments, show AccountSelection + MomentSelection */}
       {sellAsset === "TopShot Moments" &&
         isLoggedIn &&
         accountData.parentAddress && (
@@ -329,7 +360,6 @@ const ExchangePanel = () => {
                   addr: accountData.parentAddress || user?.addr,
                   ...accountData,
                 }}
-                // We pass BOTH the addresses and the full child data
                 childrenAddresses={accountData.childrenAddresses || []}
                 childrenAccounts={accountData.childrenData || []}
                 selectedAccount={selectedAccount}
