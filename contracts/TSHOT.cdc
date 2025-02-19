@@ -1,8 +1,10 @@
 import "FungibleToken"
+import "MetadataViews"
+import "FungibleTokenMetadataViews"
 
 access(all) contract TSHOT: FungibleToken {
 
-    // Total supply of Flow tokens in existence
+    // Total supply of TSHOT
     access(all) var totalSupply: UFix64
 
     // Paths
@@ -27,17 +29,9 @@ access(all) contract TSHOT: FungibleToken {
     // Define Admin Entitlement
     access(all) entitlement AdminEntitlement
 
-    // Vault
-    //
-    // Each user stores an instance of only the Vault in their storage
-    // The functions in the Vault and governed by the pre and post conditions
-    // in FungibleToken when they are called.
-    // The checks happen at runtime whenever a function is called.
-    //
-    // Resources can only be created in the context of the contract that they
-    // are defined in, so there is no way for a malicious user to create Vaults
-    // out of thin air. A special Minter resource needs to be defined to mint
-    // new tokens.
+    // =========================================================================
+    //  Vault Resource
+    // =========================================================================
     access(all) resource Vault: FungibleToken.Vault {
 
         // Holds the balance of a user's tokens
@@ -70,17 +64,19 @@ access(all) contract TSHOT: FungibleToken {
             return amount <= self.balance
         }
 
-        access(all) view fun getViews(): [Type] { return [] }
-        access(all) fun resolveView(_ view: Type): AnyStruct? { return nil }
+        // In fungible tokens, vaults can simply defer calls to the contract views:
+        access(all) view fun getViews(): [Type] {
+            return TSHOT.getContractViews(resourceType: nil)
+        }
+
+        access(all) fun resolveView(_ view: Type): AnyStruct? {
+            return TSHOT.resolveContractView(resourceType: nil, viewType: view)
+        }
 
         // withdraw
         //
         // Function that takes an integer amount as an argument
         // and withdraws that amount from the Vault.
-        // It creates a new temporary Vault that is used to hold
-        // the money that is being transferred. It returns the newly
-        // created Vault to the context that called so it can be deposited
-        // elsewhere.
         access(FungibleToken.Withdraw) fun withdraw(amount: UFix64): @{FungibleToken.Vault} {
             self.balance = self.balance - amount
             emit TokensWithdrawn(amount: amount, from: self.owner?.address)
@@ -91,9 +87,6 @@ access(all) contract TSHOT: FungibleToken {
         //
         // Function that takes a Vault object as an argument and adds
         // its balance to the balance of the owner's Vault.
-        // It is allowed to destroy the sent Vault because the Vault
-        // was a temporary holder of the tokens. The Vault's balance has
-        // been consumed and therefore can be destroyed.
         access(all) fun deposit(from: @{FungibleToken.Vault}) {
             let vault <- from as! @TSHOT.Vault
             self.balance = self.balance + vault.balance
@@ -107,40 +100,95 @@ access(all) contract TSHOT: FungibleToken {
         }
     }
 
-    // createEmptyVault
+    // =========================================================================
+    //  Metadata Views for the Contract
+    // =========================================================================
+
     //
-    // Function that creates a new Vault with a balance of zero
-    // and returns it to the calling context. A user must call this function
-    // and store the returned Vault in their storage in order to allow their
-    // account to be able to receive deposits of this token type.
+    // Provide standard views so explorers, wallets, and dApps can query info
+    //
+    access(all) view fun getContractViews(resourceType: Type?): [Type] {
+        return [
+            Type<FungibleTokenMetadataViews.FTView>(),
+            Type<FungibleTokenMetadataViews.FTDisplay>(),
+            Type<FungibleTokenMetadataViews.FTVaultData>(),
+            Type<FungibleTokenMetadataViews.TotalSupply>()
+        ]
+    }
+
+    access(all) fun resolveContractView(resourceType: Type?, viewType: Type): AnyStruct? {
+        switch viewType {
+            case Type<FungibleTokenMetadataViews.FTView>():
+                return FungibleTokenMetadataViews.FTView(
+                    ftDisplay: self.resolveContractView(resourceType: nil, viewType: Type<FungibleTokenMetadataViews.FTDisplay>()) 
+                        as! FungibleTokenMetadataViews.FTDisplay?,
+                    ftVaultData: self.resolveContractView(resourceType: nil, viewType: Type<FungibleTokenMetadataViews.FTVaultData>()) 
+                        as! FungibleTokenMetadataViews.FTVaultData?
+                )
+
+            case Type<FungibleTokenMetadataViews.FTDisplay>():
+                
+                let media = MetadataViews.Media(
+                    file: MetadataViews.HTTPFile(
+                        url: "https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
+                    ),
+                    mediaType: "image/png"
+                )
+
+                return FungibleTokenMetadataViews.FTDisplay(
+                    name: "TSHOT Token",
+                    symbol: "TSHOT",
+                    description: "TSHOT is a token minted by exchanging Common or Fandom Top Shot Moments.",
+                    externalURL: MetadataViews.ExternalURL("https://vaultopolis.com"),
+                    logos: MetadataViews.Medias([media]),
+                    socials: {
+                        "twitter": MetadataViews.ExternalURL("https://twitter.com/Vaultopolis")
+                    }
+                )
+
+            case Type<FungibleTokenMetadataViews.FTVaultData>():
+                
+                return FungibleTokenMetadataViews.FTVaultData(
+                    storagePath: /storage/TSHOTTokenVault,             
+                    receiverPath: self.tokenReceiverPath,
+                    metadataPath: self.tokenBalancePath,
+                    receiverLinkedType: Type<&TSHOT.Vault>(),
+                    metadataLinkedType: Type<&TSHOT.Vault>(),
+                    createEmptyVaultFunction: (fun(): @{FungibleToken.Vault} {
+                        return <-TSHOT.createEmptyVault(vaultType: Type<@TSHOT.Vault>())
+                    })
+                )
+
+            case Type<FungibleTokenMetadataViews.TotalSupply>():
+                return FungibleTokenMetadataViews.TotalSupply(
+                    totalSupply: TSHOT.totalSupply
+                )
+        }
+
+        return nil
+    }
+
+    // =========================================================================
+    //  Create Empty Vault
+    // =========================================================================
     access(all) fun createEmptyVault(vaultType: Type): @TSHOT.Vault {
         return <-create Vault(balance: 0.0)
     }
 
-    access(all) view fun getContractViews(resourceType: Type?): [Type] { return [] }
-    access(all) fun resolveContractView(resourceType: Type?, viewType: Type): AnyStruct? { return nil }
-
-    // Mint tokens
-    //
-    // $TSHOT token can only be minted by the TSHOTExchange contract.
-    // This function allows the TSHOTExchange contract to mint tokens 
-    // in exchange for a user's NFT.
-
-    // Admin resource definition with entitlement applied to the function
+    // =========================================================================
+    //  Admin resource definition and Minter function
+    // =========================================================================
     access(all) resource Admin {
-
-        // Function to update the Flow per NFT value with entitlement
         access(AdminEntitlement) fun mintTokens(amount: UFix64): @TSHOT.Vault {
-        TSHOT.totalSupply = TSHOT.totalSupply + amount
-        emit TokensMinted(amount: amount)
-        return <-create Vault(balance: amount)
+            TSHOT.totalSupply = TSHOT.totalSupply + amount
+            emit TokensMinted(amount: amount)
+            return <-create Vault(balance: amount)
+        }
     }
-    }
-    
-    // Burn tokens
-    //
-    // $TSHOT token will be burned in exchange for underlying $FLOW when a user requests to unstake from the liquid staking protocol.
-    // Note: the burned tokens are automatically subtracted from the total supply in the Vault destructor.
+
+    // =========================================================================
+    //  Burn Tokens
+    // =========================================================================
     access(account) fun burnTokens(from: @TSHOT.Vault) {
         let amount = from.balance
         TSHOT.totalSupply = TSHOT.totalSupply - amount
@@ -148,15 +196,16 @@ access(all) contract TSHOT: FungibleToken {
         emit TokensBurned(amount: amount)
     }
 
-
-    // Initialization function
+    // =========================================================================
+    //  Contract Initialization
+    // =========================================================================
     init() {
         self.totalSupply = 0.0
 
         self.tokenReceiverPath = /public/TSHOTTokenReceiver
         self.tokenBalancePath = /public/TSHOTTokenBalance
 
-        // Put a new Collection in storage
+        // Put a new Admin in storage
         self.account.storage.save<@Admin>(<- create Admin(), to: /storage/TSHOTAdmin)
 
         // Emit an event that shows that the contract was initialized

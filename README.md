@@ -1,6 +1,6 @@
-# MomentSwap
+# Vaultopolis
 
-**MomentSwap** is a decentralized protocol on the Flow Blockchain that enables users to seamlessly swap NBA Top Shot Moments for the fungible token **TSHOT**, and vice versa. Built on Cadence 1.0 (Crescendo update), it leverages on-chain randomness and sharded storage to ensure trustless, efficient, and secure swaps.
+**Vaultopolis** is a decentralized protocol on the Flow Blockchain that enables users to seamlessly swap NBA Top Shot Moments for the fungible token **TSHOT**, and vice versa. Built on Cadence 1.0 (Crescendo update), it leverages on-chain randomness and sharded storage to ensure trustless, efficient, and secure swaps.
 
 ---
 
@@ -24,9 +24,9 @@
 
 ## Contracts Overview
 
-MomentSwap is powered by the following core contracts:
+Vaultopolis is powered by the following core contracts:
 
-1. **MomentSwapTSHOT**  
+1. **TSHOTExchange**  
    Facilitates the trustless exchange of Top Shot Moments for TSHOT tokens, supporting both single and batch swaps.
 
 2. **TSHOT**  
@@ -35,7 +35,7 @@ MomentSwap is powered by the following core contracts:
 3. **TopShotTiers**  
    Classifies Top Shot Moments into tiers (e.g., common, rare, legendary) for swap validation.
 
-4. **TopShotShardedCollection**  
+4. **TopShotShardedCollectionV2**  
    Provides efficient storage and retrieval of large collections of NFTs using a sharded structure.
 
 ---
@@ -44,7 +44,7 @@ MomentSwap is powered by the following core contracts:
 
 Refer to the following sections for detailed commands and their usage:
 
-- [MomentSwap Commands](./SWAP.md)  
+- [Exchange Commands](./SWAP.md)  
   Commands related to swapping moments and tokens.
 
 - [Sharding Commands](./SHARDING.md)  
@@ -68,8 +68,8 @@ Refer to the following sections for detailed commands and their usage:
 
 The following contracts power the MomentSwap ecosystem:
 
-1. **MomentSwapTSHOT**  
-   [View Full Contract](./contracts/MomentSwapTSHOT.cdc)
+1. **TSHOTExchange**  
+   [View Full Contract](./contracts/TSHOTExchange.cdc)
 
 2. **TSHOT**  
    [View Full Contract](./contracts/TSHOT.cdc)
@@ -77,8 +77,8 @@ The following contracts power the MomentSwap ecosystem:
 3. **TopShotTiers**  
    [View Full Contract](./contracts/TopShotTiers.cdc)
 
-4. **TopShotShardedCollection**  
-   [View Full Contract](./contracts/TopShotShardedCollection.cdc)
+4. **TopShotShardedCollectionV2**  
+   [View Full Contract](./contracts/TopShotShardedCollectionV2.cdc)
 
 For more details on Flow's NFT and token standards, visit the [Flow Documentation](https://developers.flow.com/).
 
