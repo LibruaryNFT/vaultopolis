@@ -1,7 +1,7 @@
-// ExchangePanel.js
+// src/components/ExchangePanel.js
 
 import React, { useState, useEffect, useContext } from "react";
-import { UserContext } from "./UserContext";
+import { UserContext } from "../context/UserContext";
 import NFTToTSHOTPanel from "./NFTToTSHOTPanel";
 import NFTToFLOWPanel from "./NFTToFLOWPanel";
 import TSHOTToNFTPanel from "./TSHOTToNFTPanel";
@@ -36,7 +36,7 @@ const ExchangePanel = () => {
     dispatch,
   } = useContext(UserContext);
 
-  // If your context doesn't provide setSelectedAccount, define locally
+  // If your context doesn't provide setSelectedAccount, define locally:
   const setSelectedAccount = (address) => {
     const isChild = accountData.childrenAddresses.includes(address);
     dispatch({
@@ -47,11 +47,9 @@ const ExchangePanel = () => {
 
   const isLoggedIn = Boolean(user?.loggedIn);
 
-  // Sell/Buy asset selection
   const [sellAsset, setSellAsset] = useState("TopShot Moments");
   const [buyAsset, setBuyAsset] = useState("TSHOT");
 
-  // Decide a "dashboardMode"
   const getDashboardMode = () => {
     if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
       return "NFT_TO_TSHOT";
@@ -62,11 +60,11 @@ const ExchangePanel = () => {
     if (sellAsset === "TopShot Moments" && buyAsset === "FLOW") {
       return "NFT_TO_FLOW";
     }
-    return null; // show no dashboard
+    return null;
   };
   const dashboardMode = getDashboardMode();
 
-  // Effects controlling inputs
+  // Input logic
   useEffect(() => {
     if (sellAsset !== "TopShot Moments") {
       setBuyInput(sellInput);
@@ -87,30 +85,27 @@ const ExchangePanel = () => {
 
   useEffect(() => {
     if (sellAsset === "TopShot Moments") {
-      const newBuyValue =
+      const newBuy =
         buyAsset === "FLOW"
           ? (selectedNFTs.length * (flowPricePerNFT || 1)).toString()
           : selectedNFTs.length.toString();
-      setBuyInput(newBuyValue);
+      setBuyInput(newBuy);
     }
   }, [selectedNFTs, sellAsset, buyAsset, flowPricePerNFT]);
 
-  // If TSHOT has a receipt
   useEffect(() => {
     if (
       sellAsset === "TSHOT" &&
       accountData?.hasReceipt &&
-      accountData?.receiptDetails?.betAmount
+      accountData.receiptDetails?.betAmount
     ) {
-      const receiptAmount = Number(
-        accountData.receiptDetails.betAmount
-      ).toFixed(1);
-      setSellInput(receiptAmount);
-      setBuyInput(receiptAmount);
+      const amt = Number(accountData.receiptDetails.betAmount).toFixed(1);
+      setSellInput(amt);
+      setBuyInput(amt);
     }
   }, [accountData.hasReceipt, accountData.receiptDetails, sellAsset]);
 
-  // If selling TSHOT => ensure the selected account has a TS collection
+  // If selling TSHOT => ensure the selected account has TS collection
   useEffect(() => {
     if (sellAsset === "TSHOT") {
       if (accountData?.hasCollection) {
@@ -128,7 +123,6 @@ const ExchangePanel = () => {
     }
   }, [sellAsset, accountData, selectedAccount]);
 
-  // Computed amounts
   const tshotReceiptAmount =
     accountData?.hasReceipt && accountData.receiptDetails
       ? accountData.receiptDetails.betAmount
@@ -162,13 +156,11 @@ const ExchangePanel = () => {
     setTransactionData(data);
     setShowModal(true);
   };
-
   const handleCloseModal = () => {
     setTransactionData({});
     setShowModal(false);
   };
 
-  // Render the correct swap panel
   const renderSwapPanel = () => {
     if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
       return (
@@ -205,7 +197,6 @@ const ExchangePanel = () => {
 
   return (
     <>
-      {/* 1) Show the ExchangeDashboard if there's a recognized mode */}
       {dashboardMode && (
         <div className="mb-4">
           <ExchangeDashboard mode={dashboardMode} />
@@ -219,9 +210,8 @@ const ExchangePanel = () => {
           )}
         </AnimatePresence>
 
-        {/* Sell & Buy Section */}
+        {/* Sell & Buy */}
         <div className="bg-gray-700 p-4 rounded-lg">
-          {/* Sell */}
           <div className="bg-gray-600 p-4 rounded-lg mb-2">
             <div className="flex items-center">
               <div className="flex-grow relative">
@@ -229,11 +219,8 @@ const ExchangePanel = () => {
                 <input
                   autoFocus
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
                   value={isLoggedIn ? sellInput : ""}
                   onChange={(e) => {
-                    // If TSHOT has a receipt, disallow manual input
                     if (!(sellAsset === "TSHOT" && accountData?.hasReceipt)) {
                       let val = e.target.value;
                       if (val.startsWith("0") && val.length > 1) {
@@ -243,7 +230,7 @@ const ExchangePanel = () => {
                     }
                   }}
                   placeholder="0"
-                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl text-left focus:outline-none"
+                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl"
                 />
               </div>
               <div className="ml-2">
@@ -259,7 +246,7 @@ const ExchangePanel = () => {
                   ))}
                 </select>
                 {sellAsset === "TSHOT" &&
-                  accountData.tshotBalance !== undefined && (
+                  typeof accountData.tshotBalance !== "undefined" && (
                     <p className="mt-1 text-xs text-gray-300">
                       Balance: {Math.floor(accountData.tshotBalance)} TSHOT
                     </p>
@@ -272,15 +259,12 @@ const ExchangePanel = () => {
             <span className="text-2xl text-white">↓</span>
           </div>
 
-          {/* Buy */}
           <div className="bg-gray-600 p-4 rounded-lg">
             <div className="flex items-center">
               <div className="flex-grow relative">
                 <label className="block text-sm text-white">Buy</label>
                 <input
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
                   value={isLoggedIn ? buyInput : ""}
                   onChange={(e) => {
                     if (!(sellAsset === "TSHOT" && accountData?.hasReceipt)) {
@@ -292,7 +276,7 @@ const ExchangePanel = () => {
                     }
                   }}
                   placeholder="0"
-                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl text-left focus:outline-none"
+                  className="w-32 bg-gray-600 text-white p-2 rounded mt-1 text-3xl"
                 />
               </div>
               <div className="ml-2">
@@ -364,7 +348,8 @@ const ExchangePanel = () => {
                 childrenAccounts={accountData.childrenData || []}
                 selectedAccount={selectedAccount}
                 onSelectAccount={setSelectedAccount}
-                onRefresh={() => loadAllUserData(user.addr)}
+                // Always reload the parent environment
+                onRefresh={() => loadAllUserData(accountData.parentAddress)}
                 isRefreshing={isRefreshing}
                 isLoadingChildren={isLoadingChildren}
               />

@@ -7,6 +7,12 @@ const useTransaction = () => {
   const [txId, setTxId] = useState(null);
   const [error, setError] = useState(null);
 
+  /**
+   * Send a transaction to the network using FCL.
+   * We do NOT specify payer/proposer/authorizations explicitly.
+   * FCL automatically uses the currently logged-in user
+   * for all roles (assuming they're logged in).
+   */
   const sendTransaction = async ({
     cadence,
     args = [],
@@ -14,22 +20,24 @@ const useTransaction = () => {
     onUpdate,
   }) => {
     try {
+      // Indicate we need wallet approval
       setStatus("Awaiting Approval");
       setError(null);
-      if (onUpdate)
-        onUpdate({ status: "Awaiting Approval", txId: null, error: null });
+      onUpdate?.({ status: "Awaiting Approval", txId: null, error: null });
 
+      // Just call fcl.mutate without specifying roles
       const transactionId = await fcl.mutate({
         cadence,
         args,
         limit,
       });
 
+      // Transaction created, now in Pending
       setTxId(transactionId);
       setStatus("Pending");
-      if (onUpdate)
-        onUpdate({ status: "Pending", txId: transactionId, error: null });
+      onUpdate?.({ status: "Pending", txId: transactionId, error: null });
 
+      // Subscribe to updates
       fcl.tx(transactionId).subscribe((transaction) => {
         const statusMap = {
           0: "Pending",
@@ -41,15 +49,14 @@ const useTransaction = () => {
         };
         const newStatus = statusMap[transaction.status] || "Pending";
         setStatus(newStatus);
-        if (onUpdate)
-          onUpdate({ status: newStatus, txId: transactionId, error: null });
+        onUpdate?.({ status: newStatus, txId: transactionId, error: null });
       });
     } catch (err) {
-      const errorMsg = err.message || err;
+      const errorMsg = err.message || String(err);
       setError(errorMsg);
       setStatus("Error");
-      if (onUpdate) onUpdate({ status: "Error", txId: null, error: errorMsg });
-      throw err; // Re-throw the error to be caught in the component
+      onUpdate?.({ status: "Error", txId: null, error: errorMsg });
+      throw err;
     }
   };
 

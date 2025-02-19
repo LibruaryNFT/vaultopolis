@@ -1,32 +1,36 @@
-// NFTToFLOWPanel.js
-
+// src/components/NFTToFLOWPanel.js
 import React, { useContext } from "react";
-import { UserContext } from "./UserContext";
 import * as fcl from "@onflow/fcl";
+
+import { UserContext } from "../context/UserContext";
 import useTransaction from "../hooks/useTransaction";
+
+// Suppose you have two transaction scripts:
 import { exchangeNFTForFLOW } from "../flow/exchangeNFTForFLOW";
 import { exchangeNFTForFLOW_child } from "../flow/exchangeNFTForFLOW_child";
 
-const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
+const NFTToFLOWPanel = ({ nftIds, flowAmount, onTransactionStart }) => {
   const {
     user,
+    accountData,
     selectedAccount,
     selectedAccountType,
-    loadAllUserData, // <--- instead of refreshBalances
+    loadParentData,
+    loadChildData,
     dispatch,
   } = useContext(UserContext);
 
-  const isLoggedIn = Boolean(user?.loggedIn);
-  const momentCount = nftIds.length;
-  const activeAccountAddr = selectedAccount || user?.addr;
-  const isParentAccount = selectedAccountType === "parent";
   const { sendTransaction } = useTransaction();
+  const isLoggedIn = Boolean(user?.loggedIn);
+
+  // The parent's address from context or fallback to user address
+  const parentAddr = accountData.parentAddress || user?.addr;
 
   if (!isLoggedIn) {
     return (
       <button
         onClick={() => fcl.authenticate()}
-        className="w-full text-lg rounded-lg font-bold text-white bg-opolis hover:bg-opolis-dark p-0"
+        className="w-full text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-2"
       >
         Connect Wallet
       </button>
@@ -34,53 +38,63 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
   }
 
   const handleSwap = async () => {
-    if (momentCount <= 0) {
-      alert("Select at least one moment to exchange.");
+    if (!nftIds || nftIds.length === 0) {
+      alert("No NFTs selected for exchange.");
       return;
     }
-    if (!activeAccountAddr || !activeAccountAddr.startsWith("0x")) {
-      console.error("Invalid active account address:", activeAccountAddr);
-      alert("Error: Invalid account address.");
+    if (!parentAddr?.startsWith("0x")) {
+      console.error("Invalid parent address:", parentAddr);
       return;
     }
-    const cadenceScript = isParentAccount
-      ? exchangeNFTForFLOW
-      : exchangeNFTForFLOW_child;
+
+    // Decide which Cadence script to call
+    const isChildSwap = selectedAccountType === "child";
+    const cadenceScript = isChildSwap
+      ? exchangeNFTForFLOW_child
+      : exchangeNFTForFLOW;
 
     try {
-      onTransactionStart({
+      // Notify parent UI that the transaction is starting
+      onTransactionStart?.({
         status: "Awaiting Approval",
         txId: null,
         error: null,
-        nftCount: momentCount,
-        flowAmount: momentCount,
+        nftCount: nftIds.length,
+        flowAmount,
         swapType: "NFT_TO_FLOW",
       });
+
+      // FCL automatically uses the parent's session to sign
       await sendTransaction({
         cadence: cadenceScript,
         args: (arg, t) =>
-          isParentAccount
-            ? [arg(nftIds, t.Array(t.UInt64))]
-            : [arg(selectedAccount, t.Address), arg(nftIds, t.Array(t.UInt64))],
+          isChildSwap
+            ? [
+                arg(selectedAccount, t.Address),
+                arg(nftIds.map(String), t.Array(t.UInt64)),
+              ]
+            : [arg(nftIds.map(String), t.Array(t.UInt64))],
         limit: 9999,
-        onUpdate: (transactionData) => {
-          onTransactionStart({
-            ...transactionData,
-            nftCount: momentCount,
-            flowAmount: momentCount,
+        onUpdate: (txData) => {
+          onTransactionStart?.({
+            ...txData,
+            nftCount: nftIds.length,
+            flowAmount,
             swapType: "NFT_TO_FLOW",
           });
         },
       });
 
-      // Refresh all user data
-      await loadAllUserData(activeAccountAddr);
+      // Refresh data
+      await loadParentData(parentAddr);
+      if (isChildSwap) {
+        await loadChildData(selectedAccount);
+      }
 
-      // Clear selected NFTs upon success
+      // Clear selected NFTs
       dispatch({ type: "RESET_SELECTED_NFTS" });
-    } catch (error) {
-      console.error("Transaction failed:", error);
-      // If it fails, keep selection intact
+    } catch (err) {
+      console.error("Transaction failed:", err);
     }
   };
 
@@ -89,13 +103,13 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
       <button
         onClick={handleSwap}
         className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-          momentCount <= 0
+          nftIds.length === 0
             ? "bg-gray-600 cursor-not-allowed"
-            : "bg-opolis hover:bg-opolis-dark"
+            : "bg-flow-dark hover:bg-flow-darkest"
         }`}
-        disabled={momentCount <= 0}
+        disabled={nftIds.length === 0}
       >
-        Swap
+        Swap for FLOW
       </button>
     </div>
   );

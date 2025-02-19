@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { UserContext } from "./UserContext";
+import { UserContext } from "../context/UserContext";
 import NFTToFLOWPanel from "./NFTToFLOWPanel";
 import MomentSelection from "./MomentSelection";
 import TransactionModal from "./TransactionModal";

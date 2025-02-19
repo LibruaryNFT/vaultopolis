@@ -1,5 +1,5 @@
 import React, { useContext, useState, useRef } from "react";
-import { UserContext } from "./UserContext";
+import { UserContext } from "../context/UserContext";
 import { Link, useLocation } from "react-router-dom";
 import DropdownMenu from "./DropdownMenu";
 import { FaUserCircle, FaBars } from "react-icons/fa";

@@ -4,7 +4,7 @@ import {
   RouterProvider,
   Navigate,
 } from "react-router-dom";
-import { UserProvider } from "./components/UserContext";
+import { UserProvider } from "./context/UserContext";
 import Vault from "./components/Vault";
 import Earn from "./components/Earn";
 import TermsAndService from "./components/TermsAndPrivacy";

@@ -1,9 +1,13 @@
+// src/components/TSHOTToNFTPanel.js
 import React, { useContext } from "react";
-import { UserContext } from "./UserContext";
+import { UserContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
 import useTransaction from "../hooks/useTransaction";
+
 import { revealSwap } from "../flow/revealSwap";
-import { commitSwap } from "../flow/commitSwap"; // Import commitSwap cadence script
+import { commitSwap } from "../flow/commitSwap";
+
+// Our new AccountSelection:
 import AccountSelection from "./AccountSelection";
 
 const TSHOTToNFTPanel = ({
@@ -11,133 +15,136 @@ const TSHOTToNFTPanel = ({
   depositDisabled,
   onTransactionStart,
 }) => {
-  const { user, accountData, selectedAccount, dispatch } =
-    useContext(UserContext);
+  const {
+    user,
+    accountData,
+    selectedAccount,
+    selectedAccountType,
+    loadParentData,
+    loadChildData,
+    dispatch,
+  } = useContext(UserContext);
+
   const { sendTransaction } = useTransaction();
   const isLoggedIn = Boolean(user?.loggedIn);
 
+  const parentAddr = accountData?.parentAddress || user?.addr;
+
+  // Parent has a TopShot collection if `accountData.hasCollection` is true
+  const parentHasCollection = !!accountData?.hasCollection;
+
+  // Filter children to only those with TopShot
+  const childrenWithCollection = (accountData.childrenData || []).filter(
+    (child) => child.hasCollection
+  );
+
+  // If user not logged in, show Connect button
   if (!isLoggedIn) {
     return (
       <button
         onClick={() => fcl.authenticate()}
-        className="w-full text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-0"
+        className="w-full text-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-2"
       >
         Connect Wallet
       </button>
     );
   }
 
-  const hasReceipt = accountData?.hasReceipt;
-
-  const getSelectedAccountData = () => {
-    if (selectedAccount === accountData?.parentAddress) {
-      return accountData;
-    }
-    if (accountData?.childrenData) {
-      return accountData.childrenData.find(
-        (child) => child.addr === selectedAccount
-      );
-    }
-    return null;
-  };
-  const selectedAccountData = getSelectedAccountData();
-
-  // Always use the parent account for deposit.
-  const activeParentAddress = accountData?.parentAddress || user?.addr;
-
   const handleDeposit = async () => {
-    if (selectedAccount !== activeParentAddress) {
-      console.log(
-        "Forcing deposit to use parent account:",
-        activeParentAddress
-      );
-      dispatch({
-        type: "SET_SELECTED_ACCOUNT",
-        payload: { address: activeParentAddress, type: "parent" },
-      });
-    }
-    if (!activeParentAddress || !activeParentAddress.startsWith("0x")) {
-      console.error(
-        "No valid parent address for deposit:",
-        activeParentAddress
-      );
+    if (!parentAddr?.startsWith("0x")) {
+      console.error("Invalid parent address for deposit");
       return;
     }
-    const betAmount = Number(sellAmount).toFixed(1);
-    if (onTransactionStart) {
-      onTransactionStart({
-        status: "Awaiting Approval",
-        txId: null,
-        error: null,
-        tshotAmount: betAmount,
-        transactionAction: "COMMIT_SWAP",
-      });
-    }
-    console.log(
-      "Depositing TSHOT with bet amount:",
-      betAmount,
-      "from",
-      activeParentAddress
-    );
+    const betAmount = String(sellAmount);
+
+    onTransactionStart?.({
+      status: "Awaiting Approval",
+      txId: null,
+      error: null,
+      tshotAmount: betAmount,
+      transactionAction: "COMMIT_SWAP",
+    });
+
     try {
       await sendTransaction({
         cadence: commitSwap,
         args: (arg, t) => [arg(betAmount, t.UFix64)],
         limit: 9999,
-        onUpdate: (transactionData) => {
-          console.log("Deposit transaction update:", transactionData);
-          if (onTransactionStart) {
-            onTransactionStart({
-              ...transactionData,
-              tshotAmount: betAmount,
-              transactionAction: "COMMIT_SWAP",
-            });
-          }
+        onUpdate: (txData) => {
+          onTransactionStart?.({
+            ...txData,
+            tshotAmount: betAmount,
+            transactionAction: "COMMIT_SWAP",
+          });
         },
       });
-    } catch (error) {
-      console.error("Deposit transaction failed:", error);
+
+      // Reload parent data
+      await loadParentData(parentAddr);
+    } catch (err) {
+      console.error("Deposit transaction failed:", err);
     }
   };
 
   const handleReveal = async () => {
-    if (!selectedAccountData?.hasCollection) {
-      alert(
-        "The selected account does not have a TopShot collection. Please select an account that has a TopShot collection."
-      );
+    if (!selectedAccount?.startsWith("0x")) {
+      alert("Invalid receiving address for reveal.");
       return;
     }
-    if (!selectedAccount || !selectedAccount.startsWith("0x")) {
-      alert("Error: Invalid receive account address.");
-      return;
-    }
+    const betAmount = accountData?.receiptDetails?.betAmount
+      ? String(accountData.receiptDetails.betAmount)
+      : String(sellAmount);
+
+    onTransactionStart?.({
+      status: "Awaiting Approval",
+      txId: null,
+      error: null,
+      tshotAmount: betAmount,
+      transactionAction: "REVEAL_SWAP",
+    });
+
     try {
       await sendTransaction({
         cadence: revealSwap,
         args: (arg, t) => [arg(selectedAccount, t.Address)],
         limit: 9999,
-        onUpdate: (transactionData) => {
-          console.log("Reveal transaction update:", transactionData);
-          if (onTransactionStart) {
-            onTransactionStart({
-              ...transactionData,
-              // Pass along the receipt amount from accountData if available; otherwise, use sellAmount.
-              tshotAmount: accountData?.receiptDetails?.betAmount
-                ? Number(accountData.receiptDetails.betAmount).toFixed(1)
-                : Number(sellAmount).toFixed(1),
-              transactionAction: "REVEAL_SWAP",
-            });
-          }
+        onUpdate: (txData) => {
+          onTransactionStart?.({
+            ...txData,
+            tshotAmount: betAmount,
+            transactionAction: "REVEAL_SWAP",
+          });
         },
       });
-    } catch (error) {
-      console.error("Reveal transaction failed:", error);
+
+      // Reload data
+      await loadParentData(parentAddr);
+      if (selectedAccount !== parentAddr) {
+        await loadChildData(selectedAccount);
+      }
+    } catch (err) {
+      console.error("Reveal transaction failed:", err);
+    }
+  };
+
+  // Handler to switch between parent or child in context
+  const handleAccountSelect = (address) => {
+    if (address === parentAddr) {
+      dispatch({
+        type: "SET_SELECTED_ACCOUNT",
+        payload: { address, type: "parent" },
+      });
+    } else {
+      dispatch({
+        type: "SET_SELECTED_ACCOUNT",
+        payload: { address, type: "child" },
+      });
     }
   };
 
   return (
     <div className="space-y-6 max-w-md mx-auto">
-      {!hasReceipt ? (
+      {!accountData.hasReceipt ? (
         <button
           onClick={handleDeposit}
           disabled={depositDisabled}
@@ -157,18 +164,24 @@ const TSHOTToNFTPanel = ({
           >
             Receive Random Moments
           </button>
+
+          {/* Show our updated AccountSelection */}
           <div className="mt-4">
-            <p className="text-sm text-white mb-4">
-              Select the account to receive the moments:
+            <p className="text-sm text-white mb-2">
+              Select which account should receive the Moments:
             </p>
             <AccountSelection
-              parentAccount={{
-                addr: accountData?.parentAddress,
-                ...accountData,
-              }}
-              childrenAccounts={accountData?.childrenData || []}
+              // Pass parent if it has a collection, otherwise null
+              parentAccount={
+                parentHasCollection
+                  ? { addr: parentAddr, ...accountData }
+                  : null
+              }
+              // Pass only children that have a TS collection
+              childrenAddresses={childrenWithCollection.map((c) => c.addr)}
+              childrenAccounts={childrenWithCollection}
               selectedAccount={selectedAccount}
-              onSelectAccount={() => {}}
+              onSelectAccount={handleAccountSelect}
             />
           </div>
         </>

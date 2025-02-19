@@ -1,5 +1,5 @@
 import React, { useContext, useMemo, useState, useEffect } from "react";
-import { UserContext } from "./UserContext";
+import { UserContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 
 const MomentSelection = () => {

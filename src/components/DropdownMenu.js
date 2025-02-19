@@ -1,6 +1,6 @@
 // DropdownMenu.jsx
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { UserContext } from "./UserContext";
+import { UserContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
 import { FaClipboard, FaSignOutAlt, FaSpinner } from "react-icons/fa";
 
