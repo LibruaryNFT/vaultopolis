@@ -7,7 +7,6 @@ import useTransaction from "../hooks/useTransaction";
 import { revealSwap } from "../flow/revealSwap";
 import { commitSwap } from "../flow/commitSwap";
 
-// Our new AccountSelection:
 import AccountSelection from "./AccountSelection";
 
 const TSHOTToNFTPanel = ({
@@ -19,7 +18,6 @@ const TSHOTToNFTPanel = ({
     user,
     accountData,
     selectedAccount,
-    selectedAccountType,
     loadParentData,
     loadChildData,
     dispatch,
@@ -30,15 +28,7 @@ const TSHOTToNFTPanel = ({
 
   const parentAddr = accountData?.parentAddress || user?.addr;
 
-  // Parent has a TopShot collection if `accountData.hasCollection` is true
-  const parentHasCollection = !!accountData?.hasCollection;
-
-  // Filter children to only those with TopShot
-  const childrenWithCollection = (accountData.childrenData || []).filter(
-    (child) => child.hasCollection
-  );
-
-  // If user not logged in, show Connect button
+  // If user is not logged in, show "Connect Wallet" button
   if (!isLoggedIn) {
     return (
       <button
@@ -50,11 +40,48 @@ const TSHOTToNFTPanel = ({
     );
   }
 
+  // Convert the incoming sellAmount to a number
+  const numericSell = Number(sellAmount) || 0;
+
+  // We only want to limit the deposit to 50 TSHOT max
+  const TSHOT_LIMIT = 50;
+  const isOverTSHOTLimit = numericSell > TSHOT_LIMIT;
+
+  // Parent has a TopShot collection if `accountData.hasCollection` is true
+  const parentHasCollection = !!accountData?.hasCollection;
+
+  // Filter children to only those with TopShot
+  const childrenWithCollection = (accountData.childrenData || []).filter(
+    (child) => child.hasCollection
+  );
+
+  // Switch selected account in context
+  const handleAccountSelect = (address) => {
+    if (address === parentAddr) {
+      dispatch({
+        type: "SET_SELECTED_ACCOUNT",
+        payload: { address, type: "parent" },
+      });
+    } else {
+      dispatch({
+        type: "SET_SELECTED_ACCOUNT",
+        payload: { address, type: "child" },
+      });
+    }
+  };
+
   const handleDeposit = async () => {
     if (!parentAddr?.startsWith("0x")) {
       console.error("Invalid parent address for deposit");
       return;
     }
+
+    // Enforce the 50 TSHOT limit
+    if (numericSell > TSHOT_LIMIT) {
+      alert(`You cannot deposit more than ${TSHOT_LIMIT} TSHOT at once.`);
+      return;
+    }
+
     const betAmount = String(sellAmount);
 
     onTransactionStart?.({
@@ -87,6 +114,7 @@ const TSHOTToNFTPanel = ({
   };
 
   const handleReveal = async () => {
+    // The betAmount for "reveal" typically uses the receiptDetails or fallback to sellAmount
     if (!selectedAccount?.startsWith("0x")) {
       alert("Invalid receiving address for reveal.");
       return;
@@ -127,37 +155,33 @@ const TSHOTToNFTPanel = ({
     }
   };
 
-  // Handler to switch between parent or child in context
-  const handleAccountSelect = (address) => {
-    if (address === parentAddr) {
-      dispatch({
-        type: "SET_SELECTED_ACCOUNT",
-        payload: { address, type: "parent" },
-      });
-    } else {
-      dispatch({
-        type: "SET_SELECTED_ACCOUNT",
-        payload: { address, type: "child" },
-      });
-    }
-  };
-
   return (
     <div className="space-y-6 max-w-md mx-auto">
+      {/* If user hasn't deposited TSHOT yet => show Deposit button */}
       {!accountData.hasReceipt ? (
-        <button
-          onClick={handleDeposit}
-          disabled={depositDisabled}
-          className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-            depositDisabled
-              ? "bg-gray-600 cursor-not-allowed"
-              : "bg-flow-dark hover:bg-flow-darkest"
-          }`}
-        >
-          Deposit TSHOT
-        </button>
+        <div>
+          {/* Show a warning if over the TSHOT limit */}
+          {isOverTSHOTLimit && (
+            <div className="text-red-400 font-semibold mb-2">
+              You cannot deposit more than {TSHOT_LIMIT} TSHOT at once.
+            </div>
+          )}
+
+          <button
+            onClick={handleDeposit}
+            disabled={depositDisabled || isOverTSHOTLimit}
+            className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
+              depositDisabled || isOverTSHOTLimit
+                ? "bg-gray-600 cursor-not-allowed"
+                : "bg-flow-dark hover:bg-flow-darkest"
+            }`}
+          >
+            {isOverTSHOTLimit ? "Over TSHOT Limit" : "Deposit TSHOT"}
+          </button>
+        </div>
       ) : (
         <>
+          {/* Once TSHOT is deposited (hasReceipt == true), show "Reveal" */}
           <button
             onClick={handleReveal}
             className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
@@ -165,19 +189,19 @@ const TSHOTToNFTPanel = ({
             Receive Random Moments
           </button>
 
-          {/* Show our updated AccountSelection */}
+          {/* AccountSelection to pick where Moments go (parent or child) */}
           <div className="mt-4">
             <p className="text-sm text-white mb-2">
               Select which account should receive the Moments:
             </p>
             <AccountSelection
-              // Pass parent if it has a collection, otherwise null
+              // Pass parent if it has a collection, else null
               parentAccount={
                 parentHasCollection
                   ? { addr: parentAddr, ...accountData }
                   : null
               }
-              // Pass only children that have a TS collection
+              // Pass children that have a TopShot collection
               childrenAddresses={childrenWithCollection.map((c) => c.addr)}
               childrenAccounts={childrenWithCollection}
               selectedAccount={selectedAccount}

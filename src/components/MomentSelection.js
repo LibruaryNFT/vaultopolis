@@ -35,43 +35,20 @@ const MomentSelection = () => {
   }, [seriesOptions, selectedSeries]);
 
   // -----------------------------------------------------------
-  // Tier Filter
-  // We want the options to appear in this order:
-  // common, fandom, rare, legendary, ultimate.
-  // By default, common and fandom are selected.
-  // We'll also add a toggle that enables the user to change the selection for the other tiers.
+  // Tier Filter (only Common & Fandom)
   // -----------------------------------------------------------
-  const tierOptions = ["common", "fandom", "rare", "legendary", "ultimate"];
+  const tierOptions = ["common", "fandom"];
   const [selectedTiers, setSelectedTiers] = useState(["common", "fandom"]);
-  const [enableNonCommon, setEnableNonCommon] = useState(false);
-
-  // Mapping of tier names to Tailwind text colour classes.
-  const tierTextColors = {
-    common: "text-gray-400",
-    rare: "text-blue-500",
-    fandom: "text-lime-400",
-    legendary: "text-orange-500",
-    ultimate: "text-pink-500",
-  };
-
-  // If non-common tiers are disabled, force selected tiers to only be common and fandom.
-  useEffect(() => {
-    if (!enableNonCommon) {
-      setSelectedTiers(["common", "fandom"]);
-    }
-  }, [enableNonCommon]);
 
   // Handler for toggling a tier checkbox.
   const handleToggleTier = (tierVal) => {
-    // If the tier is non-common/fandom and non-common is not enabled, do nothing.
-    if (!enableNonCommon && tierVal !== "common" && tierVal !== "fandom")
-      return;
-
     setSelectedTiers((prev) =>
       prev.includes(tierVal)
         ? prev.filter((val) => val !== tierVal)
         : [...prev, tierVal]
     );
+    // Reset current page whenever user changes tiers
+    setCurrentPage(1);
   };
 
   // -----------------------------------------------------------
@@ -100,7 +77,7 @@ const MomentSelection = () => {
     if (!nftDetails || nftDetails.length === 0) return [];
     const filtered = nftDetails.filter((nft) => {
       const serialNumber = parseInt(nft.serialNumber, 10);
-      const editionSize = parseInt(nft.momentCount, 10); // using momentCount as edition size
+      const editionSize = parseInt(nft.momentCount, 10); // Using momentCount as edition size
       const jerseyNumber = nft.jerseyNumber
         ? parseInt(nft.jerseyNumber, 10)
         : null;
@@ -110,10 +87,13 @@ const MomentSelection = () => {
         (jerseyNumber && jerseyNumber === serialNumber);
 
       return (
-        // Instead of forcing "common", check that the NFT tier (lowercased) is in selectedTiers.
+        // Only allow common/fandom
         selectedTiers.includes(nft.tier?.toLowerCase()) &&
-        selectedSeries.includes(nft.series) && // And only those in the selected series
-        (!excludeSpecialSerials || !isSpecialSerial) && // Optionally filter out special serials
+        // Must be in the selected series
+        selectedSeries.includes(nft.series) &&
+        // Optionally filter out special serials
+        (!excludeSpecialSerials || !isSpecialSerial) &&
+        // Exclude any that are already in selectedNFTs
         !selectedNFTs.includes(nft.id)
       );
     });
@@ -211,7 +191,8 @@ const MomentSelection = () => {
         {/* Top section: total count and loading indicator */}
         <div className="flex justify-between items-center mb-2">
           <p className="text-gray-400">
-            Total Available: {eligibleMoments.length}
+            {/* Renamed to "Total Eligible" */}
+            Total Eligible: {eligibleMoments.length}
           </p>
           {isRefreshing && (
             <span className="text-gray-400">
@@ -232,7 +213,7 @@ const MomentSelection = () => {
               {seriesOptions.map((seriesVal) => (
                 <label
                   key={`series-${seriesVal}`}
-                  className="text-gray-300 text-xs flex items-center"
+                  className="text-gray-300 text-sm flex items-center"
                 >
                   <input
                     type="checkbox"
@@ -246,43 +227,26 @@ const MomentSelection = () => {
             </div>
           </div>
 
-          {/* Tier Filter */}
+          {/* Tier Filter (only Common and Fandom) */}
           <div>
             <p className="text-gray-300 text-sm font-semibold">
               Filter by Tier:
             </p>
-            {/* Toggle for including non-common/fandom tier moments (experimental) */}
-            <div className="mb-1">
-              <label className="text-gray-300 text-xs flex items-center">
-                <input
-                  type="checkbox"
-                  checked={enableNonCommon}
-                  onChange={() => setEnableNonCommon((prev) => !prev)}
-                  className="mr-1"
-                />
-                Include non-common/fandom tier moments (experimental)
-              </label>
-            </div>
             <div className="flex flex-wrap gap-2 mt-1">
               {tierOptions.map((tierVal) => (
                 <label
                   key={`tier-${tierVal}`}
-                  className={`text-xs flex items-center ${tierTextColors[tierVal]}`}
+                  className="text-sm flex items-center"
                 >
                   <input
                     type="checkbox"
-                    // Checkbox is checked if the tier is in selectedTiers.
                     checked={selectedTiers.includes(tierVal)}
-                    // Disable the input if this tier is non-common/fandom and the toggle is off.
-                    disabled={
-                      tierVal !== "common" &&
-                      tierVal !== "fandom" &&
-                      !enableNonCommon
-                    }
                     onChange={() => handleToggleTier(tierVal)}
                     className="mr-1"
                   />
-                  {tierVal.charAt(0).toUpperCase() + tierVal.slice(1)}
+                  <span className={getTierColorClass(tierVal)}>
+                    {tierVal.charAt(0).toUpperCase() + tierVal.slice(1)}
+                  </span>
                 </label>
               ))}
             </div>
@@ -324,5 +288,17 @@ const MomentSelection = () => {
     </div>
   );
 };
+
+// Helper function for tier text colors
+function getTierColorClass(tierVal) {
+  switch (tierVal) {
+    case "common":
+      return "text-gray-400";
+    case "fandom":
+      return "text-lime-400";
+    default:
+      return "";
+  }
+}
 
 export default MomentSelection;

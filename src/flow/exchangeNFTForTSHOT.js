@@ -62,7 +62,7 @@ transaction(nftIDs: [UInt64]) {
 
     execute {
         // Call the swapNFTsForTSHOT function in the MomentSwap contract
-        MTSHOTExchange.swapNFTsForTSHOT(
+        TSHOTExchange.swapNFTsForTSHOT(
             nftIDs: <-self.nfts,
             address: self.signerAddress
         )
