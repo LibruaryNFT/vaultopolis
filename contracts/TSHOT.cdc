@@ -130,7 +130,7 @@ access(all) contract TSHOT: FungibleToken {
                 
                 let media = MetadataViews.Media(
                     file: MetadataViews.HTTPFile(
-                        url: "https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
+                        url: "https://storage.googleapis.com/vaultopolis/TSHOT.png"
                     ),
                     mediaType: "image/png"
                 )
