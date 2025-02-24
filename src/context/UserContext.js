@@ -43,7 +43,10 @@ const enrichWithMetadata = async (details, metadataCache) => {
           meta.JerseyNumber || meta.jerseyNumber || nft.jerseyNumber,
         retired: meta.retired !== undefined ? meta.retired : nft.retired,
         playOrder: meta.playOrder || nft.playOrder,
-        series: meta.series || nft.series,
+        series:
+          meta.series !== undefined && meta.series !== null
+            ? meta.series
+            : nft.series,
         name: meta.name || nft.name,
       };
     }

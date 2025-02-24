@@ -13,7 +13,7 @@ const Footer = () => {
           <div>
             <div className="mb-4">
               <img
-                src="https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
+                src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
                 alt="Vaultopolis Logo"
                 className="max-h-8"
               />

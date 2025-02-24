@@ -1,7 +1,5 @@
 export const getVaultCollection = `
 
-//import TopShotShardedCollectionV2 from 0x332ffc0ae9bba9c1
-
 import TopShotShardedCollectionV2 from 0xb1788d64d512026d
 
 // This script retrieves the total number of NFTs in the sharded collection

@@ -1,8 +1,5 @@
 export const revealSwap = `
 
-//import TSHOT from 0x332ffc0ae9bba9c1
-//import MomentSwapTSHOT from 0x332ffc0ae9bba9c1
-
 import TSHOT from 0x05b67ba314000b2d
 import TSHOTExchange from 0x05b67ba314000b2d
 

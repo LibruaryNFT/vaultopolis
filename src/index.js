@@ -14,7 +14,7 @@ fcl
   .put("app.detail.title", "Vaultopolis")
   .put(
     "app.detail.icon",
-    "https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
+    "https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png"
   )
   .put("app.detail.description", "Vaultopolis")
   .put("app.detail.url", "https://vaultopolis.com")

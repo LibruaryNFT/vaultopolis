@@ -1,7 +1,5 @@
-export const getTopShotCollectionBatched = `
-
-import TopShot from 0x0b2a3299cc857e29
-import TopShotLocking from 0x0b2a3299cc857e29
+import "TopShot"
+import "TopShotShardedCollectionV2"
 
 // Structure to hold the NFT details with additional fields
 access(all) struct NFTDetails {
@@ -9,20 +7,20 @@ access(all) struct NFTDetails {
     access(all) let setID: UInt32
     access(all) let playID: UInt32
     access(all) let serialNumber: UInt32
-    access(all) let isLocked: Bool
+    
 
     init(
         id: UInt64,
         setID: UInt32,
         playID: UInt32,
         serialNumber: UInt32,
-        isLocked: Bool,
+        
     ) {
         self.id = id
         self.setID = setID
         self.playID = playID
         self.serialNumber = serialNumber
-        self.isLocked = isLocked
+        
         
     }
 }
@@ -30,11 +28,11 @@ access(all) struct NFTDetails {
 access(all) fun main(address: Address, targetIDs: [UInt64]): [NFTDetails] {
     let account = getAccount(address)
 
-    // Borrow the collection reference from the account
-    let collectionRef = account
-        .capabilities
-        .borrow<&TopShot.Collection>(/public/MomentCollection)
-        ?? panic("Could not borrow a reference to the collection")
+       // Borrow the public capability for the ShardedCollection
+    let collectionRef = account.capabilities
+        .get<&TopShotShardedCollectionV2.ShardedCollection>(/public/MomentCollection)
+        .borrow()
+        ?? panic("Could not borrow the ShardedCollection reference")
 
     // Cache for set names to avoid redundant lookups
     var setNames: {UInt32: String} = {}
@@ -55,21 +53,12 @@ access(all) fun main(address: Address, targetIDs: [UInt64]): [NFTDetails] {
 
         let data = nft.data
 
-
-        
-
-        // Get isLocked status
-        let isLocked = TopShotLocking.isLocked(nftRef: nft)
-
-       
-
         // Collect the details
         let nftDetails = NFTDetails(
             id: nft.id,
             setID: data.setID,
             playID: data.playID,
             serialNumber: data.serialNumber,
-            isLocked: isLocked,
            
         )
 
@@ -81,6 +70,3 @@ access(all) fun main(address: Address, targetIDs: [UInt64]): [NFTDetails] {
     return nftDetailsList
 }
 
-
-
-`;

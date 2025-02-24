@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@onflow/fcl": "^1.12.1",
+    "@onflow/fcl": "^1.13.4",
+    "@onflow/fcl-wc": "^5.5.4",
     "framer-motion": "^11.11.17",
     "lucide-react": "^0.263.1",
     "p-limit": "^6.1.0",

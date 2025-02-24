@@ -1,9 +1,5 @@
 export const exchangeNFTForFLOW = `
 
-//import TopShotFloors from 0x68b53c4a123f2baf
-//import NonFungibleToken from 0x631e88ae7f1d7c20
-//import TopShot from 0x332ffc0ae9bba9c1
-
 import TopShotFloors from 0xb1788d64d512026d
 import NonFungibleToken from 0x1d7e57aa55817448
 import TopShot from 0x0b2a3299cc857e29

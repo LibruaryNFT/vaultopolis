@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 
+// Optional: tier color mapping
 const tierStyles = {
   common: "text-gray-400",
   rare: "text-blue-500",
@@ -19,9 +20,28 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
     }
   }, [nft?.setID, nft?.playID]);
 
+  // Player name fallback
+  const playerName =
+    nft?.FullName || nft?.fullName || nft?.playerName || "Unknown Player";
+
+  // We treat `nft.series` as is. If it's 0, we show 0. If undefined => show "?"
+  // This minimal check will show '0' if series=0, or '?' if series is missing.
+  const seriesText =
+    nft?.series !== undefined && nft?.series !== null
+      ? String(nft.series) // "0", "4", etc.
+      : "?";
+
+  // Tier stylings
+  const tierClass = nft?.tier
+    ? tierStyles[nft.tier.toLowerCase()] || "text-gray-400"
+    : "text-gray-400";
+  const tierLabel = nft?.tier
+    ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
+    : "Unknown Tier";
+
   return (
     <div
-      onClick={() => handleNFTSelection(nft?.id)}
+      onClick={() => handleNFTSelection?.(nft.id)}
       className={`
         border
         bg-black
@@ -38,54 +58,41 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
         ${isSelected ? "border-green-500" : "border-gray-600"}
         overflow-hidden
       `}
-      // Fixed dimensions so that the card size remains constant
-      style={{
-        width: "7rem",
-        height: "12rem",
-      }}
+      style={{ width: "7rem", height: "12rem" }}
     >
-      {/* Image Section */}
+      {/* Image */}
       {imageUrl && (
         <div
           className="relative overflow-hidden rounded mx-auto"
-          style={{
-            height: "80px",
-            width: "80px",
-          }}
+          style={{ height: "80px", width: "80px" }}
         >
           <img
             src={imageUrl}
-            alt={`${nft?.fullName || "Unknown Player"} moment`}
+            alt={`${playerName} moment`}
             className="object-cover w-full h-full transform scale-150"
-            style={{
-              objectPosition: "center",
-            }}
+            style={{ objectPosition: "center" }}
           />
         </div>
       )}
 
       {/* Player Name */}
       <h3 className="text-center text-white mt-1 text-xs font-semibold truncate whitespace-nowrap">
-        {nft?.fullName || nft?.playerName || "Unknown Player"}
+        {playerName}
       </h3>
 
       {/* Series */}
       <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
-        Series {nft?.series ?? "?"}
+        Series {seriesText}
       </p>
 
       {/* Tier */}
       <p
-        className={`text-center ${
-          tierStyles[nft?.tier?.toLowerCase()] || "text-gray-400"
-        } text-xs truncate whitespace-nowrap`}
+        className={`text-center ${tierClass} text-xs truncate whitespace-nowrap`}
       >
-        {nft?.tier
-          ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
-          : "Unknown Tier"}
+        {tierLabel}
       </p>
 
-      {/* Serial Number and Edition Size */}
+      {/* SerialNumber / momentCount */}
       <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
         {nft?.serialNumber ?? "?"} / {nft?.momentCount ?? "?"}
       </p>

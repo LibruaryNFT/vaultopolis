@@ -1,4 +1,4 @@
-import "TopShotShardedCollection"
+import "TopShotShardedCollectionV2"
 
 // This script retrieves the list of moment IDs in a specific shard of the sharded collection
 // owned by the specified account.

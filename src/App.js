@@ -5,11 +5,12 @@ import {
   Navigate,
 } from "react-router-dom";
 import { UserProvider } from "./context/UserContext";
-import Vault from "./components/Vault";
+import Vaults from "./components/Vaults";
 import Earn from "./components/Earn";
 import TermsAndService from "./components/TermsAndPrivacy";
 import Layout from "./components/Layout";
 import ExchangePanel from "./components/ExchangePanel";
+import Transfer from "./components/Transfer";
 
 // Enforce HTTPS only in production
 function enforceHTTPS() {
@@ -29,6 +30,14 @@ const router = createBrowserRouter(
       element: <Navigate to="/exchange" replace />,
     },
     {
+      path: "/transfer",
+      element: (
+        <Layout>
+          <Transfer />
+        </Layout>
+      ),
+    },
+    {
       path: "/exchange",
       element: (
         <Layout>
@@ -37,10 +46,10 @@ const router = createBrowserRouter(
       ),
     },
     {
-      path: "/vault",
+      path: "/vaults",
       element: (
         <Layout>
-          <Vault />
+          <Vaults />
         </Layout>
       ),
     },

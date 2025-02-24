@@ -36,7 +36,7 @@ const Header = () => {
           {/* Logo (visible on screens per your config; appears next to hamburger) */}
           <Link to="/" className="hidden xs:block ml-2">
             <img
-              src="https://storage.googleapis.com/momentswap/images/Vaultopolis.png"
+              src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
               alt="Vaultopolis Logo"
               className="max-h-8"
             />
@@ -51,6 +51,11 @@ const Header = () => {
               isActive={location.pathname === "/exchange"}
             >
               Exchange
+            </NavLink>
+          </div>
+          <div className="flex items-center space-x-2">
+            <NavLink to="/vaults" isActive={location.pathname === "/vaults"}>
+              Vaults
             </NavLink>
           </div>
         </nav>
@@ -92,6 +97,15 @@ const Header = () => {
               onClick={toggleMobileMenu}
             >
               Exchange
+            </MobileNavLink>
+          </div>
+          <div className="flex flex-col divide-y divide-gray-700">
+            <MobileNavLink
+              to="/vaults"
+              isActive={location.pathname === "/vaults"}
+              onClick={toggleMobileMenu}
+            >
+              Vaults
             </MobileNavLink>
           </div>
         </div>

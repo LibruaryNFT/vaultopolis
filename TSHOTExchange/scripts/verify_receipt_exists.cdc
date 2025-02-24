@@ -1,4 +1,4 @@
-import "MomentSwapTSHOT"
+import "TSHOTExchange"
 
 access(all) fun main(userAddress: Address): Bool {
     // Get the account of the user
