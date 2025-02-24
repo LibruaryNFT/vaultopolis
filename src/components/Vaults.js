@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import * as fcl from "@onflow/fcl"; // Ensure FCL is configured for your network
+import { getTSHOTSupply } from "../flow/getTSHOTSupply"; // Adjust path as needed
 
 // Tier style config
 const tierStyles = {
@@ -13,11 +15,35 @@ const tierStyles = {
 const ALL_TIER_OPTIONS = ["common", "fandom", "rare", "legendary", "ultimate"];
 
 function Vaults() {
+  // -----------------------------------------------------
+  // TSHOT SUPPLY STATE
+  // -----------------------------------------------------
+  const [tshotSupply, setTshotSupply] = useState(null);
+
+  // Fetch total supply
+  useEffect(() => {
+    async function fetchSupply() {
+      try {
+        const supply = await fcl.query({
+          cadence: getTSHOTSupply,
+          args: () => [],
+        });
+        setTshotSupply(supply);
+      } catch (err) {
+        console.error("Failed to fetch TSHOT supply:", err);
+      }
+    }
+    fetchSupply();
+  }, []);
+
+  // -----------------------------------------------------
+  // VAULT DATA STATE
+  // -----------------------------------------------------
   const [allNfts, setAllNfts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Fetch data once
+  // Fetch vault data
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -30,9 +56,6 @@ function Vaults() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-
-        // If data is array => store directly
-        // If it's { total, data }, store data
         const nfts = Array.isArray(data) ? data : data.data || [];
         setAllNfts(nfts);
       } catch (err) {
@@ -41,13 +64,12 @@ function Vaults() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  // ----------------------------------------------------------------
-  // Tiers that actually appear in the data
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // TIER FILTER LOGIC
+  // -----------------------------------------------------
   const existingTiers = useMemo(() => {
     const found = new Set();
     for (const nft of allNfts) {
@@ -65,22 +87,17 @@ function Vaults() {
     }
   }, [existingTiers, selectedTiers]);
 
-  // ----------------------------------------------------------------
-  // Series
-  // Make sure we parse them as numbers so 0 is included and sorted numerically
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // SERIES FILTER LOGIC
+  // -----------------------------------------------------
   const seriesOptions = useMemo(() => {
-    // Convert `n.series` to number. Then gather unique numeric values.
     const seriesSet = new Set(
       allNfts.map((n) => {
-        // parse or coerce to number
         const val = Number(n.series);
         return Number.isNaN(val) ? null : val;
       })
     );
-    // Remove null/undefined
     seriesSet.delete(null);
-    // Convert to array, sort numerically
     const arr = Array.from(seriesSet).sort((a, b) => a - b);
     return arr;
   }, [allNfts]);
@@ -92,20 +109,20 @@ function Vaults() {
     }
   }, [seriesOptions, selectedSeries]);
 
-  // ----------------------------------------------------------------
-  // Exclude special serials
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // EXCLUDE SPECIAL SERIALS
+  // -----------------------------------------------------
   const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
 
-  // ----------------------------------------------------------------
-  // Pagination
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // PAGINATION
+  // -----------------------------------------------------
   const [itemsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ----------------------------------------------------------------
-  // Handlers
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // HANDLERS
+  // -----------------------------------------------------
   const handleToggleTier = (tierVal) => {
     setSelectedTiers((prev) =>
       prev.includes(tierVal)
@@ -129,17 +146,17 @@ function Vaults() {
     setCurrentPage(1);
   };
 
-  // ----------------------------------------------------------------
-  // Filter Logic
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // FILTER
+  // -----------------------------------------------------
   const filteredNfts = useMemo(() => {
     if (!allNfts || !allNfts.length) return [];
     return allNfts.filter((nft) => {
-      // Tier filter
+      // Tier
       const nftTier = nft?.tier?.toLowerCase();
       if (!selectedTiers.includes(nftTier)) return false;
 
-      // Series filter
+      // Series
       const numericSeries = Number(nft.series);
       if (
         Number.isNaN(numericSeries) ||
@@ -148,7 +165,7 @@ function Vaults() {
         return false;
       }
 
-      // Exclude special serial if toggled
+      // Exclude special
       const serialNumber = parseInt(nft.serialNumber, 10);
       const editionSize = parseInt(nft.momentCount, 10);
       const jerseyNumber = nft.JerseyNumber
@@ -158,11 +175,9 @@ function Vaults() {
         serialNumber === 1 ||
         serialNumber === editionSize ||
         (jerseyNumber && jerseyNumber === serialNumber);
-
       if (excludeSpecialSerials && isSpecial) {
         return false;
       }
-
       return true;
     });
   }, [allNfts, selectedTiers, selectedSeries, excludeSpecialSerials]);
@@ -181,9 +196,9 @@ function Vaults() {
     return sortedNfts.slice(start, start + itemsPerPage);
   }, [sortedNfts, currentPage, itemsPerPage]);
 
-  // ----------------------------------------------------------------
-  // Pagination Buttons
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // PAGINATION BUTTONS
+  // -----------------------------------------------------
   const renderPaginationButtons = () => {
     if (totalPages <= 1) return null;
 
@@ -235,9 +250,9 @@ function Vaults() {
     );
   };
 
-  // ----------------------------------------------------------------
-  // Card
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // NFT CARD
+  // -----------------------------------------------------
   const NftCard = ({ nft }) => {
     const [imageUrl, setImageUrl] = useState("");
 
@@ -319,9 +334,9 @@ function Vaults() {
     );
   };
 
-  // ----------------------------------------------------------------
-  // Render
-  // ----------------------------------------------------------------
+  // -----------------------------------------------------
+  // RENDER
+  // -----------------------------------------------------
   if (loading) {
     return <p className="text-white">Loading vault data...</p>;
   }
@@ -329,13 +344,29 @@ function Vaults() {
     return <p className="text-red-500">Error: {error}</p>;
   }
 
+  // Truncate TSHOT supply to 1 decimal
+  const displaySupply =
+    tshotSupply !== null ? Number(tshotSupply).toFixed(1) : null;
+
   return (
     <div className="w-full text-white">
       {/* Title & Subtext */}
-      <h1 className="text-2xl mb-2 font-semibold">TSHOT Vault Contents</h1>
+      <h1 className="text-2xl mb-2 font-semibold">TSHOT Vault</h1>
       <p className="mb-4 text-sm text-gray-300">
         You can swap in TSHOT for a chance at any of these vault contents.
       </p>
+
+      {/* Display Total TSHOT Supply */}
+      <div className="bg-gray-800 rounded-md p-3 mb-4 inline-block">
+        {displaySupply !== null ? (
+          <p className="text-gray-200 font-semibold">
+            Total TSHOT Supply:{" "}
+            <span className="text-blue-300">{displaySupply}</span>
+          </p>
+        ) : (
+          <p className="text-gray-300">Loading TSHOT supply...</p>
+        )}
+      </div>
 
       <div className="bg-gray-700 p-2 rounded-lg">
         {/* Top section: total count */}
