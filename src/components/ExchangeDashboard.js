@@ -8,7 +8,10 @@ import {
   Dice5,
 } from "lucide-react";
 import * as fcl from "@onflow/fcl";
+
+// -- import your Cadence scripts
 import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT";
+import { getFLOWBalance } from "../flow/getFLOWBalance";
 
 // ---------- Formatting Helpers ----------
 const formatNumber = (num) =>
@@ -33,14 +36,10 @@ const formatUSD = (num) =>
  *
  * - For "NFT_TO_TSHOT"/"TSHOT_TO_NFT":
  *   3 boxes [TSHOT Price, Floor Price, Flow Price].
- *   Then a collapsible "What is TSHOT?" section with 4 squares:
- *     1) TSHOT minted 1:1 with Common/Fandom Moments
- *     2) Swap TSHOT back for random Common/Fandom Moments (Dice icon)
- *     3) Earn yield on 3rd-party DEXes
- *     4) Instant liquidity (exchange TSHOT for FLOW)
+ *   Then a collapsible "What is TSHOT?" section with 4 squares.
  *
  * - For "NFT_TO_FLOW":
- *   3 boxes: [Vaultopolis Rate, Floor Price, Flow Price],
+ *   4 boxes: [Vaultopolis Rate, Vaultopolis Flow Balance, Floor Price, Flow Price],
  *   then an "Experimental Mode" disclaimer.
  *
  * - The entire UI is narrower (max-w-xl) with smaller padding for a cleaner, compact look.
@@ -54,7 +53,9 @@ const ExchangeDashboard = ({ mode }) => {
   // Collapsible TSHOT info: hidden by default
   const [showTshotInfo, setShowTshotInfo] = useState(false);
 
-  // ---------- Fetch Logic ----------
+  // ---------- On-chain queries ----------
+
+  // fetch onchain Flow price per NFT
   const fetchOnchainFlowPerNFT = async () => {
     try {
       const result = await fcl.query({
@@ -68,8 +69,25 @@ const ExchangeDashboard = ({ mode }) => {
     }
   };
 
-  const fetchData = async () => {
+  // fetch the Vaultopolis Flow balance used for buying Moments
+  const fetchVaultopolisBalance = async () => {
     try {
+      const balance = await fcl.query({
+        cadence: getFLOWBalance,
+        args: (arg, t) => [arg("0xb1788d64d512026d", t.Address)], // The Vaultopolis address
+      });
+      return Number(balance);
+    } catch (err) {
+      console.error("Error fetching Vaultopolis Flow balance:", err);
+      return null;
+    }
+  };
+
+  // ---------- Fetch entire data set ----------
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // 1) get the floor data from your backend
       const response = await fetch(
         "https://flowconnectbackend-864654c6a577.herokuapp.com/api/floor-price"
       );
@@ -78,12 +96,17 @@ const ExchangeDashboard = ({ mode }) => {
       }
       const result = await response.json();
 
-      // override with onchain
+      // 2) override with on-chain flow-per-NFT
       const onchainFlow = await fetchOnchainFlowPerNFT();
       if (onchainFlow !== null) {
         result.onchainFlowPerNFT = onchainFlow;
       }
 
+      // 3) fetch Vaultopolis's Flow balance
+      const vaultBalance = await fetchVaultopolisBalance();
+      result.vaultBalance = vaultBalance;
+
+      // set final data
       setData(result);
       setLastUpdated(new Date());
       setError(null);
@@ -120,11 +143,15 @@ const ExchangeDashboard = ({ mode }) => {
   const flowPriceUSD = data.flowPriceUSD; // Price of 1 FLOW in USD
   const floorPriceFLOW = data.pricePerFloorNFTFlow;
   const floorPriceUSD = data.floorPriceUSD;
-  const vaultFlow = data.onchainFlowPerNFT; // "Vaultopolis" rate in FLOW
+  const vaultFlow = data.onchainFlowPerNFT; // Vaultopolis rate in FLOW
   const vaultUsd = vaultFlow * flowPriceUSD;
+  const vaultBalance = data.vaultBalance || 0; // The Flow in Vaultopolis’s account
+
+  // premium above floor
   const premiumPercentage = floorPriceFLOW
     ? (((vaultFlow - floorPriceFLOW) / floorPriceFLOW) * 100).toFixed(1)
     : 0;
+
   const lastUpdatedStr = lastUpdated ? lastUpdated.toLocaleTimeString() : "";
 
   // TSHOT = same as floor
@@ -304,8 +331,8 @@ const ExchangeDashboard = ({ mode }) => {
   if (mode === "NFT_TO_FLOW") {
     return (
       <div className="max-w-xl mx-auto p-3 bg-gray-800 bg-opacity-70 rounded-lg space-y-3">
-        {/* 3 boxes: Vault, Floor, Flow */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* 4 boxes: Vault Rate, Vault Flow Balance, Floor Price, Flow Price */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Vaultopolis Rate */}
           <div className="bg-gray-700 rounded-lg p-3">
             <div className="text-xs text-gray-300 text-center mb-1 h-5 flex items-center justify-center">
@@ -325,6 +352,24 @@ const ExchangeDashboard = ({ mode }) => {
               }`}
             >
               {premiumPercentage}% above floor
+            </div>
+          </div>
+
+          {/* Vaultopolis Flow Balance */}
+          <div className="bg-gray-700 rounded-lg p-3">
+            <div className="text-xs text-gray-300 text-center mb-1 h-5 flex items-center justify-center">
+              <span className="text-vault font-bold">Vault</span>
+              <span className="text-opolis font-bold">opolis</span>
+              <span className="text-gray-300 ml-1">Balance</span>
+            </div>
+            <div className="text-lg font-bold text-white text-center">
+              {formatNumber(vaultBalance)} FLOW
+            </div>
+            <div className="text-xs font-normal text-gray-400 text-center">
+              {formatUSD(vaultBalance * flowPriceUSD)}
+            </div>
+            <div className="text-xs font-medium mt-1 text-center text-gray-400">
+              For Buying Moments
             </div>
           </div>
 
