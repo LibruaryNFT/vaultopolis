@@ -4,7 +4,6 @@
 emulator-account.pkey
 mainnet-account.pkey
 imports
-flow.json
 /venv
 *.log
 /node_modules
