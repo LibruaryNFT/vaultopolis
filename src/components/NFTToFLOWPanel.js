@@ -9,7 +9,7 @@ import useTransaction from "../hooks/useTransaction";
 import { exchangeNFTForFLOW } from "../flow/exchangeNFTForFLOW";
 import { exchangeNFTForFLOW_child } from "../flow/exchangeNFTForFLOW_child";
 
-const NFTToFLOWPanel = ({ nftIds, flowAmount, onTransactionStart }) => {
+const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
   const {
     user,
     accountData,
@@ -60,7 +60,7 @@ const NFTToFLOWPanel = ({ nftIds, flowAmount, onTransactionStart }) => {
         txId: null,
         error: null,
         nftCount: nftIds.length,
-        flowAmount,
+        flowAmount: buyAmount,
         swapType: "NFT_TO_FLOW",
       });
 
@@ -79,7 +79,7 @@ const NFTToFLOWPanel = ({ nftIds, flowAmount, onTransactionStart }) => {
           onTransactionStart?.({
             ...txData,
             nftCount: nftIds.length,
-            flowAmount,
+            flowAmount: buyAmount,
             swapType: "NFT_TO_FLOW",
           });
         },

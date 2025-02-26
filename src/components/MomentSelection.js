@@ -3,25 +3,32 @@ import { UserContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 
 /**
- * Displays a filterable/paginatable list of 'nftDetails'.
- * We do NOT do an early return before all hooks are called.
+ * If `allowAllTiers = false`, we only allow ["common", "fandom"].
+ * If `allowAllTiers = true`, we show ["common", "fandom", "rare", "legendary", "ultimate"].
  */
+const defaultTiers = ["common", "fandom"];
+const allPossibleTiers = ["common", "fandom", "rare", "legendary", "ultimate"];
 
-const tierOptions = ["common", "fandom"];
-
+/** For coloring tier labels */
 function getTierColorClass(tierVal) {
   switch (tierVal) {
     case "common":
       return "text-gray-400";
     case "fandom":
       return "text-lime-400";
+    case "rare":
+      return "text-blue-500";
+    case "legendary":
+      return "text-orange-500";
+    case "ultimate":
+      return "text-pink-500";
     default:
       return "";
   }
 }
 
-const MomentSelection = () => {
-  // 1) Always call hooks at top level
+const MomentSelection = ({ allowAllTiers = false }) => {
+  // 1) Always call hooks at top (unconditional)
   const {
     user,
     accountData,
@@ -31,23 +38,33 @@ const MomentSelection = () => {
     isRefreshing,
   } = useContext(UserContext);
 
+  // Decide which tiers to show
+  const tierOptions = useMemo(
+    () => (allowAllTiers ? allPossibleTiers : defaultTiers),
+    [allowAllTiers]
+  );
+
+  // Keep track of selected tiers in local state
+  const [selectedTiers, setSelectedTiers] = useState(tierOptions);
+
+  // Exclude special serial
   const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
+
+  // Pagination
   const [itemsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // We'll store which Tiers are selected
-  const [selectedTiers, setSelectedTiers] = useState(tierOptions);
-
-  // Series
+  // Which series are selected
   const [selectedSeries, setSelectedSeries] = useState([]);
-  // We parse 'nftDetails' at top
+
+  // Identify the active account (child or parent)
   const activeAccount =
     accountData?.childrenData?.find(
       (child) => child.addr === selectedAccount
     ) || accountData;
   const { nftDetails = [] } = activeAccount;
 
-  // 2) Build numeric series array
+  // Build numeric series array
   const seriesOptions = useMemo(() => {
     const set = new Set(
       nftDetails.map((n) => {
@@ -59,30 +76,32 @@ const MomentSelection = () => {
     return [...set].sort((a, b) => a - b);
   }, [nftDetails]);
 
+  // On mount/updates, if we have no selected series yet, set all
   useEffect(() => {
-    // If no series selected yet, use all
     if (seriesOptions.length && selectedSeries.length === 0) {
       setSelectedSeries(seriesOptions);
     }
   }, [seriesOptions, selectedSeries]);
 
-  // 3) Filtering logic
+  // 2) Define all Hook-based logic before any early return
+  // Filter + sort the NFT data
   const eligibleMoments = useMemo(() => {
-    // if no data
     if (!nftDetails.length) return [];
 
-    // filter + sort
     return nftDetails
       .filter((n) => {
-        // tier must be in selectedTiers
+        // Must not be locked
+        if (n.isLocked) return false;
+
+        // Must match a selected tier
         const t = n.tier?.toLowerCase();
         if (!selectedTiers.includes(t)) return false;
 
-        // parse numeric series
+        // Must match selected series
         const s = Number(n.series);
         if (Number.isNaN(s) || !selectedSeries.includes(s)) return false;
 
-        // exclude special serial
+        // Exclude special serial if needed
         const sn = parseInt(n.serialNumber, 10);
         const edSize = parseInt(n.momentCount, 10);
         const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
@@ -90,7 +109,7 @@ const MomentSelection = () => {
           sn === 1 || sn === edSize || (jersey && jersey === sn);
         if (excludeSpecialSerials && isSpecial) return false;
 
-        // exclude if already selected
+        // Exclude if already selected
         if (selectedNFTs.includes(n.id)) return false;
 
         return true;
@@ -106,21 +125,19 @@ const MomentSelection = () => {
     selectedNFTs,
   ]);
 
-  // pagination
+  // Paginate
   const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
   const paginatedMoments = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return eligibleMoments.slice(start, start + itemsPerPage);
   }, [eligibleMoments, currentPage, itemsPerPage]);
 
-  // 4) All hooks are defined. We do a conditional render below
-
-  // If user not logged in, just show something minimal
+  // 3) **Now** we can do an early return if not logged in
   if (!user?.loggedIn) {
     return <p className="text-gray-400">Please log in.</p>;
   }
 
-  // 5) Tier toggles
+  // Handlers for toggling filters
   const handleToggleTier = (tierVal) => {
     setSelectedTiers((prev) =>
       prev.includes(tierVal)
@@ -130,7 +147,6 @@ const MomentSelection = () => {
     setCurrentPage(1);
   };
 
-  // 6) Series toggles
   const handleToggleSeries = (val) => {
     setSelectedSeries((prev) =>
       prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]
@@ -138,18 +154,17 @@ const MomentSelection = () => {
     setCurrentPage(1);
   };
 
-  // 7) Exclude serial toggles
   const toggleExcludeSpecialSerials = () => {
     setExcludeSpecialSerials((p) => !p);
     setCurrentPage(1);
   };
 
-  // 8) NFT selection
+  // Handler for selecting an NFT
   const handleNFTSelection = (id) => {
     dispatch({ type: "SET_SELECTED_NFTS", payload: id });
   };
 
-  // 9) pagination buttons
+  // Pagination buttons
   const renderPaginationButtons = () => {
     if (totalPages <= 1) return null;
     const pages = [];
@@ -198,7 +213,7 @@ const MomentSelection = () => {
     );
   };
 
-  // 10) Render the main UI
+  // 4) Final render
   return (
     <div className="w-full bg-gray-700 p-2 rounded-lg">
       <div className="flex justify-between items-center mb-2">
@@ -214,7 +229,7 @@ const MomentSelection = () => {
       </div>
 
       <div className="mb-2 space-y-2">
-        {/* Series Filter */}
+        {/* Filter by Series */}
         <div>
           <p className="text-gray-300 text-sm font-semibold">
             Filter by Series:
@@ -237,7 +252,7 @@ const MomentSelection = () => {
           </div>
         </div>
 
-        {/* Tiers */}
+        {/* Filter by Tier */}
         <div>
           <p className="text-gray-300 text-sm font-semibold">Filter by Tier:</p>
           <div className="flex flex-wrap gap-2 mt-1">
@@ -271,7 +286,7 @@ const MomentSelection = () => {
         </label>
       </div>
 
-      {/* The grid of Moments */}
+      {/* Grid of Moments */}
       <div className="flex flex-wrap gap-2 mt-2">
         {paginatedMoments.map((nft) => (
           <MomentCard

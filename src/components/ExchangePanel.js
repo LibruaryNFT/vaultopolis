@@ -66,33 +66,38 @@ const ExchangePanel = () => {
 
   // Input logic
   useEffect(() => {
+    // If selling TSHOT or receiving TSHOT => keep them in sync
     if (sellAsset !== "TopShot Moments") {
       setBuyInput(sellInput);
     }
   }, [sellInput, sellAsset]);
 
   useEffect(() => {
+    // If user changes the sell asset, ensure buy asset is valid
     if (!buyOptionsMap[sellAsset].includes(buyAsset)) {
       setBuyAsset(buyOptionsMap[sellAsset][0]);
     }
   }, [sellAsset, buyAsset]);
 
+  // Whenever user selects Moments, reflect that in the "sellInput" box
   useEffect(() => {
     if (sellAsset === "TopShot Moments") {
       setSellInput(selectedNFTs.length.toString());
     }
   }, [selectedNFTs, sellAsset]);
 
+  // Calculate the "buyInput" when selling Moments
   useEffect(() => {
     if (sellAsset === "TopShot Moments") {
       const newBuy =
         buyAsset === "FLOW"
-          ? (selectedNFTs.length * (flowPricePerNFT || 1)).toString()
+          ? (selectedNFTs.length * (flowPricePerNFT || 1)).toFixed(1) // <-- FORCE ONE DECIMAL
           : selectedNFTs.length.toString();
       setBuyInput(newBuy);
     }
   }, [selectedNFTs, sellAsset, buyAsset, flowPricePerNFT]);
 
+  // If user has a TSHOT "receipt" amount, override inputs
   useEffect(() => {
     if (
       sellAsset === "TSHOT" &&
@@ -128,6 +133,7 @@ const ExchangePanel = () => {
       ? accountData.receiptDetails.betAmount
       : null;
 
+  // Compute numeric amounts
   const computedSellAmount =
     sellAsset === "TopShot Moments" && selectedNFTs.length > 0
       ? selectedNFTs.length
@@ -148,6 +154,7 @@ const ExchangePanel = () => {
       ? 0
       : Number(buyInput);
 
+  // Format them for display (one decimal)
   const formattedSellValue = Number(computedSellAmount).toFixed(1);
   const formattedBuyValue = Number(computedBuyAmount).toFixed(1);
 
@@ -161,6 +168,7 @@ const ExchangePanel = () => {
     setShowModal(false);
   };
 
+  // Render the appropriate swap panel
   const renderSwapPanel = () => {
     if (sellAsset === "TopShot Moments" && buyAsset === "TSHOT") {
       return (
@@ -197,6 +205,7 @@ const ExchangePanel = () => {
 
   return (
     <>
+      {/* If there's a recognized dashboard mode, show the top stats */}
       {dashboardMode && (
         <div className="mb-4">
           <ExchangeDashboard mode={dashboardMode} />
@@ -210,8 +219,9 @@ const ExchangePanel = () => {
           )}
         </AnimatePresence>
 
-        {/* Sell & Buy */}
+        {/* Sell & Buy boxes */}
         <div className="bg-gray-700 p-4 rounded-lg">
+          {/* SELL Box */}
           <div className="bg-gray-600 p-4 rounded-lg mb-2">
             <div className="flex items-center">
               <div className="flex-grow relative">
@@ -221,6 +231,7 @@ const ExchangePanel = () => {
                   type="text"
                   value={isLoggedIn ? sellInput : ""}
                   onChange={(e) => {
+                    // Prevent user input if TSHOT is locked to the bet receipt
                     if (!(sellAsset === "TSHOT" && accountData?.hasReceipt)) {
                       let val = e.target.value;
                       if (val.startsWith("0") && val.length > 1) {
@@ -255,10 +266,12 @@ const ExchangePanel = () => {
             </div>
           </div>
 
+          {/* Down arrow */}
           <div className="flex justify-center mb-2">
             <span className="text-2xl text-white">↓</span>
           </div>
 
+          {/* BUY Box */}
           <div className="bg-gray-600 p-4 rounded-lg">
             <div className="flex items-center">
               <div className="flex-grow relative">
@@ -267,6 +280,7 @@ const ExchangePanel = () => {
                   type="text"
                   value={isLoggedIn ? buyInput : ""}
                   onChange={(e) => {
+                    // Prevent user input if TSHOT is locked to the bet receipt
                     if (!(sellAsset === "TSHOT" && accountData?.hasReceipt)) {
                       let val = e.target.value;
                       if (val.startsWith("0") && val.length > 1) {
@@ -296,13 +310,13 @@ const ExchangePanel = () => {
           </div>
         </div>
 
-        {/* Swap Panel */}
+        {/* Panel that triggers the swap transaction */}
         <div className="bg-gray-700 p-2 rounded-lg shadow-md">
           {renderSwapPanel()}
         </div>
       </div>
 
-      {/* If selling Moments, show AccountSelection + MomentSelection */}
+      {/* If we're selling Moments, show AccountSelection + MomentSelection below */}
       {sellAsset === "TopShot Moments" &&
         isLoggedIn &&
         accountData.parentAddress && (

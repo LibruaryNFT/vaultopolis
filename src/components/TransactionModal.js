@@ -48,7 +48,7 @@ const TransactionModal = ({
         : "0.0";
     transactionMessage = `Receiving ${count} Random TopShot Common/Fandom Moment(s)`;
   } else if (swapType === "NFT_TO_TSHOT") {
-    transactionMessage = `Swapping ${nftCount} TopShot Moment(s) for ${tshotAmount} $TSHOT`;
+    transactionMessage = `Swapping ${nftCount} TopShot Moment(s) for ${tshotAmount} TSHOT`;
   } else if (swapType === "TSHOT_TO_NFT") {
     transactionMessage = `Swapping ${tshotAmount} TSHOT for ${Math.round(
       nftCount || 0
@@ -57,6 +57,8 @@ const TransactionModal = ({
     transactionMessage = `Swapping ${nftCount} TopShot Moment(s) for ${Number(
       flowAmount
     ).toFixed(2)} FLOW`;
+  } else if (swapType === "BATCH_TRANSFER") {
+    transactionMessage = `Transferring ${nftCount} TopShot Moment(s) to recipient`;
   }
 
   const getStatusIcon = () => {
