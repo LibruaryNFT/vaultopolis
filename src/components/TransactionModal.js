@@ -1,3 +1,5 @@
+// src/components/TransactionModal.js
+
 import React from "react";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
@@ -11,19 +13,28 @@ const TransactionModal = ({
   tshotAmount,
   swapType,
   transactionAction,
-  flowAmount, // New prop for FLOW amount
+  flowAmount,
   onClose,
 }) => {
-  console.log("Rendering TransactionModal with status:", status);
+  // Log the status each render
+  console.log("TransactionModal render, status:", status);
 
   if (!status) {
-    return null;
+    return null; // no status => no modal
   }
 
+  // More explicit logs for debugging:
+  if (status) {
+    console.log(`Transaction status is "${status}".`);
+  }
+  if (error) {
+    console.log(`Transaction error is "${error}".`);
+  }
+
+  // Flow status messages
   const flowStatusMessages = {
     "Awaiting Approval": "Waiting for your approval in the wallet...",
-    Pending:
-      "Transaction has been received by the network. Awaiting confirmation...",
+    Pending: "Transaction received by the network. Awaiting confirmation...",
     Finalized: "Transaction is in a block. Awaiting execution...",
     Executed: "Transaction executed successfully. Sealing in progress...",
     Sealed: "Transaction completed and sealed successfully!",
@@ -34,12 +45,12 @@ const TransactionModal = ({
   const statusMessage =
     flowStatusMessages[status] || "Processing transaction...";
 
+  // Build a descriptive message for what the user is doing
   let transactionMessage = "Processing transaction...";
 
   if (transactionAction === "COMMIT_SWAP") {
-    transactionMessage = `Depositing ${tshotAmount} TSHOT. Afterwards, simply refresh and click the receive button.`;
+    transactionMessage = `Depositing ${tshotAmount} TSHOT. Afterwards, refresh and click the receive button.`;
   } else if (transactionAction === "REVEAL_SWAP") {
-    // Use tshotAmount (if provided) formatted to one decimal; otherwise, fall back to nftCount.
     const count =
       tshotAmount && Number(tshotAmount) > 0
         ? Number(tshotAmount).toFixed(1)
@@ -48,17 +59,17 @@ const TransactionModal = ({
         : "0.0";
     transactionMessage = `Receiving ${count} Random TopShot Common/Fandom Moment(s)`;
   } else if (swapType === "NFT_TO_TSHOT") {
-    transactionMessage = `Swapping ${nftCount} TopShot Moment(s) for ${tshotAmount} TSHOT`;
+    transactionMessage = `Swapping ${nftCount} Moment(s) for ${tshotAmount} TSHOT`;
   } else if (swapType === "TSHOT_TO_NFT") {
     transactionMessage = `Swapping ${tshotAmount} TSHOT for ${Math.round(
       nftCount || 0
     )} Random Moment(s)`;
   } else if (swapType === "NFT_TO_FLOW") {
-    transactionMessage = `Swapping ${nftCount} TopShot Moment(s) for ${Number(
+    transactionMessage = `Swapping ${nftCount} Moment(s) for ${Number(
       flowAmount
     ).toFixed(2)} FLOW`;
   } else if (swapType === "BATCH_TRANSFER") {
-    transactionMessage = `Transferring ${nftCount} TopShot Moment(s) to recipient`;
+    transactionMessage = `Transferring ${nftCount} Moment(s) to recipient`;
   }
 
   const getStatusIcon = () => {
@@ -84,7 +95,7 @@ const TransactionModal = ({
       case "Executed":
         return <FaCheckCircle className="text-6xl text-blue-500" />;
       case "Sealed":
-        return <FaCheckCircle className="text-6xl text-green-600" />;
+        return <FaCheckCircle className="text-6xl text-green-500" />;
       case "Expired":
       case "Error":
         return <FaTimesCircle className="text-6xl text-red-500" />;
@@ -102,10 +113,12 @@ const TransactionModal = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div
-        className="absolute inset-0 bg-black bg-opacity-70"
-        onClick={onClose}
-      ></div>
+      {/* 
+        Remove onClick={onClose} so the user can't close by clicking outside.
+        This ensures the modal won't close prematurely.
+      */}
+      <div className="absolute inset-0 bg-black bg-opacity-70"></div>
+
       <motion.div
         className="relative bg-gray-900 text-white p-6 w-11/12 max-w-md rounded-lg shadow-lg"
         initial={{ scale: 0.9, opacity: 0 }}
@@ -113,12 +126,14 @@ const TransactionModal = ({
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
       >
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Transaction Status</h2>
+          {/* The X button is the only way to close now */}
           <button onClick={onClose} className="text-white text-2xl">
             &times;
           </button>
         </div>
+
         <div className="flex flex-col items-center my-6 space-y-3">
           {getStatusIcon()}
           <motion.p
@@ -133,6 +148,7 @@ const TransactionModal = ({
             <p>{transactionMessage}</p>
           </div>
         </div>
+
         {txId && (
           <a
             href={`https://flowscan.io/tx/${txId}`}

@@ -2,6 +2,7 @@
 
 import React from "react";
 
+// Optional color mappings for Tiers
 const tierTextColors = {
   common: "text-gray-400",
   rare: "text-blue-500",
@@ -10,13 +11,27 @@ const tierTextColors = {
   ultimate: "text-pink-500",
 };
 
+/**
+ * Renders an individual account box (Parent or Child).
+ * Distinguishes between:
+ *   1) hasCollection === false (no TopShot collection at all)
+ *   2) hasCollection === true but 0 NFTs
+ *   3) Has NFTs
+ */
 const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
   if (!data) {
-    // If we don't have a valid data object, skip rendering.
+    // If we don't have valid data, skip
     return null;
   }
 
-  const { flowBalance = 0, tshotBalance = 0, nftDetails = [] } = data;
+  const {
+    flowBalance = 0,
+    tshotBalance = 0,
+    nftDetails = [],
+    hasCollection,
+  } = data;
+
+  // Count how many NFTs in each tier
   const tierCounts = nftDetails.reduce((acc, nft) => {
     const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
     acc[tier] = (acc[tier] || 0) + 1;
@@ -45,6 +60,8 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
         </h4>
         <p className="text-xs text-gray-400 truncate">{accountAddr}</p>
       </div>
+
+      {/* Balances */}
       <div className="mt-2">
         <p className="text-sm text-gray-300">
           <span className="font-bold text-white">
@@ -58,29 +75,46 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
           </span>{" "}
           $TSHOT
         </p>
-        {Object.entries(tierCounts).map(([tier, count]) => (
-          <p key={tier} className="text-sm">
-            <span className="font-bold text-white">{count}</span>{" "}
-            <span className={tierTextColors[tier] || ""}>
-              {tier.charAt(0).toUpperCase() + tier.slice(1)}
-            </span>{" "}
-            <span className="text-gray-400">
-              {count === 1 ? "Moment" : "Moments"}
-            </span>
+
+        {/* 1) If user does NOT have a TopShot Collection at all */}
+        {!hasCollection && (
+          <p className="text-xs text-red-500 mt-2">
+            (No TopShot Collection found)
           </p>
-        ))}
-        {(!nftDetails || nftDetails.length === 0) && (
-          <p className="text-xs text-red-500 mt-1">(No TopShot Collection)</p>
         )}
+
+        {/* 2) If user HAS a collection but zero NFTs */}
+        {hasCollection && nftDetails.length === 0 && (
+          <p className="text-sm text-gray-300 mt-2">0 TopShot Moments</p>
+        )}
+
+        {/* 3) If we do have NFTs, show tier breakdown */}
+        {hasCollection &&
+          nftDetails.length > 0 &&
+          Object.entries(tierCounts).map(([tier, count]) => (
+            <p key={tier} className="text-sm">
+              <span className="font-bold text-white">{count}</span>{" "}
+              <span className={tierTextColors[tier] || ""}>
+                {tier.charAt(0).toUpperCase() + tier.slice(1)}
+              </span>{" "}
+              <span className="text-gray-400">
+                {count === 1 ? "Moment" : "Moments"}
+              </span>
+            </p>
+          ))}
       </div>
     </div>
   );
 };
 
+/**
+ * Renders a grid of accounts (Parent + Children).
+ * Shows refresh button and any loading states if desired.
+ */
 const AccountSelection = ({
-  parentAccount, // Can be null or an object
-  childrenAddresses = [], // Array of child addresses
-  childrenAccounts = [], // Array of child data
+  parentAccount,
+  childrenAddresses = [],
+  childrenAccounts = [],
   selectedAccount,
   onSelectAccount,
   onRefresh,
@@ -89,7 +123,7 @@ const AccountSelection = ({
 }) => {
   return (
     <div className="space-y-4">
-      {/* Optional refresh button, if you like */}
+      {/* Optional Refresh Section */}
       {onRefresh && (
         <div className="flex items-center justify-between">
           <button
@@ -113,7 +147,7 @@ const AccountSelection = ({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {/* If parentAccount is not null, render it */}
+        {/* Parent Account */}
         {parentAccount && parentAccount.addr && (
           <AccountBox
             label="Parent Account"
@@ -124,7 +158,7 @@ const AccountSelection = ({
           />
         )}
 
-        {/* Child accounts */}
+        {/* Child Accounts */}
         {childrenAddresses.length === 0 ? (
           <div className="p-4 rounded-lg border-2 border-gray-500 bg-gray-700">
             <h4 className="text-sm font-semibold text-white mb-1">Children</h4>

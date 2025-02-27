@@ -13,22 +13,23 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
   const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
-    if (nft?.setID && nft?.playID) {
+    // If we have an NFT ID, build the official NBA Top Shot media URL
+    if (nft?.id) {
+      // e.g. https://assets.nbatopshot.com/media/40628102/image?width=250
       setImageUrl(
-        `https://storage.googleapis.com/flowconnect/topshot/images_small/${nft.setID}_${nft.playID}.jpg`
+        `https://assets.nbatopshot.com/media/${nft.id}/image?width=250`
       );
     }
-  }, [nft?.setID, nft?.playID]);
+  }, [nft?.id]);
 
   // Player name fallback
   const playerName =
     nft?.FullName || nft?.fullName || nft?.playerName || "Unknown Player";
 
-  // We treat `nft.series` as is. If it's 0, we show 0. If undefined => show "?"
-  // This minimal check will show '0' if series=0, or '?' if series is missing.
+  // Series text
   const seriesText =
     nft?.series !== undefined && nft?.series !== null
-      ? String(nft.series) // "0", "4", etc.
+      ? String(nft.series)
       : "?";
 
   // Tier stylings

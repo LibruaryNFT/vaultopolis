@@ -313,3 +313,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#python .\utilities\bulk_exchange.py --chunk-size 50 --max-batches 100

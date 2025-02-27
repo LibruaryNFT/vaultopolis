@@ -1,11 +1,10 @@
 // src/components/NFTToFLOWPanel.js
+
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
-
 import { UserContext } from "../context/UserContext";
 import useTransaction from "../hooks/useTransaction";
 
-// Suppose you have two transaction scripts:
 import { exchangeNFTForFLOW } from "../flow/exchangeNFTForFLOW";
 import { exchangeNFTForFLOW_child } from "../flow/exchangeNFTForFLOW_child";
 
@@ -15,7 +14,7 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
     accountData,
     selectedAccount,
     selectedAccountType,
-    loadParentData,
+    loadAllUserData,
     loadChildData,
     dispatch,
   } = useContext(UserContext);
@@ -23,8 +22,14 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
   const { sendTransaction } = useTransaction();
   const isLoggedIn = Boolean(user?.loggedIn);
 
-  // The parent's address from context or fallback to user address
+  // Parent address from context or fallback
   const parentAddr = accountData.parentAddress || user?.addr;
+  const isChildSwap = selectedAccountType === "child";
+
+  // Decide script
+  const cadenceScript = isChildSwap
+    ? exchangeNFTForFLOW_child
+    : exchangeNFTForFLOW;
 
   if (!isLoggedIn) {
     return (
@@ -47,25 +52,20 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
       return;
     }
 
-    // Decide which Cadence script to call
-    const isChildSwap = selectedAccountType === "child";
-    const cadenceScript = isChildSwap
-      ? exchangeNFTForFLOW_child
-      : exchangeNFTForFLOW;
+    // 1) "Awaiting Approval"
+    onTransactionStart?.({
+      status: "Awaiting Approval",
+      txId: null,
+      error: null,
+      nftCount: nftIds.length,
+      flowAmount: buyAmount,
+      swapType: "NFT_TO_FLOW",
+      nftIds,
+    });
 
     try {
-      // Notify parent UI that the transaction is starting
-      onTransactionStart?.({
-        status: "Awaiting Approval",
-        txId: null,
-        error: null,
-        nftCount: nftIds.length,
-        flowAmount: buyAmount,
-        swapType: "NFT_TO_FLOW",
-      });
-
-      // FCL automatically uses the parent's session to sign
-      await sendTransaction({
+      // 2) Submit transaction
+      const txId = await fcl.mutate({
         cadence: cadenceScript,
         args: (arg, t) =>
           isChildSwap
@@ -74,27 +74,86 @@ const NFTToFLOWPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
                 arg(nftIds.map(String), t.Array(t.UInt64)),
               ]
             : [arg(nftIds.map(String), t.Array(t.UInt64))],
+        proposer: fcl.authz,
+        payer: fcl.authz,
+        authorizations: [fcl.authz],
         limit: 9999,
-        onUpdate: (txData) => {
-          onTransactionStart?.({
-            ...txData,
-            nftCount: nftIds.length,
-            flowAmount: buyAmount,
-            swapType: "NFT_TO_FLOW",
-          });
-        },
       });
 
-      // Refresh data
-      await loadParentData(parentAddr);
+      // 3) Optimistic reset
+      dispatch({ type: "RESET_SELECTED_NFTS" });
+
+      // Update UI to "Pending"
+      onTransactionStart?.({
+        status: "Pending",
+        txId,
+        error: null,
+        nftCount: nftIds.length,
+        flowAmount: buyAmount,
+        swapType: "NFT_TO_FLOW",
+        nftIds,
+      });
+
+      // 4) Subscribe to transaction status
+      const unsub = fcl.tx(txId).subscribe((txStatus) => {
+        let newStatus = "Processing...";
+        switch (txStatus.statusString) {
+          case "PENDING":
+            newStatus = "Pending";
+            break;
+          case "FINALIZED":
+            newStatus = "Finalized";
+            break;
+          case "EXECUTED":
+            newStatus = "Executed";
+            break;
+          case "SEALED":
+            newStatus = "Sealed";
+            break;
+          default:
+            break;
+        }
+
+        const error = txStatus.errorMessage?.length
+          ? txStatus.errorMessage
+          : null;
+
+        onTransactionStart?.({
+          status: newStatus,
+          error,
+          txId,
+          nftCount: nftIds.length,
+          flowAmount: buyAmount,
+          swapType: "NFT_TO_FLOW",
+          nftIds,
+        });
+
+        if (txStatus.status === 4) {
+          unsub();
+        }
+      });
+
+      // 5) Wait for sealing
+      await fcl.tx(txId).onceSealed();
+
+      // 6) Refresh data exactly like Transfer
+      if (parentAddr) {
+        await loadAllUserData(parentAddr);
+      }
       if (isChildSwap) {
         await loadChildData(selectedAccount);
       }
-
-      // Clear selected NFTs
-      dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (err) {
       console.error("Transaction failed:", err);
+      onTransactionStart?.({
+        status: "Error",
+        error: err?.message || String(err),
+        txId: null,
+        nftCount: nftIds.length,
+        flowAmount: buyAmount,
+        swapType: "NFT_TO_FLOW",
+        nftIds,
+      });
     }
   };
 

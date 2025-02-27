@@ -9,14 +9,6 @@ import MomentSelection from "./MomentSelection";
 import MomentCard from "./MomentCard";
 import TransactionModal from "./TransactionModal";
 
-/**
- * Allows the user to:
- * 1) Pick an account (parent or child) to select Moments from.
- * 2) Enter a recipient address.
- * 3) Transfer the selected Moments.
- *
- * The parent must be logged in (fcl.currentUser).
- */
 const Transfer = () => {
   const {
     user,
@@ -35,7 +27,9 @@ const Transfer = () => {
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
 
-  // Check if user is logged in
+  // NEW: Keep track of NFT IDs that we want to exclude from MomentSelection
+  const [excludedNftIds, setExcludedNftIds] = useState([]);
+
   const isLoggedIn = Boolean(user?.loggedIn);
   const parentAddr = accountData.parentAddress;
   const childSelected = selectedAccountType === "child";
@@ -57,9 +51,6 @@ const Transfer = () => {
     setTransactionData({});
   };
 
-  /**
-   * Actually send the transaction. The parent signs, even if child was selected for NFT withdraw.
-   */
   const handleTransfer = async () => {
     if (selectedNFTs.length === 0) {
       alert("Please select at least one Moment to transfer.");
@@ -89,7 +80,7 @@ const Transfer = () => {
     });
 
     try {
-      // Build arguments
+      // Build transaction arguments
       const args = childSelected
         ? (arg, t) => [
             arg(selectedAccount, t.Address),
@@ -101,7 +92,7 @@ const Transfer = () => {
             arg(selectedNFTs.map(String), t.Array(t.UInt64)),
           ];
 
-      // Mutate
+      // Submit transaction
       const txId = await fcl.mutate({
         cadence: cadenceScript,
         args,
@@ -111,14 +102,20 @@ const Transfer = () => {
         limit: 9999,
       });
 
-      // Immediately mark "Pending"
+      // Optimistic RESET: Clear selected NFTs immediately
+      dispatch({ type: "RESET_SELECTED_NFTS" });
+
+      // Also exclude them from MomentSelection so they won't appear if data refreshes mid-transaction
+      setExcludedNftIds((prev) => [...prev, ...selectedNFTs.map(String)]);
+
+      // Now update modal to show "Pending"
       setTransactionData((prev) => ({
         ...prev,
         status: "Pending",
         txId,
       }));
 
-      // Subscribe to transaction updates for status
+      // Subscribe to transaction status updates
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing transaction...";
         switch (txStatus.statusString) {
@@ -138,10 +135,9 @@ const Transfer = () => {
             break;
         }
 
-        const error =
-          txStatus.errorMessage && txStatus.errorMessage.length
-            ? txStatus.errorMessage
-            : null;
+        const error = txStatus.errorMessage?.length
+          ? txStatus.errorMessage
+          : null;
 
         setTransactionData((prev) => ({
           ...prev,
@@ -150,25 +146,28 @@ const Transfer = () => {
           txId,
         }));
 
+        // If sealed, we can unsubscribe
         if (txStatus.status === 4) {
           unsub();
         }
       });
 
-      // Wait for sealing
+      // Wait for the transaction to seal
       await fcl.tx(txId).onceSealed();
 
-      // Refresh parent data
+      // Refresh parent's data
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
-      // If it's a child transfer, refresh child
+      // If it's a child transfer, also refresh the child
       if (childSelected) {
         await loadChildData(selectedAccount);
       }
 
-      // Clear selected NFTs
-      dispatch({ type: "RESET_SELECTED_NFTS" });
+      // The newly transferred NFTs won't appear after re-fetch
+      // because they've truly left this account on-chain.
+      // We don't need to remove them from 'excludedNftIds' either,
+      // since they're gone anyway.
     } catch (err) {
       console.error("Failed to submit transfer tx:", err);
       setTransactionData((prev) => ({
@@ -176,10 +175,14 @@ const Transfer = () => {
         status: "Error",
         error: err?.message ?? String(err),
       }));
+
+      // OPTIONAL: If you want to restore them if the TX fails:
+      // setExcludedNftIds((prev) =>
+      //   prev.filter((id) => !selectedNFTs.includes(id))
+      // );
     }
   };
 
-  // If not logged in, prompt
   if (!isLoggedIn) {
     return (
       <div className="p-4 text-gray-300">
@@ -188,12 +191,12 @@ const Transfer = () => {
     );
   }
 
-  // Active account's NFT data (child or parent)
+  // Active account's NFT data
   const activeAccountData =
     accountData.childrenData?.find((c) => c.addr === selectedAccount) ||
     accountData;
 
-  // We'll skip rendering a "selected NFT" if we can't find it in the new data
+  // Determine which selected NFTs are actually in the active account
   const selectedNftsInAccount = selectedNFTs.filter((id) =>
     (activeAccountData.nftDetails || []).some(
       (nft) => Number(nft.id) === Number(id)
@@ -262,8 +265,8 @@ const Transfer = () => {
         </div>
       )}
 
-      {/* Moment Grid */}
-      <MomentSelection allowAllTiers />
+      {/* Moment Grid - pass excludedNftIds here */}
+      <MomentSelection allowAllTiers excludeIds={excludedNftIds} />
 
       {/* Recipient Address */}
       <div>

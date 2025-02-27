@@ -58,14 +58,14 @@ const initialState = {
   user: { loggedIn: null, addr: "" },
   accountData: {
     parentAddress: null,
-    nftDetails: [],
+    nftDetails: [], // Full NFT collection for parent
     flowBalance: null,
     tshotBalance: null,
     hasCollection: null,
     receiptDetails: {},
     hasReceipt: null,
     hasChildren: false,
-    childrenData: [],
+    childrenData: [], // Each child's data
     childrenAddresses: [],
   },
   selectedAccount: null,
@@ -151,15 +151,16 @@ export const UserProvider = ({ children }) => {
   const [state, dispatch] = useReducer(userReducer, initialState);
   const [didLoad, setDidLoad] = useState(false);
 
-  // Basic fetchers
+  /***************************
+   *  Basic fetch functions
+   ***************************/
   const fetchFLOWBalance = useCallback(async (address) => {
     if (!address || !address.startsWith("0x")) return 0;
     try {
-      const balance = await fcl.query({
+      return await fcl.query({
         cadence: getFLOWBalance,
         args: (arg, t) => [arg(address, t.Address)],
       });
-      return balance;
     } catch {
       return 0;
     }
@@ -168,11 +169,10 @@ export const UserProvider = ({ children }) => {
   const fetchTSHOTBalance = useCallback(async (address) => {
     if (!address || !address.startsWith("0x")) return 0;
     try {
-      const balance = await fcl.query({
+      return await fcl.query({
         cadence: getTSHOTBalance,
         args: (arg, t) => [arg(address, t.Address)],
       });
-      return balance;
     } catch {
       return 0;
     }
@@ -205,6 +205,7 @@ export const UserProvider = ({ children }) => {
         if (!hasColl) {
           return { hasCollection: false, details: [], tierCounts: {} };
         }
+
         const ids = await fcl.query({
           cadence: getTopShotCollectionIDs,
           args: (arg, t) => [arg(address, t.Address)],
@@ -219,6 +220,7 @@ export const UserProvider = ({ children }) => {
         for (let i = 0; i < ids.length; i += batchSize) {
           batches.push(ids.slice(i, i + batchSize));
         }
+
         const allResults = await Promise.all(
           batches.map((batch) =>
             limit(() =>
@@ -291,7 +293,9 @@ export const UserProvider = ({ children }) => {
     }
   }, [dispatch]);
 
-  // loadParentData
+  /***********************************************
+   *      loadParentData => fetch NFT collection
+   ***********************************************/
   const loadParentData = useCallback(
     async (addr) => {
       if (!addr || !addr.startsWith("0x")) return;
@@ -300,7 +304,7 @@ export const UserProvider = ({ children }) => {
         const [flowBal, tshotBal, colData, receipt] = await Promise.all([
           fetchFLOWBalance(addr),
           fetchTSHOTBalance(addr),
-          fetchTopShotCollection(addr),
+          fetchTopShotCollection(addr), // Re-fetch the entire NFT list
           fetchReceiptDetails(addr),
         ]);
         dispatch({
@@ -330,7 +334,6 @@ export const UserProvider = ({ children }) => {
     ]
   );
 
-  // loadChildData (for single child)
   const loadChildData = useCallback(
     async (childAddr) => {
       if (!childAddr || !childAddr.startsWith("0x")) return;
@@ -375,7 +378,6 @@ export const UserProvider = ({ children }) => {
     ]
   );
 
-  // loadChildrenData (for multiple children)
   const loadChildrenData = useCallback(
     async (childAddresses) => {
       if (!Array.isArray(childAddresses)) return;
@@ -454,14 +456,15 @@ export const UserProvider = ({ children }) => {
     [loadChildrenData, dispatch]
   );
 
-  // loadAllUserData => big orchestrator
   const loadAllUserData = useCallback(
     async (address) => {
       if (!address) return;
       // Load metadata once
       await loadTopShotMetadata();
+
       // Load parent
       await loadParentData(address);
+
       // Check children
       await checkForChildren(address);
 
@@ -479,7 +482,9 @@ export const UserProvider = ({ children }) => {
     [loadTopShotMetadata, loadParentData, checkForChildren, dispatch]
   );
 
-  // FCL subscription
+  /*******************
+   * FCL subscription
+   *******************/
   useEffect(() => {
     const unsub = fcl.currentUser.subscribe((currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
@@ -491,12 +496,11 @@ export const UserProvider = ({ children }) => {
     return () => unsub();
   }, [dispatch]);
 
-  // Load data once
+  // Once user logs in, load data if not done
   useEffect(() => {
     const { loggedIn, addr } = state.user || {};
     if (loggedIn && addr && !didLoad) {
       setDidLoad(true);
-      // By default, select the parent
       dispatch({
         type: "SET_SELECTED_ACCOUNT",
         payload: { address: addr, type: "parent" },
@@ -505,15 +509,19 @@ export const UserProvider = ({ children }) => {
     }
   }, [state.user, didLoad, loadAllUserData, dispatch]);
 
-  // Optional poll parent's FLOW/TSHOT
+  /****************************************
+   *   Poll only parent's FLOW/TSHOT
+   ****************************************/
   useEffect(() => {
     const { loggedIn, addr } = state.user || {};
     if (!loggedIn || !addr) return;
 
     const timer = setInterval(async () => {
       try {
+        // only poll balances
         const flowBal = await fetchFLOWBalance(addr);
         const tshotBal = await fetchTSHOTBalance(addr);
+
         dispatch({
           type: "SET_ACCOUNT_DATA",
           payload: { flowBalance: flowBal, tshotBalance: tshotBal },

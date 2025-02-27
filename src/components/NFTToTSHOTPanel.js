@@ -1,11 +1,10 @@
 // src/components/NFTToTSHOTPanel.js
+
 import React, { useContext } from "react";
-import { UserContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
+import { UserContext } from "../context/UserContext";
 
-import useTransaction from "../hooks/useTransaction";
-
-// Cadence scripts for hybrid custody vs. normal parent
+// Cadence scripts
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 import { exchangeNFTForTSHOT_child } from "../flow/exchangeNFTForTSHOT_child";
 
@@ -15,16 +14,19 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
     accountData,
     selectedAccount,
     selectedAccountType,
-    loadParentData,
+    loadAllUserData,
     loadChildData,
     dispatch,
   } = useContext(UserContext);
 
-  const { sendTransaction } = useTransaction();
   const isLoggedIn = Boolean(user?.loggedIn);
-
-  // Parent address from context or user session
   const parentAddr = accountData.parentAddress || user?.addr;
+  const isChildSwap = selectedAccountType === "child";
+
+  // Decide which Cadence script
+  const cadenceScript = isChildSwap
+    ? exchangeNFTForTSHOT_child
+    : exchangeNFTForTSHOT;
 
   if (!isLoggedIn) {
     return (
@@ -39,7 +41,7 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
 
   const handleSwap = async () => {
     if (!nftIds || nftIds.length === 0) {
-      alert("Select at least one Moment to swap for TSHOT.");
+      alert("Please select at least one Moment to swap for TSHOT.");
       return;
     }
     if (!parentAddr?.startsWith("0x")) {
@@ -47,61 +49,114 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
       return;
     }
 
-    // Decide which Cadence script to use
-    const isChildSwap = selectedAccountType === "child";
-    const cadenceScript = isChildSwap
-      ? exchangeNFTForTSHOT_child
-      : exchangeNFTForTSHOT;
+    // 1) Inform parent UI: "Awaiting Approval"
+    onTransactionStart?.({
+      status: "Awaiting Approval",
+      txId: null,
+      error: null,
+      nftCount: nftIds.length,
+      tshotAmount: buyAmount,
+      swapType: "NFT_TO_TSHOT",
+      nftIds,
+    });
 
     try {
-      // Update parent UI or modal
-      onTransactionStart?.({
-        status: "Awaiting Approval",
-        txId: null,
-        error: null,
-        nftCount: nftIds.length,
-        tshotAmount: buyAmount,
-        swapType: "NFT_TO_TSHOT",
-      });
-
-      // Send transaction to Flow
-      // No explicit roles => parent's session is used by default
-      await sendTransaction({
+      // 2) Submit transaction
+      const txId = await fcl.mutate({
         cadence: cadenceScript,
         args: (arg, t) => {
           if (isChildSwap) {
-            // exchangeNFTForTSHOT_child(childAddr, nftIDs)
             return [
               arg(selectedAccount, t.Address),
               arg(nftIds.map(String), t.Array(t.UInt64)),
             ];
           } else {
-            // exchangeNFTForTSHOT(nftIDs)
             return [arg(nftIds.map(String), t.Array(t.UInt64))];
           }
         },
+        proposer: fcl.authz,
+        payer: fcl.authz,
+        authorizations: [fcl.authz],
         limit: 9999,
-        onUpdate: (txData) => {
-          // Pass along updates to a parent component if needed
-          onTransactionStart?.({
-            ...txData,
-            nftCount: nftIds.length,
-            tshotAmount: buyAmount,
-            swapType: "NFT_TO_TSHOT",
-          });
-        },
       });
 
-      // Refresh balances
-      await loadParentData(parentAddr);
+      // 3) Optimistic reset: Clear user selection
+      dispatch({ type: "RESET_SELECTED_NFTS" });
+
+      // Update the UI to "Pending"
+      onTransactionStart?.({
+        status: "Pending",
+        txId,
+        error: null,
+        nftCount: nftIds.length,
+        tshotAmount: buyAmount,
+        swapType: "NFT_TO_TSHOT",
+        nftIds,
+      });
+
+      // 4) Subscribe to transaction status
+      const unsub = fcl.tx(txId).subscribe((txStatus) => {
+        let newStatus = "Processing...";
+
+        switch (txStatus.statusString) {
+          case "PENDING":
+            newStatus = "Pending";
+            break;
+          case "FINALIZED":
+            newStatus = "Finalized";
+            break;
+          case "EXECUTED":
+            newStatus = "Executed";
+            break;
+          case "SEALED":
+            newStatus = "Sealed";
+            break;
+          default:
+            break;
+        }
+
+        const error = txStatus.errorMessage?.length
+          ? txStatus.errorMessage
+          : null;
+
+        onTransactionStart?.({
+          status: newStatus,
+          error,
+          txId,
+          nftCount: nftIds.length,
+          tshotAmount: buyAmount,
+          swapType: "NFT_TO_TSHOT",
+          nftIds,
+        });
+
+        // If sealed => unsub
+        if (txStatus.status === 4) {
+          unsub();
+        }
+      });
+
+      // 5) Wait for sealing
+      await fcl.tx(txId).onceSealed();
+
+      // 6) Refresh parent and child data
+      if (parentAddr) {
+        // EXACT match to Transfer's pattern:
+        await loadAllUserData(parentAddr);
+      }
       if (isChildSwap) {
         await loadChildData(selectedAccount);
       }
-
-      // Clear selected NFTs in context
-      dispatch({ type: "RESET_SELECTED_NFTS" });
     } catch (err) {
       console.error("Transaction failed:", err);
+      onTransactionStart?.({
+        status: "Error",
+        error: err?.message ?? String(err),
+        txId: null,
+        nftCount: nftIds.length,
+        tshotAmount: buyAmount,
+        swapType: "NFT_TO_TSHOT",
+        nftIds,
+      });
     }
   };
 
