@@ -5,9 +5,6 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
 import { motion } from "framer-motion";
 
-// Import your MomentCard component
-import MomentCard from "./MomentCard";
-
 const TransactionModal = ({
   status,
   txId,
@@ -18,14 +15,14 @@ const TransactionModal = ({
   transactionAction,
   flowAmount,
   onClose,
-  // Instead of displaying them in text, we'll only show them as cards
-  revealedNFTDetails, // Array of newly minted NFT objects
+  revealedNFTs, // <-- NEW PROP for showing IDs
 }) => {
+  console.log("TransactionModal render, status:", status);
+
   if (!status) {
-    return null; // No status => no modal
+    return null; // no status => no modal
   }
 
-  // Map each status to a user-friendly message
   const flowStatusMessages = {
     "Awaiting Approval": "Waiting for your approval in the wallet...",
     Pending: "Transaction received by the network. Awaiting confirmation...",
@@ -39,7 +36,7 @@ const TransactionModal = ({
   const statusMessage =
     flowStatusMessages[status] || "Processing transaction...";
 
-  // Build a descriptive message for the user's action
+  // Build a descriptive message
   let transactionMessage = "Processing transaction...";
 
   if (transactionAction === "COMMIT_SWAP") {
@@ -66,7 +63,6 @@ const TransactionModal = ({
     transactionMessage = `Transferring ${nftCount} Moment(s) to recipient`;
   }
 
-  // Decide which icon to show based on status
   const getStatusIcon = () => {
     switch (status) {
       case "Awaiting Approval":
@@ -139,23 +135,23 @@ const TransactionModal = ({
           </div>
         </div>
 
-        {/* If we fetched newly minted NFT details => show them as MomentCards */}
-        {revealedNFTDetails && revealedNFTDetails.length > 0 && (
+        {/* If we have new NFTs, display them */}
+        {revealedNFTs && revealedNFTs.length > 0 && (
           <div className="mt-4 p-2 border border-gray-600 rounded">
             <h3 className="font-bold text-center mb-2">
-              You received these Moments:
+              You received these NFT IDs:
             </h3>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {revealedNFTDetails.map((nft) => (
-                <MomentCard key={nft.id} nft={nft} />
+            <ul className="list-disc list-inside">
+              {revealedNFTs.map((id) => (
+                <li key={id} className="text-center">{`NFT ID #${id}`}</li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
 
         {txId && (
           <a
-            href={`https://flowscan.org/transaction/${txId}`}
+            href={`https://flowscan.io/transaction/${txId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="block mt-4 text-center text-blue-400 underline"

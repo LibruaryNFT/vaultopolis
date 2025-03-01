@@ -5,9 +5,6 @@ import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
 import { motion } from "framer-motion";
 
-// Import your MomentCard component
-import MomentCard from "./MomentCard";
-
 const TransactionModal = ({
   status,
   txId,
@@ -18,14 +15,23 @@ const TransactionModal = ({
   transactionAction,
   flowAmount,
   onClose,
-  // Instead of displaying them in text, we'll only show them as cards
-  revealedNFTDetails, // Array of newly minted NFT objects
 }) => {
+  // Log the status each render
+  console.log("TransactionModal render, status:", status);
+
   if (!status) {
-    return null; // No status => no modal
+    return null; // no status => no modal
   }
 
-  // Map each status to a user-friendly message
+  // More explicit logs for debugging:
+  if (status) {
+    console.log(`Transaction status is "${status}".`);
+  }
+  if (error) {
+    console.log(`Transaction error is "${error}".`);
+  }
+
+  // Flow status messages
   const flowStatusMessages = {
     "Awaiting Approval": "Waiting for your approval in the wallet...",
     Pending: "Transaction received by the network. Awaiting confirmation...",
@@ -39,7 +45,7 @@ const TransactionModal = ({
   const statusMessage =
     flowStatusMessages[status] || "Processing transaction...";
 
-  // Build a descriptive message for the user's action
+  // Build a descriptive message for what the user is doing
   let transactionMessage = "Processing transaction...";
 
   if (transactionAction === "COMMIT_SWAP") {
@@ -51,13 +57,13 @@ const TransactionModal = ({
         : nftCount
         ? Math.round(nftCount)
         : "0.0";
-    transactionMessage = `Revealing / Receiving ${count} Random TopShot Moment(s)`;
+    transactionMessage = `Receiving ${count} Random TopShot Common/Fandom Moment(s)`;
   } else if (swapType === "NFT_TO_TSHOT") {
     transactionMessage = `Swapping ${nftCount} Moment(s) for ${tshotAmount} TSHOT`;
   } else if (swapType === "TSHOT_TO_NFT") {
     transactionMessage = `Swapping ${tshotAmount} TSHOT for ${Math.round(
       nftCount || 0
-    )} Moment(s)`;
+    )} Random Moment(s)`;
   } else if (swapType === "NFT_TO_FLOW") {
     transactionMessage = `Swapping ${nftCount} Moment(s) for ${Number(
       flowAmount
@@ -66,7 +72,6 @@ const TransactionModal = ({
     transactionMessage = `Transferring ${nftCount} Moment(s) to recipient`;
   }
 
-  // Decide which icon to show based on status
   const getStatusIcon = () => {
     switch (status) {
       case "Awaiting Approval":
@@ -108,6 +113,10 @@ const TransactionModal = ({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
+      {/* 
+        Remove onClick={onClose} so the user can't close by clicking outside.
+        This ensures the modal won't close prematurely.
+      */}
       <div className="absolute inset-0 bg-black bg-opacity-70"></div>
 
       <motion.div
@@ -119,6 +128,7 @@ const TransactionModal = ({
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Transaction Status</h2>
+          {/* The X button is the only way to close now */}
           <button onClick={onClose} className="text-white text-2xl">
             &times;
           </button>
@@ -139,23 +149,9 @@ const TransactionModal = ({
           </div>
         </div>
 
-        {/* If we fetched newly minted NFT details => show them as MomentCards */}
-        {revealedNFTDetails && revealedNFTDetails.length > 0 && (
-          <div className="mt-4 p-2 border border-gray-600 rounded">
-            <h3 className="font-bold text-center mb-2">
-              You received these Moments:
-            </h3>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {revealedNFTDetails.map((nft) => (
-                <MomentCard key={nft.id} nft={nft} />
-              ))}
-            </div>
-          </div>
-        )}
-
         {txId && (
           <a
-            href={`https://flowscan.org/transaction/${txId}`}
+            href={`https://flowscan.io/tx/${txId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="block mt-4 text-center text-blue-400 underline"

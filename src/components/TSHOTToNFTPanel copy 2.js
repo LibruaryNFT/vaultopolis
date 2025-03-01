@@ -1,15 +1,11 @@
 // src/components/TSHOTToNFTPanel.js
-
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
 
-// Your existing Cadence transactions
+// Import your Cadence code
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
-
-// The partial fetch script for newly minted NFTs
-import { getTopShotBatched } from "../flow/getTopShotBatched";
 
 // A generic account selection component
 import AccountSelection from "./AccountSelection";
@@ -17,8 +13,13 @@ import AccountSelection from "./AccountSelection";
 /**
  * TSHOTToNFTPanel
  *
- * Step 1: deposit TSHOT => create a receipt
- * Step 2: reveal => random NFT minted to user
+ * 1) Step 1 (Commit/Deposit) => user hasReceipt = false
+ *    - Show parent + children, but only parent can deposit TSHOT
+ *    - Once sealed, we refresh user data => if a receipt is created, hasReceipt = true => switch to Step 2
+ *
+ * 2) Step 2 (Reveal) => user hasReceipt = true
+ *    - Show only accounts that have a TopShot collection
+ *    - On reveal, if your Cadence code removes the receipt, hasReceipt => false => back to Step 1
  */
 const TSHOTToNFTPanel = ({
   sellAmount,
@@ -32,8 +33,6 @@ const TSHOTToNFTPanel = ({
     dispatch,
     loadAllUserData,
     loadChildData,
-    // Access your metadataCache if needed:
-    metadataCache,
   } = useContext(UserContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
@@ -48,34 +47,10 @@ const TSHOTToNFTPanel = ({
   const depositStep = !accountData?.hasReceipt; // Step 1
   const revealStep = !!accountData?.hasReceipt; // Step 2
 
+  // Convert user input to number
   const numericSell = Number(sellAmount) || 0;
   const TSHOT_LIMIT = 50;
   const isOverTSHOTLimit = numericSell > TSHOT_LIMIT;
-
-  // Example "local" enrichment function, if you want to apply your metadata:
-  // (If you already have a big "enrichWithMetadata" from your context, reuse that.)
-  const enrichLocalMetadata = (rawNFTs) => {
-    if (!metadataCache) return rawNFTs;
-    return rawNFTs.map((nft) => {
-      const key = `${nft.setID}-${nft.playID}`;
-      const meta = metadataCache[key] || {};
-      return {
-        ...nft,
-        // these fields are only if you want them:
-        fullName:
-          meta.FullName ||
-          meta.fullName ||
-          nft.fullName ||
-          nft.playerName ||
-          "Unknown Player",
-        momentCount: meta.momentCount
-          ? Number(meta.momentCount)
-          : nft.momentCount || 0,
-        name: meta.name || nft.name, // set name
-        // etc. for other fields you store in metadata
-      };
-    });
-  };
 
   /*******************************************************
    *  STEP 1: Deposit TSHOT
@@ -92,7 +67,7 @@ const TSHOTToNFTPanel = ({
 
     const betAmount = String(sellAmount);
 
-    // Let the modal know: "Awaiting Approval"
+    // 1) Let the modal know: "Awaiting Approval"
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -102,6 +77,7 @@ const TSHOTToNFTPanel = ({
     });
 
     try {
+      // 2) Send transaction via fcl.mutate
       const txId = await fcl.mutate({
         cadence: commitSwap,
         args: (arg, t) => [arg(betAmount, t.UFix64)],
@@ -111,6 +87,7 @@ const TSHOTToNFTPanel = ({
         authorizations: [fcl.authz],
       });
 
+      // 3) Immediately set "Pending"
       onTransactionStart?.({
         status: "Pending",
         txId,
@@ -119,7 +96,7 @@ const TSHOTToNFTPanel = ({
         transactionAction: "COMMIT_SWAP",
       });
 
-      // Subscribe for partial statuses
+      // 4) Subscribe, but do NOT call "Sealed" here
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -131,11 +108,14 @@ const TSHOTToNFTPanel = ({
             break;
           case "EXECUTED":
             newStatus = "Executed";
+            // Once executed, we can unsubscribe to prevent extra "Sealed" calls
             unsub();
             break;
           default:
+            // Skip "SEALED" or anything else
             return;
         }
+
         const error = txStatus.errorMessage || null;
         onTransactionStart?.({
           status: newStatus,
@@ -146,10 +126,10 @@ const TSHOTToNFTPanel = ({
         });
       });
 
-      // Wait for sealing
+      // 5) Wait for sealing
       await fcl.tx(txId).onceSealed();
 
-      // Final "Sealed"
+      // 6) Now do the final "Sealed" state *once*
       onTransactionStart?.({
         status: "Sealed",
         txId,
@@ -158,7 +138,7 @@ const TSHOTToNFTPanel = ({
         transactionAction: "COMMIT_SWAP",
       });
 
-      // Full refresh to reflect new receipt
+      // 7) Refresh user data so we see hasReceipt = true if created
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -178,7 +158,7 @@ const TSHOTToNFTPanel = ({
   };
 
   /*******************************************************
-   *  STEP 2: Reveal => random NFTs minted
+   *  STEP 2: Reveal
    *******************************************************/
   const handleReveal = async () => {
     if (!selectedAccount?.startsWith("0x")) {
@@ -190,7 +170,7 @@ const TSHOTToNFTPanel = ({
       ? String(accountData.receiptDetails.betAmount)
       : String(sellAmount);
 
-    // "Awaiting Approval"
+    // 1) "Awaiting Approval"
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -200,6 +180,7 @@ const TSHOTToNFTPanel = ({
     });
 
     try {
+      // 2) fcl.mutate
       const txId = await fcl.mutate({
         cadence: revealSwap,
         args: (arg, t) => [arg(selectedAccount, t.Address)],
@@ -209,6 +190,7 @@ const TSHOTToNFTPanel = ({
         authorizations: [fcl.authz],
       });
 
+      // 3) Mark "Pending"
       onTransactionStart?.({
         status: "Pending",
         txId,
@@ -217,6 +199,7 @@ const TSHOTToNFTPanel = ({
         transactionAction: "REVEAL_SWAP",
       });
 
+      // 4) Subscribe without "SEALED"
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -233,6 +216,7 @@ const TSHOTToNFTPanel = ({
           default:
             return;
         }
+
         const error = txStatus.errorMessage || null;
         onTransactionStart?.({
           status: newStatus,
@@ -243,42 +227,29 @@ const TSHOTToNFTPanel = ({
         });
       });
 
-      // Once sealed, parse deposit events
+      // 5) Wait for sealing
       const sealedResult = await fcl.tx(txId).onceSealed();
-      const depositEvents = sealedResult.events.filter(
+
+      // 6) Parse events for TopShot.Deposit
+      //    (Adjust address if your actual contract is different)
+      const topShotDepositEvents = sealedResult.events.filter(
         (evt) =>
           evt.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
           evt.data.to === selectedAccount
       );
-      const receivedNFTIDs = depositEvents.map((evt) => evt.data.id);
+      const receivedNFTIDs = topShotDepositEvents.map((evt) => evt.data.id);
 
-      // Optionally partial fetch for those new IDs
-      let revealedNFTDetails = [];
-      if (receivedNFTIDs.length > 0) {
-        revealedNFTDetails = await fcl.query({
-          cadence: getTopShotBatched,
-          args: (arg, t) => [
-            arg(selectedAccount, t.Address),
-            arg(receivedNFTIDs, t.Array(t.UInt64)),
-          ],
-        });
-
-        // If you want to show player names, set names, etc.:
-        revealedNFTDetails = enrichLocalMetadata(revealedNFTDetails);
-      }
-
-      // Final "Sealed" => pass everything to the modal
+      // 7) Final "Sealed" + reveal result
       onTransactionStart?.({
         status: "Sealed",
         txId,
         error: null,
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
-        revealedNFTs: receivedNFTIDs, // just IDs if you want them
-        revealedNFTDetails, // enriched array for MomentCard
+        revealedNFTs: receivedNFTIDs, // pass to modal
       });
 
-      // FULL refresh => user context has the new NFTs
+      // 8) Refresh data => if receipt was removed, goes back to Step 1
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -298,7 +269,7 @@ const TSHOTToNFTPanel = ({
   };
 
   /*******************************************************
-   *               Render the UI
+   *             Render UI
    *******************************************************/
   if (!isLoggedIn) {
     return (
@@ -311,7 +282,7 @@ const TSHOTToNFTPanel = ({
     );
   }
 
-  // Step 1: deposit TSHOT
+  // Step 1: depositStep => user hasReceipt = false
   if (depositStep) {
     const isOverLimit = numericSell > 50;
     return (
@@ -355,7 +326,7 @@ const TSHOTToNFTPanel = ({
     );
   }
 
-  // Step 2: reveal
+  // Step 2: revealStep => user hasReceipt = true
   if (revealStep) {
     return (
       <div className="space-y-6 max-w-md mx-auto">
@@ -396,7 +367,6 @@ const TSHOTToNFTPanel = ({
     );
   }
 
-  // Fallback
   return <div className="text-gray-400 p-4">Loading...</div>;
 };
 
