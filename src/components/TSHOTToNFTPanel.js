@@ -4,22 +4,12 @@ import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
 
-// Your existing Cadence transactions
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
-
-// The partial fetch script for newly minted NFTs
 import { getTopShotBatched } from "../flow/getTopShotBatched";
 
-// A generic account selection component
 import AccountSelection from "./AccountSelection";
 
-/**
- * TSHOTToNFTPanel
- *
- * Step 1: deposit TSHOT => create a receipt
- * Step 2: reveal => random NFT minted to user
- */
 const TSHOTToNFTPanel = ({
   sellAmount,
   depositDisabled,
@@ -32,28 +22,29 @@ const TSHOTToNFTPanel = ({
     dispatch,
     loadAllUserData,
     loadChildData,
-    // Access your metadataCache if needed:
     metadataCache,
   } = useContext(UserContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
 
-  // Basic data
+  // Parent info
   const parentAddr = accountData?.parentAddress || user?.addr;
   const parentHasCollection = !!accountData?.hasCollection;
+
+  // Children info
   const allChildren = accountData?.childrenData || [];
   const childrenWithCollection = allChildren.filter((c) => c.hasCollection);
 
   // Step logic
-  const depositStep = !accountData?.hasReceipt; // Step 1
-  const revealStep = !!accountData?.hasReceipt; // Step 2
+  const depositStep = !accountData?.hasReceipt;
+  const revealStep = !!accountData?.hasReceipt;
 
+  // Convert user input to number
   const numericSell = Number(sellAmount) || 0;
   const TSHOT_LIMIT = 50;
   const isOverTSHOTLimit = numericSell > TSHOT_LIMIT;
 
-  // Example "local" enrichment function, if you want to apply your metadata:
-  // (If you already have a big "enrichWithMetadata" from your context, reuse that.)
+  // A local enrichment function if you want to apply metadata
   const enrichLocalMetadata = (rawNFTs) => {
     if (!metadataCache) return rawNFTs;
     return rawNFTs.map((nft) => {
@@ -61,7 +52,6 @@ const TSHOTToNFTPanel = ({
       const meta = metadataCache[key] || {};
       return {
         ...nft,
-        // these fields are only if you want them:
         fullName:
           meta.FullName ||
           meta.fullName ||
@@ -71,14 +61,13 @@ const TSHOTToNFTPanel = ({
         momentCount: meta.momentCount
           ? Number(meta.momentCount)
           : nft.momentCount || 0,
-        name: meta.name || nft.name, // set name
-        // etc. for other fields you store in metadata
+        name: meta.name || nft.name,
       };
     });
   };
 
   /*******************************************************
-   *  STEP 1: Deposit TSHOT
+   * STEP 1: Deposit TSHOT (Parent only)
    *******************************************************/
   const handleDeposit = async () => {
     if (!parentAddr?.startsWith("0x")) {
@@ -92,7 +81,6 @@ const TSHOTToNFTPanel = ({
 
     const betAmount = String(sellAmount);
 
-    // Let the modal know: "Awaiting Approval"
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -119,7 +107,6 @@ const TSHOTToNFTPanel = ({
         transactionAction: "COMMIT_SWAP",
       });
 
-      // Subscribe for partial statuses
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -146,10 +133,8 @@ const TSHOTToNFTPanel = ({
         });
       });
 
-      // Wait for sealing
       await fcl.tx(txId).onceSealed();
 
-      // Final "Sealed"
       onTransactionStart?.({
         status: "Sealed",
         txId,
@@ -158,7 +143,7 @@ const TSHOTToNFTPanel = ({
         transactionAction: "COMMIT_SWAP",
       });
 
-      // Full refresh to reflect new receipt
+      // Refresh
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -178,7 +163,7 @@ const TSHOTToNFTPanel = ({
   };
 
   /*******************************************************
-   *  STEP 2: Reveal => random NFTs minted
+   * STEP 2: Reveal => random NFTs minted
    *******************************************************/
   const handleReveal = async () => {
     if (!selectedAccount?.startsWith("0x")) {
@@ -190,7 +175,6 @@ const TSHOTToNFTPanel = ({
       ? String(accountData.receiptDetails.betAmount)
       : String(sellAmount);
 
-    // "Awaiting Approval"
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -243,8 +227,9 @@ const TSHOTToNFTPanel = ({
         });
       });
 
-      // Once sealed, parse deposit events
       const sealedResult = await fcl.tx(txId).onceSealed();
+
+      // Grab deposit events => new IDs
       const depositEvents = sealedResult.events.filter(
         (evt) =>
           evt.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
@@ -252,7 +237,7 @@ const TSHOTToNFTPanel = ({
       );
       const receivedNFTIDs = depositEvents.map((evt) => evt.data.id);
 
-      // Optionally partial fetch for those new IDs
+      // Partial fetch if we have new IDs
       let revealedNFTDetails = [];
       if (receivedNFTIDs.length > 0) {
         revealedNFTDetails = await fcl.query({
@@ -262,23 +247,20 @@ const TSHOTToNFTPanel = ({
             arg(receivedNFTIDs, t.Array(t.UInt64)),
           ],
         });
-
-        // If you want to show player names, set names, etc.:
         revealedNFTDetails = enrichLocalMetadata(revealedNFTDetails);
       }
 
-      // Final "Sealed" => pass everything to the modal
       onTransactionStart?.({
         status: "Sealed",
         txId,
         error: null,
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
-        revealedNFTs: receivedNFTIDs, // just IDs if you want them
-        revealedNFTDetails, // enriched array for MomentCard
+        revealedNFTs: receivedNFTIDs,
+        revealedNFTDetails,
       });
 
-      // FULL refresh => user context has the new NFTs
+      // Full refresh
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -311,29 +293,11 @@ const TSHOTToNFTPanel = ({
     );
   }
 
-  // Step 1: deposit TSHOT
+  // STEP 1: Deposit => Only a single button
   if (depositStep) {
-    const isOverLimit = numericSell > 50;
+    const isOverLimit = numericSell > TSHOT_LIMIT;
     return (
       <div className="space-y-6 max-w-md mx-auto">
-        <div className="bg-gray-700 p-3 rounded">
-          <h4 className="text-white mb-2 font-semibold">Account Balances</h4>
-          <AccountSelection
-            parentAccount={{ addr: parentAddr, ...accountData }}
-            childrenAddresses={accountData.childrenAddresses || []}
-            childrenAccounts={allChildren}
-            selectedAccount={parentAddr}
-            onSelectAccount={(addr) => {
-              if (addr !== parentAddr) {
-                alert("Only the parent can deposit TSHOT.");
-              }
-            }}
-          />
-          <p className="text-xs text-gray-300 mt-1">
-            <em>Note:</em> Only the <strong>parent</strong> can deposit TSHOT.
-          </p>
-        </div>
-
         {isOverLimit && (
           <div className="text-red-400 font-semibold">
             You cannot deposit more than 50 TSHOT at once.
@@ -349,13 +313,13 @@ const TSHOTToNFTPanel = ({
               : "bg-flow-dark hover:bg-flow-darkest"
           }`}
         >
-          Deposit TSHOT
+          (Step 1 of 2) Deposit TSHOT
         </button>
       </div>
     );
   }
 
-  // Step 2: reveal
+  // STEP 2: Reveal => user hasReceipt = true
   if (revealStep) {
     return (
       <div className="space-y-6 max-w-md mx-auto">
@@ -363,7 +327,7 @@ const TSHOTToNFTPanel = ({
           onClick={handleReveal}
           className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
         >
-          Receive Random Moments
+          (Step 2 of 2) Receive Random Moments
         </button>
 
         <div className="bg-gray-700 p-3 rounded">

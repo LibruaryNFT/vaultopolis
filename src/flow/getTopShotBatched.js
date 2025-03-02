@@ -9,7 +9,7 @@ access(all) struct NFTDetails {
     access(all) let playID: UInt32
     access(all) let serialNumber: UInt32
     access(all) let tier: String
-    access(all) let seriesID: UInt32
+    access(all) let series: UInt32
 
     init(
         id: UInt64,
@@ -17,14 +17,14 @@ access(all) struct NFTDetails {
         playID: UInt32,
         serialNumber: UInt32,
         tier: String,
-        seriesID: UInt32
+        series: UInt32
     ) {
         self.id = id
         self.setID = setID
         self.playID = playID
         self.serialNumber = serialNumber
         self.tier = tier
-        self.seriesID = seriesID
+        self.series = series
     }
 }
 
@@ -60,7 +60,7 @@ access(all) fun main(address: Address, targetIDs: [UInt64]): [NFTDetails] {
         }
 
         // Fetch which series the setID belongs to
-        let seriesID = TopShot.getSetSeries(setID: data.setID)
+        let series = TopShot.getSetSeries(setID: data.setID)
             ?? panic("Could not determine the series for setID: "
                 .concat(data.setID.toString()))
 
@@ -70,7 +70,7 @@ access(all) fun main(address: Address, targetIDs: [UInt64]): [NFTDetails] {
             playID: data.playID,
             serialNumber: data.serialNumber,
             tier: tierString,
-            seriesID: seriesID
+            series: series
         )
         results.append(details)
     }

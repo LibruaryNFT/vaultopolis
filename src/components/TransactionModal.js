@@ -43,7 +43,7 @@ const TransactionModal = ({
   let transactionMessage = "Processing transaction...";
 
   if (transactionAction === "COMMIT_SWAP") {
-    transactionMessage = `Depositing ${tshotAmount} TSHOT. Afterwards, refresh and click the receive button.`;
+    transactionMessage = `(Step 1 of 2) Depositing ${tshotAmount} TSHOT.`;
   } else if (transactionAction === "REVEAL_SWAP") {
     const count =
       tshotAmount && Number(tshotAmount) > 0
@@ -51,7 +51,7 @@ const TransactionModal = ({
         : nftCount
         ? Math.round(nftCount)
         : "0.0";
-    transactionMessage = `Revealing / Receiving ${count} Random TopShot Moment(s)`;
+    transactionMessage = `Receiving ${count} Random TopShot Moment(s)`;
   } else if (swapType === "NFT_TO_TSHOT") {
     transactionMessage = `Swapping ${nftCount} Moment(s) for ${tshotAmount} TSHOT`;
   } else if (swapType === "TSHOT_TO_NFT") {

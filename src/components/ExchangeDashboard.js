@@ -8,8 +8,6 @@ import {
   Dice5,
 } from "lucide-react";
 import * as fcl from "@onflow/fcl";
-
-// -- import your Cadence scripts
 import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 
@@ -34,28 +32,27 @@ const formatUSD = (num) =>
  * Props:
  *   mode: "NFT_TO_TSHOT" | "TSHOT_TO_NFT" | "NFT_TO_FLOW" | null
  *
- * - For "NFT_TO_TSHOT"/"TSHOT_TO_NFT":
- *   3 boxes [TSHOT Price, Floor Price, Flow Price].
- *   Then a collapsible "What is TSHOT?" section with 4 squares.
- *
- * - For "NFT_TO_FLOW":
- *   4 boxes: [Vaultopolis Rate, Vaultopolis Flow Balance, Floor Price, Flow Price],
- *   then an "Experimental Mode" disclaimer.
- *
- * - The entire UI is narrower (max-w-xl) with smaller padding for a cleaner, compact look.
+ * We fetch floor-price data from your backend + some on-chain queries.
+ * While reloading, we keep the old data on screen to avoid layout flickers.
  */
 const ExchangeDashboard = ({ mode }) => {
+  // The main "displayed" data
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  // A separate loading state for background fetch
+  // so we don't clear out "data" mid-load.
+  const [isFetching, setIsFetching] = useState(true);
+
+  // If an error occurs, store it
   const [error, setError] = useState(null);
+
+  // Track last updated time
   const [lastUpdated, setLastUpdated] = useState(null);
 
   // Collapsible TSHOT info: hidden by default
   const [showTshotInfo, setShowTshotInfo] = useState(false);
 
   // ---------- On-chain queries ----------
-
-  // fetch onchain Flow price per NFT
   const fetchOnchainFlowPerNFT = async () => {
     try {
       const result = await fcl.query({
@@ -69,12 +66,11 @@ const ExchangeDashboard = ({ mode }) => {
     }
   };
 
-  // fetch the Vaultopolis Flow balance used for buying Moments
   const fetchVaultopolisBalance = async () => {
     try {
       const balance = await fcl.query({
         cadence: getFLOWBalance,
-        args: (arg, t) => [arg("0xb1788d64d512026d", t.Address)], // The Vaultopolis address
+        args: (arg, t) => [arg("0xb1788d64d512026d", t.Address)],
       });
       return Number(balance);
     } catch (err) {
@@ -85,9 +81,9 @@ const ExchangeDashboard = ({ mode }) => {
 
   // ---------- Fetch entire data set ----------
   const fetchData = async () => {
-    setLoading(true);
+    setIsFetching(true);
     try {
-      // 1) get the floor data from your backend
+      // 1) get floor data from your backend
       const response = await fetch(
         "https://flowconnectbackend-864654c6a577.herokuapp.com/api/floor-price"
       );
@@ -108,30 +104,34 @@ const ExchangeDashboard = ({ mode }) => {
 
       // set final data
       setData(result);
-      setLastUpdated(new Date());
       setError(null);
+      setLastUpdated(new Date());
     } catch (err) {
+      console.error("Error in fetchData:", err);
       setError(err.message);
     } finally {
-      setLoading(false);
+      setIsFetching(false);
     }
   };
 
+  // on mount, fetch once. then poll every 60s
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line
   }, []);
 
-  // ---------- Rendering States ----------
-  if (loading || !data) {
+  // If we never got any data (first load is still going or error)
+  if (!data && !error) {
     return (
       <div className="w-full h-24 flex items-center justify-center bg-gray-700 rounded-lg">
         <RefreshCw className="animate-spin h-5 w-5 text-flow-light" />
       </div>
     );
   }
-  if (error) {
+  if (error && !data) {
+    // If we have no data at all
     return (
       <div className="w-full p-2 text-red-400 bg-gray-700 rounded-lg border border-red-500 text-xs">
         Error: {error}
@@ -139,13 +139,16 @@ const ExchangeDashboard = ({ mode }) => {
     );
   }
 
+  // If we reach here: we have *some* data (maybe from a previous load),
+  // and we might be in the middle of a new load (isFetching could be true/false).
+
   // ---------- Data Fields ----------
-  const flowPriceUSD = data.flowPriceUSD; // Price of 1 FLOW in USD
-  const floorPriceFLOW = data.pricePerFloorNFTFlow;
-  const floorPriceUSD = data.floorPriceUSD;
-  const vaultFlow = data.onchainFlowPerNFT; // Vaultopolis rate in FLOW
+  const flowPriceUSD = data.flowPriceUSD || 0;
+  const floorPriceFLOW = data.pricePerFloorNFTFlow || 0;
+  const floorPriceUSD = data.floorPriceUSD || 0;
+  const vaultFlow = data.onchainFlowPerNFT || 0;
   const vaultUsd = vaultFlow * flowPriceUSD;
-  const vaultBalance = data.vaultBalance || 0; // The Flow in Vaultopolis’s account
+  const vaultBalance = data.vaultBalance || 0;
 
   // premium above floor
   const premiumPercentage = floorPriceFLOW
@@ -154,13 +157,11 @@ const ExchangeDashboard = ({ mode }) => {
 
   const lastUpdatedStr = lastUpdated ? lastUpdated.toLocaleTimeString() : "";
 
-  // TSHOT = same as floor
+  // TSHOT
   const tshotFlow = floorPriceFLOW;
   const tshotUsd = floorPriceUSD;
 
   // ---------- Sub-Components ----------
-
-  // TSHOT usage: 4 squares, each with icon + short text
   const TshotUsageBoxes = () => (
     <div
       className={`transition-all ${
@@ -178,8 +179,9 @@ const ExchangeDashboard = ({ mode }) => {
               </h4>
               <p className="text-xs text-gray-100">
                 TSHOT is only created by depositing
-                <br /> Common/Fandom Moments, ensuring
-                <br /> a fully backed 1:1 ratio.
+                <br />
+                Common/Fandom Moments, ensuring
+                <br />a fully backed 1:1 ratio.
               </p>
             </div>
 
@@ -246,7 +248,6 @@ const ExchangeDashboard = ({ mode }) => {
     </div>
   );
 
-  // small disclaimer for NFT->FLOW
   const NftToFlowDisclaimer = () => (
     <div className="bg-gray-700 rounded p-2 mt-3 text-xs text-gray-200">
       <p>
@@ -255,8 +256,6 @@ const ExchangeDashboard = ({ mode }) => {
       </p>
     </div>
   );
-
-  // ---------- Layout By Mode ----------
 
   // ============== NFT_TO_TSHOT or TSHOT_TO_NFT ==============
   if (mode === "NFT_TO_TSHOT" || mode === "TSHOT_TO_NFT") {
@@ -312,16 +311,14 @@ const ExchangeDashboard = ({ mode }) => {
           <TshotUsageBoxes />
         </div>
 
-        {/* Footer row */}
+        {/* Footer row w/ last updated */}
         <div className="flex justify-between items-center text-xs mt-1 text-gray-400">
-          <div>Updated: {lastUpdatedStr}</div>
-          <button
-            onClick={fetchData}
-            className="px-2 py-1 bg-opolis hover:bg-opolis-dark text-white rounded-md flex items-center gap-1 text-xs"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Refresh
-          </button>
+          <div className="flex items-center gap-1">
+            Updated: {lastUpdatedStr}
+            {isFetching && (
+              <RefreshCw className="inline-block h-3 w-3 animate-spin text-flow-light" />
+            )}
+          </div>
         </div>
       </div>
     );
@@ -400,16 +397,14 @@ const ExchangeDashboard = ({ mode }) => {
         {/* Experimental Disclaimer */}
         <NftToFlowDisclaimer />
 
-        {/* Footer row */}
+        {/* Footer row w/ last updated */}
         <div className="flex justify-between items-center text-xs mt-1 text-gray-400">
-          <div>Updated: {lastUpdatedStr}</div>
-          <button
-            onClick={fetchData}
-            className="px-2 py-1 bg-opolis hover:bg-opolis-dark text-white rounded-md flex items-center gap-1 text-xs"
-          >
-            <RefreshCw className="h-3 w-3" />
-            Refresh
-          </button>
+          <div className="flex items-center gap-1">
+            Updated: {lastUpdatedStr}
+            {isFetching && (
+              <RefreshCw className="inline-block h-3 w-3 animate-spin text-flow-light" />
+            )}
+          </div>
         </div>
       </div>
     );

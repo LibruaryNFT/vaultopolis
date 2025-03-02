@@ -1,5 +1,7 @@
 import "PublicPriceOracle"
 
+// 0xe385412159992e11
+
 access(all) fun main(oracle: Address): [UFix64] {
     let lastResult = PublicPriceOracle.getLatestPrice(oracleAddr: oracle)
     let lastBlockNum = PublicPriceOracle.getLatestBlockHeight(oracleAddr: oracle)
