@@ -1,12 +1,34 @@
 // src/components/TransactionModal.js
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
 import { motion } from "framer-motion";
 
-// Import your MomentCard component
 import MomentCard from "./MomentCard";
+
+// Helper to decide singular vs plural
+function pluralize(count, singular, plural) {
+  return count === 1 ? singular : plural;
+}
+
+/**
+ * A simple "Hidden" card that uses the same size as MomentCard
+ * but is black with "Reveal" text.
+ */
+function HiddenCard({ nftId, onReveal }) {
+  return (
+    <div
+      className="border border-gray-600 bg-black rounded cursor-pointer
+                 relative p-1 font-inter text-white transition-colors
+                 duration-200 hover:border-2 hover:border-opolis
+                 overflow-hidden flex flex-col items-center justify-center"
+      style={{ width: "7rem", height: "12rem" }}
+      onClick={() => onReveal(nftId)}
+    >
+      <p className="text-center font-semibold text-sm text-white">Reveal</p>
+    </div>
+  );
+}
 
 const TransactionModal = ({
   status,
@@ -16,16 +38,60 @@ const TransactionModal = ({
   tshotAmount,
   swapType,
   transactionAction,
-  flowAmount,
   onClose,
-  // Instead of displaying them in text, we'll only show them as cards
-  revealedNFTDetails, // Array of newly minted NFT objects
+  revealedNFTDetails,
 }) => {
+  /**
+   * --------------------------------------------------
+   * 1) ALWAYS define your Hooks at the top level
+   * --------------------------------------------------
+   */
+  // We'll track whether each NFT is revealed or not
+  const [hiddenStates, setHiddenStates] = useState({});
+
+  // Whenever we get new `revealedNFTDetails`, initialize them as hidden
+  useEffect(() => {
+    if (!revealedNFTDetails || revealedNFTDetails.length === 0) {
+      setHiddenStates({});
+      return;
+    }
+    const initState = {};
+    revealedNFTDetails.forEach((nft) => {
+      initState[nft.id] = false; // not revealed
+    });
+    setHiddenStates(initState);
+  }, [revealedNFTDetails]);
+
+  // Single reveal
+  const handleRevealOne = (nftId) => {
+    setHiddenStates((prev) => ({ ...prev, [nftId]: true }));
+  };
+
+  // Reveal all
+  const handleRevealAll = () => {
+    if (!revealedNFTDetails) return;
+    const newState = {};
+    revealedNFTDetails.forEach((nft) => {
+      newState[nft.id] = true;
+    });
+    setHiddenStates(newState);
+  };
+
+  /**
+   * --------------------------------------------------
+   * 2) AFTER Hooks, we can do early returns or logic
+   * --------------------------------------------------
+   */
+  // If no status, we return null
   if (!status) {
-    return null; // No status => no modal
+    return null;
   }
 
-  // Map each status to a user-friendly message
+  /**
+   * 3) Build out the rest of your logic, *always* below the Hooks
+   */
+
+  // Status messages
   const flowStatusMessages = {
     "Awaiting Approval": "Waiting for your approval in the wallet...",
     Pending: "Transaction received by the network. Awaiting confirmation...",
@@ -35,38 +101,36 @@ const TransactionModal = ({
     Expired: "Transaction expired. Please try again.",
     Error: `Transaction failed: ${error}`,
   };
-
   const statusMessage =
     flowStatusMessages[status] || "Processing transaction...";
 
-  // Build a descriptive message for the user's action
+  // Transaction message
   let transactionMessage = "Processing transaction...";
-
   if (transactionAction === "COMMIT_SWAP") {
-    transactionMessage = `(Step 1 of 2) Depositing ${tshotAmount} TSHOT.`;
+    const tshotInt = parseInt(tshotAmount || "0", 10);
+    transactionMessage = `(Step 1 of 2) Depositing ${tshotInt} TSHOT.`;
   } else if (transactionAction === "REVEAL_SWAP") {
     const count =
       tshotAmount && Number(tshotAmount) > 0
-        ? Number(tshotAmount).toFixed(1)
+        ? parseInt(tshotAmount, 10)
         : nftCount
-        ? Math.round(nftCount)
-        : "0.0";
-    transactionMessage = `Receiving ${count} Random TopShot Moment(s)`;
+        ? parseInt(nftCount, 10)
+        : 0;
+    const label = pluralize(count, "Moment", "Moments");
+    transactionMessage = `Receiving ${count} Random TopShot ${label}`;
   } else if (swapType === "NFT_TO_TSHOT") {
-    transactionMessage = `Swapping ${nftCount} Moment(s) for ${tshotAmount} TSHOT`;
+    const tshotInt = parseInt(tshotAmount || "0", 10);
+    const label = pluralize(nftCount, "Moment", "Moments");
+    transactionMessage = `Swapping ${nftCount} ${label} for ${tshotInt} TSHOT`;
   } else if (swapType === "TSHOT_TO_NFT") {
-    transactionMessage = `Swapping ${tshotAmount} TSHOT for ${Math.round(
-      nftCount || 0
-    )} Moment(s)`;
-  } else if (swapType === "NFT_TO_FLOW") {
-    transactionMessage = `Swapping ${nftCount} Moment(s) for ${Number(
-      flowAmount
-    ).toFixed(2)} FLOW`;
+    const label = pluralize(nftCount, "Moment", "Moments");
+    transactionMessage = `Swapping ${tshotAmount} TSHOT for ${nftCount} ${label}`;
   } else if (swapType === "BATCH_TRANSFER") {
-    transactionMessage = `Transferring ${nftCount} Moment(s) to recipient`;
+    const label = pluralize(nftCount, "Moment", "Moments");
+    transactionMessage = `Transferring ${nftCount} ${label} to recipient`;
   }
 
-  // Decide which icon to show based on status
+  // Icon
   const getStatusIcon = () => {
     switch (status) {
       case "Awaiting Approval":
@@ -101,6 +165,12 @@ const TransactionModal = ({
     }
   };
 
+  // If we actually minted NFTs
+  const revealedCount = revealedNFTDetails ? revealedNFTDetails.length : 0;
+  const revealedHeading = `You received ${
+    revealedCount === 1 ? "this Moment" : "these Moments"
+  }:`;
+
   return (
     <motion.div
       className="fixed inset-0 flex items-center justify-center z-50"
@@ -117,6 +187,7 @@ const TransactionModal = ({
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
       >
+        {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Transaction Status</h2>
           <button onClick={onClose} className="text-white text-2xl">
@@ -124,6 +195,7 @@ const TransactionModal = ({
           </button>
         </div>
 
+        {/* Body */}
         <div className="flex flex-col items-center my-6 space-y-3">
           {getStatusIcon()}
           <motion.p
@@ -139,20 +211,39 @@ const TransactionModal = ({
           </div>
         </div>
 
-        {/* If we fetched newly minted NFT details => show them as MomentCards */}
-        {revealedNFTDetails && revealedNFTDetails.length > 0 && (
+        {/* If we minted new NFTs => allow user to Reveal them */}
+        {revealedCount > 0 && (
           <div className="mt-4 p-2 border border-gray-600 rounded">
-            <h3 className="font-bold text-center mb-2">
-              You received these Moments:
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-bold">{revealedHeading}</h3>
+              {revealedCount > 1 && (
+                <button
+                  onClick={handleRevealAll}
+                  className="bg-gray-700 text-white text-sm px-3 py-1 rounded hover:bg-gray-600"
+                >
+                  Reveal All
+                </button>
+              )}
+            </div>
+
             <div className="flex flex-wrap gap-2 justify-center">
-              {revealedNFTDetails.map((nft) => (
-                <MomentCard key={nft.id} nft={nft} />
-              ))}
+              {revealedNFTDetails.map((nft) => {
+                const isRevealed = hiddenStates[nft.id];
+                return isRevealed ? (
+                  <MomentCard key={nft.id} nft={nft} />
+                ) : (
+                  <HiddenCard
+                    key={nft.id}
+                    nftId={nft.id}
+                    onReveal={handleRevealOne}
+                  />
+                );
+              })}
             </div>
           </div>
         )}
 
+        {/* flowscan link */}
         {txId && (
           <a
             href={`https://flowscan.org/transaction/${txId}`}

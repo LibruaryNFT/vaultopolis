@@ -46,11 +46,8 @@ const Header = () => {
         {/* Desktop Navigation Links (centered) */}
         <nav className="hidden md:flex items-center space-x-2 flex-grow justify-center max-w-2xl">
           <div className="flex items-center space-x-2">
-            <NavLink
-              to="/exchange"
-              isActive={location.pathname === "/exchange"}
-            >
-              Exchange
+            <NavLink to="/swap" isActive={location.pathname === "/swap"}>
+              Swap
             </NavLink>
           </div>
           <div className="flex items-center space-x-2">
@@ -92,11 +89,11 @@ const Header = () => {
         <div className="absolute top-16 left-0 w-full bg-gray-800 text-white md:hidden">
           <div className="flex flex-col divide-y divide-gray-700">
             <MobileNavLink
-              to="/exchange"
-              isActive={location.pathname === "/exchange"}
+              to="/swap"
+              isActive={location.pathname === "/swap"}
               onClick={toggleMobileMenu}
             >
-              Exchange
+              Swap
             </MobileNavLink>
           </div>
           <div className="flex flex-col divide-y divide-gray-700">

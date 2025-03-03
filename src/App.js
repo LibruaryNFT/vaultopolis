@@ -6,10 +6,9 @@ import {
 } from "react-router-dom";
 import { UserProvider } from "./context/UserContext";
 import TSHOT from "./components/TSHOT";
-import Earn from "./components/Earn";
 import TermsAndService from "./components/TermsAndPrivacy";
 import Layout from "./components/Layout";
-import ExchangePanel from "./components/ExchangePanel";
+import Swap from "./components/Swap";
 import Transfer from "./components/Transfer";
 
 // Enforce HTTPS only in production
@@ -27,7 +26,7 @@ const router = createBrowserRouter(
   [
     {
       path: "/",
-      element: <Navigate to="/exchange" replace />,
+      element: <Navigate to="/swap" replace />,
     },
     {
       path: "/transfer",
@@ -38,10 +37,10 @@ const router = createBrowserRouter(
       ),
     },
     {
-      path: "/exchange",
+      path: "/swap",
       element: (
         <Layout>
-          <ExchangePanel />
+          <Swap />
         </Layout>
       ),
     },
@@ -53,14 +52,7 @@ const router = createBrowserRouter(
         </Layout>
       ),
     },
-    {
-      path: "/earn",
-      element: (
-        <Layout>
-          <Earn />
-        </Layout>
-      ),
-    },
+
     {
       path: "/terms",
       element: (

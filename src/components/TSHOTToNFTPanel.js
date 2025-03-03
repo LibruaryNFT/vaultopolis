@@ -1,5 +1,4 @@
 // src/components/TSHOTToNFTPanel.js
-
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
@@ -10,11 +9,12 @@ import { getTopShotBatched } from "../flow/getTopShotBatched";
 
 import AccountSelection from "./AccountSelection";
 
-const TSHOTToNFTPanel = ({
-  sellAmount,
-  depositDisabled,
-  onTransactionStart,
-}) => {
+const TSHOT_LIMIT = 50;
+
+function TSHOTToNFTPanel(props) {
+  let { sellAmount = "0", depositDisabled, onTransactionStart } = props;
+  if (!sellAmount) sellAmount = "0";
+
   const {
     user,
     accountData,
@@ -26,25 +26,36 @@ const TSHOTToNFTPanel = ({
   } = useContext(UserContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
+  if (!isLoggedIn) {
+    return (
+      <button
+        onClick={() => fcl.authenticate()}
+        className="w-full text-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-2"
+      >
+        Connect Wallet
+      </button>
+    );
+  }
 
-  // Parent info
-  const parentAddr = accountData?.parentAddress || user?.addr;
-  const parentHasCollection = !!accountData?.hasCollection;
-
-  // Children info
-  const allChildren = accountData?.childrenData || [];
-  const childrenWithCollection = allChildren.filter((c) => c.hasCollection);
-
-  // Step logic
+  // Step 1 => deposit; Step 2 => reveal
   const depositStep = !accountData?.hasReceipt;
   const revealStep = !!accountData?.hasReceipt;
 
-  // Convert user input to number
-  const numericSell = Number(sellAmount) || 0;
-  const TSHOT_LIMIT = 50;
-  const isOverTSHOTLimit = numericSell > TSHOT_LIMIT;
+  const userBalance = Math.floor(accountData?.tshotBalance ?? 0);
 
-  // A local enrichment function if you want to apply metadata
+  let numericValue = parseInt(sellAmount, 10);
+  if (Number.isNaN(numericValue) || numericValue < 0) {
+    numericValue = 0;
+  }
+
+  const errors = [];
+  if (numericValue > userBalance) {
+    errors.push("Insufficient TSHOT balance.");
+  }
+  if (numericValue > TSHOT_LIMIT) {
+    errors.push(`Cannot deposit more than ${TSHOT_LIMIT} TSHOT at once.`);
+  }
+
   const enrichLocalMetadata = (rawNFTs) => {
     if (!metadataCache) return rawNFTs;
     return rawNFTs.map((nft) => {
@@ -66,20 +77,19 @@ const TSHOTToNFTPanel = ({
     });
   };
 
-  /*******************************************************
-   * STEP 1: Deposit TSHOT (Parent only)
-   *******************************************************/
+  // Step 1 => commitSwap
   const handleDeposit = async () => {
+    if (errors.length > 0 || numericValue === 0) {
+      return;
+    }
+
+    const parentAddr = accountData?.parentAddress || user?.addr;
     if (!parentAddr?.startsWith("0x")) {
       console.error("Invalid parent address for deposit");
       return;
     }
-    if (numericSell > TSHOT_LIMIT) {
-      alert(`You cannot deposit more than ${TSHOT_LIMIT} TSHOT at once.`);
-      return;
-    }
 
-    const betAmount = String(sellAmount);
+    const betAmount = numericValue.toString() + ".0";
 
     onTransactionStart?.({
       status: "Awaiting Approval",
@@ -87,6 +97,7 @@ const TSHOTToNFTPanel = ({
       error: null,
       tshotAmount: betAmount,
       transactionAction: "COMMIT_SWAP",
+      swapType: "TSHOT_TO_NFT", // pass swapType so we can track in Swap.js
     });
 
     try {
@@ -105,6 +116,7 @@ const TSHOTToNFTPanel = ({
         error: null,
         tshotAmount: betAmount,
         transactionAction: "COMMIT_SWAP",
+        swapType: "TSHOT_TO_NFT",
       });
 
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
@@ -123,13 +135,14 @@ const TSHOTToNFTPanel = ({
           default:
             return;
         }
-        const error = txStatus.errorMessage || null;
+        const errMsg = txStatus.errorMessage || null;
         onTransactionStart?.({
           status: newStatus,
           txId,
-          error,
+          error: errMsg,
           tshotAmount: betAmount,
           transactionAction: "COMMIT_SWAP",
+          swapType: "TSHOT_TO_NFT",
         });
       });
 
@@ -141,12 +154,11 @@ const TSHOTToNFTPanel = ({
         error: null,
         tshotAmount: betAmount,
         transactionAction: "COMMIT_SWAP",
+        swapType: "TSHOT_TO_NFT",
       });
 
       // Refresh
-      if (parentAddr) {
-        await loadAllUserData(parentAddr);
-      }
+      await loadAllUserData(parentAddr);
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
       }
@@ -158,22 +170,22 @@ const TSHOTToNFTPanel = ({
         txId: null,
         tshotAmount: betAmount,
         transactionAction: "COMMIT_SWAP",
+        swapType: "TSHOT_TO_NFT",
       });
     }
   };
 
-  /*******************************************************
-   * STEP 2: Reveal => random NFTs minted
-   *******************************************************/
+  // Step 2 => revealSwap
   const handleReveal = async () => {
     if (!selectedAccount?.startsWith("0x")) {
       alert("Invalid receiving address for reveal.");
       return;
     }
 
-    const betAmount = accountData?.receiptDetails?.betAmount
-      ? String(accountData.receiptDetails.betAmount)
-      : String(sellAmount);
+    const betFromReceipt = accountData?.receiptDetails?.betAmount;
+    const fallback = numericValue.toString();
+    const betInteger = betFromReceipt || fallback;
+    const betAmount = betInteger.includes(".") ? betInteger : betInteger + ".0";
 
     onTransactionStart?.({
       status: "Awaiting Approval",
@@ -181,6 +193,7 @@ const TSHOTToNFTPanel = ({
       error: null,
       tshotAmount: betAmount,
       transactionAction: "REVEAL_SWAP",
+      swapType: "TSHOT_TO_NFT",
     });
 
     try {
@@ -199,6 +212,7 @@ const TSHOTToNFTPanel = ({
         error: null,
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
+        swapType: "TSHOT_TO_NFT",
       });
 
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
@@ -217,19 +231,20 @@ const TSHOTToNFTPanel = ({
           default:
             return;
         }
-        const error = txStatus.errorMessage || null;
+        const errMsg = txStatus.errorMessage || null;
         onTransactionStart?.({
           status: newStatus,
           txId,
-          error,
+          error: errMsg,
           tshotAmount: betAmount,
           transactionAction: "REVEAL_SWAP",
+          swapType: "TSHOT_TO_NFT",
         });
       });
 
       const sealedResult = await fcl.tx(txId).onceSealed();
 
-      // Grab deposit events => new IDs
+      // Grab newly minted NFT IDs
       const depositEvents = sealedResult.events.filter(
         (evt) =>
           evt.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
@@ -237,7 +252,6 @@ const TSHOTToNFTPanel = ({
       );
       const receivedNFTIDs = depositEvents.map((evt) => evt.data.id);
 
-      // Partial fetch if we have new IDs
       let revealedNFTDetails = [];
       if (receivedNFTIDs.length > 0) {
         revealedNFTDetails = await fcl.query({
@@ -256,14 +270,14 @@ const TSHOTToNFTPanel = ({
         error: null,
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
+        swapType: "TSHOT_TO_NFT",
         revealedNFTs: receivedNFTIDs,
         revealedNFTDetails,
       });
 
-      // Full refresh
-      if (parentAddr) {
-        await loadAllUserData(parentAddr);
-      }
+      // Refresh
+      const parentAddr = accountData?.parentAddress || user?.addr;
+      await loadAllUserData(parentAddr);
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
       }
@@ -275,51 +289,39 @@ const TSHOTToNFTPanel = ({
         txId: null,
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
+        swapType: "TSHOT_TO_NFT",
       });
     }
   };
 
-  /*******************************************************
-   *               Render the UI
-   *******************************************************/
-  if (!isLoggedIn) {
-    return (
-      <button
-        onClick={() => fcl.authenticate()}
-        className="w-full text-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-2"
-      >
-        Connect Wallet
-      </button>
-    );
-  }
-
-  // STEP 1: Deposit => Only a single button
+  // Render
   if (depositStep) {
-    const isOverLimit = numericSell > TSHOT_LIMIT;
+    const hasErrors = errors.length > 0;
+    const disableDeposit = depositDisabled || hasErrors || numericValue === 0;
+
     return (
-      <div className="space-y-6 max-w-md mx-auto">
-        {isOverLimit && (
-          <div className="text-red-400 font-semibold">
-            You cannot deposit more than 50 TSHOT at once.
+      <div className="space-y-4 max-w-md mx-auto">
+        {errors.map((errMsg, idx) => (
+          <div key={idx} className="text-red-400 font-semibold">
+            {errMsg}
           </div>
-        )}
+        ))}
 
         <button
           onClick={handleDeposit}
-          disabled={depositDisabled || isOverLimit}
+          disabled={disableDeposit}
           className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-            depositDisabled || isOverLimit
+            disableDeposit
               ? "bg-gray-600 cursor-not-allowed"
               : "bg-flow-dark hover:bg-flow-darkest"
           }`}
         >
-          (Step 1 of 2) Deposit TSHOT
+          (Step 1 of 2) Swap TSHOT for Moments
         </button>
       </div>
     );
   }
 
-  // STEP 2: Reveal => user hasReceipt = true
   if (revealStep) {
     return (
       <div className="space-y-6 max-w-md mx-auto">
@@ -327,7 +329,7 @@ const TSHOTToNFTPanel = ({
           onClick={handleReveal}
           className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
         >
-          (Step 2 of 2) Receive Random Moments
+          (Step 2 of 2) Swap TSHOT for Moments
         </button>
 
         <div className="bg-gray-700 p-3 rounded">
@@ -336,20 +338,32 @@ const TSHOTToNFTPanel = ({
           </h4>
           <AccountSelection
             parentAccount={
-              parentHasCollection ? { addr: parentAddr, ...accountData } : null
+              accountData?.hasCollection
+                ? {
+                    addr: accountData.parentAddress || user?.addr,
+                    ...accountData,
+                  }
+                : null
             }
-            childrenAddresses={childrenWithCollection.map((c) => c.addr)}
-            childrenAccounts={childrenWithCollection}
+            childrenAddresses={(accountData.childrenData || [])
+              .filter((c) => c.hasCollection)
+              .map((child) => child.addr)}
+            childrenAccounts={(accountData.childrenData || []).filter(
+              (c) => c.hasCollection
+            )}
             selectedAccount={selectedAccount}
-            onSelectAccount={(addr) => {
+            onSelectAccount={(addr) =>
               dispatch({
                 type: "SET_SELECTED_ACCOUNT",
                 payload: {
                   address: addr,
-                  type: addr === parentAddr ? "parent" : "child",
+                  type:
+                    addr === (accountData.parentAddress || user?.addr)
+                      ? "parent"
+                      : "child",
                 },
-              });
-            }}
+              })
+            }
           />
           <p className="text-xs text-gray-300 mt-1">
             <em>Note:</em> You can only receive Moments in an account that
@@ -360,8 +374,7 @@ const TSHOTToNFTPanel = ({
     );
   }
 
-  // Fallback
   return <div className="text-gray-400 p-4">Loading...</div>;
-};
+}
 
 export default TSHOTToNFTPanel;

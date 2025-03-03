@@ -1,8 +1,10 @@
 // src/components/AccountSelection.js
 
 import React from "react";
+// For the "Use Your Dapper Wallet Moments" icon, let's import one from lucide or similar
+// (like Repeat, from your TSHOT code snippet)
+import { Repeat } from "lucide-react";
 
-// Optional color mappings for Tiers
 const tierTextColors = {
   common: "text-gray-400",
   rare: "text-blue-500",
@@ -13,16 +15,9 @@ const tierTextColors = {
 
 /**
  * Renders an individual account box (Parent or Child).
- * Distinguishes between:
- *   1) hasCollection === false (no TopShot collection at all)
- *   2) hasCollection === true but 0 NFTs
- *   3) Has NFTs
  */
 const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
-  if (!data) {
-    // If we don't have valid data, skip
-    return null;
-  }
+  if (!data) return null;
 
   const {
     flowBalance = 0,
@@ -76,7 +71,7 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
           $TSHOT
         </p>
 
-        {/* 1) If user does NOT have a TopShot Collection at all */}
+        {/* 1) If user does NOT have a TopShot Collection */}
         {!hasCollection && (
           <p className="text-xs text-red-500 mt-2">
             (No TopShot Collection found)
@@ -107,10 +102,6 @@ const AccountBox = ({ label, accountAddr, data, isSelected, onSelect }) => {
   );
 };
 
-/**
- * Renders a grid of accounts (Parent + Children).
- * Shows refresh button and any loading states if desired.
- */
 const AccountSelection = ({
   parentAccount,
   childrenAddresses = [],
@@ -160,11 +151,24 @@ const AccountSelection = ({
 
         {/* Child Accounts */}
         {childrenAddresses.length === 0 ? (
-          <div className="p-4 rounded-lg border-2 border-gray-500 bg-gray-700">
-            <h4 className="text-sm font-semibold text-white mb-1">Children</h4>
-            <p className="text-xs text-gray-400">
-              {isLoadingChildren ? "Checking for children..." : "No children."}
+          /** Instead of "No children," we display a "Dapper Wallet" info card. */
+          <div className="bg-gray-600 p-3 rounded flex flex-col items-center text-center col-span-1 sm:col-span-2 md:col-span-1">
+            <div className="flex items-center justify-center text-base font-bold text-white mb-1">
+              <Repeat className="w-5 h-5 text-blue-400 mr-1" />
+              Use Your Dapper Wallet Moments
+            </div>
+            <p className="text-xs text-gray-100 mb-2">
+              Seamlessly leverage Dapper Wallet assets on TSHOT—no need to move
+              them elsewhere.
             </p>
+            <a
+              href="https://support.meetdapper.com/hc/en-us/articles/20744347884819-Account-Linking-and-FAQ"
+              target="_blank"
+              rel="noreferrer"
+              className="bg-blue-500 hover:bg-blue-600 text-xs text-white font-bold px-2 py-1 rounded"
+            >
+              Learn More
+            </a>
           </div>
         ) : (
           childrenAddresses.map((childAddr) => {

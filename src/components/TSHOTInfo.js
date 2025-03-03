@@ -55,30 +55,31 @@ function TSHOTInfo({
               vault—perfect for freeing up your collection.
             </p>
             <a
-              href="/exchange"
+              href="/swap"
               className="bg-purple-500 hover:bg-purple-600 text-xs text-white font-bold px-2 py-1 rounded"
               style={{ width: "auto" }}
             >
-              Exchange Now
+              Swap Now
             </a>
           </div>
 
-          {/* 2) Upgrade Your Moments */}
+          {/* 2) Convert TSHOT to Moments */}
           <div className="bg-gray-600 p-3 rounded flex flex-col items-center">
             <div className="flex items-center justify-center text-base font-bold text-white mb-1">
               <Dice5 className="w-5 h-5 text-purple-300 mr-1" />
-              Upgrade Your Moments
+              Convert TSHOT to Moments
             </div>
             <p className="text-xs text-gray-100 mb-2">
-              Use TSHOT to acquire fresh random Common/Fandom Moments—sometimes
-              seeded with special surprises!
+              Use TSHOT to acquire random Common/Fandom Moments, leveraging
+              verifiable on-chain random to expand your collection—or fill
+              requirements for trade-in campaigns.
             </p>
             <a
-              href="/exchange"
+              href="/swap"
               className="bg-purple-500 hover:bg-purple-600 text-xs text-white font-bold px-2 py-1 rounded"
               style={{ width: "auto" }}
             >
-              Upgrade Now
+              Convert Now
             </a>
           </div>
 
@@ -89,8 +90,9 @@ function TSHOTInfo({
               Instant Liquidity
             </div>
             <p className="text-xs text-gray-100 mb-2">
-              Swap TSHOT to FLOW (or other tokens) anytime for quick access to
-              broader liquidity.
+              Instantly buy or sell TSHOT in bulk via the TSHOT/FLOW liquidity
+              pool—perfect for quickly getting TSHOT to convert to Moments for
+              challenges or trade-in campaigns.
             </p>
             <a
               href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
@@ -99,7 +101,7 @@ function TSHOTInfo({
               className="bg-pink-500 hover:bg-pink-600 rounded text-xs font-bold px-2 py-1"
               style={{ width: "auto", margin: "0 auto" }}
             >
-              Sell Now
+              Trade Now
             </a>
           </div>
 

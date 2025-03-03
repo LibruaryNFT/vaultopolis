@@ -1,5 +1,4 @@
 // src/components/NFTToTSHOTPanel.js
-
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
@@ -8,7 +7,16 @@ import { UserContext } from "../context/UserContext";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 import { exchangeNFTForTSHOT_child } from "../flow/exchangeNFTForTSHOT_child";
 
-const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
+/**
+ * We do a safe fallback inside the component to ensure
+ * `nftIds` is never undefined, and `buyAmount` is never null.
+ */
+function NFTToTSHOTPanel(props) {
+  // Deconstruct props with some fallback logic
+  let { nftIds, buyAmount, onTransactionStart } = props;
+  if (!Array.isArray(nftIds)) nftIds = [];
+  if (!buyAmount) buyAmount = "0";
+
   const {
     user,
     accountData,
@@ -23,7 +31,7 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
   const parentAddr = accountData.parentAddress || user?.addr;
   const isChildSwap = selectedAccountType === "child";
 
-  // Decide which Cadence script
+  // Which script to run?
   const cadenceScript = isChildSwap
     ? exchangeNFTForTSHOT_child
     : exchangeNFTForTSHOT;
@@ -44,12 +52,13 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
       alert("Please select at least one Moment to swap for TSHOT.");
       return;
     }
+
     if (!parentAddr?.startsWith("0x")) {
       console.error("Invalid parent address:", parentAddr);
       return;
     }
 
-    // 1) Inform parent UI: "Awaiting Approval"
+    // 1) Inform parent
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -80,10 +89,10 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
         limit: 9999,
       });
 
-      // 3) Optimistic reset: Clear user selection
+      // 3) Optimistic reset: clear user selection
       dispatch({ type: "RESET_SELECTED_NFTS" });
 
-      // Update the UI to "Pending"
+      // 4) UI => "Pending"
       onTransactionStart?.({
         status: "Pending",
         txId,
@@ -94,10 +103,9 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
         nftIds,
       });
 
-      // 4) Subscribe to transaction status
+      // 5) Subscribe to tx status
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
-
         switch (txStatus.statusString) {
           case "PENDING":
             newStatus = "Pending";
@@ -115,13 +123,13 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
             break;
         }
 
-        const error = txStatus.errorMessage?.length
+        const errorMsg = txStatus.errorMessage?.length
           ? txStatus.errorMessage
           : null;
 
         onTransactionStart?.({
           status: newStatus,
-          error,
+          error: errorMsg,
           txId,
           nftCount: nftIds.length,
           tshotAmount: buyAmount,
@@ -129,18 +137,16 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
           nftIds,
         });
 
-        // If sealed => unsub
         if (txStatus.status === 4) {
           unsub();
         }
       });
 
-      // 5) Wait for sealing
+      // 6) Wait for sealing
       await fcl.tx(txId).onceSealed();
 
-      // 6) Refresh parent and child data
+      // 7) Refresh parent and/or child
       if (parentAddr) {
-        // EXACT match to Transfer's pattern:
         await loadAllUserData(parentAddr);
       }
       if (isChildSwap) {
@@ -175,6 +181,6 @@ const NFTToTSHOTPanel = ({ nftIds, buyAmount, onTransactionStart }) => {
       </button>
     </div>
   );
-};
+}
 
 export default NFTToTSHOTPanel;
