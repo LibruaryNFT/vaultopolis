@@ -10,6 +10,7 @@ import TransactionModal from "./TransactionModal";
 import ExchangeDashboard from "./ExchangeDashboard";
 import MomentCard from "./MomentCard";
 import { AnimatePresence } from "framer-motion";
+import Ticker from "./Ticker";
 
 const sellOptions = ["TopShot Moments", "TSHOT"];
 const buyOptionsMap = {
@@ -234,12 +235,13 @@ const ExchangePanel = () => {
 
   return (
     <>
-      {/* If there's a recognized dashboard mode, show it */}
+      {/* If there's a recognized dashboard mode, show it 
       {dashboardMode && (
         <div className="mb-4">
           <ExchangeDashboard mode={dashboardMode} />
         </div>
       )}
+        */}
 
       {/* Container for Sell & Buy boxes */}
       <div className="max-w-md mx-auto p-4 space-y-4">

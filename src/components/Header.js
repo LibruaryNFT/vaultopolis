@@ -54,8 +54,8 @@ const Header = () => {
             </NavLink>
           </div>
           <div className="flex items-center space-x-2">
-            <NavLink to="/vaults" isActive={location.pathname === "/vaults"}>
-              Vaults
+            <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
+              TSHOT
             </NavLink>
           </div>
         </nav>
@@ -101,11 +101,11 @@ const Header = () => {
           </div>
           <div className="flex flex-col divide-y divide-gray-700">
             <MobileNavLink
-              to="/vaults"
-              isActive={location.pathname === "/vaults"}
+              to="/TSHOT"
+              isActive={location.pathname === "/TSHOT"}
               onClick={toggleMobileMenu}
             >
-              Vaults
+              TSHOT
             </MobileNavLink>
           </div>
         </div>

@@ -5,7 +5,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { UserProvider } from "./context/UserContext";
-import Vaults from "./components/Vaults";
+import TSHOT from "./components/TSHOT";
 import Earn from "./components/Earn";
 import TermsAndService from "./components/TermsAndPrivacy";
 import Layout from "./components/Layout";
@@ -46,10 +46,10 @@ const router = createBrowserRouter(
       ),
     },
     {
-      path: "/vaults",
+      path: "/tshot",
       element: (
         <Layout>
-          <Vaults />
+          <TSHOT />
         </Layout>
       ),
     },
