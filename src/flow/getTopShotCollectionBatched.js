@@ -3,13 +3,14 @@ export const getTopShotCollectionBatched = `
 import TopShot from 0x0b2a3299cc857e29
 import TopShotLocking from 0x0b2a3299cc857e29
 
-// Structure to hold the NFT details with additional fields
 access(all) struct NFTDetails {
     access(all) let id: UInt64
     access(all) let setID: UInt32
     access(all) let playID: UInt32
     access(all) let serialNumber: UInt32
     access(all) let isLocked: Bool
+    // Just the subedition ID (optional)
+    access(all) let subeditionID: UInt32?
 
     init(
         id: UInt64,
@@ -17,70 +18,55 @@ access(all) struct NFTDetails {
         playID: UInt32,
         serialNumber: UInt32,
         isLocked: Bool,
+        subeditionID: UInt32?
     ) {
         self.id = id
         self.setID = setID
         self.playID = playID
         self.serialNumber = serialNumber
         self.isLocked = isLocked
-        
+        self.subeditionID = subeditionID
     }
 }
 
 access(all) fun main(address: Address, targetIDs: [UInt64]): [NFTDetails] {
     let account = getAccount(address)
 
-    // Borrow the collection reference from the account
+    // Borrow the collection
     let collectionRef = account
         .capabilities
         .borrow<&TopShot.Collection>(/public/MomentCollection)
         ?? panic("Could not borrow a reference to the collection")
 
-    // Cache for set names to avoid redundant lookups
-    var setNames: {UInt32: String} = {}
-
-    // Array to hold the details of each NFT
     var nftDetailsList: [NFTDetails] = []
 
-    // Loop through the provided target IDs directly
     for id in targetIDs {
         let nftRef = collectionRef.borrowMoment(id: id)
-
-        // If the NFT does not exist, skip it
         if nftRef == nil {
             continue
         }
-
         let nft = nftRef!
-
         let data = nft.data
 
-
-        
-
-        // Get isLocked status
         let isLocked = TopShotLocking.isLocked(nftRef: nft)
 
-       
+        // The subedition ID is safe to read. It returns UInt32? (nil if none).
+        let subID = TopShot.getMomentsSubedition(nftID: id)
 
-        // Collect the details
-        let nftDetails = NFTDetails(
+        let item = NFTDetails(
             id: nft.id,
             setID: data.setID,
             playID: data.playID,
             serialNumber: data.serialNumber,
             isLocked: isLocked,
-           
+            subeditionID: subID // store optional as-is
         )
 
-        // Append to the array
-        nftDetailsList.append(nftDetails)
+        nftDetailsList.append(item)
     }
 
-    // Return the array of NFT details
     return nftDetailsList
 }
-
 
 
 `;

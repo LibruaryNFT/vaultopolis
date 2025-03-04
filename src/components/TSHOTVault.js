@@ -1,22 +1,36 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Loader2 } from "lucide-react";
 
-/** Tier color mapping (for filter labels and moment cards) */
+/** Tier color mapping (for filter labels and vault cards) */
 const tierStyles = {
-  common: "text-gray-400", // Common
-  fandom: "text-lime-400", // Fandom
-  rare: "text-blue-500", // Rare
+  common: "text-gray-400",
+  fandom: "text-lime-400",
+  rare: "text-blue-500",
   legendary: "text-orange-500",
   ultimate: "text-pink-500",
 };
 
 const ALL_TIER_OPTIONS = ["common", "fandom", "rare", "legendary", "ultimate"];
 
-/** Single NFT Card */
+/**
+ * Returns the display name for a vault NFT, ignoring aggregator's literal "Unknown Player"
+ * so we can fallback to teamAtMoment if present.
+ */
+function getDisplayedName(nft) {
+  const forcedUnknowns = ["Unknown Player", "unknown player"];
+  let candidate = nft?.fullName || nft?.FullName;
+  if (candidate && forcedUnknowns.includes(candidate.trim())) {
+    candidate = null;
+  }
+  return candidate || nft?.playerName || nft?.teamAtMoment || "Unknown Player";
+}
+
+/** Single NFT Card in the vault */
 function NftCard({ nft }) {
   const [imageUrl, setImageUrl] = useState("");
 
   useEffect(() => {
+    // If we have (setID, playID), build your custom vault image URL
     if (nft?.setID && nft?.playID) {
       setImageUrl(
         `https://storage.googleapis.com/flowconnect/topshot/images_small/${nft.setID}_${nft.playID}.jpg`
@@ -24,9 +38,10 @@ function NftCard({ nft }) {
     }
   }, [nft?.setID, nft?.playID]);
 
-  const displayName =
-    nft?.fullName || nft?.FullName || nft?.playerName || "Unknown Player";
+  // Display name ignoring "Unknown Player"
+  const displayName = getDisplayedName(nft);
 
+  // Tier stylings
   const tierClass = nft?.tier
     ? tierStyles[nft.tier.toLowerCase()] || "text-gray-400"
     : "text-gray-400";
@@ -34,6 +49,11 @@ function NftCard({ nft }) {
   const tierLabel = nft?.tier
     ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
     : "Unknown Tier";
+
+  // finalMintCount => if subedition, show subeditionMaxMint; else momentCount
+  const finalMintCount = nft?.subeditionID
+    ? nft?.subeditionMaxMint
+    : nft?.momentCount;
 
   return (
     <div
@@ -65,7 +85,7 @@ function NftCard({ nft }) {
         {tierLabel}
       </p>
       <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
-        {nft?.serialNumber ?? "?"} / {nft?.momentCount ?? "?"}
+        {nft?.serialNumber ?? "?"} / {finalMintCount ?? "?"}
       </p>
       <p className="text-center text-gray-400 text-xs truncate whitespace-nowrap">
         {nft?.name || "Unknown Set"}
@@ -75,7 +95,7 @@ function NftCard({ nft }) {
 }
 
 /**
- * Enrich vault data with metadata (jerseyNumber, etc.) from a cache or endpoint.
+ * Enrich vault data with metadata (jerseyNumber, subedition fields, etc.) from a cache or endpoint.
  */
 async function enrichVaultMoments(vaultNfts) {
   let metadataCache = {};
@@ -117,12 +137,15 @@ async function enrichVaultMoments(vaultNfts) {
         meta.JerseyNumber || meta.jerseyNumber || nft.jerseyNumber || null,
       series: meta.series !== undefined ? meta.series : nft.series,
       name: meta.name || nft.name,
+      // If your aggregator includes subeditionID + subeditionMaxMint, copy them too:
+      subeditionID: nft.subeditionID || meta.subeditionID || null,
+      subeditionMaxMint:
+        nft.subeditionMaxMint || meta.subeditionMaxMint || null,
     };
   });
 }
 
 function TSHOTVault() {
-  // Vault data states
   const [allNfts, setAllNfts] = useState([]);
   const [loadingVault, setLoadingVault] = useState(false);
   const [vaultError, setVaultError] = useState("");
@@ -220,7 +243,7 @@ function TSHOTVault() {
     return Array.from(p).sort((a, b) => a.localeCompare(b));
   }, [allNfts]);
 
-  // Special Serials
+  // Special Serials: "Show only #1, jersey match, or last mint"
   const [onlySpecialSerials, setOnlySpecialSerials] = useState(false);
   const toggleOnlySpecialSerials = () => {
     setOnlySpecialSerials((prev) => !prev);
@@ -234,30 +257,44 @@ function TSHOTVault() {
   // Filter the NFTs
   const filteredNfts = useMemo(() => {
     if (!allNfts.length) return [];
+
     return allNfts.filter((n) => {
+      // 1) Tier
       const tier = n?.tier?.toLowerCase();
       if (!selectedTiers.includes(tier)) return false;
 
+      // 2) Series
       const numSeries = Number(n.series);
       if (Number.isNaN(numSeries) || !selectedSeries.includes(numSeries)) {
         return false;
       }
 
+      // 3) Set
       if (selectedSetName !== "All" && n.name !== selectedSetName) {
         return false;
       }
 
+      // 4) Player
       if (selectedPlayer !== "All" && n.fullName !== selectedPlayer) {
         return false;
       }
 
-      // special serial check
-      const sn = parseInt(n.serialNumber, 10);
-      const edSize = parseInt(n.momentCount, 10);
-      const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
-      const isSpecial = sn === 1 || sn === edSize || (jersey && jersey === sn);
+      // 5) If onlySpecialSerials is true => Keep only #1, last, or jersey
+      if (onlySpecialSerials) {
+        const sn = parseInt(n.serialNumber, 10);
 
-      if (onlySpecialSerials && !isSpecial) return false;
+        // subedition? => use subeditionMaxMint, else use momentCount
+        const effectiveMax =
+          n.subeditionID && n.subeditionMaxMint
+            ? parseInt(n.subeditionMaxMint, 10)
+            : parseInt(n.momentCount, 10);
+
+        const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
+        const isSpecial =
+          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
+        if (!isSpecial) return false;
+      }
+
       return true;
     });
   }, [
@@ -357,10 +394,10 @@ function TSHOTVault() {
 
       {vaultError && <p className="text-red-500 mb-2">Error: {vaultError}</p>}
 
-      {/* FILTERS (compact layout) */}
+      {/* FILTER UI */}
       {!loadingVault && !vaultError && (
         <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-600 p-2 rounded mb-2">
-          {/* Tiers */}
+          {/* Tier Filter */}
           {existingTiers.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-gray-200 font-semibold">Tiers:</span>
@@ -384,7 +421,7 @@ function TSHOTVault() {
             </div>
           )}
 
-          {/* Series */}
+          {/* Series Filter */}
           {seriesOptions.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-gray-200 font-semibold">Series:</span>
@@ -447,7 +484,7 @@ function TSHOTVault() {
             </div>
           )}
 
-          {/* Special Serials */}
+          {/* Only #1, Jersey, or Last Mint */}
           <div className="flex items-center gap-1">
             <input
               type="checkbox"

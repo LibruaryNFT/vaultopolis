@@ -14,10 +14,10 @@ function getTierColorClass(tierVal) {
   switch (tierVal) {
     case "common":
       return "text-gray-400";
-    case "fandom":
-      return "text-lime-400";
     case "rare":
       return "text-blue-500";
+    case "fandom":
+      return "text-lime-400";
     case "legendary":
       return "text-orange-500";
     case "ultimate":
@@ -28,9 +28,6 @@ function getTierColorClass(tierVal) {
 }
 
 const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
-  /** ---------------------------
-   *  1) All Hooks at top level
-   * --------------------------- */
   const {
     user,
     accountData,
@@ -54,11 +51,12 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   );
   const [selectedTiers, setSelectedTiers] = useState(tierOptions);
 
-  // Exclude special serials
+  // Additional toggles
   const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
 
-  // Show only serials >= 4000
-  const [onlyAbove4000, setOnlyAbove4000] = useState(true);
+  // Renamed from onlyAbove4000 => excludeLowSerials
+  // The label will say "Exclude serials ≤ 4000"
+  const [excludeLowSerials, setExcludeLowSerials] = useState(true);
 
   // Series
   const [selectedSeries, setSelectedSeries] = useState([]);
@@ -80,9 +78,9 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     }
   }, [seriesOptions, selectedSeries]);
 
-  // “All Series” checkbox
   const allSeriesChecked =
     selectedSeries.length > 0 && selectedSeries.length === seriesOptions.length;
+
   const handleAllSeriesToggle = (checked) => {
     if (checked) {
       setSelectedSeries(seriesOptions);
@@ -96,31 +94,44 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   const [selectedSetName, setSelectedSetName] = useState("All");
   const [selectedPlayer, setSelectedPlayer] = useState("All");
 
-  // Helpers for building set/player options
+  // 1) Subset for building setNameOptions
   const subsetForSets = useMemo(() => {
     return (nftDetails || []).filter((n) => {
+      // Series
       const s = Number(n.series);
       if (!selectedSeries.includes(s)) return false;
 
+      // Tier
       const t = n.tier?.toLowerCase();
       if (!selectedTiers.includes(t)) return false;
 
-      if (selectedPlayer !== "All" && n.fullName !== selectedPlayer) {
-        return false;
+      // If we have a specific player, only match if n.fullName matches
+      if (selectedPlayer !== "All") {
+        if (!n.fullName || n.fullName !== selectedPlayer) {
+          return false;
+        }
       }
 
+      // Exclude special serial if needed
       if (excludeSpecialSerials) {
         const sn = parseInt(n.serialNumber, 10);
-        const edSize = parseInt(n.momentCount, 10);
+
+        // If subedition, use subeditionMaxMint, else use momentCount
+        const effectiveMax =
+          n.subeditionID && n.subeditionMaxMint
+            ? parseInt(n.subeditionMaxMint, 10)
+            : parseInt(n.momentCount, 10);
+
         const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
         const isSpecial =
-          sn === 1 || sn === edSize || (jersey && jersey === sn);
+          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
         if (isSpecial) return false;
       }
 
-      if (onlyAbove4000) {
+      // If excludeLowSerials is true => skip <= 4000
+      if (excludeLowSerials) {
         const sn = parseInt(n.serialNumber, 10);
-        if (sn < 4000) return false;
+        if (sn <= 4000) return false;
       }
 
       return true;
@@ -131,35 +142,46 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     selectedTiers,
     selectedPlayer,
     excludeSpecialSerials,
-    onlyAbove4000,
+    excludeLowSerials,
   ]);
 
+  // 2) Subset for building playerNameOptions
   const subsetForPlayers = useMemo(() => {
     return (nftDetails || []).filter((n) => {
+      // Series
       const s = Number(n.series);
       if (!selectedSeries.includes(s)) return false;
 
+      // Tier
       const t = n.tier?.toLowerCase();
       if (!selectedTiers.includes(t)) return false;
 
+      // If we have a specific set, only match if n.name matches
       if (selectedSetName !== "All" && n.name !== selectedSetName) {
         return false;
       }
 
+      // Exclude special serial if needed
       if (excludeSpecialSerials) {
         const sn = parseInt(n.serialNumber, 10);
-        const edSize = parseInt(n.momentCount, 10);
+
+        // If subedition, use subeditionMaxMint, else use momentCount
+        const effectiveMax =
+          n.subeditionID && n.subeditionMaxMint
+            ? parseInt(n.subeditionMaxMint, 10)
+            : parseInt(n.momentCount, 10);
+
         const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
         const isSpecial =
-          sn === 1 || sn === edSize || (jersey && jersey === sn);
+          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
         if (isSpecial) return false;
       }
 
-      if (onlyAbove4000) {
+      // excludeLowSerials => skip <= 4000
+      if (excludeLowSerials) {
         const sn = parseInt(n.serialNumber, 10);
-        if (sn < 4000) return false;
+        if (sn <= 4000) return false;
       }
-
       return true;
     });
   }, [
@@ -168,20 +190,24 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     selectedTiers,
     selectedSetName,
     excludeSpecialSerials,
-    onlyAbove4000,
+    excludeLowSerials,
   ]);
 
+  // Build setNameOptions
   const setNameOptions = useMemo(() => {
     const s = new Set(subsetForSets.map((n) => n.name).filter(Boolean));
-    return Array.from(s).sort((a, b) => a.localeCompare(b));
+    return [...s].sort((a, b) => a.localeCompare(b));
   }, [subsetForSets]);
 
+  // Build playerNameOptions using *only* fullName if present
   const playerNameOptions = useMemo(() => {
-    const p = new Set(subsetForPlayers.map((n) => n.fullName).filter(Boolean));
-    return Array.from(p).sort((a, b) => a.localeCompare(b));
+    const p = new Set(
+      subsetForPlayers.map((n) => n.fullName).filter((val) => val && val !== "")
+    );
+    return [...p].sort((a, b) => a.localeCompare(b));
   }, [subsetForPlayers]);
 
-  // reset setName/player if invalid
+  // Reset setName/player if invalid
   useEffect(() => {
     if (
       selectedSetName !== "All" &&
@@ -200,11 +226,11 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     }
   }, [selectedPlayer, playerNameOptions]);
 
-  // Final eligibleMoments
+  // Final list => eligibleMoments
   const eligibleMoments = useMemo(() => {
     if (!nftDetails.length) return [];
 
-    return (nftDetails || [])
+    return nftDetails
       .filter((n) => {
         // Exclude by ID
         if (excludeIds.includes(String(n.id))) return false;
@@ -224,28 +250,34 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
           return false;
         }
 
-        // Player
-        if (selectedPlayer !== "All" && n.fullName !== selectedPlayer) {
-          return false;
+        // Player => only if n.fullName matches
+        if (selectedPlayer !== "All") {
+          if (!n.fullName || n.fullName !== selectedPlayer) {
+            return false;
+          }
         }
 
-        // Special Serials
+        // Exclude special serial
         if (excludeSpecialSerials) {
           const sn = parseInt(n.serialNumber, 10);
-          const edSize = parseInt(n.momentCount, 10);
+          const effectiveMax =
+            n.subeditionID && n.subeditionMaxMint
+              ? parseInt(n.subeditionMaxMint, 10)
+              : parseInt(n.momentCount, 10);
+
           const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
           const isSpecial =
-            sn === 1 || sn === edSize || (jersey && jersey === sn);
+            sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
           if (isSpecial) return false;
         }
 
-        // onlyAbove4000
-        if (onlyAbove4000) {
+        // Exclude if serial <= 4000
+        if (excludeLowSerials) {
           const sn = parseInt(n.serialNumber, 10);
-          if (sn < 4000) return false;
+          if (sn <= 4000) return false;
         }
 
-        // Already selected
+        // Not already selected
         if (selectedNFTs.includes(n.id)) return false;
 
         return true;
@@ -261,7 +293,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     selectedSetName,
     selectedPlayer,
     excludeSpecialSerials,
-    onlyAbove4000,
+    excludeLowSerials,
     selectedNFTs,
   ]);
 
@@ -275,47 +307,12 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     return eligibleMoments.slice(start, start + itemsPerPage);
   }, [eligibleMoments, currentPage, itemsPerPage]);
 
-  // Handlers
-  const handleToggleTier = (tierVal) => {
-    setSelectedTiers((prev) =>
-      prev.includes(tierVal)
-        ? prev.filter((v) => v !== tierVal)
-        : [...prev, tierVal]
-    );
-    setCurrentPage(1);
-  };
-
-  const handleToggleSeries = (val) => {
-    setSelectedSeries((prev) =>
-      prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]
-    );
-    setCurrentPage(1);
-  };
-
-  const toggleExcludeSpecialSerials = () => {
-    setExcludeSpecialSerials((p) => !p);
-    setCurrentPage(1);
-  };
-
-  const toggleOnlyAbove4000 = () => {
-    setOnlyAbove4000((prev) => !prev);
-    setCurrentPage(1);
-  };
-
-  const handleSetNameChange = (e) => {
-    setSelectedSetName(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const handlePlayerChange = (e) => {
-    setSelectedPlayer(e.target.value);
-    setCurrentPage(1);
-  };
-
+  // handle NFT selection
   const handleNFTSelection = (id) => {
     dispatch({ type: "SET_SELECTED_NFTS", payload: id });
   };
 
+  // Render pagination
   const renderPaginationButtons = () => {
     if (totalPages <= 1) return null;
     const pages = [];
@@ -344,7 +341,6 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         totalPages
       );
     }
-
     return (
       <div className="flex justify-center mt-4">
         {pages.map((p, idx) => (
@@ -364,16 +360,12 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     );
   };
 
-  /** -----------------------------------------
-   *  2) Now do conditional rendering at the end
-   * ------------------------------------------*/
-
-  // If user not logged in
+  // if user not logged in
   if (!user?.loggedIn) {
     return <p className="text-gray-400">Please log in.</p>;
   }
 
-  // If account has no TopShot collection
+  // if account has no TopShot collection
   if (!hasCollection) {
     return (
       <div className="bg-gray-700 p-2 rounded-lg">
@@ -384,7 +376,6 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     );
   }
 
-  // If we do have a collection, show normal UI
   return (
     <div className="w-full bg-gray-700 p-2 rounded-lg">
       {/* Count + refresh indicator */}
@@ -411,14 +402,12 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         )}
       </div>
 
-      {/* If user has a collection but no NFTs => no series */}
       {seriesOptions.length === 0 && nftDetails.length > 0 && (
         <p className="text-gray-400">
           You have no NFTs in this account. No Series available.
         </p>
       )}
 
-      {/* FILTER UI (only if we have seriesOptions) */}
       {seriesOptions.length > 0 && (
         <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-600 p-2 rounded mb-2">
           {/* Tiers */}
@@ -433,7 +422,14 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                     <input
                       type="checkbox"
                       checked={selectedTiers.includes(tVal)}
-                      onChange={() => handleToggleTier(tVal)}
+                      onChange={() => {
+                        setSelectedTiers((prev) =>
+                          prev.includes(tVal)
+                            ? prev.filter((v) => v !== tVal)
+                            : [...prev, tVal]
+                        );
+                        setCurrentPage(1);
+                      }}
                     />
                     <span className={colorClass}>{label}</span>
                   </label>
@@ -446,7 +442,6 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
           <div className="flex items-center gap-2">
             <span className="text-gray-200 font-semibold">Series:</span>
             <div className="flex items-center gap-2 flex-wrap">
-              {/* All Series Toggle */}
               <label className="flex items-center gap-1 text-gray-200">
                 <input
                   type="checkbox"
@@ -455,7 +450,6 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 />
                 All
               </label>
-
               {seriesOptions.map((val) => (
                 <label
                   key={val}
@@ -464,7 +458,14 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                   <input
                     type="checkbox"
                     checked={selectedSeries.includes(val)}
-                    onChange={() => handleToggleSeries(val)}
+                    onChange={() => {
+                      setSelectedSeries((prev) =>
+                        prev.includes(val)
+                          ? prev.filter((x) => x !== val)
+                          : [...prev, val]
+                      );
+                      setCurrentPage(1);
+                    }}
                   />
                   {val}
                 </label>
@@ -477,9 +478,12 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
             <span className="text-gray-200 font-semibold">Set:</span>
             <select
               value={selectedSetName}
-              onChange={handleSetNameChange}
+              onChange={(e) => {
+                setSelectedSetName(e.target.value);
+                setCurrentPage(1);
+              }}
               className="bg-gray-800 text-gray-200 rounded px-1 py-0.5"
-              disabled={setNameOptions.length === 0}
+              disabled={/* if no sets to choose */ setNameOptions.length === 0}
             >
               {setNameOptions.length === 0 ? (
                 <option>No sets</option>
@@ -496,12 +500,15 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
             </select>
           </div>
 
-          {/* Player */}
+          {/* Player (only based on fullName) */}
           <div className="flex items-center gap-1">
             <span className="text-gray-200 font-semibold">Player:</span>
             <select
               value={selectedPlayer}
-              onChange={handlePlayerChange}
+              onChange={(e) => {
+                setSelectedPlayer(e.target.value);
+                setCurrentPage(1);
+              }}
               className="bg-gray-800 text-gray-200 rounded px-1 py-0.5"
               disabled={playerNameOptions.length === 0}
             >
@@ -525,19 +532,25 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
             <input
               type="checkbox"
               checked={excludeSpecialSerials}
-              onChange={toggleExcludeSpecialSerials}
+              onChange={() => {
+                setExcludeSpecialSerials((p) => !p);
+                setCurrentPage(1);
+              }}
             />
             <label className="text-gray-200">Exclude #1, last, or jersey</label>
           </div>
 
-          {/* Show only serials >= 4000 */}
+          {/* Exclude serials <= 4000 */}
           <div className="flex items-center gap-1">
             <input
               type="checkbox"
-              checked={onlyAbove4000}
-              onChange={toggleOnlyAbove4000}
+              checked={excludeLowSerials}
+              onChange={() => {
+                setExcludeLowSerials((prev) => !prev);
+                setCurrentPage(1);
+              }}
             />
-            <label className="text-gray-200">Show only serials ≥ 4000</label>
+            <label className="text-gray-200">Exclude serials ≤ 4000</label>
           </div>
         </div>
       )}

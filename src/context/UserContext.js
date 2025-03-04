@@ -1,5 +1,3 @@
-// src/context/UserContext.js
-
 import React, {
   createContext,
   useReducer,
@@ -21,36 +19,77 @@ import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
 import { getChildren } from "../flow/getChildren";
 import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT";
 
+// Hardcoded subedition data
+// subeditionID => { name: string, minted: number }
+const SUBEDITIONS = {
+  1: { name: "Explosion", minted: 500 },
+  2: { name: "Torn", minted: 1000 },
+  3: { name: "Vortex", minted: 2500 },
+  4: { name: "Rippled", minted: 4000 },
+  5: { name: "Coded", minted: 25 },
+  6: { name: "Halftone", minted: 100 },
+  7: { name: "Bubbled", minted: 250 },
+  8: { name: "Diced", minted: 10 },
+  9: { name: "Bit", minted: 50 },
+  10: { name: "Vibe", minted: 5 },
+  11: { name: "Astra", minted: 75 },
+};
+
 export const UserContext = createContext();
 
+/**
+ * Merges your DB-based metadata (keyed by setID-playID) and subedition data (from SUBEDITIONS).
+ * If metadata is missing, we log a warning.
+ */
 const enrichWithMetadata = async (details, metadataCache) => {
-  if (!metadataCache) return details;
   return details.map((nft) => {
     const key = `${nft.setID}-${nft.playID}`;
-    const meta = metadataCache[key];
+    const meta = metadataCache ? metadataCache[key] : undefined;
+
+    let enriched = { ...nft };
+
+    // 1) Merge standard edition data if found
     if (meta) {
-      return {
-        ...nft,
-        tier: meta.tier || nft.tier,
-        fullName:
-          meta.FullName ||
-          meta.fullName ||
-          nft.fullName ||
-          nft.playerName ||
-          "Unknown Player",
-        momentCount: Number(meta.momentCount) || nft.momentCount,
-        jerseyNumber:
-          meta.JerseyNumber || meta.jerseyNumber || nft.jerseyNumber,
-        retired: meta.retired !== undefined ? meta.retired : nft.retired,
-        playOrder: meta.playOrder || nft.playOrder,
-        series:
-          meta.series !== undefined && meta.series !== null
-            ? meta.series
-            : nft.series,
-        name: meta.name || nft.name,
-      };
+      // Copy standard fields
+      enriched.tier = meta.tier || enriched.tier;
+      enriched.fullName =
+        meta.FullName ||
+        meta.fullName ||
+        enriched.fullName ||
+        enriched.playerName ||
+        "Unknown Player";
+      enriched.momentCount = Number(meta.momentCount) || enriched.momentCount;
+      enriched.jerseyNumber =
+        meta.JerseyNumber || meta.jerseyNumber || enriched.jerseyNumber;
+      enriched.retired =
+        meta.retired !== undefined ? meta.retired : enriched.retired;
+      enriched.playOrder = meta.playOrder || enriched.playOrder;
+
+      // If series is defined in meta, overwrite it
+      if (meta.series !== undefined && meta.series !== null) {
+        enriched.series = meta.series;
+      }
+      enriched.name = meta.name || enriched.name;
+
+      // *** NEW *** Copy the TeamAtMoment if present in meta
+      if (meta.TeamAtMoment) {
+        enriched.teamAtMoment = meta.TeamAtMoment;
+      }
+    } else {
+      console.warn(
+        `No metadata found for setID=${nft.setID}, playID=${nft.playID}.
+         This NFT may appear missing data if it’s subedition or newly minted.`
+      );
     }
-    return nft;
+
+    // 2) Add subedition data if we have subeditionID
+    if (nft.subeditionID && SUBEDITIONS[nft.subeditionID]) {
+      const sub = SUBEDITIONS[nft.subeditionID];
+      enriched.subeditionName = sub.name;
+      enriched.subeditionMaxMint = sub.minted;
+    }
+
+    return enriched;
   });
 };
 
@@ -58,14 +97,14 @@ const initialState = {
   user: { loggedIn: null, addr: "" },
   accountData: {
     parentAddress: null,
-    nftDetails: [], // Full NFT collection for parent
+    nftDetails: [],
     flowBalance: null,
     tshotBalance: null,
     hasCollection: null,
     receiptDetails: {},
     hasReceipt: null,
     hasChildren: false,
-    childrenData: [], // Each child's data
+    childrenData: [],
     childrenAddresses: [],
   },
   selectedAccount: null,
@@ -149,13 +188,15 @@ function userReducer(state, action) {
 
 export const UserProvider = ({ children }) => {
   const [state, dispatch] = useReducer(userReducer, initialState);
+
+  // We define didLoad once here:
   const [didLoad, setDidLoad] = useState(false);
 
   /***************************
-   *  Basic fetch functions
+   * Basic fetch functions
    ***************************/
   const fetchFLOWBalance = useCallback(async (address) => {
-    if (!address || !address.startsWith("0x")) return 0;
+    if (!address?.startsWith("0x")) return 0;
     try {
       return await fcl.query({
         cadence: getFLOWBalance,
@@ -167,7 +208,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const fetchTSHOTBalance = useCallback(async (address) => {
-    if (!address || !address.startsWith("0x")) return 0;
+    if (!address?.startsWith("0x")) return 0;
     try {
       return await fcl.query({
         cadence: getTSHOTBalance,
@@ -179,9 +220,7 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const fetchReceiptDetails = useCallback(async (address) => {
-    if (!address || !address.startsWith("0x")) {
-      return {};
-    }
+    if (!address?.startsWith("0x")) return {};
     try {
       return await fcl.query({
         cadence: getReceiptDetails,
@@ -192,12 +231,17 @@ export const UserProvider = ({ children }) => {
     }
   }, []);
 
+  /**
+   * Fetch a user's entire TopShot collection, merging subeditionID, set/play metadata, etc.
+   */
   const fetchTopShotCollection = useCallback(
     async (address) => {
-      if (!address || !address.startsWith("0x")) {
+      if (!address?.startsWith("0x")) {
         return { hasCollection: false, details: [], tierCounts: {} };
       }
+
       try {
+        // 1) Does the user have a moment collection?
         const hasColl = await fcl.query({
           cadence: verifyTopShotCollection,
           args: (arg, t) => [arg(address, t.Address)],
@@ -206,6 +250,7 @@ export const UserProvider = ({ children }) => {
           return { hasCollection: false, details: [], tierCounts: {} };
         }
 
+        // 2) Grab all moment IDs
         const ids = await fcl.query({
           cadence: getTopShotCollectionIDs,
           args: (arg, t) => [arg(address, t.Address)],
@@ -214,6 +259,7 @@ export const UserProvider = ({ children }) => {
           return { hasCollection: true, details: [], tierCounts: {} };
         }
 
+        // 3) Batch them
         const limit = pLimit(30);
         const batchSize = 2500;
         const batches = [];
@@ -234,6 +280,8 @@ export const UserProvider = ({ children }) => {
             )
           )
         );
+
+        // Flatten
         const rawNFTs = allResults.flat().map((n) => ({
           ...n,
           id: Number(n.id),
@@ -241,13 +289,17 @@ export const UserProvider = ({ children }) => {
           playID: Number(n.playID),
           serialNumber: Number(n.serialNumber),
           isLocked: Boolean(n.isLocked),
+          subeditionID: n.subeditionID != null ? Number(n.subeditionID) : null,
         }));
 
-        const effectiveMetadata =
+        // 4) Merge with local metadata
+        const localMeta =
           state.metadataCache ||
           JSON.parse(localStorage.getItem("topshotMetadata") || "{}");
-        const enriched = await enrichWithMetadata(rawNFTs, effectiveMetadata);
 
+        const enriched = await enrichWithMetadata(rawNFTs, localMeta);
+
+        // 5) Build tierCounts from final data
         const tierCounts = enriched.reduce((acc, nft) => {
           const tier = nft.tier?.toLowerCase();
           if (tier) acc[tier] = (acc[tier] || 0) + 1;
@@ -265,12 +317,14 @@ export const UserProvider = ({ children }) => {
 
   const loadTopShotMetadata = useCallback(async () => {
     try {
+      // Check localStorage
       const cachedData = localStorage.getItem("topshotMetadata");
       if (cachedData) {
         const parsed = JSON.parse(cachedData);
         dispatch({ type: "SET_METADATA_CACHE", payload: parsed });
         return parsed;
       }
+      // Otherwise fetch from your backend
       const baseUrl =
         process.env.REACT_APP_API_BASE_URL ||
         "https://flowconnectbackend-864654c6a577.herokuapp.com";
@@ -294,7 +348,7 @@ export const UserProvider = ({ children }) => {
   }, [dispatch]);
 
   /***********************************************
-   *      loadParentData => fetch NFT collection
+   * loadParentData => fetch NFT collection
    ***********************************************/
   const loadParentData = useCallback(
     async (addr) => {
@@ -304,7 +358,7 @@ export const UserProvider = ({ children }) => {
         const [flowBal, tshotBal, colData, receipt] = await Promise.all([
           fetchFLOWBalance(addr),
           fetchTSHOTBalance(addr),
-          fetchTopShotCollection(addr), // Re-fetch the entire NFT list
+          fetchTopShotCollection(addr),
           fetchReceiptDetails(addr),
         ]);
         dispatch({
@@ -344,6 +398,7 @@ export const UserProvider = ({ children }) => {
           fetchTopShotCollection(childAddr),
           fetchReceiptDetails(childAddr),
         ]);
+        // Store child data in state
         dispatch((prev) => {
           const oldList = prev.accountData.childrenData || [];
           const updatedChild = {
@@ -456,19 +511,22 @@ export const UserProvider = ({ children }) => {
     [loadChildrenData, dispatch]
   );
 
+  /**
+   * loadAllUserData => load parent's data + children + optional Flow price
+   */
   const loadAllUserData = useCallback(
     async (address) => {
       if (!address) return;
-      // Load metadata once
+      // 1) Load local top shot metadata if needed
       await loadTopShotMetadata();
 
-      // Load parent
+      // 2) Load parent's data
       await loadParentData(address);
 
-      // Check children
+      // 3) Check children
       await checkForChildren(address);
 
-      // Optionally, flowPricePerNFT
+      // 4) Optional flowPricePerNFT
       try {
         const price = await fcl.query({
           cadence: getFlowPricePerNFT,
@@ -482,9 +540,7 @@ export const UserProvider = ({ children }) => {
     [loadTopShotMetadata, loadParentData, checkForChildren, dispatch]
   );
 
-  /*******************
-   * FCL subscription
-   *******************/
+  // FCL user subscription
   useEffect(() => {
     const unsub = fcl.currentUser.subscribe((currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
@@ -509,19 +565,15 @@ export const UserProvider = ({ children }) => {
     }
   }, [state.user, didLoad, loadAllUserData, dispatch]);
 
-  /****************************************
-   *   Poll only parent's FLOW/TSHOT
-   ****************************************/
+  // Poll parent's FLOW/TSHOT
   useEffect(() => {
     const { loggedIn, addr } = state.user || {};
     if (!loggedIn || !addr) return;
 
     const timer = setInterval(async () => {
       try {
-        // only poll balances
         const flowBal = await fetchFLOWBalance(addr);
         const tshotBal = await fetchTSHOTBalance(addr);
-
         dispatch({
           type: "SET_ACCOUNT_DATA",
           payload: { flowBalance: flowBal, tshotBalance: tshotBal },
@@ -545,9 +597,9 @@ export const UserProvider = ({ children }) => {
     () => ({
       ...state,
       dispatch,
-      loadAllUserData, // parent + children
-      loadParentData, // single parent
-      loadChildData, // single child
+      loadAllUserData,
+      loadParentData,
+      loadChildData,
     }),
     [state, dispatch, loadAllUserData, loadParentData, loadChildData]
   );
