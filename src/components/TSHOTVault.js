@@ -14,7 +14,7 @@ const ALL_TIER_OPTIONS = ["common", "fandom", "rare", "legendary", "ultimate"];
 
 /**
  * Returns the display name for a vault NFT, ignoring aggregator's literal "Unknown Player"
- * so we can fallback to teamAtMoment if present.
+ * so we can fallback to `teamAtMoment` if present.
  */
 function getDisplayedName(nft) {
   const forcedUnknowns = ["Unknown Player", "unknown player"];
@@ -141,6 +141,8 @@ async function enrichVaultMoments(vaultNfts) {
       subeditionID: nft.subeditionID || meta.subeditionID || null,
       subeditionMaxMint:
         nft.subeditionMaxMint || meta.subeditionMaxMint || null,
+      // Also copy "TeamAtMoment" if it exists:
+      teamAtMoment: meta.TeamAtMoment || nft.teamAtMoment,
     };
   });
 }
@@ -239,8 +241,13 @@ function TSHOTVault() {
   // Player
   const [selectedPlayer, setSelectedPlayer] = useState("All");
   const playerOptions = useMemo(() => {
-    const p = new Set(allNfts.map((n) => n.fullName).filter(Boolean));
-    return Array.from(p).sort((a, b) => a.localeCompare(b));
+    const forcedUnknowns = new Set(["Unknown Player", "unknown player"]);
+    const p = new Set(
+      allNfts
+        .map((n) => n.fullName)
+        .filter((val) => val && !forcedUnknowns.has(val.trim()))
+    );
+    return [...p].sort((a, b) => a.localeCompare(b));
   }, [allNfts]);
 
   // Special Serials: "Show only #1, jersey match, or last mint"
@@ -275,15 +282,23 @@ function TSHOTVault() {
       }
 
       // 4) Player
-      if (selectedPlayer !== "All" && n.fullName !== selectedPlayer) {
-        return false;
+      //    Check n.fullName, ignoring "unknown" if it snuck through
+      if (selectedPlayer !== "All") {
+        if (
+          !n.fullName ||
+          n.fullName.trim().toLowerCase() === "unknown player"
+        ) {
+          return false;
+        }
+        if (n.fullName !== selectedPlayer) {
+          return false;
+        }
       }
 
-      // 5) If onlySpecialSerials is true => Keep only #1, last, or jersey
+      // 5) If onlySpecialSerials => keep only #1, jersey, or last
       if (onlySpecialSerials) {
         const sn = parseInt(n.serialNumber, 10);
-
-        // subedition? => use subeditionMaxMint, else use momentCount
+        // subedition => use subeditionMaxMint, else momentCount
         const effectiveMax =
           n.subeditionID && n.subeditionMaxMint
             ? parseInt(n.subeditionMaxMint, 10)
@@ -450,7 +465,7 @@ function TSHOTVault() {
                   setSelectedSetName(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-gray-800 text-gray-200 rounded px-1 py-0.5"
+                className="bg-gray-800 text-white rounded px-1 py-0.5"
               >
                 <option value="All">All</option>
                 {setNameOptions.map((name) => (
@@ -472,7 +487,7 @@ function TSHOTVault() {
                   setSelectedPlayer(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-gray-800 text-gray-200 rounded px-1 py-0.5"
+                className="bg-gray-800 text-white rounded px-1 py-0.5"
               >
                 <option value="All">All</option>
                 {playerOptions.map((p) => (

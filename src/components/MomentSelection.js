@@ -1,11 +1,10 @@
+// src/components/MomentSelection.js
 import React, { useContext, useMemo, useState, useEffect } from "react";
 import { UserContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 
-/**
- * If `allowAllTiers = false`, only ["common", "fandom"].
- * If `allowAllTiers = true`, show ["common", "fandom", "rare", "legendary", "ultimate"].
- */
+// If allowAllTiers=false => ["common","fandom"]
+// If allowAllTiers=true  => ["common","fandom","rare","legendary","ultimate"]
 const defaultTiers = ["common", "fandom"];
 const allPossibleTiers = ["common", "fandom", "rare", "legendary", "ultimate"];
 
@@ -53,9 +52,6 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
 
   // Additional toggles
   const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
-
-  // Renamed from onlyAbove4000 => excludeLowSerials
-  // The label will say "Exclude serials ≤ 4000"
   const [excludeLowSerials, setExcludeLowSerials] = useState(true);
 
   // Series
@@ -97,26 +93,20 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   // 1) Subset for building setNameOptions
   const subsetForSets = useMemo(() => {
     return (nftDetails || []).filter((n) => {
-      // Series
       const s = Number(n.series);
       if (!selectedSeries.includes(s)) return false;
 
-      // Tier
       const t = n.tier?.toLowerCase();
       if (!selectedTiers.includes(t)) return false;
 
-      // If we have a specific player, only match if n.fullName matches
       if (selectedPlayer !== "All") {
         if (!n.fullName || n.fullName !== selectedPlayer) {
           return false;
         }
       }
 
-      // Exclude special serial if needed
       if (excludeSpecialSerials) {
         const sn = parseInt(n.serialNumber, 10);
-
-        // If subedition, use subeditionMaxMint, else use momentCount
         const effectiveMax =
           n.subeditionID && n.subeditionMaxMint
             ? parseInt(n.subeditionMaxMint, 10)
@@ -128,7 +118,6 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         if (isSpecial) return false;
       }
 
-      // If excludeLowSerials is true => skip <= 4000
       if (excludeLowSerials) {
         const sn = parseInt(n.serialNumber, 10);
         if (sn <= 4000) return false;
@@ -148,24 +137,18 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   // 2) Subset for building playerNameOptions
   const subsetForPlayers = useMemo(() => {
     return (nftDetails || []).filter((n) => {
-      // Series
       const s = Number(n.series);
       if (!selectedSeries.includes(s)) return false;
 
-      // Tier
       const t = n.tier?.toLowerCase();
       if (!selectedTiers.includes(t)) return false;
 
-      // If we have a specific set, only match if n.name matches
       if (selectedSetName !== "All" && n.name !== selectedSetName) {
         return false;
       }
 
-      // Exclude special serial if needed
       if (excludeSpecialSerials) {
         const sn = parseInt(n.serialNumber, 10);
-
-        // If subedition, use subeditionMaxMint, else use momentCount
         const effectiveMax =
           n.subeditionID && n.subeditionMaxMint
             ? parseInt(n.subeditionMaxMint, 10)
@@ -177,7 +160,6 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         if (isSpecial) return false;
       }
 
-      // excludeLowSerials => skip <= 4000
       if (excludeLowSerials) {
         const sn = parseInt(n.serialNumber, 10);
         if (sn <= 4000) return false;
@@ -199,7 +181,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     return [...s].sort((a, b) => a.localeCompare(b));
   }, [subsetForSets]);
 
-  // Build playerNameOptions using *only* fullName if present
+  // Build playerNameOptions
   const playerNameOptions = useMemo(() => {
     const p = new Set(
       subsetForPlayers.map((n) => n.fullName).filter((val) => val && val !== "")
@@ -232,46 +214,37 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
 
     return nftDetails
       .filter((n) => {
-        // Exclude by ID
         if (excludeIds.includes(String(n.id))) return false;
-        // Exclude locked
         if (n.isLocked) return false;
 
-        // Tier
         const t = n.tier?.toLowerCase();
         if (!selectedTiers.includes(t)) return false;
 
-        // Series
         const s = Number(n.series);
         if (!selectedSeries.includes(s)) return false;
 
-        // Set
         if (selectedSetName !== "All" && n.name !== selectedSetName) {
           return false;
         }
 
-        // Player => only if n.fullName matches
         if (selectedPlayer !== "All") {
           if (!n.fullName || n.fullName !== selectedPlayer) {
             return false;
           }
         }
 
-        // Exclude special serial
         if (excludeSpecialSerials) {
           const sn = parseInt(n.serialNumber, 10);
           const effectiveMax =
             n.subeditionID && n.subeditionMaxMint
               ? parseInt(n.subeditionMaxMint, 10)
               : parseInt(n.momentCount, 10);
-
           const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
           const isSpecial =
             sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
           if (isSpecial) return false;
         }
 
-        // Exclude if serial <= 4000
         if (excludeLowSerials) {
           const sn = parseInt(n.serialNumber, 10);
           if (sn <= 4000) return false;
@@ -297,8 +270,8 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     selectedNFTs,
   ]);
 
-  // Pagination
-  const [itemsPerPage] = useState(50);
+  // Pagination - now 30 items per page
+  const [itemsPerPage] = useState(30);
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
@@ -368,7 +341,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   // if account has no TopShot collection
   if (!hasCollection) {
     return (
-      <div className="bg-gray-700 p-2 rounded-lg">
+      <div className="bg-gray-700 p-1 rounded-lg">
         <p className="text-gray-400 text-sm">
           This account does not have a TopShot collection.
         </p>
@@ -377,8 +350,8 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   }
 
   return (
-    <div className="w-full bg-gray-700 p-2 rounded-lg">
-      {/* Count + refresh indicator */}
+    <div className="w-full bg-gray-700 rounded-lg">
+      {/* (A) Count + "Loading" status row */}
       <div className="flex justify-between items-center mb-2">
         <div>
           {eligibleMoments.length === 0 ? (
@@ -388,7 +361,8 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
               {eligibleMoments.length} Moments match your filters.
             </p>
           )}
-          <p className="text-xs text-gray-500 mt-1">
+          {/* Same color => text-gray-400 */}
+          <p className="text-xs text-gray-400 mt-1">
             Note: Only unlocked Common and Fandom are eligible to be swapped for
             TSHOT.
           </p>
@@ -402,14 +376,16 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         )}
       </div>
 
+      {/* (B) If no series but we do have NFT details */}
       {seriesOptions.length === 0 && nftDetails.length > 0 && (
         <p className="text-gray-400">
           You have no NFTs in this account. No Series available.
         </p>
       )}
 
+      {/* (C) Filters row, less padding => p-1 */}
       {seriesOptions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-600 p-2 rounded mb-2">
+        <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-600 p-1 rounded mb-2">
           {/* Tiers */}
           <div className="flex items-center gap-2">
             <span className="text-gray-200 font-semibold">Tiers:</span>
@@ -482,8 +458,8 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setSelectedSetName(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-gray-800 text-gray-200 rounded px-1 py-0.5"
-              disabled={/* if no sets to choose */ setNameOptions.length === 0}
+              className="bg-gray-800 text-white rounded px-1 py-0.5"
+              disabled={setNameOptions.length === 0}
             >
               {setNameOptions.length === 0 ? (
                 <option>No sets</option>
@@ -500,7 +476,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
             </select>
           </div>
 
-          {/* Player (only based on fullName) */}
+          {/* Player */}
           <div className="flex items-center gap-1">
             <span className="text-gray-200 font-semibold">Player:</span>
             <select
@@ -509,7 +485,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setSelectedPlayer(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-gray-800 text-gray-200 rounded px-1 py-0.5"
+              className="bg-gray-800 text-white rounded px-1 py-0.5"
               disabled={playerNameOptions.length === 0}
             >
               {playerNameOptions.length === 0 ? (
@@ -533,7 +509,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
               type="checkbox"
               checked={excludeSpecialSerials}
               onChange={() => {
-                setExcludeSpecialSerials((p) => !p);
+                setExcludeSpecialSerials((prev) => !prev);
                 setCurrentPage(1);
               }}
             />
@@ -555,7 +531,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         </div>
       )}
 
-      {/* Grid of Moments */}
+      {/* (D) - Main grid of unselected Moments */}
       {paginatedMoments.length > 0 ? (
         <div className="flex flex-wrap gap-2 mt-2">
           {paginatedMoments.map((nft) => (

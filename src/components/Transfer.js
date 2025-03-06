@@ -9,6 +9,8 @@ import MomentSelection from "./MomentSelection";
 import MomentCard from "./MomentCard";
 import TransactionModal from "./TransactionModal";
 
+const MAX_TRANSFER_COUNT = 500; // Limit to 500 Moments at once
+
 const Transfer = () => {
   const {
     user,
@@ -26,8 +28,9 @@ const Transfer = () => {
   const [recipient, setRecipient] = useState("0x");
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // NEW: Keep track of NFT IDs that we want to exclude from MomentSelection
+  // Keep track of NFT IDs that we want to exclude from MomentSelection
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
   const isLoggedIn = Boolean(user?.loggedIn);
@@ -52,23 +55,38 @@ const Transfer = () => {
   };
 
   const handleTransfer = async () => {
+    // Clear any old error message before starting a new operation
+    setErrorMessage("");
+
+    // 1. Basic validations
     if (selectedNFTs.length === 0) {
-      alert("Please select at least one Moment to transfer.");
-      return;
-    }
-    if (!recipient.startsWith("0x")) {
-      alert("Recipient must be a valid Flow address (start with 0x).");
-      return;
-    }
-    if (!isLoggedIn) {
-      alert("You must log in as the parent account first.");
+      setErrorMessage("Please select at least one Moment to transfer.");
       return;
     }
 
-    // Pick which script to run (child vs parent)
+    if (selectedNFTs.length > MAX_TRANSFER_COUNT) {
+      setErrorMessage(
+        `You cannot transfer more than ${MAX_TRANSFER_COUNT} Moments at once.`
+      );
+      return;
+    }
+
+    if (!recipient.startsWith("0x")) {
+      setErrorMessage(
+        "Recipient must be a valid Flow address (start with 0x)."
+      );
+      return;
+    }
+
+    if (!isLoggedIn) {
+      setErrorMessage("You must log in as the parent account first.");
+      return;
+    }
+
+    // 2. Pick which script to run (child vs parent)
     const cadenceScript = childSelected ? batchTransfer_child : batchTransfer;
 
-    // Show transaction modal in "Awaiting Approval" state
+    // 3. Show transaction modal in "Awaiting Approval" state
     setShowModal(true);
     setTransactionData({
       status: "Awaiting Approval",
@@ -80,7 +98,7 @@ const Transfer = () => {
     });
 
     try {
-      // Build transaction arguments
+      // 4. Build transaction arguments
       const args = childSelected
         ? (arg, t) => [
             arg(selectedAccount, t.Address),
@@ -92,7 +110,7 @@ const Transfer = () => {
             arg(selectedNFTs.map(String), t.Array(t.UInt64)),
           ];
 
-      // Submit transaction
+      // 5. Submit transaction
       const txId = await fcl.mutate({
         cadence: cadenceScript,
         args,
@@ -105,19 +123,20 @@ const Transfer = () => {
       // Optimistic RESET: Clear selected NFTs immediately
       dispatch({ type: "RESET_SELECTED_NFTS" });
 
-      // Also exclude them from MomentSelection so they won't appear if data refreshes mid-transaction
+      // Exclude them from MomentSelection so they won't appear if data refreshes mid-transaction
       setExcludedNftIds((prev) => [...prev, ...selectedNFTs.map(String)]);
 
-      // Now update modal to show "Pending"
+      // Update modal to show "Pending"
       setTransactionData((prev) => ({
         ...prev,
         status: "Pending",
         txId,
       }));
 
-      // Subscribe to transaction status updates
+      // 6. Subscribe to transaction status updates
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing transaction...";
+
         switch (txStatus.statusString) {
           case "PENDING":
             newStatus = "Pending";
@@ -152,10 +171,10 @@ const Transfer = () => {
         }
       });
 
-      // Wait for the transaction to seal
+      // 7. Wait for the transaction to seal
       await fcl.tx(txId).onceSealed();
 
-      // Refresh parent's data
+      // 8. Refresh parent's data
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -163,23 +182,17 @@ const Transfer = () => {
       if (childSelected) {
         await loadChildData(selectedAccount);
       }
-
       // The newly transferred NFTs won't appear after re-fetch
       // because they've truly left this account on-chain.
-      // We don't need to remove them from 'excludedNftIds' either,
-      // since they're gone anyway.
     } catch (err) {
       console.error("Failed to submit transfer tx:", err);
       setTransactionData((prev) => ({
         ...prev,
         status: "Error",
-        error: err?.message ?? String(err),
+        error: err?.message || String(err),
       }));
-
-      // OPTIONAL: If you want to restore them if the TX fails:
-      // setExcludedNftIds((prev) =>
-      //   prev.filter((id) => !selectedNFTs.includes(id))
-      // );
+      // Also set a user-facing error message
+      setErrorMessage(err?.message ?? String(err));
     }
   };
 
@@ -268,6 +281,13 @@ const Transfer = () => {
       {/* Moment Grid - pass excludedNftIds here */}
       <MomentSelection allowAllTiers excludeIds={excludedNftIds} />
 
+      {/* Error Message (if any) */}
+      {errorMessage && (
+        <div className="text-red-500 bg-red-100 p-2 rounded">
+          {errorMessage}
+        </div>
+      )}
+
       {/* Recipient Address */}
       <div>
         <label className="block text-white mb-1">Recipient Address</label>
@@ -284,9 +304,13 @@ const Transfer = () => {
       <button
         onClick={handleTransfer}
         className={`w-full p-4 text-lg rounded-lg font-bold text-white bg-green-600 hover:bg-green-700 mt-2 ${
-          selectedNFTs.length === 0 ? "opacity-50 cursor-not-allowed" : ""
+          selectedNFTs.length === 0 || selectedNFTs.length > MAX_TRANSFER_COUNT
+            ? "opacity-50 cursor-not-allowed"
+            : ""
         }`}
-        disabled={selectedNFTs.length === 0}
+        disabled={
+          selectedNFTs.length === 0 || selectedNFTs.length > MAX_TRANSFER_COUNT
+        }
       >
         Transfer Selected NFTs
       </button>

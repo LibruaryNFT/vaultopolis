@@ -23,7 +23,11 @@ const Header = () => {
 
   return (
     <header className="bg-transparent text-white py-4 w-full relative z-50">
-      <div className="max-w-7xl mx-auto px-2 md:px-4 flex items-center justify-between">
+      {/* 
+        Use a full-width container (remove `max-w-7xl mx-auto`).
+        This ensures the header spans the entire screen width.
+      */}
+      <div className="px-2 md:px-4 flex items-center justify-between w-full">
         {/* Left container: Hamburger icon and Logo */}
         <div className="flex items-center">
           {/* Mobile Hamburger Icon (visible on mobile only) */}
@@ -33,8 +37,9 @@ const Header = () => {
           >
             <FaBars size={20} />
           </button>
-          {/* Logo (visible on screens per your config; appears next to hamburger) */}
-          <Link to="/" className="hidden xs:block ml-2">
+
+          {/* Logo (shown at all screen sizes; adjust if desired) */}
+          <Link to="/" className="ml-2 flex items-center">
             <img
               src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
               alt="Vaultopolis Logo"
@@ -44,7 +49,7 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation Links (centered) */}
-        <nav className="hidden md:flex items-center space-x-2 flex-grow justify-center max-w-2xl">
+        <nav className="hidden md:flex items-center space-x-2 flex-grow justify-center">
           <div className="flex items-center space-x-2">
             <NavLink to="/swap" isActive={location.pathname === "/swap"}>
               Swap
@@ -70,6 +75,8 @@ const Header = () => {
                 <DropdownMenu
                   closeMenu={() => setIsMenuOpen(false)}
                   buttonRef={buttonRef}
+                  // If you want the dropdown to align right:
+                  // className="absolute right-0 mt-2"
                 />
               )}
             </div>
@@ -98,8 +105,8 @@ const Header = () => {
           </div>
           <div className="flex flex-col divide-y divide-gray-700">
             <MobileNavLink
-              to="/TSHOT"
-              isActive={location.pathname === "/TSHOT"}
+              to="/tshot"
+              isActive={location.pathname === "/tshot"}
               onClick={toggleMobileMenu}
             >
               TSHOT

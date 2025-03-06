@@ -21,11 +21,11 @@ function HiddenCard({ nftId, onReveal }) {
       className="border border-gray-600 bg-black rounded cursor-pointer
                  relative p-1 font-inter text-white transition-colors
                  duration-200 hover:border-2 hover:border-opolis
-                 overflow-hidden flex flex-col items-center justify-center"
-      style={{ width: "7rem", height: "12rem" }}
+                 overflow-hidden flex flex-col items-center justify-center
+                 w-28 h-48" // Adjust these if you want smaller/larger cards
       onClick={() => onReveal(nftId)}
     >
-      <p className="text-center font-semibold text-sm text-white">Reveal</p>
+      <p className="text-center font-semibold text-sm">Reveal</p>
     </div>
   );
 }
@@ -79,16 +79,17 @@ const TransactionModal = ({
 
   /**
    * --------------------------------------------------
-   * 2) AFTER Hooks, we can do early returns or logic
+   * 2) EARLY RETURN IF NOT NEEDED
    * --------------------------------------------------
    */
-  // If no status, we return null
   if (!status) {
     return null;
   }
 
   /**
-   * 3) Build out the rest of your logic, *always* below the Hooks
+   * --------------------------------------------------
+   * 3) Build out the rest of your logic below
+   * --------------------------------------------------
    */
 
   // Status messages
@@ -172,16 +173,17 @@ const TransactionModal = ({
   }:`;
 
   return (
-    <motion.div
-      className="fixed inset-0 flex items-center justify-center z-50"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <div
+      // Updated to use top-aligned scrolling container
+      className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center pt-10 pb-10"
     >
       <div className="absolute inset-0 bg-black bg-opacity-70"></div>
 
       <motion.div
-        className="relative bg-gray-900 text-white p-6 w-11/12 max-w-md rounded-lg shadow-lg"
+        className="relative bg-gray-900 text-white p-6 w-11/12
+                   max-w-md sm:max-w-xl md:max-w-3xl 2xl:max-w-5xl
+                   rounded-lg shadow-lg
+                   overflow-y-auto max-h-[90vh]" // ensure it can scroll if content is huge
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -230,7 +232,11 @@ const TransactionModal = ({
               {revealedNFTDetails.map((nft) => {
                 const isRevealed = hiddenStates[nft.id];
                 return isRevealed ? (
-                  <MomentCard key={nft.id} nft={nft} />
+                  <MomentCard
+                    key={nft.id}
+                    nft={nft}
+                    cardClassName="w-28 h-48" // Same size as HiddenCard
+                  />
                 ) : (
                   <HiddenCard
                     key={nft.id}
@@ -255,7 +261,7 @@ const TransactionModal = ({
           </a>
         )}
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
 
