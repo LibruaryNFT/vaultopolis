@@ -438,9 +438,6 @@ const Swap = () => {
           isLoggedIn &&
           accountData?.parentAddress && (
             <div className="bg-gray-700 p-2 rounded-lg shadow-md">
-              <h3 className="text-white text-sm font-bold mb-2">
-                Account Selection
-              </h3>
               <AccountSelection
                 parentAccount={{
                   addr: accountData.parentAddress || user?.addr,
