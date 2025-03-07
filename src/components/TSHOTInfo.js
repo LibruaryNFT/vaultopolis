@@ -1,8 +1,9 @@
+// src/components/TSHOTInfo.js
 import React from "react";
 import {
   Repeat,
   CircleDollarSign,
-  DollarSign,
+  // Removed unused: DollarSign
   ShieldCheck,
   Dice5,
   Coins,

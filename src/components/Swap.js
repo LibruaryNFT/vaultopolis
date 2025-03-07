@@ -58,8 +58,7 @@ const Swap = () => {
     selectedAccount,
     selectedNFTs,
     dispatch,
-    loadAllUserData,
-    isRefreshing,
+    // Removed unused: loadAllUserData, isRefreshing
     isLoadingChildren,
   } = useContext(UserContext);
 
@@ -275,11 +274,10 @@ const Swap = () => {
     setToAsset(newTo);
   };
 
-  // We'll pass the correct accounts to <AccountSelection> based on hasCollection
+  // We'll pass only the accounts that have a TopShot collection to <AccountSelection>
   const filterAccountsWithCollection = () => {
-    if (!accountData) return { parent: null, children: [], addresses: [] };
+    if (!accountData) return { parent: null, children: [] };
 
-    // Parent
     const parentHasCollection = !!accountData.hasCollection;
     const parentAccount = parentHasCollection
       ? {
@@ -288,16 +286,13 @@ const Swap = () => {
         }
       : null;
 
-    // Children that have a TopShot collection
     const validChildren = (accountData.childrenData || []).filter(
       (c) => c.hasCollection
     );
-    const childAddresses = validChildren.map((c) => c.addr);
 
     return {
       parent: parentAccount,
       children: validChildren,
-      addresses: childAddresses,
     };
   };
 
@@ -338,12 +333,11 @@ const Swap = () => {
           {hasReceipt && (
             <div className="mt-2 bg-gray-700 p-2 rounded-lg">
               {(() => {
-                const { parent, children, addresses } =
-                  filterAccountsWithCollection();
+                const { parent, children } = filterAccountsWithCollection();
                 // If there's no parent with a collection and no children with a collection,
-                // maybe show an error or just pass empty arrays
-                const parentAccount = parent; // parent has collection or null
-                const childAccounts = children; // only children with collection
+                // you could show an error or just pass empty arrays.
+                const parentAccount = parent;
+                const childAccounts = children;
 
                 return (
                   <AccountSelection
@@ -497,9 +491,7 @@ const Swap = () => {
         {/* SWAP ACTION PANEL */}
         <div className="space-y-2">{renderSwapPanel()}</div>
 
-        {/* If from=TopShot => show separate container for selecting 
-            which account is sending the NFT. 
-        */}
+        {/* If from=TopShot => show container to select which account sends NFT */}
         {fromAsset === "TopShot Common / Fandom" &&
           isLoggedIn &&
           accountData?.parentAddress && (
@@ -519,7 +511,7 @@ const Swap = () => {
           )}
       </div>
 
-      {/* If from=TopShot => Show the big container for MomentSelection and the Selected Moments box */}
+      {/* If from=TopShot => show MomentSelection + Selected Moments */}
       {fromAsset === "TopShot Common / Fandom" &&
         isLoggedIn &&
         accountData?.parentAddress && (

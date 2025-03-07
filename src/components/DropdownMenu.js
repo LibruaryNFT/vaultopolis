@@ -1,10 +1,10 @@
 // DropdownMenu.jsx
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { UserContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
 import { FaClipboard, FaSignOutAlt, FaSpinner } from "react-icons/fa";
 
-// Helper component: If a value exists, display it; otherwise, render a skeleton placeholder.
+// Helper component
 const ValueOrSkeleton = ({
   value,
   className = "",
@@ -22,7 +22,7 @@ const ValueOrSkeleton = ({
 };
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
-  const { user, accountData, isRefreshing, dispatch } = useContext(UserContext);
+  const { accountData, isRefreshing, dispatch } = useContext(UserContext);
   const {
     parentAddress,
     flowBalance,
@@ -31,8 +31,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     childrenData,
     hasCollection,
   } = accountData;
-  // Data is assumed to be in context; no artificial delay.
-  const [isLoading, setIsLoading] = useState(false);
+
   const popoutRef = useRef(null);
 
   useEffect(() => {
@@ -46,6 +45,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         closeMenu();
       }
     };
+    // Use a small timeout before adding the event listener to avoid immediate toggling
     setTimeout(
       () => document.addEventListener("mousedown", handleClickOutside),
       0
@@ -53,7 +53,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeMenu, buttonRef]);
 
-  // Copying an address should not close the dropdown.
   const handleCopyAddress = (address) => {
     navigator.clipboard.writeText(address);
   };
@@ -64,7 +63,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     closeMenu();
   };
 
-  // --- Calculation Helpers ---
+  // Calculation helpers
   const calculateTotalTopShotCounts = (nfts) => (nfts ? nfts.length : 0);
 
   const calculateAllAccountTotals = () => {
@@ -92,13 +91,12 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const { totalFlow, totalTopShotCounts, totalTSHOT } =
     calculateAllAccountTotals();
 
-  const calculateTierBreakdown = (nfts) => {
-    return (nfts || []).reduce((acc, nft) => {
+  const calculateTierBreakdown = (nfts) =>
+    (nfts || []).reduce((acc, nft) => {
       const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
       acc[tier] = (acc[tier] || 0) + 1;
       return acc;
     }, {});
-  };
 
   const tierTextColors = {
     common: "text-gray-400",
@@ -135,7 +133,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     });
   });
 
-  // Include TSHOT balance and collection status for each account.
+  // Include TSHOT balance and collection status for each account
   const allAccounts = [
     {
       label: "Parent Account",
@@ -157,28 +155,14 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     })),
   ];
 
-  // Determine if at least one account has TopShot moments
   const hasAnyTopShot = totalTopShotCounts > 0;
-
-  if (isLoading) {
-    return (
-      <div
-        ref={popoutRef}
-        className="absolute top-12 right-0 mt-2 w-[calc(100vw-32px)] md:w-96 bg-gray-800 shadow-xl overflow-hidden rounded-lg border border-gray-600/50 flex items-center justify-center p-4"
-        aria-busy="true"
-      >
-        <FaSpinner className="animate-spin text-white text-2xl" />
-        <span className="sr-only">Loading...</span>
-      </div>
-    );
-  }
 
   return (
     <div
       ref={popoutRef}
       className="absolute top-12 right-0 mt-2 w-[calc(100vw-32px)] md:w-96 bg-gray-800 shadow-xl overflow-hidden rounded-lg border border-gray-600/50"
     >
-      {/* Top Header with title and disconnect button */}
+      {/* Top Header */}
       <div className="bg-gray-900 px-4 py-2 border-b border-gray-700 flex justify-between items-center">
         <h4 className="text-lg font-medium text-white">
           Summary - All Accounts
@@ -197,10 +181,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         </div>
       </div>
 
-      {/* Portfolio Summary Section */}
+      {/* Portfolio Summary */}
       <div className="px-4 py-2 border-b border-gray-700">
         <div className="flex">
-          {/* Left Column: Totals */}
           <div className="w-1/3">
             <div>
               <p className="text-sm text-gray-400 m-0">Flow</p>
@@ -230,7 +213,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
               />
             </div>
           </div>
-          {/* Right Column: Tier Breakdown or Collection Status */}
           <div className="w-2/3 pl-4">
             {hasAnyTopShot ? (
               renderBreakdownVertical(aggregatedBreakdown)
@@ -241,7 +223,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         </div>
       </div>
 
-      {/* Individual Accounts Section */}
+      {/* Individual Accounts */}
       <div className="pb-0">
         <div className="divide-y divide-gray-700">
           {allAccounts.map((account) => (
@@ -249,7 +231,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
               key={account.address}
               className="w-full hover:shadow-xl transition-shadow"
             >
-              {/* Title Row with darker background */}
               <div className="bg-gray-900 px-2 py-1 flex justify-between items-center">
                 <h5 className="text-base md:text-lg font-medium text-white m-0">
                   {account.label}
@@ -264,10 +245,8 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                   <FaClipboard className="ml-2" />
                 </button>
               </div>
-              {/* Details Section with background matching the portfolio summary */}
               <div className="bg-gray-800 px-2 py-2 w-full">
                 <div className="flex w-full">
-                  {/* Left Column: Flow, TopShot, and TSHOT Data */}
                   <div className="w-1/3">
                     <div>
                       <p className="text-sm text-gray-400 m-0">Flow</p>
@@ -297,7 +276,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                       />
                     </div>
                   </div>
-                  {/* Right Column: Tier Breakdown or Collection Status */}
                   <div className="w-2/3 pl-4">
                     {account.hasCollection ? (
                       Object.keys(account.breakdown).length > 0 ? (
