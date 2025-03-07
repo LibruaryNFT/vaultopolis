@@ -252,7 +252,7 @@ const TransactionModal = ({
         {/* flowscan link */}
         {txId && (
           <a
-            href={`https://flowscan.org/transaction/${txId}`}
+            href={`https://flowscan.io/transaction/${txId}`}
             target="_blank"
             rel="noopener noreferrer"
             className="block mt-4 text-center text-blue-400 underline"

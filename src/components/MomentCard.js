@@ -9,31 +9,18 @@ const tierStyles = {
   ultimate: "text-pink-500",
 };
 
-/**
- * Helper to decide the displayed name, ignoring aggregator's literal "Unknown Player"
- * so we can fallback to teamAtMoment if needed.
- */
 function getDisplayedName(nft) {
   const forcedUnknowns = ["Unknown Player", "unknown player"];
-  let candidate = nft?.FullName || nft?.fullName; // aggregator fields
-
-  // If aggregator forcibly sets "Unknown Player", treat it as null
+  let candidate = nft?.FullName || nft?.fullName;
   if (candidate && forcedUnknowns.includes(candidate.trim())) {
     candidate = null;
   }
-
-  return (
-    candidate ||
-    nft?.playerName || // alternative aggregator field
-    nft?.teamAtMoment || // fallback to team
-    "Unknown Player"
-  );
+  return candidate || nft?.playerName || nft?.teamAtMoment || "Unknown Player";
 }
 
 const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
   const [imageUrl, setImageUrl] = useState("");
 
-  // Build the official TopShot media URL (or your custom URL)
   useEffect(() => {
     if (nft?.id) {
       setImageUrl(
@@ -42,21 +29,14 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
     }
   }, [nft?.id]);
 
-  // 1) Display name
   const playerName = getDisplayedName(nft);
+  const seriesText = nft?.series !== undefined ? String(nft.series) : "?";
 
-  // 2) Series text
-  const seriesText =
-    nft?.series !== undefined && nft?.series !== null
-      ? String(nft.series)
-      : "?";
-
-  // 3) If there's a subedition, use subeditionMaxMint instead of momentCount
+  // If there's a subedition, use subeditionMaxMint instead of momentCount
   const finalMintCount = nft?.subeditionID
     ? nft?.subeditionMaxMint
     : nft?.momentCount;
 
-  // 4) Tier stylings
   const tierClass = nft?.tier
     ? tierStyles[nft.tier.toLowerCase()] || "text-gray-400"
     : "text-gray-400";
@@ -64,56 +44,63 @@ const MomentCard = ({ nft, handleNFTSelection, isSelected }) => {
     ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
     : "Unknown Tier";
 
-  // 5) Render the card
   return (
     <div
       onClick={() => handleNFTSelection?.(nft.id)}
-      className={`border bg-black rounded cursor-pointer relative p-1 text-white transition-colors duration-200 hover:border-2 hover:border-opolis ${
-        isSelected ? "border-green-500" : "border-gray-600"
-      } overflow-hidden`}
-      style={{ width: "7rem", height: "12rem" }}
+      className={`
+        border bg-black rounded cursor-pointer relative text-white 
+        transition-colors duration-200 hover:border-2 hover:border-opolis 
+        ${isSelected ? "border-green-500" : "border-gray-600"} 
+        overflow-hidden flex flex-col
+      `}
+      style={{ width: "7rem", height: "11rem" }} // fixed card size
     >
-      {/* Thumbnail image */}
-      {imageUrl && (
-        <div
-          className="relative overflow-hidden rounded mx-auto"
-          style={{ height: "80px", width: "80px" }}
+      {/* Top content (image, etc.) */}
+      <div className="p-1 flex-grow flex flex-col items-center justify-start">
+        {imageUrl && (
+          <div
+            className="relative overflow-hidden rounded"
+            style={{ width: 80, height: 80 }}
+          >
+            <img
+              src={imageUrl}
+              alt={`${playerName} moment`}
+              className="object-cover w-full h-full transform scale-150"
+              style={{ objectPosition: "center" }}
+            />
+          </div>
+        )}
+
+        {/* Player name */}
+        <h3 className="mt-1 mb-0 text-center text-white text-xs font-semibold truncate whitespace-nowrap">
+          {playerName}
+        </h3>
+
+        {/* Series */}
+        <p className="mt-0 mb-0 text-center text-xs text-gray-400 truncate whitespace-nowrap">
+          Series {seriesText}
+        </p>
+
+        {/* Tier */}
+        <p
+          className={`
+            mt-0 mb-0 text-center text-xs truncate whitespace-nowrap 
+            ${tierClass}
+          `}
         >
-          <img
-            src={imageUrl}
-            alt={`${playerName} moment`}
-            className="object-cover w-full h-full transform scale-150"
-            style={{ objectPosition: "center" }}
-          />
-        </div>
-      )}
+          {tierLabel}
+        </p>
 
-      {/* Player Name or fallback */}
-      <h3 className="text-center text-white mt-1 text-xs font-semibold truncate whitespace-nowrap">
-        {playerName}
-      </h3>
+        {/* Serial / Mint */}
+        <p className="mt-0 mb-0 text-center text-xs text-gray-400 truncate whitespace-nowrap">
+          {nft?.serialNumber ?? "?"} / {finalMintCount ?? "?"}
+        </p>
 
-      {/* Series */}
-      <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
-        Series {seriesText}
-      </p>
-
-      {/* Tier Label */}
-      <p
-        className={`text-center text-xs truncate whitespace-nowrap ${tierClass}`}
-      >
-        {tierLabel}
-      </p>
-
-      {/* SerialNumber / final mint count */}
-      <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
-        {nft?.serialNumber ?? "?"} / {finalMintCount ?? "?"}
-      </p>
-
-      {/* Set name */}
-      <p className="text-center text-gray-400 text-xs truncate whitespace-nowrap">
-        {nft?.name || "Unknown Set"}
-      </p>
+        {/* Set name */}
+        <p className="mt-0 mb-0 text-center text-xs text-gray-400 truncate whitespace-nowrap">
+          {nft?.name || "Unknown Set"}
+        </p>
+      </div>
     </div>
   );
 };

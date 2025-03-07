@@ -167,13 +167,13 @@ function NFTToTSHOTPanel(props) {
   };
 
   return (
-    <div className="bg-gray-700 rounded-lg">
+    <div className="bg-gray-800 rounded-lg">
       <button
         onClick={handleSwap}
         disabled={nftIds.length === 0}
         className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
           nftIds.length === 0
-            ? "bg-gray-600 cursor-not-allowed"
+            ? "bg-gray-800 cursor-not-allowed"
             : "bg-flow-dark hover:bg-flow-darkest"
         }`}
       >

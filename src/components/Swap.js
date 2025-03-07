@@ -11,7 +11,42 @@ import TransactionModal from "./TransactionModal";
 import { AnimatePresence } from "framer-motion";
 import MomentCard from "./MomentCard";
 
-// Helper to pick the opposite asset
+function getTotalTSHOTBalance(accountData) {
+  if (!accountData) return 0;
+  let total = parseFloat(accountData.tshotBalance || 0) || 0;
+  if (Array.isArray(accountData.childrenData)) {
+    for (const child of accountData.childrenData) {
+      let cBal = parseFloat(child.tshotBalance || 0);
+      if (isNaN(cBal)) cBal = 0;
+      total += cBal;
+    }
+  }
+  return total;
+}
+
+function getTotalNFTCounts(accountData) {
+  if (!accountData) return { common: 0, fandom: 0 };
+  let common = 0;
+  let fandom = 0;
+
+  const tally = (arr) => {
+    if (!Array.isArray(arr)) return;
+    for (const nft of arr) {
+      const tier = (nft.tier || "").toLowerCase();
+      if (tier === "common") common++;
+      if (tier === "fandom") fandom++;
+    }
+  };
+
+  tally(accountData.nftDetails);
+  if (Array.isArray(accountData.childrenData)) {
+    for (const child of accountData.childrenData) {
+      tally(child.nftDetails);
+    }
+  }
+  return { common, fandom };
+}
+
 function getOppositeAsset(asset) {
   return asset === "TSHOT" ? "TopShot Common / Fandom" : "TSHOT";
 }
@@ -29,10 +64,8 @@ const Swap = () => {
   } = useContext(UserContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
-
   const [fromAsset, setFromAsset] = useState("TopShot Common / Fandom");
-  const [toAsset, setToAsset] = useState(getOppositeAsset(fromAsset));
-
+  const [toAsset, setToAsset] = useState("TSHOT");
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
   const [lastFocus, setLastFocus] = useState(null);
@@ -41,38 +74,26 @@ const Swap = () => {
   const [transactionData, setTransactionData] = useState({});
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
-  // Determine mode
-  const getDashboardMode = () => {
-    if (fromAsset === "TopShot Common / Fandom" && toAsset === "TSHOT") {
-      return "NFT_TO_TSHOT";
-    }
-    if (fromAsset === "TSHOT" && toAsset === "TopShot Common / Fandom") {
-      return "TSHOT_TO_NFT";
-    }
-    return null;
-  };
-  const dashboardMode = getDashboardMode();
-  const isNFTMode = fromAsset === "TopShot Common / Fandom";
-
   useEffect(() => {
     setToAsset(getOppositeAsset(fromAsset));
   }, [fromAsset]);
 
-  // If from=NFT => # of selected
+  // If from=NFT => fromInput & toInput = selectedNFTs.length
+  const isNFTMode = fromAsset === "TopShot Common / Fandom";
   useEffect(() => {
     if (isNFTMode) {
-      setFromInput(selectedNFTs.length.toString());
-      setToInput(selectedNFTs.length.toString());
+      setFromInput(String(selectedNFTs.length));
+      setToInput(String(selectedNFTs.length));
     }
   }, [selectedNFTs, isNFTMode]);
 
-  // Convert betAmount => number
+  // If TSHOT deposit is pending (receipt)
   const tshotReceiptAmount =
     accountData?.hasReceipt && accountData.receiptDetails
       ? Number(accountData.receiptDetails.betAmount)
       : null;
 
-  // If from=TSHOT => set that as input
+  // If from=TSHOT => set fromInput & toInput to tshotReceiptAmount
   useEffect(() => {
     if (
       fromAsset === "TSHOT" &&
@@ -84,7 +105,18 @@ const Swap = () => {
     }
   }, [fromAsset, tshotReceiptAmount]);
 
-  // TSHOT->NFT sync
+  function getDashboardMode() {
+    if (fromAsset === "TopShot Common / Fandom" && toAsset === "TSHOT") {
+      return "NFT_TO_TSHOT";
+    }
+    if (fromAsset === "TSHOT" && toAsset === "TopShot Common / Fandom") {
+      return "TSHOT_TO_NFT";
+    }
+    return null;
+  }
+  const dashboardMode = getDashboardMode();
+
+  // If TSHOT->NFT => fromInput & toInput must match
   useEffect(() => {
     if (dashboardMode === "TSHOT_TO_NFT") {
       if (lastFocus === "from" && toInput !== fromInput) {
@@ -101,7 +133,7 @@ const Swap = () => {
     return isNaN(val) ? 0 : val;
   }
 
-  // Compute from => .toFixed(1)
+  // computedFrom
   let rawFrom;
   if (isNFTMode) {
     rawFrom = selectedNFTs.length;
@@ -113,7 +145,7 @@ const Swap = () => {
   const computedFrom = isNaN(rawFrom) ? 0 : rawFrom;
   const formattedFrom = computedFrom.toFixed(1);
 
-  // Compute to => .toFixed(1)
+  // computedTo
   let rawTo;
   if (isNFTMode) {
     rawTo = selectedNFTs.length;
@@ -125,72 +157,45 @@ const Swap = () => {
   const computedTo = isNaN(rawTo) ? 0 : rawTo;
   const formattedTo = computedTo.toFixed(1);
 
-  // "From" balance
+  // Render total balances across all accounts
   const renderFromBalance = () => {
     if (!isLoggedIn) return null;
 
     if (fromAsset === "TSHOT") {
-      const bal = Math.floor(accountData?.tshotBalance ?? 0);
+      const totalTSHOT = getTotalTSHOTBalance(accountData);
       return (
-        <div className="text-xs text-gray-300 mt-1">Balance: {bal} TSHOT</div>
+        <div className="text-xs text-gray-300 mt-1">
+          Balance: {Math.floor(totalTSHOT)} TSHOT
+        </div>
       );
     }
     if (isNFTMode) {
-      const activeAcc =
-        (accountData.childrenData || []).find(
-          (c) => c.addr === selectedAccount
-        ) || accountData;
-      const nftDetails = activeAcc.nftDetails || [];
-
-      let commonCount = 0;
-      let fandomCount = 0;
-      for (const nft of nftDetails) {
-        const tier = nft.tier?.toLowerCase() || "";
-        if (tier === "common") commonCount++;
-        if (tier === "fandom") fandomCount++;
-      }
+      const { common, fandom } = getTotalNFTCounts(accountData);
       return (
         <div className="text-xs text-gray-300 mt-1">
-          <span>Balance: </span>
-          <span className="text-gray-400">{commonCount} Common</span>
-          <span> / </span>
-          <span className="text-lime-400">{fandomCount} Fandom</span>
+          Balance: {common} Common / {fandom} Fandom
         </div>
       );
     }
     return null;
   };
 
-  // "To" balance
   const renderToBalance = () => {
     if (!isLoggedIn) return null;
 
     if (toAsset === "TSHOT") {
-      const bal = Math.floor(accountData?.tshotBalance ?? 0);
+      const totalTSHOT = getTotalTSHOTBalance(accountData);
       return (
-        <div className="text-xs text-gray-300 mt-1">Balance: {bal} TSHOT</div>
+        <div className="text-xs text-gray-300 mt-1">
+          Balance: {Math.floor(totalTSHOT)} TSHOT
+        </div>
       );
     }
     if (toAsset === "TopShot Common / Fandom") {
-      const activeAcc =
-        (accountData.childrenData || []).find(
-          (c) => c.addr === selectedAccount
-        ) || accountData;
-      const nftDetails = activeAcc.nftDetails || [];
-
-      let commonCount = 0;
-      let fandomCount = 0;
-      for (const nft of nftDetails) {
-        const tier = nft.tier?.toLowerCase() || "";
-        if (tier === "common") commonCount++;
-        if (tier === "fandom") fandomCount++;
-      }
+      const { common, fandom } = getTotalNFTCounts(accountData);
       return (
         <div className="text-xs text-gray-300 mt-1">
-          <span>Balance: </span>
-          <span className="text-gray-400">{commonCount} Common</span>
-          <span> / </span>
-          <span className="text-lime-400">{fandomCount} Fandom</span>
+          Balance: {common} Common / {fandom} Fandom
         </div>
       );
     }
@@ -200,10 +205,11 @@ const Swap = () => {
   const handleTransactionStart = (txData) => {
     setTransactionData(txData);
     setShowModal(true);
-    // If NFT->TSHOT => exclude those NFT IDs
+
+    // If NFT->TSHOT => exclude these NFT IDs from selection
     if (
       txData.swapType === "NFT_TO_TSHOT" &&
-      txData.nftIds &&
+      Array.isArray(txData.nftIds) &&
       txData.nftIds.length > 0
     ) {
       setExcludedNftIds((prev) => [...prev, ...txData.nftIds.map(String)]);
@@ -262,37 +268,37 @@ const Swap = () => {
     setLastFocus("to");
   };
 
-  const renderSwapPanel = () => {
-    if (dashboardMode === "NFT_TO_TSHOT") {
-      return (
-        <NFTToTSHOTPanel
-          key="NFT_TO_TSHOT"
-          nftIds={selectedNFTs}
-          buyAmount={formattedTo}
-          onTransactionStart={handleTransactionStart}
-        />
-      );
-    }
-    if (dashboardMode === "TSHOT_TO_NFT") {
-      return (
-        <TSHOTToNFTPanel
-          key="TSHOT_TO_NFT"
-          sellAmount={formattedFrom}
-          depositDisabled={false}
-          onTransactionStart={handleTransactionStart}
-        />
-      );
-    }
-    return (
-      <div className="p-4 text-gray-300">Please select a valid asset pair.</div>
-    );
-  };
-
   const toggleAssets = () => {
     const newFrom = toAsset;
     const newTo = fromAsset;
     setFromAsset(newFrom);
     setToAsset(newTo);
+  };
+
+  // We'll pass the correct accounts to <AccountSelection> based on hasCollection
+  const filterAccountsWithCollection = () => {
+    if (!accountData) return { parent: null, children: [], addresses: [] };
+
+    // Parent
+    const parentHasCollection = !!accountData.hasCollection;
+    const parentAccount = parentHasCollection
+      ? {
+          addr: accountData.parentAddress || user?.addr,
+          ...accountData,
+        }
+      : null;
+
+    // Children that have a TopShot collection
+    const validChildren = (accountData.childrenData || []).filter(
+      (c) => c.hasCollection
+    );
+    const childAddresses = validChildren.map((c) => c.addr);
+
+    return {
+      parent: parentAccount,
+      children: validChildren,
+      addresses: childAddresses,
+    };
   };
 
   const handleSelectAccount = (addr) => {
@@ -303,6 +309,63 @@ const Swap = () => {
       payload: { address: addr, type: isChild ? "child" : "parent" },
     });
   };
+
+  function renderSwapPanel() {
+    if (dashboardMode === "NFT_TO_TSHOT") {
+      return (
+        <NFTToTSHOTPanel
+          key="NFT_TO_TSHOT"
+          nftIds={selectedNFTs}
+          buyAmount={formattedTo}
+          onTransactionStart={handleTransactionStart}
+        />
+      );
+    }
+
+    if (dashboardMode === "TSHOT_TO_NFT") {
+      // Step 2 => hasReceipt => show separate account selection box
+      const hasReceipt = !!accountData?.hasReceipt;
+      return (
+        <>
+          {/* Step 1 or 2 => TSHOTToNFTPanel */}
+          <TSHOTToNFTPanel
+            key="TSHOT_TO_NFT"
+            sellAmount={formattedFrom}
+            depositDisabled={false}
+            onTransactionStart={handleTransactionStart}
+          />
+
+          {hasReceipt && (
+            <div className="mt-2 bg-gray-700 p-2 rounded-lg">
+              {(() => {
+                const { parent, children, addresses } =
+                  filterAccountsWithCollection();
+                // If there's no parent with a collection and no children with a collection,
+                // maybe show an error or just pass empty arrays
+                const parentAccount = parent; // parent has collection or null
+                const childAccounts = children; // only children with collection
+
+                return (
+                  <AccountSelection
+                    parentAccount={parentAccount}
+                    childrenAddresses={childAccounts.map((c) => c.addr)}
+                    childrenAccounts={childAccounts}
+                    selectedAccount={selectedAccount}
+                    onSelectAccount={handleSelectAccount}
+                    isLoadingChildren={isLoadingChildren}
+                  />
+                );
+              })()}
+            </div>
+          )}
+        </>
+      );
+    }
+
+    return (
+      <div className="p-4 text-gray-300">Please select a valid asset pair.</div>
+    );
+  }
 
   return (
     <>
@@ -422,18 +485,21 @@ const Swap = () => {
                   w-16 bg-gray-600 text-white
                   p-2 rounded text-3xl text-center
                 "
-                readOnly={dashboardMode === "TSHOT_TO_NFT"}
+                readOnly={
+                  dashboardMode === "TSHOT_TO_NFT" ||
+                  dashboardMode === "NFT_TO_TSHOT"
+                }
               />
             </div>
           </div>
         </div>
 
         {/* SWAP ACTION PANEL */}
-        <div className="bg-gray-700 p-2 rounded-lg shadow-md">
-          {renderSwapPanel()}
-        </div>
+        <div className="space-y-2">{renderSwapPanel()}</div>
 
-        {/* If from=TopShot => Show AccountSelection */}
+        {/* If from=TopShot => show separate container for selecting 
+            which account is sending the NFT. 
+        */}
         {fromAsset === "TopShot Common / Fandom" &&
           isLoggedIn &&
           accountData?.parentAddress && (
@@ -453,13 +519,12 @@ const Swap = () => {
           )}
       </div>
 
-      {/* If from=TopShot => Show big container for MomentSelection and the Selected Moments box */}
+      {/* If from=TopShot => Show the big container for MomentSelection and the Selected Moments box */}
       {fromAsset === "TopShot Common / Fandom" &&
         isLoggedIn &&
         accountData?.parentAddress && (
           <div className="w-full p-4">
             <div className="max-w-screen-lg mx-auto space-y-4">
-              {/* Always show the Selected Moments box */}
               <div className="bg-gray-700 p-2 rounded">
                 <h4 className="text-white text-sm mb-2">Selected Moments:</h4>
                 <div className="flex flex-wrap gap-2">
@@ -492,7 +557,6 @@ const Swap = () => {
                 </div>
               </div>
 
-              {/* MomentSelection in a separate container */}
               <div className="bg-gray-700 p-2 rounded-lg">
                 <MomentSelection excludeIds={excludedNftIds} />
               </div>

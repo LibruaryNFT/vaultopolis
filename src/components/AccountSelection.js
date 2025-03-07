@@ -40,12 +40,14 @@ const AccountSelection = ({
 }) => {
   /**
    * Render the parent account box if available
+   * Add a unique "key" prop to avoid the React warning
    */
   const renderParentBox = () => {
     if (!parentAccount || !parentAccount.addr) return null;
 
     return (
       <AccountBox
+        key={`parent-${parentAccount.addr}`} // Add a unique key for the parent box
         label="Parent Account"
         address={parentAccount.addr}
         isSelected={selectedAccount === parentAccount.addr}

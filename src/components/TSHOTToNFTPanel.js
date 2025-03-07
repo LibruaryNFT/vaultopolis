@@ -1,6 +1,5 @@
 // src/components/TSHOTToNFTPanel.js
-
-import React, { useContext, useRef, useEffect } from "react";
+import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
 
@@ -9,151 +8,120 @@ import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import { getTopShotBatched } from "../flow/getTopShotBatched";
 
-import AccountSelection from "./AccountSelection";
-
-const TSHOT_LIMIT = 50;
-
 /**
- * 2-step flow:
- *   Step 1 (deposit TSHOT) => if no receipt
- *   Step 2 (reveal minted NFTs) => if we have a receipt
+ * If your `enrichWithMetadata` is defined in the UserContext or a separate utility,
+ * just import it. For example:
+ *
+ * import { enrichWithMetadata } from "../flow/enrichWithMetadata";
+ *
+ * OR if it's in the UserContext file, do something like:
+ *
+ * const { metadataCache, enrichWithMetadata } = useContext(UserContext);
+ *
+ * For simplicity, here we define the same function inline, but
+ * you should reuse your actual implementation if possible.
  */
+async function enrichWithMetadata(nftList, metadataCache) {
+  if (!metadataCache) return nftList; // No local metadata? Just return as-is
+
+  // If you have a SUBEDITIONS constant, reference it here as well:
+  const SUBEDITIONS = {
+    1: { name: "Explosion", minted: 500 },
+    2: { name: "Torn", minted: 1000 },
+    // ...
+  };
+
+  return nftList.map((nft) => {
+    const enriched = { ...nft };
+    const key = `${nft.setID}-${nft.playID}`;
+    const meta = metadataCache[key];
+
+    // Merge standard fields
+    if (meta) {
+      enriched.tier = meta.tier || enriched.tier;
+      enriched.fullName =
+        meta.FullName ||
+        meta.fullName ||
+        enriched.fullName ||
+        enriched.playerName ||
+        "Unknown Player";
+      enriched.momentCount = Number(meta.momentCount) || enriched.momentCount;
+      enriched.name = meta.name || enriched.name;
+      // If series is in meta, override
+      if (typeof meta.series !== "undefined") {
+        enriched.series = meta.series;
+      }
+      // etc. (teamAtMoment, etc.)
+      if (meta.TeamAtMoment) {
+        enriched.teamAtMoment = meta.TeamAtMoment;
+      }
+    } else {
+      console.warn(
+        `No metadata found for setID=${nft.setID}, playID=${nft.playID}.`
+      );
+    }
+
+    // Handle subedition
+    if (nft.subeditionID && SUBEDITIONS[nft.subeditionID]) {
+      const sub = SUBEDITIONS[nft.subeditionID];
+      enriched.subeditionName = sub.name;
+      enriched.subeditionMaxMint = sub.minted;
+    }
+
+    return enriched;
+  });
+}
+
 export default function TSHOTToNFTPanel({
   sellAmount = "0",
   depositDisabled,
   onTransactionStart,
-  onRevealComplete, // optional callback
+  onRevealComplete,
 }) {
-  // ------------------------
-  // 1) All HOOKS declared unconditionally at top
-  // ------------------------
   const {
     user,
     accountData,
     selectedAccount,
-    dispatch,
     loadAllUserData,
     loadChildData,
-    metadataCache,
+    metadataCache, // Make sure your context actually provides this
   } = useContext(UserContext);
 
-  // Convert sellAmount => integer
-  let numericValue = parseInt(sellAmount, 10);
-  if (Number.isNaN(numericValue) || numericValue < 0) numericValue = 0;
-
-  // TSHOT balance from parent's data
-  const userBalance = Math.floor(accountData?.tshotBalance ?? 0);
-
-  // Are we in Step 1 or Step 2?
-  const depositStep = !accountData?.hasReceipt; // no receipt => deposit
-  const revealStep = !!accountData?.hasReceipt; // have receipt => reveal
   const isLoggedIn = Boolean(user?.loggedIn);
-
-  // Potential errors if depositing
-  const errors = [];
-  if (numericValue > userBalance) {
-    errors.push("Insufficient TSHOT balance.");
-  }
-  if (numericValue > TSHOT_LIMIT) {
-    errors.push(`Cannot deposit more than ${TSHOT_LIMIT} TSHOT at once.`);
-  }
-
-  // We'll track auto-select for Step 2
-  const didAutoSelectRef = useRef(false);
-
-  // useEffect for auto-select (Step 2)
-  useEffect(() => {
-    if (!revealStep) return; // only do this for step 2
-    if (didAutoSelectRef.current) return; // only once
-
-    const parentAddr = accountData?.parentAddress || user?.addr;
-    const parentIsSelected = selectedAccount === parentAddr;
-    const parentHasColl = accountData?.hasCollection && parentIsSelected;
-
-    let childSelectedHasColl = false;
-    if (!parentIsSelected && selectedAccount) {
-      const childData = (accountData.childrenData || []).find(
-        (c) => c.addr === selectedAccount
-      );
-      if (childData?.hasCollection) childSelectedHasColl = true;
-    }
-
-    if (parentHasColl || childSelectedHasColl) {
-      return; // already valid
-    }
-
-    didAutoSelectRef.current = true;
-
-    if (accountData.hasCollection && parentAddr?.startsWith("0x")) {
-      // pick parent
-      dispatch({
-        type: "SET_SELECTED_ACCOUNT",
-        payload: { address: parentAddr, type: "parent" },
-      });
-    } else {
-      // pick first child w/ collection
-      const childWithColl = (accountData.childrenData || []).find(
-        (c) => c.hasCollection
-      );
-      if (childWithColl) {
-        dispatch({
-          type: "SET_SELECTED_ACCOUNT",
-          payload: { address: childWithColl.addr, type: "child" },
-        });
-      }
-    }
-  }, [revealStep, accountData, selectedAccount, user, dispatch]);
-
-  // Helper: enrich minted NFTs w/ local metadata
-  function enrichLocalMetadata(rawNFTs) {
-    if (!metadataCache) return rawNFTs;
-    return rawNFTs.map((nft) => {
-      const key = `${nft.setID}-${nft.playID}`;
-      const meta = metadataCache[key] || {};
-      return {
-        ...nft,
-        fullName:
-          meta.FullName ||
-          meta.fullName ||
-          nft.fullName ||
-          nft.playerName ||
-          "Unknown Player",
-        momentCount: meta.momentCount
-          ? Number(meta.momentCount)
-          : nft.momentCount || 0,
-        name: meta.name || nft.name,
-      };
-    });
-  }
-
-  // ------------------------
-  // 2) Conditionals after hooks: if not logged in => early return
-  // ------------------------
   if (!isLoggedIn) {
     return (
-      <button
-        onClick={() => fcl.authenticate()}
-        className="w-full text-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-2"
-      >
-        Connect Wallet
-      </button>
+      <div className="bg-gray-700 rounded-lg">
+        <button
+          onClick={() => fcl.authenticate()}
+          className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
+        >
+          Connect Wallet
+        </button>
+      </div>
     );
   }
 
-  // ------------------------
-  // 3) Step 1 => deposit TSHOT
-  // ------------------------
+  // Step logic:
+  const depositStep = !accountData?.hasReceipt; // Step 1 => deposit TSHOT
+  const revealStep = !!accountData?.hasReceipt; // Step 2 => reveal minted NFTs
+
+  let numericValue = parseInt(sellAmount, 10);
+  if (Number.isNaN(numericValue) || numericValue < 0) numericValue = 0;
+
+  // -----------------------------------
+  // STEP 1 => Deposit TSHOT
+  // -----------------------------------
   async function handleDeposit() {
-    if (errors.length > 0 || numericValue === 0) return;
+    if (depositDisabled || numericValue === 0) return;
 
     const parentAddr = accountData?.parentAddress || user?.addr;
     if (!parentAddr?.startsWith("0x")) {
       alert("No valid parent address for deposit!");
       return;
     }
+
     const betAmount = `${numericValue}.0`;
 
-    // callback => "Awaiting Approval"
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -182,7 +150,7 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // Subscribe to TX
+      // Subscribe to intermediate status
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -222,7 +190,7 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // Refresh
+      // Refresh parent + child
       await loadAllUserData(parentAddr);
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
@@ -240,19 +208,19 @@ export default function TSHOTToNFTPanel({
     }
   }
 
-  // ------------------------
-  // 4) Step 2 => reveal minted NFTs
-  // ------------------------
+  // -----------------------------------
+  // STEP 2 => Reveal minted NFTs
+  // -----------------------------------
   async function handleReveal() {
-    if (!selectedAccount?.startsWith("0x")) {
-      alert("Invalid receiving address for reveal.");
-      return;
-    }
-
     const betFromReceipt = accountData?.receiptDetails?.betAmount;
     const fallback = numericValue.toString();
     const betInteger = betFromReceipt || fallback;
     const betAmount = betInteger.includes(".") ? betInteger : `${betInteger}.0`;
+
+    if (!selectedAccount?.startsWith("0x")) {
+      alert("Invalid receiving address for reveal.");
+      return;
+    }
 
     onTransactionStart?.({
       status: "Awaiting Approval",
@@ -320,9 +288,9 @@ export default function TSHOTToNFTPanel({
       );
       const receivedNFTIDs = depositEvents.map((evt) => evt.data.id);
 
-      // Enrich
       let revealedNFTDetails = [];
       if (receivedNFTIDs.length > 0) {
+        // 1) Grab raw NFT data
         revealedNFTDetails = await fcl.query({
           cadence: getTopShotBatched,
           args: (arg, t) => [
@@ -330,7 +298,14 @@ export default function TSHOTToNFTPanel({
             arg(receivedNFTIDs, t.Array(t.UInt64)),
           ],
         });
-        revealedNFTDetails = enrichLocalMetadata(revealedNFTDetails);
+
+        // 2) Now call the same enrichment function that you use in fetchTopShotCollection
+        if (metadataCache) {
+          revealedNFTDetails = await enrichWithMetadata(
+            revealedNFTDetails,
+            metadataCache
+          );
+        }
       }
 
       onTransactionStart?.({
@@ -344,15 +319,13 @@ export default function TSHOTToNFTPanel({
         revealedNFTDetails,
       });
 
-      // Refresh
+      // Finally, refresh parent + child
       const parentAddr = accountData?.parentAddress || user?.addr;
       await loadAllUserData(parentAddr);
-
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
       }
 
-      // optional callback
       onRevealComplete?.();
     } catch (err) {
       console.error("Reveal TX failed:", err);
@@ -367,101 +340,43 @@ export default function TSHOTToNFTPanel({
     }
   }
 
-  // ------------------------
-  // 5) Render Step 1 or Step 2 or fallback
-  // ------------------------
+  // -----------------------------------
+  // RENDER
+  // -----------------------------------
   if (depositStep) {
-    // Step 1 => deposit
-    const hasErrors = errors.length > 0;
-    const disableDeposit = depositDisabled || hasErrors || numericValue === 0;
-
+    // Step 1 => deposit TSHOT
+    const disabled = depositDisabled || numericValue === 0;
     return (
-      <div className="max-w-md mx-auto space-y-3">
-        {hasErrors && (
-          <div className="text-red-400 font-semibold">{errors.join(" ")}</div>
-        )}
-
-        {/* 
-          This matches NFTToTSHOTPanel style => 
-          a single bg-gray-700 container for the button 
-        */}
-        <div className="bg-gray-700 rounded-lg">
-          <button
-            onClick={handleDeposit}
-            disabled={disableDeposit}
-            className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-              disableDeposit
-                ? "bg-gray-600 cursor-not-allowed"
-                : "bg-flow-dark hover:bg-flow-darkest"
-            }`}
-          >
-            (Step 1 of 2) Swap TSHOT for Moments
-          </button>
-        </div>
+      <div className="bg-gray-700 rounded-lg">
+        <button
+          onClick={handleDeposit}
+          disabled={disabled}
+          className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
+            disabled
+              ? "bg-gray-800 cursor-not-allowed"
+              : "bg-flow-dark hover:bg-flow-darkest"
+          }`}
+        >
+          (Step 1 of 2) Swap TSHOT for Moments
+        </button>
       </div>
     );
   }
 
   if (revealStep) {
-    // Step 2 => reveal
+    // Step 2 => reveal minted NFTs
     return (
-      <div className="max-w-md mx-auto space-y-3">
-        {/* 
-          1) A container with a 
-          "bg-gray-700" for the reveal button 
-        */}
-        <div className="bg-gray-700 rounded-lg">
-          <button
-            onClick={handleReveal}
-            className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
-          >
-            (Step 2 of 2) Swap TSHOT for Moments
-          </button>
-        </div>
-
-        {/* 
-          2) Another container for AccountSelection 
-          with a different background 
-        */}
-        <div className="bg-gray-600 rounded-lg p-2">
-          <AccountSelection
-            parentAccount={
-              accountData?.hasCollection
-                ? {
-                    addr: accountData.parentAddress || user?.addr,
-                    ...accountData,
-                  }
-                : null
-            }
-            childrenAddresses={(accountData.childrenData || [])
-              .filter((c) => c.hasCollection)
-              .map((child) => child.addr)}
-            childrenAccounts={(accountData.childrenData || []).filter(
-              (c) => c.hasCollection
-            )}
-            selectedAccount={selectedAccount}
-            onSelectAccount={(addr) =>
-              dispatch({
-                type: "SET_SELECTED_ACCOUNT",
-                payload: {
-                  address: addr,
-                  type:
-                    addr === (accountData.parentAddress || user?.addr)
-                      ? "parent"
-                      : "child",
-                },
-              })
-            }
-          />
-          <p className="text-xs text-gray-300 mt-1">
-            <em>Note:</em> You can only receive Moments in an account that has a
-            TopShot collection.
-          </p>
-        </div>
+      <div className="bg-gray-700 rounded-lg">
+        <button
+          onClick={handleReveal}
+          className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
+        >
+          (Step 2 of 2) Swap TSHOT for Moments
+        </button>
       </div>
     );
   }
 
-  // fallback
-  return <div className="text-gray-400 p-4">Loading...</div>;
+  // Fallback
+  return <div className="text-gray-400">Loading...</div>;
 }
