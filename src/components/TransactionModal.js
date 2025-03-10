@@ -1,9 +1,7 @@
-// src/components/TransactionModal.js
 import React, { useState, useEffect } from "react";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
 import { motion } from "framer-motion";
-
 import MomentCard from "./MomentCard";
 
 // Helper to decide singular vs plural
@@ -13,16 +11,14 @@ function pluralize(count, singular, plural) {
 
 /**
  * A simple "Hidden" card that uses the same size as MomentCard
- * but is black with "Reveal" text.
+ * but is styled as a black card with "Reveal" text.
  */
 function HiddenCard({ nftId, onReveal }) {
   return (
     <div
-      className="border border-gray-600 bg-black rounded cursor-pointer
-                 relative p-1 font-inter text-white transition-colors
-                 duration-200 hover:border-2 hover:border-opolis
-                 overflow-hidden flex flex-col items-center justify-center
-                 w-28 h-48" // Adjust these if you want smaller/larger cards
+      className="w-28 h-48 border bg-black rounded relative text-white 
+                 border-gray-600 overflow-hidden flex flex-col items-center justify-center
+                 cursor-pointer transition-colors duration-200 hover:border-2 hover:border-opolis"
       onClick={() => onReveal(nftId)}
     >
       <p className="text-center font-semibold text-sm">Reveal</p>
@@ -41,15 +37,9 @@ const TransactionModal = ({
   onClose,
   revealedNFTDetails,
 }) => {
-  /**
-   * --------------------------------------------------
-   * 1) ALWAYS define your Hooks at the top level
-   * --------------------------------------------------
-   */
-  // We'll track whether each NFT is revealed or not
+  // Track whether each NFT is revealed
   const [hiddenStates, setHiddenStates] = useState({});
 
-  // Whenever we get new `revealedNFTDetails`, initialize them as hidden
   useEffect(() => {
     if (!revealedNFTDetails || revealedNFTDetails.length === 0) {
       setHiddenStates({});
@@ -77,20 +67,9 @@ const TransactionModal = ({
     setHiddenStates(newState);
   };
 
-  /**
-   * --------------------------------------------------
-   * 2) EARLY RETURN IF NOT NEEDED
-   * --------------------------------------------------
-   */
   if (!status) {
     return null;
   }
-
-  /**
-   * --------------------------------------------------
-   * 3) Build out the rest of your logic below
-   * --------------------------------------------------
-   */
 
   // Status messages
   const flowStatusMessages = {
@@ -131,7 +110,7 @@ const TransactionModal = ({
     transactionMessage = `Transferring ${nftCount} ${label} to recipient`;
   }
 
-  // Icon
+  // Icon based on status
   const getStatusIcon = () => {
     switch (status) {
       case "Awaiting Approval":
@@ -166,24 +145,19 @@ const TransactionModal = ({
     }
   };
 
-  // If we actually minted NFTs
   const revealedCount = revealedNFTDetails ? revealedNFTDetails.length : 0;
   const revealedHeading = `You received ${
     revealedCount === 1 ? "this Moment" : "these Moments"
   }:`;
 
   return (
-    <div
-      // Updated to use top-aligned scrolling container
-      className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center pt-10 pb-10"
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center pt-10 pb-10">
       <div className="absolute inset-0 bg-black bg-opacity-70"></div>
 
       <motion.div
-        className="relative bg-gray-900 text-white p-6 w-11/12
+        className="relative bg-gray-900 text-white p-6 w-11/12 
                    max-w-md sm:max-w-xl md:max-w-3xl 2xl:max-w-5xl
-                   rounded-lg shadow-lg
-                   overflow-y-auto max-h-[90vh]" // ensure it can scroll if content is huge
+                   rounded-lg shadow-lg overflow-y-auto max-h-[90vh]"
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -213,7 +187,7 @@ const TransactionModal = ({
           </div>
         </div>
 
-        {/* If we minted new NFTs => allow user to Reveal them */}
+        {/* Revealed NFTs */}
         {revealedCount > 0 && (
           <div className="mt-4 p-2 border border-gray-600 rounded">
             <div className="flex items-center justify-between mb-2">
@@ -227,16 +201,11 @@ const TransactionModal = ({
                 </button>
               )}
             </div>
-
             <div className="flex flex-wrap gap-2 justify-center">
               {revealedNFTDetails.map((nft) => {
                 const isRevealed = hiddenStates[nft.id];
                 return isRevealed ? (
-                  <MomentCard
-                    key={nft.id}
-                    nft={nft}
-                    cardClassName="w-28 h-48" // Same size as HiddenCard
-                  />
+                  <MomentCard key={nft.id} nft={nft} disableHover={true} />
                 ) : (
                   <HiddenCard
                     key={nft.id}
@@ -249,7 +218,7 @@ const TransactionModal = ({
           </div>
         )}
 
-        {/* flowscan link */}
+        {/* Flowscan Link */}
         {txId && (
           <a
             href={`https://flowscan.io/transaction/${txId}`}

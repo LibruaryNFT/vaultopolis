@@ -467,7 +467,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 <>
                   <option value="All">All</option>
                   {setNameOptions.map((name) => (
-                    <option key={name} value={name}>
+                    <option key={name} value={name} className="text-white">
                       {name}
                     </option>
                   ))}
@@ -494,7 +494,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 <>
                   <option value="All">All</option>
                   {playerNameOptions.map((p) => (
-                    <option key={p} value={p}>
+                    <option key={p} value={p} className="text-white">
                       {p}
                     </option>
                   ))}

@@ -4,10 +4,10 @@ import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
 import { batchTransfer } from "../flow/batchTransfer";
 import { batchTransfer_child } from "../flow/batchTransfer_child";
-import AccountSelection from "./AccountSelection";
-import MomentSelection from "./MomentSelection";
-import MomentCard from "./MomentCard";
-import TransactionModal from "./TransactionModal";
+import AccountSelection from "../components/AccountSelection";
+import MomentSelection from "../components/MomentSelection";
+import MomentCard from "../components/MomentCard";
+import TransactionModal from "../components/TransactionModal";
 
 const MAX_TRANSFER_COUNT = 500; // Limit to 500 Moments at once
 

@@ -5,11 +5,11 @@ import {
   Navigate,
 } from "react-router-dom";
 import { UserProvider } from "./context/UserContext";
-import TSHOT from "./components/TSHOT";
-import TermsAndService from "./components/TermsAndPrivacy";
-import Layout from "./components/Layout";
-import Swap from "./components/Swap";
-import Transfer from "./components/Transfer";
+import TSHOT from "./pages/TSHOT";
+import TermsAndPrivacy from "./pages/TermsAndPrivacy";
+import Layout from "./layout/Layout";
+import Swap from "./pages/Swap";
+import Transfer from "./pages/Transfer";
 
 // Enforce HTTPS only in production
 function enforceHTTPS() {
@@ -57,7 +57,7 @@ const router = createBrowserRouter(
       path: "/terms",
       element: (
         <Layout>
-          <TermsAndService />
+          <TermsAndPrivacy />
         </Layout>
       ),
     },

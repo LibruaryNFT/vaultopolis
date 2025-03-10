@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import * as fcl from "@onflow/fcl";
 
 // Components
-import TSHOTInfo from "./TSHOTInfo";
-import TSHOTVault from "./TSHOTVault";
+import TSHOTInfo from "../components/TSHOTInfo";
+import TSHOTVault from "../components/TSHOTVault";
 
 // Cadence scripts
 import { getTSHOTSupply } from "../flow/getTSHOTSupply";

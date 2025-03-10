@@ -2,14 +2,14 @@
 import React, { useState, useEffect, useContext } from "react";
 import { UserContext } from "../context/UserContext";
 
-import Dropdown, { FROM_OPTIONS } from "./Dropdown";
-import NFTToTSHOTPanel from "./NFTToTSHOTPanel";
-import TSHOTToNFTPanel from "./TSHOTToNFTPanel";
-import MomentSelection from "./MomentSelection";
-import AccountSelection from "./AccountSelection";
-import TransactionModal from "./TransactionModal";
+import Dropdown, { FROM_OPTIONS } from "../components/Dropdown";
+import NFTToTSHOTPanel from "../components/NFTToTSHOTPanel";
+import TSHOTToNFTPanel from "../components/TSHOTToNFTPanel";
+import MomentSelection from "../components/MomentSelection";
+import AccountSelection from "../components/AccountSelection";
+import TransactionModal from "../components/TransactionModal";
 import { AnimatePresence } from "framer-motion";
-import MomentCard from "./MomentCard";
+import MomentCard from "../components/MomentCard";
 
 function getTotalTSHOTBalance(accountData) {
   if (!accountData) return 0;

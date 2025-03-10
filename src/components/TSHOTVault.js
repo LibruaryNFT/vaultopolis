@@ -1,20 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Loader2 } from "lucide-react";
-
-/** Tier color mapping (for filter labels and vault cards) */
-const tierStyles = {
-  common: "text-gray-400",
-  fandom: "text-lime-400",
-  rare: "text-blue-500",
-  legendary: "text-orange-500",
-  ultimate: "text-pink-500",
-};
+import MomentCard, { tierStyles } from "./MomentCard"; // Using the new MomentCard & its tierStyles
 
 const ALL_TIER_OPTIONS = ["common", "fandom", "rare", "legendary", "ultimate"];
 
 /**
- * Returns the display name for a vault NFT, ignoring aggregator's literal "Unknown Player"
- * so we can fallback to `teamAtMoment` if present.
+ * Returns the display name for an NFT.
+ * If the NFT's fullName is "Unknown Player", it falls back to playerName then teamAtMoment.
  */
 function getDisplayedName(nft) {
   const forcedUnknowns = ["Unknown Player", "unknown player"];
@@ -23,75 +15,6 @@ function getDisplayedName(nft) {
     candidate = null;
   }
   return candidate || nft?.playerName || nft?.teamAtMoment || "Unknown Player";
-}
-
-/** Single NFT Card in the vault */
-function NftCard({ nft }) {
-  const [imageUrl, setImageUrl] = useState("");
-
-  useEffect(() => {
-    // If we have (setID, playID), build your custom vault image URL
-    if (nft?.setID && nft?.playID) {
-      setImageUrl(
-        `https://storage.googleapis.com/flowconnect/topshot/images_small/${nft.setID}_${nft.playID}.jpg`
-      );
-    }
-  }, [nft?.setID, nft?.playID]);
-
-  // Display name ignoring "Unknown Player"
-  const displayName = getDisplayedName(nft);
-
-  // Tier stylings
-  const tierClass = nft?.tier
-    ? tierStyles[nft.tier.toLowerCase()] || "text-gray-400"
-    : "text-gray-400";
-
-  const tierLabel = nft?.tier
-    ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
-    : "Unknown Tier";
-
-  // finalMintCount => if subedition, show subeditionMaxMint; else momentCount
-  const finalMintCount = nft?.subeditionID
-    ? nft?.subeditionMaxMint
-    : nft?.momentCount;
-
-  return (
-    <div
-      className="border bg-black rounded relative p-1 font-inter text-white border-gray-600 overflow-hidden"
-      style={{ width: "7rem", height: "12rem" }}
-    >
-      {imageUrl && (
-        <div
-          className="relative overflow-hidden rounded mx-auto"
-          style={{ height: "80px", width: "80px" }}
-        >
-          <img
-            src={imageUrl}
-            alt={`${displayName} moment`}
-            className="object-cover w-full h-full transform scale-150"
-            style={{ objectPosition: "center" }}
-          />
-        </div>
-      )}
-      <h3 className="text-center text-white mt-1 text-xs font-semibold truncate whitespace-nowrap">
-        {displayName}
-      </h3>
-      <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
-        Series {nft?.series ?? "?"}
-      </p>
-      <p
-        className={`text-center ${tierClass} text-xs truncate whitespace-nowrap`}
-      >
-        {tierLabel}
-      </p>
-      <p className="text-center text-xs text-gray-400 truncate whitespace-nowrap">
-        {nft?.serialNumber ?? "?"} / {finalMintCount ?? "?"}
-      </p>
-      <p className="text-center text-gray-400 text-xs truncate whitespace-nowrap">
-        {nft?.name || "Unknown Set"}
-      </p>
-    </div>
-  );
 }
 
 /**
@@ -105,9 +28,9 @@ async function enrichVaultMoments(vaultNfts) {
       metadataCache = JSON.parse(cached);
     } else {
       const resp = await fetch(
-        "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-data"
+        "https://flowconnectbackend-864654c6a577.herokuapp.com/tshot-data"
       );
-      const data = await resp.json(); // Should be an array
+      const data = await resp.json();
       metadataCache = data.reduce((acc, item) => {
         const key = `${item.setID}-${item.playID}`;
         acc[key] = item;
@@ -118,7 +41,6 @@ async function enrichVaultMoments(vaultNfts) {
   } catch (err) {
     console.error("Error loading metadata for vault enrichment:", err);
   }
-
   return vaultNfts.map((nft) => {
     const key = `${nft.setID}-${nft.playID}`;
     const meta = metadataCache[key];
@@ -134,14 +56,13 @@ async function enrichVaultMoments(vaultNfts) {
         "Unknown Player",
       momentCount: Number(meta.momentCount) || nft.momentCount,
       jerseyNumber:
-        meta.JerseyNumber || meta.jerseyNumber || nft.jerseyNumber || null,
+        (nft.jerseyNumber != null ? parseInt(nft.jerseyNumber, 10) : null) ||
+        (meta.JerseyNumber != null ? parseInt(meta.JerseyNumber, 10) : null),
       series: meta.series !== undefined ? meta.series : nft.series,
       name: meta.name || nft.name,
-      // If your aggregator includes subeditionID + subeditionMaxMint, copy them too:
       subeditionID: nft.subeditionID || meta.subeditionID || null,
       subeditionMaxMint:
         nft.subeditionMaxMint || meta.subeditionMaxMint || null,
-      // Also copy "TeamAtMoment" if it exists:
       teamAtMoment: meta.TeamAtMoment || nft.teamAtMoment,
     };
   });
@@ -152,7 +73,7 @@ function TSHOTVault() {
   const [loadingVault, setLoadingVault] = useState(false);
   const [vaultError, setVaultError] = useState("");
 
-  // Fetch vault data on mount & enrich with metadata
+  // Fetch vault data and enrich metadata on mount
   useEffect(() => {
     async function fetchVaultData() {
       setLoadingVault(true);
@@ -161,12 +82,10 @@ function TSHOTVault() {
         const response = await fetch(
           "https://flowconnectbackend-864654c6a577.herokuapp.com/tshot-vault"
         );
-        if (!response.ok) {
+        if (!response.ok)
           throw new Error(`HTTP error! status: ${response.status}`);
-        }
         const data = await response.json();
         const nfts = Array.isArray(data) ? data : data.data || [];
-
         const enrichedNfts = await enrichVaultMoments(nfts);
         setAllNfts(enrichedNfts);
       } catch (err) {
@@ -178,24 +97,30 @@ function TSHOTVault() {
     fetchVaultData();
   }, []);
 
+  // --- Filter State ---
+  const [selectedTiers, setSelectedTiers] = useState([]);
+  const [selectedSeries, setSelectedSeries] = useState([]);
+  const [selectedSetName, setSelectedSetName] = useState("All");
+  const [selectedPlayer, setSelectedPlayer] = useState("All");
+  const [onlySpecialSerials, setOnlySpecialSerials] = useState(false);
+  const [itemsPerPage] = useState(50);
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Tiers
   const existingTiers = useMemo(() => {
     const found = new Set();
-    for (const nft of allNfts) {
+    allNfts.forEach((nft) => {
       if (nft?.tier) {
         found.add(nft.tier.toLowerCase());
       }
-    }
+    });
     return ALL_TIER_OPTIONS.filter((t) => found.has(t));
   }, [allNfts]);
-
-  const [selectedTiers, setSelectedTiers] = useState([]);
   useEffect(() => {
     if (existingTiers.length && selectedTiers.length === 0) {
       setSelectedTiers(existingTiers);
     }
   }, [existingTiers, selectedTiers]);
-
   const toggleTier = (tierVal) => {
     setSelectedTiers((prev) =>
       prev.includes(tierVal)
@@ -216,14 +141,11 @@ function TSHOTVault() {
     s.delete(null);
     return Array.from(s).sort((a, b) => a - b);
   }, [allNfts]);
-
-  const [selectedSeries, setSelectedSeries] = useState([]);
   useEffect(() => {
     if (seriesOptions.length && selectedSeries.length === 0) {
       setSelectedSeries(seriesOptions);
     }
   }, [seriesOptions, selectedSeries]);
-
   const toggleSeries = (val) => {
     setSelectedSeries((prev) =>
       prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]
@@ -231,85 +153,111 @@ function TSHOTVault() {
     setCurrentPage(1);
   };
 
+  // Define handleAllSeriesToggle so that "All" toggles work
+  const handleAllSeriesToggle = (checked) => {
+    if (checked) {
+      setSelectedSeries(seriesOptions);
+    } else {
+      setSelectedSeries([]);
+    }
+    setCurrentPage(1);
+  };
+
   // Set Name
-  const [selectedSetName, setSelectedSetName] = useState("All");
   const setNameOptions = useMemo(() => {
     const s = new Set(allNfts.map((n) => n.name).filter(Boolean));
     return Array.from(s).sort((a, b) => a.localeCompare(b));
   }, [allNfts]);
 
-  // Player
-  const [selectedPlayer, setSelectedPlayer] = useState("All");
-  const playerOptions = useMemo(() => {
-    const forcedUnknowns = new Set(["Unknown Player", "unknown player"]);
-    const p = new Set(
-      allNfts
-        .map((n) => n.fullName)
-        .filter((val) => val && !forcedUnknowns.has(val.trim()))
-    );
-    return [...p].sort((a, b) => a.localeCompare(b));
-  }, [allNfts]);
-
-  // Special Serials: "Show only #1, jersey match, or last mint"
-  const [onlySpecialSerials, setOnlySpecialSerials] = useState(false);
-  const toggleOnlySpecialSerials = () => {
-    setOnlySpecialSerials((prev) => !prev);
-    setCurrentPage(1);
-  };
-
-  // Pagination
-  const [itemsPerPage] = useState(50);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Filter the NFTs
-  const filteredNfts = useMemo(() => {
-    if (!allNfts.length) return [];
-
+  // Player: using getDisplayedName for filtering; make comparisons case-insensitive
+  const subsetForPlayers = useMemo(() => {
     return allNfts.filter((n) => {
-      // 1) Tier
-      const tier = n?.tier?.toLowerCase();
-      if (!selectedTiers.includes(tier)) return false;
-
-      // 2) Series
-      const numSeries = Number(n.series);
-      if (Number.isNaN(numSeries) || !selectedSeries.includes(numSeries)) {
-        return false;
-      }
-
-      // 3) Set
-      if (selectedSetName !== "All" && n.name !== selectedSetName) {
-        return false;
-      }
-
-      // 4) Player
-      //    Check n.fullName, ignoring "unknown" if it snuck through
-      if (selectedPlayer !== "All") {
-        if (
-          !n.fullName ||
-          n.fullName.trim().toLowerCase() === "unknown player"
-        ) {
-          return false;
-        }
-        if (n.fullName !== selectedPlayer) {
-          return false;
-        }
-      }
-
-      // 5) If onlySpecialSerials => keep only #1, jersey, or last
+      const t = n?.tier?.toLowerCase();
+      if (!selectedTiers.includes(t)) return false;
+      const s = Number(n.series);
+      if (Number.isNaN(s) || !selectedSeries.includes(s)) return false;
+      if (selectedSetName !== "All" && n.name !== selectedSetName) return false;
       if (onlySpecialSerials) {
         const sn = parseInt(n.serialNumber, 10);
-        // subedition => use subeditionMaxMint, else momentCount
         const effectiveMax =
           n.subeditionID && n.subeditionMaxMint
             ? parseInt(n.subeditionMaxMint, 10)
             : parseInt(n.momentCount, 10);
-
-        const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
+        const jersey =
+          n.jerseyNumber != null ? parseInt(n.jerseyNumber, 10) : null;
         const isSpecial =
-          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
+          sn === 1 || sn === effectiveMax || (jersey !== null && jersey === sn);
         if (!isSpecial) return false;
       }
+      return true;
+    });
+  }, [
+    allNfts,
+    selectedTiers,
+    selectedSeries,
+    selectedSetName,
+    onlySpecialSerials,
+  ]);
+  const playerOptions = useMemo(() => {
+    const forcedUnknowns = new Set(["unknown player"]);
+    const p = new Set(
+      subsetForPlayers
+        .map((n) => getDisplayedName(n).trim())
+        .filter((val) => val && !forcedUnknowns.has(val.toLowerCase()))
+    );
+    return [...p].sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    );
+  }, [subsetForPlayers]);
 
+  // --- Reset selected set/player if no longer available ---
+  useEffect(() => {
+    if (
+      selectedSetName !== "All" &&
+      !setNameOptions.includes(selectedSetName)
+    ) {
+      setSelectedSetName("All");
+    }
+  }, [selectedSetName, setNameOptions]);
+  useEffect(() => {
+    if (
+      selectedPlayer !== "All" &&
+      !playerOptions
+        .map((p) => p.toLowerCase())
+        .includes(selectedPlayer.toLowerCase())
+    ) {
+      setSelectedPlayer("All");
+    }
+  }, [selectedPlayer, playerOptions]);
+
+  // --- Filtering Logic for NFTs to Display ---
+  const filteredNfts = useMemo(() => {
+    if (!allNfts.length) return [];
+    return allNfts.filter((n) => {
+      const tier = n?.tier?.toLowerCase();
+      if (!selectedTiers.includes(tier)) return false;
+      const numSeries = Number(n.series);
+      if (Number.isNaN(numSeries) || !selectedSeries.includes(numSeries))
+        return false;
+      if (selectedSetName !== "All" && n.name !== selectedSetName) return false;
+      // Case-insensitive check for player
+      if (
+        selectedPlayer !== "All" &&
+        getDisplayedName(n).toLowerCase() !== selectedPlayer.toLowerCase()
+      )
+        return false;
+      if (onlySpecialSerials) {
+        const sn = parseInt(n.serialNumber, 10);
+        const effectiveMax =
+          n.subeditionID && n.subeditionMaxMint
+            ? parseInt(n.subeditionMaxMint, 10)
+            : parseInt(n.momentCount, 10);
+        const jersey =
+          n.jerseyNumber != null ? parseInt(n.jerseyNumber, 10) : null;
+        const isSpecial =
+          sn === 1 || sn === effectiveMax || (jersey !== null && jersey === sn);
+        if (!isSpecial) return false;
+      }
       return true;
     });
   }, [
@@ -321,29 +269,25 @@ function TSHOTVault() {
     onlySpecialSerials,
   ]);
 
-  // Sort by serialNumber ascending
+  // --- Sorting and Pagination ---
   const sortedNfts = useMemo(() => {
     return [...filteredNfts].sort(
       (a, b) => parseInt(a.serialNumber, 10) - parseInt(b.serialNumber, 10)
     );
   }, [filteredNfts]);
 
-  // Paginate
   const totalPages = Math.ceil(sortedNfts.length / itemsPerPage);
   const paginatedNfts = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return sortedNfts.slice(start, start + itemsPerPage);
   }, [sortedNfts, currentPage, itemsPerPage]);
 
-  // Render Pagination
+  // --- Smart Pagination UI ---
   const renderPaginationButtons = () => {
     if (totalPages <= 1) return null;
     const pages = [];
-
     if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else if (currentPage <= 4) {
       pages.push(1, 2, 3, 4, 5, "...", totalPages);
     } else if (currentPage > totalPages - 4) {
@@ -367,7 +311,6 @@ function TSHOTVault() {
         totalPages
       );
     }
-
     return (
       <div className="flex justify-center mt-4">
         {pages.map((p, idx) => (
@@ -392,7 +335,6 @@ function TSHOTVault() {
       <h3 className="text-lg font-bold text-white mb-2">
         TSHOT Vault Contents
       </h3>
-
       <div className="flex justify-between items-center mb-2">
         {loadingVault ? (
           <div className="flex items-center gap-2">
@@ -406,7 +348,6 @@ function TSHOTVault() {
           </p>
         )}
       </div>
-
       {vaultError && <p className="text-red-500 mb-2">Error: {vaultError}</p>}
 
       {/* FILTER UI */}
@@ -435,14 +376,24 @@ function TSHOTVault() {
               </div>
             </div>
           )}
-
           {/* Series Filter */}
           {seriesOptions.length > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-gray-200 font-semibold">Series:</span>
               <div className="flex items-center gap-2 flex-wrap">
+                <label className="flex items-center gap-1 text-gray-200">
+                  <input
+                    type="checkbox"
+                    checked={selectedSeries.length === seriesOptions.length}
+                    onChange={(e) => handleAllSeriesToggle(e.target.checked)}
+                  />
+                  All
+                </label>
                 {seriesOptions.map((val) => (
-                  <label key={val} className="flex items-center gap-1">
+                  <label
+                    key={val}
+                    className="flex items-center gap-1 text-gray-200"
+                  >
                     <input
                       type="checkbox"
                       checked={selectedSeries.includes(val)}
@@ -454,8 +405,7 @@ function TSHOTVault() {
               </div>
             </div>
           )}
-
-          {/* Set Name */}
+          {/* Set Name Filter */}
           {setNameOptions.length > 0 && (
             <div className="flex items-center gap-1">
               <span className="text-gray-200 font-semibold">Set:</span>
@@ -467,17 +417,18 @@ function TSHOTVault() {
                 }}
                 className="bg-gray-800 text-white rounded px-1 py-0.5"
               >
-                <option value="All">All</option>
+                <option value="All" className="text-white">
+                  All
+                </option>
                 {setNameOptions.map((name) => (
-                  <option key={name} value={name}>
+                  <option key={name} value={name} className="text-white">
                     {name}
                   </option>
                 ))}
               </select>
             </div>
           )}
-
-          {/* Player */}
+          {/* Player Filter */}
           {playerOptions.length > 0 && (
             <div className="flex items-center gap-1">
               <span className="text-gray-200 font-semibold">Player:</span>
@@ -489,22 +440,26 @@ function TSHOTVault() {
                 }}
                 className="bg-gray-800 text-white rounded px-1 py-0.5"
               >
-                <option value="All">All</option>
+                <option value="All" className="text-white">
+                  All
+                </option>
                 {playerOptions.map((p) => (
-                  <option key={p} value={p}>
+                  <option key={p} value={p} className="text-white">
                     {p}
                   </option>
                 ))}
               </select>
             </div>
           )}
-
-          {/* Only #1, Jersey, or Last Mint */}
+          {/* Special Serials Filter */}
           <div className="flex items-center gap-1">
             <input
               type="checkbox"
               checked={onlySpecialSerials}
-              onChange={toggleOnlySpecialSerials}
+              onChange={() => {
+                setOnlySpecialSerials((prev) => !prev);
+                setCurrentPage(1);
+              }}
             />
             <label className="text-gray-200">
               Show only #1, jersey match, or last mint
@@ -519,7 +474,12 @@ function TSHOTVault() {
           {paginatedNfts.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {paginatedNfts.map((nft) => (
-                <NftCard key={nft.id} nft={nft} />
+                <MomentCard
+                  key={nft.id}
+                  nft={nft}
+                  isVault
+                  disableHover={true}
+                />
               ))}
             </div>
           ) : (
@@ -527,8 +487,6 @@ function TSHOTVault() {
               No moments match your filters.
             </p>
           )}
-
-          {/* Pagination */}
           {renderPaginationButtons()}
         </>
       )}
