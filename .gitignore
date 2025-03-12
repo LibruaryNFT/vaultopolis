@@ -8,3 +8,4 @@ imports
 *.log
 /node_modules
 .env
+*.csv
