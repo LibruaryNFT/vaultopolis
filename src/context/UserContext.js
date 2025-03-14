@@ -1,3 +1,5 @@
+// src/context/UserProvider.js
+
 import React, {
   createContext,
   useReducer,
@@ -36,10 +38,7 @@ const SUBEDITIONS = {
 
 export const UserContext = createContext();
 
-/**
- * Merges your DB-based metadata (keyed by setID-playID) + subedition data.
- * If metadata is missing, we log a warning.
- */
+// Merges DB-based metadata + subedition data into the raw NFT objects
 const enrichWithMetadata = async (details, metadataCache) => {
   return details.map((nft) => {
     const key = `${nft.setID}-${nft.playID}`;
@@ -47,7 +46,7 @@ const enrichWithMetadata = async (details, metadataCache) => {
 
     let enriched = { ...nft };
 
-    // 1) Merge standard edition data if found
+    // Merge any known standard edition data from backend
     if (meta) {
       enriched.tier = meta.tier || enriched.tier;
       enriched.fullName =
@@ -62,7 +61,6 @@ const enrichWithMetadata = async (details, metadataCache) => {
       enriched.retired =
         meta.retired !== undefined ? meta.retired : enriched.retired;
       enriched.playOrder = meta.playOrder || enriched.playOrder;
-
       if (meta.series !== undefined && meta.series !== null) {
         enriched.series = meta.series;
       }
@@ -79,7 +77,7 @@ const enrichWithMetadata = async (details, metadataCache) => {
       );
     }
 
-    // 2) Subedition data if subeditionID
+    // Merge subedition data if subeditionID is present
     if (nft.subeditionID && SUBEDITIONS[nft.subeditionID]) {
       const sub = SUBEDITIONS[nft.subeditionID];
       enriched.subeditionName = sub.name;
@@ -131,7 +129,8 @@ function userReducer(state, action) {
         selectedAccountType: action.payload.type,
         selectedNFTs: [],
       };
-    case "SET_SELECTED_NFTS": {
+    case "SET_SELECTED_NFTS":
+      // toggles selection
       const isSelected = state.selectedNFTs.includes(action.payload);
       return {
         ...state,
@@ -139,7 +138,6 @@ function userReducer(state, action) {
           ? state.selectedNFTs.filter((id) => id !== action.payload)
           : [...state.selectedNFTs, action.payload],
       };
-    }
     case "RESET_SELECTED_NFTS":
       return { ...state, selectedNFTs: [] };
     case "RESET_STATE":
@@ -175,9 +173,9 @@ export const UserProvider = ({ children }) => {
   const [state, dispatch] = useReducer(userReducer, initialState);
   const [didLoad, setDidLoad] = useState(false);
 
-  /***************************
-   * Basic fetch functions
-   ***************************/
+  /************************************************************
+   * Basic fetch functions (balances, receipts, etc.)
+   ************************************************************/
   const fetchFLOWBalance = useCallback(async (address) => {
     if (!address?.startsWith("0x")) return 0;
     try {
@@ -216,6 +214,9 @@ export const UserProvider = ({ children }) => {
 
   /**
    * loadTopShotMetadata => check localStorage for 1-hour TTL; otherwise fetch new
+   *
+   * This is your “normal” caching approach. If you want to
+   * always bypass the cache, see forceFetchTopShotMetadata below.
    */
   const loadTopShotMetadata = useCallback(async () => {
     try {
@@ -224,7 +225,7 @@ export const UserProvider = ({ children }) => {
 
       const raw = localStorage.getItem("topshotMetadata");
       if (raw) {
-        // We'll have { timestamp, data } if previously stored
+        // We'll have { timestamp, data }
         const parsed = JSON.parse(raw);
         if (parsed.timestamp && parsed.data) {
           const age = now - parsed.timestamp;
@@ -241,31 +242,8 @@ export const UserProvider = ({ children }) => {
       }
 
       // Otherwise fetch from your backend
-      const baseUrl =
-        process.env.REACT_APP_API_BASE_URL ||
-        "https://flowconnectbackend-864654c6a577.herokuapp.com";
-      const resp = await fetch(`${baseUrl}/topshot-data`);
-      if (!resp.ok) {
-        throw new Error(`HTTP Error: ${resp.status}`);
-      }
-      const data = await resp.json();
-
-      // Build the map
-      const metadataMap = data.reduce((acc, item) => {
-        const key = `${item.setID}-${item.playID}`;
-        acc[key] = item;
-        return acc;
-      }, {});
-
-      // Store with timestamp for next time
-      const toStore = {
-        timestamp: now,
-        data: metadataMap,
-      };
-      localStorage.setItem("topshotMetadata", JSON.stringify(toStore));
-
-      dispatch({ type: "SET_METADATA_CACHE", payload: metadataMap });
-      return metadataMap;
+      const fresh = await fetchRemoteTopShotMetadata();
+      return fresh;
     } catch (err) {
       console.error("Error loading TopShot metadata:", err);
       return {};
@@ -273,8 +251,53 @@ export const UserProvider = ({ children }) => {
   }, [dispatch]);
 
   /**
-   * Fetch entire TopShot collection, merging subedition + metadata
+   * forceFetchTopShotMetadata => always fetch from server, ignoring any localStorage TTL.
+   * This is used if we detect brand-new setID/playIDs that the local cache doesn't have.
    */
+  const fetchRemoteTopShotMetadata = async () => {
+    try {
+      const now = Date.now();
+      const baseUrl =
+        process.env.REACT_APP_API_BASE_URL ||
+        "https://flowconnectbackend-864654c6a577.herokuapp.com";
+
+      const resp = await fetch(`${baseUrl}/topshot-data`);
+      if (!resp.ok) {
+        throw new Error(`HTTP Error: ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      // Build the map: { "setID-playID": {...}, ... }
+      const metadataMap = data.reduce((acc, item) => {
+        const key = `${item.setID}-${item.playID}`;
+        acc[key] = item;
+        return acc;
+      }, {});
+
+      // Update state & localStorage
+      const toStore = {
+        timestamp: now,
+        data: metadataMap,
+      };
+      localStorage.setItem("topshotMetadata", JSON.stringify(toStore));
+      dispatch({ type: "SET_METADATA_CACHE", payload: metadataMap });
+      return metadataMap;
+    } catch (err) {
+      console.error("Error in forceFetchTopShotMetadata:", err);
+      return {};
+    }
+  };
+
+  /************************************************************
+   * fetchTopShotCollection (Gemini's approach integrated)
+   *
+   *  1. Query if user has collection
+   *  2. Fetch user’s NFT IDs
+   *  3. Fetch the raw data in batches
+   *  4. Detect if any new NFT IDs are missing from the metadata cache
+   *  5. If missing => do a forced metadata fetch
+   *  6. Enrich and return
+   ************************************************************/
   const fetchTopShotCollection = useCallback(
     async (address) => {
       if (!address?.startsWith("0x")) {
@@ -282,7 +305,7 @@ export const UserProvider = ({ children }) => {
       }
 
       try {
-        // 1) Does the user have a moment collection?
+        // 1) Does user have a collection?
         const hasColl = await fcl.query({
           cadence: verifyTopShotCollection,
           args: (arg, t) => [arg(address, t.Address)],
@@ -322,7 +345,7 @@ export const UserProvider = ({ children }) => {
           )
         );
 
-        // Flatten
+        // Flatten the results
         const rawNFTs = allResults.flat().map((n) => ({
           ...n,
           id: Number(n.id),
@@ -333,20 +356,37 @@ export const UserProvider = ({ children }) => {
           subeditionID: n.subeditionID != null ? Number(n.subeditionID) : null,
         }));
 
-        // 4) Merge with local metadata
-        // Ensure we unwrap .data if localStorage has {timestamp,data}
-        const storedRaw = JSON.parse(
-          localStorage.getItem("topshotMetadata") || "{}"
-        );
-        const localStorageMap = storedRaw.data || storedRaw;
-        const localMeta = state.metadataCache || localStorageMap || {};
+        // 4) Check if any new setID/playID is missing from the current metadata cache
+        //    We'll use state.metadataCache if available; otherwise check localStorage
+        let currentCache = state.metadataCache;
+        if (!currentCache) {
+          // If we haven't loaded metadata yet, do so (normal approach)
+          currentCache = await loadTopShotMetadata();
+        }
 
-        const enriched = await enrichWithMetadata(rawNFTs, localMeta);
+        // By now, currentCache should be something (even if empty {})
+        const missingMetadata = rawNFTs.some((nft) => {
+          const key = `${nft.setID}-${nft.playID}`;
+          return !currentCache[key];
+        });
 
-        // 5) Build tierCounts
+        if (missingMetadata) {
+          console.log(
+            "[fetchTopShotCollection] Detected newly minted/purchased NFTs -> Forcing metadata refresh..."
+          );
+          // 5) Force fetch to get the updated map
+          currentCache = await fetchRemoteTopShotMetadata();
+        }
+
+        // 6) Now that we have the final up-to-date cache, enrich the raw NFT objects
+        const enriched = await enrichWithMetadata(rawNFTs, currentCache);
+
+        // Build tierCounts
         const tierCounts = enriched.reduce((acc, nft) => {
           const tier = nft.tier?.toLowerCase();
-          if (tier) acc[tier] = (acc[tier] || 0) + 1;
+          if (tier) {
+            acc[tier] = (acc[tier] || 0) + 1;
+          }
           return acc;
         }, {});
 
@@ -356,12 +396,12 @@ export const UserProvider = ({ children }) => {
         return { hasCollection: false, details: [], tierCounts: {} };
       }
     },
-    [state.metadataCache]
+    [state.metadataCache, loadTopShotMetadata]
   );
 
-  /***********************************************
-   * loadParentData => fetch NFT collection
-   ***********************************************/
+  /************************************************************
+   * loadParentData => parent's NFT collection, balances, etc.
+   ************************************************************/
   const loadParentData = useCallback(
     async (addr) => {
       if (!addr || !addr.startsWith("0x")) return;
@@ -400,6 +440,9 @@ export const UserProvider = ({ children }) => {
     ]
   );
 
+  /************************************************************
+   * loadChildData => single child's NFT collection
+   ************************************************************/
   const loadChildData = useCallback(
     async (childAddr) => {
       if (!childAddr || !childAddr.startsWith("0x")) return;
@@ -410,7 +453,8 @@ export const UserProvider = ({ children }) => {
           fetchTopShotCollection(childAddr),
           fetchReceiptDetails(childAddr),
         ]);
-        // Store child data in state
+
+        // Store child data
         dispatch((prev) => {
           const oldList = prev.accountData.childrenData || [];
           const updatedChild = {
@@ -445,6 +489,9 @@ export const UserProvider = ({ children }) => {
     ]
   );
 
+  /************************************************************
+   * loadChildrenData => multiple children, parallel
+   ************************************************************/
   const loadChildrenData = useCallback(
     async (childAddresses) => {
       if (!Array.isArray(childAddresses)) return;
@@ -489,6 +536,10 @@ export const UserProvider = ({ children }) => {
     ]
   );
 
+  /************************************************************
+   * checkForChildren => see if user has any children,
+   * then load them in parallel
+   ************************************************************/
   const checkForChildren = useCallback(
     async (parentAddr) => {
       if (!parentAddr || !parentAddr.startsWith("0x")) return false;
@@ -523,20 +574,20 @@ export const UserProvider = ({ children }) => {
     [loadChildrenData, dispatch]
   );
 
-  /**
-   * loadAllUserData => parent's data + children data + optional flowPrice
-   */
+  /************************************************************
+   * loadAllUserData => parent + children + possibly flowPrice
+   ************************************************************/
   const loadAllUserData = useCallback(
     async (address) => {
       if (!address) return;
 
-      // 1) Load metadata with 1-hour TTL
+      // 1) Load metadata w/ TTL if needed
       await loadTopShotMetadata();
 
-      // 2) Load parent's
+      // 2) Load parent's data
       await loadParentData(address);
 
-      // 3) Check children
+      // 3) Check for children
       await checkForChildren(address);
 
       // 4) Possibly fetch flowPricePerNFT
@@ -553,7 +604,7 @@ export const UserProvider = ({ children }) => {
     [loadTopShotMetadata, loadParentData, checkForChildren, dispatch]
   );
 
-  // FCL user subscription
+  // Subscribe to FCL user
   useEffect(() => {
     const unsub = fcl.currentUser.subscribe((currentUser) => {
       dispatch({ type: "SET_USER", payload: currentUser });
@@ -565,7 +616,7 @@ export const UserProvider = ({ children }) => {
     return () => unsub();
   }, [dispatch]);
 
-  // Once user logs in
+  // Once user logs in, load everything once
   useEffect(() => {
     const { loggedIn, addr } = state.user || {};
     if (loggedIn && addr && !didLoad) {
@@ -599,7 +650,7 @@ export const UserProvider = ({ children }) => {
     return () => clearInterval(timer);
   }, [state.user, fetchFLOWBalance, fetchTSHOTBalance, dispatch]);
 
-  // Debug
+  // Debug (optional)
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
       console.log("UserContext State:", state);
@@ -613,6 +664,14 @@ export const UserProvider = ({ children }) => {
       loadAllUserData,
       loadParentData,
       loadChildData,
+      // Optionally expose a manual refresh function:
+      refreshMetadataNow: async () => {
+        await fetchRemoteTopShotMetadata();
+        if (state.user?.addr) {
+          // re-load user data to ensure everything is in sync
+          loadAllUserData(state.user.addr);
+        }
+      },
     }),
     [state, dispatch, loadAllUserData, loadParentData, loadChildData]
   );
