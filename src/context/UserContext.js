@@ -255,6 +255,9 @@ export const UserProvider = ({ children }) => {
    * This is used if we detect brand-new setID/playIDs that the local cache doesn't have.
    */
   const fetchRemoteTopShotMetadata = async () => {
+    console.log(
+      "[fetchRemoteTopShotMetadata] Starting forced metadata fetch..."
+    );
     try {
       const now = Date.now();
       const baseUrl =
@@ -374,8 +377,14 @@ export const UserProvider = ({ children }) => {
           console.log(
             "[fetchTopShotCollection] Detected newly minted/purchased NFTs -> Forcing metadata refresh..."
           );
-          // 5) Force fetch to get the updated map
+
+          console.time("[Metadata Refresh Time]");
           currentCache = await fetchRemoteTopShotMetadata();
+          console.timeEnd("[Metadata Refresh Time]");
+
+          console.log(
+            "[fetchTopShotCollection] Metadata refresh is now complete."
+          );
         }
 
         // 6) Now that we have the final up-to-date cache, enrich the raw NFT objects
