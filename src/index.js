@@ -20,7 +20,11 @@ fcl
   .put("app.detail.description", "Vaultopolis")
   .put("app.detail.url", "https://vaultopolis.com")
   .put("0xFlowToken", "0x1654653399040a61")
-  .put("discovery.authn.include", ["0xc7efa8c33fceee03", "0x33f75ff0b830dcec"]);
+  .put("discovery.authn.exclude", [
+    "0x95b85a9ef4daabb1", // Nufi
+    "0xf086a545ce3c552d", // Blocto
+    "0x55ad22f01ef568a1", // Blocto2
+  ]);
 
 // Initialize QueryClient instance
 const queryClient = new QueryClient();

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@onflow/fcl": "^1.13.5",
+    "@onflow/fcl": "^1.13.6",
     "@onflow/fcl-wc": "^5.5.5",
     "@walletconnect/utils": "^2.19.0",
     "framer-motion": "^11.11.17",
