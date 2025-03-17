@@ -1,4 +1,5 @@
 // src/components/TSHOTToNFTPanel.js
+
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
@@ -9,22 +10,13 @@ import { revealSwap } from "../flow/revealSwap";
 import { getTopShotBatched } from "../flow/getTopShotBatched";
 
 /**
- * If your `enrichWithMetadata` is defined in the UserContext or a separate utility,
- * just import it. For example:
- *
- * import { enrichWithMetadata } from "../flow/enrichWithMetadata";
- *
- * OR if it's in the UserContext file, do something like:
- *
- * const { metadataCache, enrichWithMetadata } = useContext(UserContext);
- *
- * For simplicity, here we define the same function inline, but
- * you should reuse your actual implementation if possible.
+ * Example inlined "enrichWithMetadata" function.
+ * In your real code, you can import from your existing utility / UserContext.
  */
 async function enrichWithMetadata(nftList, metadataCache) {
-  if (!metadataCache) return nftList; // No local metadata? Just return as-is
+  if (!metadataCache) return nftList; // no local metadata? just return raw
 
-  // If you have a SUBEDITIONS constant, reference it here as well:
+  // If you have subedition data, reference it here as needed:
   const SUBEDITIONS = {
     1: { name: "Explosion", minted: 500 },
     2: { name: "Torn", minted: 1000 },
@@ -35,8 +27,6 @@ async function enrichWithMetadata(nftList, metadataCache) {
     const enriched = { ...nft };
     const key = `${nft.setID}-${nft.playID}`;
     const meta = metadataCache[key];
-
-    // Merge standard fields
     if (meta) {
       enriched.tier = meta.tier || enriched.tier;
       enriched.fullName =
@@ -45,13 +35,9 @@ async function enrichWithMetadata(nftList, metadataCache) {
         enriched.fullName ||
         enriched.playerName ||
         "Unknown Player";
-      enriched.momentCount = Number(meta.momentCount) || enriched.momentCount;
-      enriched.name = meta.name || enriched.name;
-      // If series is in meta, override
       if (typeof meta.series !== "undefined") {
         enriched.series = meta.series;
       }
-      // etc. (teamAtMoment, etc.)
       if (meta.TeamAtMoment) {
         enriched.teamAtMoment = meta.TeamAtMoment;
       }
@@ -67,7 +53,6 @@ async function enrichWithMetadata(nftList, metadataCache) {
       enriched.subeditionName = sub.name;
       enriched.subeditionMaxMint = sub.minted;
     }
-
     return enriched;
   });
 }
@@ -82,6 +67,7 @@ export default function TSHOTToNFTPanel({
     user,
     accountData,
     selectedAccount,
+    selectedAccountType, // 'parent' or 'child'
     loadAllUserData,
     loadChildData,
     metadataCache,
@@ -101,26 +87,25 @@ export default function TSHOTToNFTPanel({
     );
   }
 
-  // Step logic:
-  const depositStep = !accountData?.hasReceipt; // Step 1 => deposit TSHOT
-  const revealStep = !!accountData?.hasReceipt; // Step 2 => reveal minted NFTs
+  // The parent address from context
+  const parentAddr = accountData?.parentAddress || user?.addr;
 
-  // Parse the sellAmount safely (as integer for simplicity)
+  // Step logic: Are we on Step 1 or Step 2?
+  const depositStep = !accountData?.hasReceipt; // Step 1 if no receipt
+  const revealStep = !!accountData?.hasReceipt; // Step 2 if we do have a receipt
+
+  // Validate the numeric portion of sellAmount
   let numericValue = parseInt(sellAmount, 10);
   if (Number.isNaN(numericValue) || numericValue < 0) numericValue = 0;
-
-  // We'll define a simple range check: must be between 1 and 50 inclusive
   const isUnderMin = numericValue < 1;
   const isOverMax = numericValue > 50;
   const isValidAmount = !isUnderMin && !isOverMax;
 
-  // -----------------------------------
-  // STEP 1 => Deposit TSHOT
-  // -----------------------------------
+  // ---------------------------------------------
+  // STEP 1 => Deposit TSHOT (commitSwap)
+  // ---------------------------------------------
   async function handleDeposit() {
-    // If it's disabled or the amount is invalid, we bail
     if (depositDisabled || !isValidAmount) {
-      // Optionally, you can show an alert for clarity
       if (isOverMax) {
         alert("Max 50 TSHOT allowed. Please lower your amount.");
       } else if (isUnderMin) {
@@ -128,15 +113,12 @@ export default function TSHOTToNFTPanel({
       }
       return;
     }
-
-    const parentAddr = accountData?.parentAddress || user?.addr;
     if (!parentAddr?.startsWith("0x")) {
       alert("No valid parent address for deposit!");
       return;
     }
 
-    // Convert the integer to a UFix64 string ("10.0", "50.0", etc.)
-    const betAmount = `${numericValue}.0`;
+    const betAmount = `${numericValue}.0`; // e.g. "10.0"
 
     onTransactionStart?.({
       status: "Awaiting Approval",
@@ -166,7 +148,7 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // Subscribe to intermediate statuses
+      // subscribe to intermediate statuses
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -194,7 +176,7 @@ export default function TSHOTToNFTPanel({
         });
       });
 
-      // Wait for seal
+      // wait for seal
       await fcl.tx(txId).onceSealed();
 
       onTransactionStart?.({
@@ -206,7 +188,7 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // Refresh parent + child
+      // refresh parent + child if needed
       await loadAllUserData(parentAddr);
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
@@ -224,10 +206,11 @@ export default function TSHOTToNFTPanel({
     }
   }
 
-  // -----------------------------------
-  // STEP 2 => Reveal minted NFTs
-  // -----------------------------------
+  // ---------------------------------------------
+  // STEP 2 => Reveal minted NFTs (revealSwap)
+  // ---------------------------------------------
   async function handleReveal() {
+    // If the user had placed a bet earlier, there's a betAmount in the receipt
     const betFromReceipt = accountData?.receiptDetails?.betAmount;
     const fallback = numericValue.toString();
     const betInteger = betFromReceipt || fallback;
@@ -293,10 +276,10 @@ export default function TSHOTToNFTPanel({
         });
       });
 
-      // Wait for seal
+      // wait for seal
       const sealedResult = await fcl.tx(txId).onceSealed();
 
-      // Gather minted NFT IDs (TopShot deposit events)
+      // Gather minted NFT IDs from the deposit events
       const depositEvents = sealedResult.events.filter(
         (evt) =>
           evt.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
@@ -306,7 +289,7 @@ export default function TSHOTToNFTPanel({
 
       let revealedNFTDetails = [];
       if (receivedNFTIDs.length > 0) {
-        // 1) Grab raw NFT data
+        // 1) get raw NFT data
         revealedNFTDetails = await fcl.query({
           cadence: getTopShotBatched,
           args: (arg, t) => [
@@ -315,7 +298,7 @@ export default function TSHOTToNFTPanel({
           ],
         });
 
-        // 2) Enrich metadata
+        // 2) enrich metadata
         if (metadataCache) {
           revealedNFTDetails = await enrichWithMetadata(
             revealedNFTDetails,
@@ -335,8 +318,7 @@ export default function TSHOTToNFTPanel({
         revealedNFTDetails,
       });
 
-      // Finally, refresh parent + child
-      const parentAddr = accountData?.parentAddress || user?.addr;
+      // Refresh parent + child data
       await loadAllUserData(parentAddr);
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
@@ -356,11 +338,11 @@ export default function TSHOTToNFTPanel({
     }
   }
 
-  // -----------------------------------
-  // RENDER
-  // -----------------------------------
+  // -------------------------------------------------------------
+  // RENDER:
+  // -------------------------------------------------------------
+  // Step 1 => deposit TSHOT
   if (depositStep) {
-    // Step 1 => deposit TSHOT
     const buttonDisabled =
       depositDisabled || numericValue === 0 || isOverMax || isUnderMin;
 
@@ -378,7 +360,6 @@ export default function TSHOTToNFTPanel({
           (Step 1 of 2) Swap TSHOT for Moments
         </button>
 
-        {/* Inline help messages */}
         {!isValidAmount && (
           <div className="mt-2 text-red-400 text-sm">
             {isOverMax && (
@@ -398,20 +379,47 @@ export default function TSHOTToNFTPanel({
     );
   }
 
+  // Step 2 => reveal minted NFTs
   if (revealStep) {
-    // Step 2 => reveal minted NFTs
+    // 1) Determine if the currently selected account has a TS collection
+    const isParentSelected = selectedAccount === parentAddr;
+    let currentAccountHasCollection = false;
+
+    if (isParentSelected) {
+      currentAccountHasCollection = !!accountData?.hasCollection;
+    } else {
+      // Child path
+      const childData = accountData?.childrenData?.find(
+        (c) => c.addr === selectedAccount
+      );
+      currentAccountHasCollection = !!childData?.hasCollection;
+    }
+
+    const isRevealDisabled = !currentAccountHasCollection;
+
     return (
       <div className="bg-gray-700 rounded-lg p-4">
         <button
           onClick={handleReveal}
-          className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
+          disabled={isRevealDisabled}
+          className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
+            isRevealDisabled
+              ? "bg-gray-600 cursor-not-allowed"
+              : "bg-flow-dark hover:bg-flow-darkest"
+          }`}
         >
           (Step 2 of 2) Swap TSHOT for Moments
         </button>
+        {isRevealDisabled && (
+          <p className="text-red-400 mt-2 text-sm">
+            Please select an account that has a TopShot collection before
+            revealing your minted Moments.
+          </p>
+        )}
       </div>
     );
   }
 
-  // Fallback
+  // If something weird (no step 1 or 2?), just fallback
   return <div className="text-gray-400">Loading...</div>;
 }

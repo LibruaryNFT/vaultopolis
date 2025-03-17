@@ -9,6 +9,13 @@ import HybridCustody from 0xd8a7e05a7ac670c0
 
 transaction(childAddress: Address, nftIDs: [UInt64]) {
 
+        // --------------------------------------------------
+        // Enforce maximum of 200 NFTs
+        // --------------------------------------------------
+        pre {
+            nftIDs.length <= 200: "Cannot swap more than 200 NFTs at once."
+        }
+
     let nfts: @[TopShot.NFT]
     let signerAddress: Address
     let provider: auth(NonFungibleToken.Withdraw) & {NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}

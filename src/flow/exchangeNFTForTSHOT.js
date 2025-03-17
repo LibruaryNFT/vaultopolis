@@ -8,6 +8,13 @@ import FungibleToken from 0xf233dcee88fe0abe
 
 transaction(nftIDs: [UInt64]) {
 
+        // --------------------------------------------------
+        // Enforce maximum of 200 NFTs
+        // --------------------------------------------------
+        pre {
+            nftIDs.length <= 200: "Cannot swap more than 200 NFTs at once."
+        }
+
     let nfts: @[TopShot.NFT]
     let signerAddress: Address
 
