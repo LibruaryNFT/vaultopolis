@@ -7,6 +7,14 @@ import HybridCustody from 0xd8a7e05a7ac670c0
 transaction(childAddress: Address, betAmount: UFix64) {
 
     prepare(signer: auth(BorrowValue, SaveValue, Capabilities) &Account) {
+
+        // -------------------------------------------------
+        // Enforce a maximum bet of 50 TSHOT
+        // -------------------------------------------------
+        if betAmount > 50.0 {
+            panic("Cannot commit more than 50 TSHOT.")
+        }
+            
         // Borrow the HybridCustody manager from the parent's storage.
         let managerRef = signer
             .storage

@@ -7,6 +7,14 @@ import TSHOTExchange from 0x05b67ba314000b2d
 transaction(betAmount: UFix64) {
 
     prepare(signer: auth(BorrowValue, SaveValue, Capabilities) &Account) {
+
+        // -------------------------------------------------
+        // Enforce a maximum bet of 50 TSHOT
+        // -------------------------------------------------
+        if betAmount > 50.0 {
+            panic("Cannot commit more than 50 TSHOT.")
+        }
+
         // Withdraw the bet amount from the TSHOT token vault
         let tshotVault = signer.storage.borrow<auth(FungibleToken.Withdraw) &TSHOT.Vault>(from: /storage/TSHOTTokenVault)!
         let bet <- tshotVault.withdraw(amount: betAmount)
