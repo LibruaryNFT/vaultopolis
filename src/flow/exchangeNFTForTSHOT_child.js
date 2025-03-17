@@ -9,6 +9,12 @@ import HybridCustody from 0xd8a7e05a7ac670c0
 
 transaction(childAddress: Address, nftIDs: [UInt64]) {
 
+    let nfts: @[TopShot.NFT]
+    let signerAddress: Address
+    let provider: auth(NonFungibleToken.Withdraw) & {NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}
+
+    prepare(signer: auth(Storage, Capabilities) & Account) {
+
         // --------------------------------------------------
         // Enforce maximum of 200 NFTs
         // --------------------------------------------------
@@ -16,11 +22,6 @@ transaction(childAddress: Address, nftIDs: [UInt64]) {
             nftIDs.length <= 200: "Cannot swap more than 200 NFTs at once."
         }
 
-    let nfts: @[TopShot.NFT]
-    let signerAddress: Address
-    let provider: auth(NonFungibleToken.Withdraw) & {NonFungibleToken.Provider, NonFungibleToken.CollectionPublic}
-
-    prepare(signer: auth(Storage, Capabilities) & Account) {
         // Store the signer's (parent's) address for use in the execute phase
         self.signerAddress = signer.address
 

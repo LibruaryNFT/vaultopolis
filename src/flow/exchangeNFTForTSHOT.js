@@ -8,17 +8,18 @@ import FungibleToken from 0xf233dcee88fe0abe
 
 transaction(nftIDs: [UInt64]) {
 
+    let nfts: @[TopShot.NFT]
+    let signerAddress: Address
+
+    prepare(signer: auth(Capabilities, Storage) &Account) {
+
         // --------------------------------------------------
         // Enforce maximum of 200 NFTs
         // --------------------------------------------------
         pre {
             nftIDs.length <= 200: "Cannot swap more than 200 NFTs at once."
         }
-
-    let nfts: @[TopShot.NFT]
-    let signerAddress: Address
-
-    prepare(signer: auth(Capabilities, Storage) &Account) {
+            
         // Store the signer's address for use in the execute phase
         self.signerAddress = signer.address
 
