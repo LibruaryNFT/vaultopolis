@@ -10,7 +10,6 @@ import TermsAndPrivacy from "./pages/TermsAndPrivacy";
 import Layout from "./layout/Layout";
 import Swap from "./pages/Swap";
 import Transfer from "./pages/Transfer";
-import ReceiptManagement from "./pages/ReceiptManagement";
 
 // Enforce HTTPS only in production
 function enforceHTTPS() {
@@ -37,14 +36,7 @@ const router = createBrowserRouter(
         </Layout>
       ),
     },
-    {
-      path: "/receipt",
-      element: (
-        <Layout>
-          <ReceiptManagement />
-        </Layout>
-      ),
-    },
+
     {
       path: "/swap",
       element: (
