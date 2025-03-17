@@ -99,6 +99,8 @@ access(all) contract TSHOTExchange {
         pre {
             bet.balance > 0.0:
             "Cannot commit to the swap! The provided vault's balance is 0.0."
+            bet.balance <= 50.0:
+                "Cannot commit more than 50 TSHOT in a single transaction."
             bet.getType() == Type<@TSHOT.Vault>():
             "Cannot commit to swap! The type of the provided vault <".concat(bet.getType().identifier).concat("> is invalid. The vault must be a TSHOTToken Vault.")
             bet.balance % 1.0 == 0.0:

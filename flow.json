@@ -371,7 +371,9 @@
 			"emulator-account": []
 		},
 		"mainnet": {
-			"mainnet-account3": []
+			"mainnet-account3": [
+				"TSHOTExchange"
+			]
 		},
 		"testnet": {
 			"testnet-account2": []
