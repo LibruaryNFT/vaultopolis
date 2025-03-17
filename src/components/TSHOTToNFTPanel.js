@@ -84,7 +84,7 @@ export default function TSHOTToNFTPanel({
     selectedAccount,
     loadAllUserData,
     loadChildData,
-    metadataCache, // Make sure your context actually provides this
+    metadataCache,
   } = useContext(UserContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
@@ -105,14 +105,29 @@ export default function TSHOTToNFTPanel({
   const depositStep = !accountData?.hasReceipt; // Step 1 => deposit TSHOT
   const revealStep = !!accountData?.hasReceipt; // Step 2 => reveal minted NFTs
 
+  // Parse the sellAmount safely (as integer for simplicity)
   let numericValue = parseInt(sellAmount, 10);
   if (Number.isNaN(numericValue) || numericValue < 0) numericValue = 0;
+
+  // We'll define a simple range check: must be between 1 and 50 inclusive
+  const isUnderMin = numericValue < 1;
+  const isOverMax = numericValue > 50;
+  const isValidAmount = !isUnderMin && !isOverMax;
 
   // -----------------------------------
   // STEP 1 => Deposit TSHOT
   // -----------------------------------
   async function handleDeposit() {
-    if (depositDisabled || numericValue === 0) return;
+    // If it's disabled or the amount is invalid, we bail
+    if (depositDisabled || !isValidAmount) {
+      // Optionally, you can show an alert for clarity
+      if (isOverMax) {
+        alert("Max 50 TSHOT allowed. Please lower your amount.");
+      } else if (isUnderMin) {
+        alert("Please enter at least 1 TSHOT.");
+      }
+      return;
+    }
 
     const parentAddr = accountData?.parentAddress || user?.addr;
     if (!parentAddr?.startsWith("0x")) {
@@ -120,6 +135,7 @@ export default function TSHOTToNFTPanel({
       return;
     }
 
+    // Convert the integer to a UFix64 string ("10.0", "50.0", etc.)
     const betAmount = `${numericValue}.0`;
 
     onTransactionStart?.({
@@ -150,7 +166,7 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // Subscribe to intermediate status
+      // Subscribe to intermediate statuses
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -280,7 +296,7 @@ export default function TSHOTToNFTPanel({
       // Wait for seal
       const sealedResult = await fcl.tx(txId).onceSealed();
 
-      // Gather minted NFT IDs
+      // Gather minted NFT IDs (TopShot deposit events)
       const depositEvents = sealedResult.events.filter(
         (evt) =>
           evt.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
@@ -299,7 +315,7 @@ export default function TSHOTToNFTPanel({
           ],
         });
 
-        // 2) Now call the same enrichment function that you use in fetchTopShotCollection
+        // 2) Enrich metadata
         if (metadataCache) {
           revealedNFTDetails = await enrichWithMetadata(
             revealedNFTDetails,
@@ -345,20 +361,39 @@ export default function TSHOTToNFTPanel({
   // -----------------------------------
   if (depositStep) {
     // Step 1 => deposit TSHOT
-    const disabled = depositDisabled || numericValue === 0;
+    const buttonDisabled =
+      depositDisabled || numericValue === 0 || isOverMax || isUnderMin;
+
     return (
-      <div className="bg-gray-700 rounded-lg">
+      <div className="bg-gray-700 rounded-lg p-4">
         <button
           onClick={handleDeposit}
-          disabled={disabled}
+          disabled={buttonDisabled}
           className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-            disabled
+            buttonDisabled
               ? "bg-gray-800 cursor-not-allowed"
               : "bg-flow-dark hover:bg-flow-darkest"
           }`}
         >
           (Step 1 of 2) Swap TSHOT for Moments
         </button>
+
+        {/* Inline help messages */}
+        {!isValidAmount && (
+          <div className="mt-2 text-red-400 text-sm">
+            {isOverMax && (
+              <>
+                You have exceeded the maximum of <strong>50 TSHOT</strong>.
+                Please lower your amount.
+              </>
+            )}
+            {isUnderMin && (
+              <>
+                You must enter at least <strong>1 TSHOT</strong> to swap.
+              </>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -366,7 +401,7 @@ export default function TSHOTToNFTPanel({
   if (revealStep) {
     // Step 2 => reveal minted NFTs
     return (
-      <div className="bg-gray-700 rounded-lg">
+      <div className="bg-gray-700 rounded-lg p-4">
         <button
           onClick={handleReveal}
           className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
