@@ -28,7 +28,7 @@ async function enrichVaultMoments(vaultNfts) {
       metadataCache = JSON.parse(cached);
     } else {
       const resp = await fetch(
-        "https://flowconnectbackend-864654c6a577.herokuapp.com/tshot-data"
+        "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-data"
       );
       const data = await resp.json();
       metadataCache = data.reduce((acc, item) => {

@@ -7,12 +7,7 @@ import { UserContext } from "../context/UserContext";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 import { exchangeNFTForTSHOT_child } from "../flow/exchangeNFTForTSHOT_child";
 
-/**
- * We do a safe fallback inside the component to ensure
- * `nftIds` is never undefined, and `buyAmount` is never null.
- */
 function NFTToTSHOTPanel(props) {
-  // Deconstruct props with some fallback logic
   let { nftIds, buyAmount, onTransactionStart } = props;
   if (!Array.isArray(nftIds)) nftIds = [];
   if (!buyAmount) buyAmount = "0";
@@ -30,11 +25,13 @@ function NFTToTSHOTPanel(props) {
   const isLoggedIn = Boolean(user?.loggedIn);
   const parentAddr = accountData.parentAddress || user?.addr;
   const isChildSwap = selectedAccountType === "child";
-
-  // Which script to run?
   const cadenceScript = isChildSwap
     ? exchangeNFTForTSHOT_child
     : exchangeNFTForTSHOT;
+
+  // --- Added limit constant ---
+  const MAX_NFTS = 200;
+  const isOverLimit = nftIds.length > MAX_NFTS;
 
   if (!isLoggedIn) {
     return (
@@ -53,12 +50,17 @@ function NFTToTSHOTPanel(props) {
       return;
     }
 
+    // -- Add a final check to prevent going beyond 200 --
+    if (nftIds.length > MAX_NFTS) {
+      alert(`You can only swap up to ${MAX_NFTS} NFTs at a time.`);
+      return;
+    }
+
     if (!parentAddr?.startsWith("0x")) {
       console.error("Invalid parent address:", parentAddr);
       return;
     }
 
-    // 1) Inform parent
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -70,7 +72,6 @@ function NFTToTSHOTPanel(props) {
     });
 
     try {
-      // 2) Submit transaction
       const txId = await fcl.mutate({
         cadence: cadenceScript,
         args: (arg, t) => {
@@ -89,10 +90,8 @@ function NFTToTSHOTPanel(props) {
         limit: 9999,
       });
 
-      // 3) Optimistic reset: clear user selection
       dispatch({ type: "RESET_SELECTED_NFTS" });
 
-      // 4) UI => "Pending"
       onTransactionStart?.({
         status: "Pending",
         txId,
@@ -103,7 +102,6 @@ function NFTToTSHOTPanel(props) {
         nftIds,
       });
 
-      // 5) Subscribe to tx status
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -142,10 +140,8 @@ function NFTToTSHOTPanel(props) {
         }
       });
 
-      // 6) Wait for sealing
       await fcl.tx(txId).onceSealed();
 
-      // 7) Refresh parent and/or child
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -167,18 +163,27 @@ function NFTToTSHOTPanel(props) {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg">
+    <div className="bg-gray-800 rounded-lg p-2">
       <button
         onClick={handleSwap}
-        disabled={nftIds.length === 0}
+        // --- Disable button if 0 or >200 NFTs selected ---
+        disabled={nftIds.length === 0 || isOverLimit}
         className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-          nftIds.length === 0
+          nftIds.length === 0 || isOverLimit
             ? "bg-gray-800 cursor-not-allowed"
             : "bg-flow-dark hover:bg-flow-darkest"
         }`}
       >
         Swap
       </button>
+
+      {/* Show a message if user exceeded the limit */}
+      {isOverLimit && (
+        <div className="mt-2 text-sm text-red-500">
+          You can only swap up to {MAX_NFTS} NFTs at a time. Please reduce your
+          selection.
+        </div>
+      )}
     </div>
   );
 }

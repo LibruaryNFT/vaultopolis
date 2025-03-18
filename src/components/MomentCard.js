@@ -11,15 +11,28 @@ export const tierStyles = {
 
 /**
  * Returns the display name for an NFT.
- * Falls back to playerName or teamAtMoment if the primary name is "Unknown Player".
+ * - If the FullName is known and not "Unknown Player", use it.
+ * - Otherwise, use the team name if available.
+ * - If there's no team name, use playerName if available.
+ * - Finally, default to "Unknown Player".
  */
 function getDisplayedName(nft) {
   const forcedUnknowns = ["Unknown Player", "unknown player"];
   let candidate = nft?.FullName || nft?.fullName;
+
+  // If candidate is explicitly forced as unknown, we'll set it to null
+  // so we can try other fields (team, playerName, etc.)
   if (candidate && forcedUnknowns.includes(candidate.trim())) {
     candidate = null;
   }
-  return candidate || nft?.playerName || nft?.teamAtMoment || "Unknown Player";
+
+  // Now return the first available fallback
+  return (
+    candidate || // use FullName if it's valid
+    nft?.teamAtMoment || // then try the team name
+    nft?.playerName || // next try playerName
+    "Unknown Player" // finally default to "Unknown Player"
+  );
 }
 
 /**
@@ -41,12 +54,12 @@ const MomentCard = ({
 
   useEffect(() => {
     if (nft?.id) {
-      // Using the vault image URL (or adjust if needed)
+      // Use the new Top Shot media endpoint
       setImageUrl(
-        `https://storage.googleapis.com/flowconnect/topshot/images_small/${nft.setID}_${nft.playID}.jpg`
+        `https://assets.nbatopshot.com/media/${nft.id}/image?width=250&quality=80`
       );
     }
-  }, [nft?.id, nft?.setID, nft?.playID]);
+  }, [nft?.id]);
 
   const playerName = getDisplayedName(nft);
   const seriesText = nft?.series !== undefined ? String(nft.series) : "?";
@@ -60,7 +73,7 @@ const MomentCard = ({
     ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
     : "Unknown Tier";
 
-  // Base styling for consistent card layout (changed from h-48 to h-44)
+  // Base styling for consistent card layout
   const baseCardClasses =
     "w-28 h-44 border bg-black rounded relative text-white border-gray-600 overflow-hidden flex flex-col pt-1 pr-1 pl-1 pb-0";
 
@@ -83,7 +96,6 @@ const MomentCard = ({
           className="relative overflow-hidden rounded mx-auto"
           style={{ width: 80, height: 80 }}
         >
-          {/* Adjusted objectPosition shifts the image content slightly downward */}
           <img
             src={imageUrl}
             alt={`${playerName} moment`}
