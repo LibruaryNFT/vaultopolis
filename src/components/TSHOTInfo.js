@@ -1,197 +1,221 @@
 // src/components/TSHOTInfo.js
+
 import React from "react";
 import {
   Repeat,
   CircleDollarSign,
-  // Removed unused: DollarSign
   ShieldCheck,
   Dice5,
-  Coins,
-  Loader2,
   Globe2,
 } from "lucide-react";
 
 /**
- * Helper for USD formatting (can also be placed in a utilities file)
+ * Helper for USD formatting (optional, remove if not needed)
  */
-const formatUSD = (val) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  }).format(val);
-};
+// const formatUSD = (val) => {
+//   return new Intl.NumberFormat("en-US", {
+//     style: "currency",
+//     currency: "USD",
+//     maximumFractionDigits: 2,
+//     minimumFractionDigits: 2,
+//   }).format(val);
+// };
 
-function TSHOTInfo({
-  tshotSupply,
-  loadingSupply,
-  priceFlow,
-  priceUSD,
-  loadingPrice,
-}) {
+function TSHOTInfo() {
   return (
-    <div className="w-full text-white space-y-4">
-      {/* TSHOT Icon + Title */}
-      <div className="flex items-center gap-2 mb-2 justify-center">
-        <img
-          src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-          alt="TSHOT Icon"
-          style={{ width: "96px", height: "96px" }}
-        />
-        <h2 className="text-2xl font-bold">What is TSHOT?</h2>
-      </div>
-
-      {/* 6 squares describing TSHOT features */}
-      <div className="bg-gray-700 p-3 rounded-lg">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4 text-center">
-          {/* 1) Convert Moments to TSHOT */}
-          <div className="bg-gray-600 p-3 rounded flex flex-col items-center">
-            <div className="flex items-center justify-center text-base font-bold text-white mb-1">
-              <ShieldCheck className="w-5 h-5 text-purple-400 mr-1" />
-              Convert Moments to TSHOT
-            </div>
-            <p className="text-xs text-gray-100 mb-2">
-              Deposit Common/Fandom Moments at a 1:1 ratio in the shared
-              vault—perfect for freeing up your collection.
+    <div className="text-white">
+      {/* ========== HERO SECTION ========== */}
+      <div className="bg-gradient-to-b from-gray-900 to-black py-8 px-4">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          {/* Left column: Text content */}
+          <div className="order-2 md:order-1">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+              What is TSHOT?
+            </h1>
+            <p className="text-sm sm:text-base text-gray-300 mb-6 max-w-xl">
+              TSHOT is a fungible token backed by Top Shot Common/Fandom
+              Moments. Deposit Moments at a 1:1 ratio to receive TSHOT—or redeem
+              TSHOT for random Moments from the TSHOT Vault. Instantly buy or
+              sell Moments in bulk, earn passive yield, and more.
             </p>
             <a
               href="/swap"
-              className="bg-purple-500 hover:bg-purple-600 text-xs text-white font-bold px-2 py-1 rounded"
-              style={{ width: "auto" }}
+              className="inline-block bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors"
             >
               Swap Now
             </a>
           </div>
 
-          {/* 2) Convert TSHOT to Moments */}
-          <div className="bg-gray-600 p-3 rounded flex flex-col items-center">
-            <div className="flex items-center justify-center text-base font-bold text-white mb-1">
-              <Dice5 className="w-5 h-5 text-purple-300 mr-1" />
-              Convert TSHOT to Moments
-            </div>
-            <p className="text-xs text-gray-100 mb-2">
-              Use TSHOT to acquire random Common/Fandom Moments, leveraging
-              verifiable on-chain random to expand your collection—or fill
-              requirements for trade-in campaigns.
-            </p>
-            <a
-              href="/swap"
-              className="bg-purple-500 hover:bg-purple-600 text-xs text-white font-bold px-2 py-1 rounded"
-              style={{ width: "auto" }}
-            >
-              Convert Now
-            </a>
+          {/* Right column: Hero Image with hover effect */}
+          <div className="flex justify-center md:justify-end order-1 md:order-2 mb-6 md:mb-0">
+            <img
+              src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+              alt="TSHOT Icon"
+              className="w-48 h-48 sm:w-64 sm:h-64 object-contain transform transition duration-300 hover:scale-105"
+            />
           </div>
+        </div>
+      </div>
 
-          {/* 3) Instant Liquidity */}
-          <div className="bg-gray-600 p-3 rounded flex flex-col items-center">
-            <div className="flex items-center justify-center text-base font-bold text-white mb-1">
-              <Globe2 className="w-5 h-5 text-pink-400 mr-1" />
-              Instant Liquidity
-            </div>
-            <p className="text-xs text-gray-100 mb-2">
-              Instantly buy or sell TSHOT in bulk via the TSHOT/FLOW liquidity
-              pool—perfect for quickly getting TSHOT to convert to Moments for
-              challenges or trade-in campaigns.
-            </p>
-            <a
-              href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-pink-500 hover:bg-pink-600 rounded text-xs font-bold px-2 py-1"
-              style={{ width: "auto", margin: "0 auto" }}
-            >
-              Trade Now
-            </a>
-          </div>
-
-          {/* 4) Earn Passive Yield */}
-          <div className="bg-gray-600 p-3 rounded flex flex-col items-center">
-            <div className="flex items-center justify-center text-base font-bold text-white mb-1">
-              <CircleDollarSign className="w-5 h-5 text-green-400 mr-1" />
-              Earn Passive Yield
-            </div>
-            <p className="text-xs text-gray-100 mb-2">
-              Provide TSHOT liquidity to earn ongoing rewards. More features &
-              integrations coming soon!
-            </p>
-            <div className="flex gap-1 mt-auto">
+      {/* ========== CORE MECHANICS SECTION ========== */}
+      <div className="bg-gray-800 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 text-center md:text-left">
+            Core Mechanics
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Card 1: Convert Moments to TSHOT */}
+            <div className="bg-gray-700 p-6 rounded-lg flex flex-col transition-transform duration-300 hover:scale-105 hover:bg-gray-600">
+              <div className="flex items-center text-base font-bold mb-2">
+                <ShieldCheck className="w-5 h-5 text-purple-400 mr-2" />
+                Convert Moments to TSHOT
+              </div>
+              <p className="text-xs text-gray-200 mb-4 flex-grow">
+                Deposit Moments at a 1:1 ratio to receive TSHOT.
+              </p>
               <a
-                href="https://app.increment.fi/liquidity/add"
-                target="_blank"
-                rel="noreferrer"
-                className="bg-green-500 hover:bg-green-600 rounded text-xs font-bold px-2 py-1"
-                style={{ width: "auto" }}
+                href="/swap"
+                className="bg-purple-600 hover:bg-purple-700 text-xs text-white font-bold py-2 px-3 rounded mt-auto"
               >
-                Add Liquidity
+                Swap Now
               </a>
+            </div>
+
+            {/* Card 2: Convert TSHOT to Moments */}
+            <div className="bg-gray-700 p-6 rounded-lg flex flex-col transition-transform duration-300 hover:scale-105 hover:bg-gray-600">
+              <div className="flex items-center text-base font-bold mb-2">
+                <Dice5 className="w-5 h-5 text-purple-300 mr-2" />
+                Convert TSHOT to Moments
+              </div>
+              <p className="text-xs text-gray-200 mb-4 flex-grow">
+                Redeem TSHOT to get random Moments from the TSHOT Vault.
+              </p>
               <a
-                href="https://app.increment.fi/farm"
+                href="/swap"
+                className="bg-purple-600 hover:bg-purple-700 text-xs text-white font-bold py-2 px-3 rounded mt-auto"
+              >
+                Convert Now
+              </a>
+            </div>
+
+            {/* Card 3: Use Dapper Wallet Moments */}
+            <div className="bg-gray-700 p-6 rounded-lg flex flex-col transition-transform duration-300 hover:scale-105 hover:bg-gray-600">
+              <div className="flex items-center text-base font-bold mb-2">
+                <Repeat className="w-5 h-5 text-blue-400 mr-2" />
+                Use Dapper Wallet Moments
+              </div>
+              <p className="text-xs text-gray-200 mb-4 flex-grow">
+                Seamlessly leverage Moments stored in your Dapper Wallet.
+              </p>
+              <a
+                href="https://support.meetdapper.com/hc/en-us/articles/20744347884819-Account-Linking-and-FAQ"
                 target="_blank"
                 rel="noreferrer"
-                className="bg-green-500 hover:bg-green-600 rounded text-xs font-bold px-2 py-1"
-                style={{ width: "auto" }}
+                className="bg-blue-600 hover:bg-blue-700 text-xs text-white font-bold py-2 px-3 rounded mt-auto"
               >
-                Farm
+                Learn More
               </a>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* 5) Use Dapper Wallet Moments */}
-          <div className="bg-gray-600 p-3 rounded flex flex-col items-center">
-            <div className="flex items-center justify-center text-base font-bold text-white mb-1">
-              <Repeat className="w-5 h-5 text-blue-400 mr-1" />
-              Use Your Dapper Wallet Moments
+      {/* ========== MARKET ACCESS & UTILITY SECTION ========== */}
+      <div className="bg-gray-900 py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-semibold mb-6 text-center md:text-left">
+            Instant Market Access &amp; Utility
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Buy Moments Instantly */}
+            <div className="bg-gray-700 p-6 rounded-lg flex flex-col transition-transform duration-300 hover:scale-105 hover:bg-gray-600">
+              <div className="flex items-center text-base font-bold mb-2">
+                <Globe2 className="w-5 h-5 text-pink-400 mr-2" />
+                Buy Moments Instantly
+              </div>
+              <p className="text-xs text-gray-200 mb-4 flex-grow">
+                Need Moments fast? Purchase TSHOT on-chain, then convert to
+                random Moments.
+              </p>
+              <div className="flex flex-col gap-2 mt-auto">
+                <a
+                  href="https://app.increment.fi/swap?in=A.1654653399040a61.FlowToken&out=A.05b67ba314000b2d.TSHOT"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-pink-600 hover:bg-pink-700 text-xs text-white font-bold py-2 px-3 rounded"
+                >
+                  Buy Now (Cadence) - Increment.fi
+                </a>
+                <a
+                  href="https://swap.kittypunch.xyz/?tokens=0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e-0xc618a7356fcf601f694c51578cd94144deaee690"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-pink-600 hover:bg-pink-700 text-xs text-white font-bold py-2 px-3 rounded"
+                >
+                  Buy Now (FEVM) - PunchSwap
+                </a>
+              </div>
             </div>
-            <p className="text-xs text-gray-100 mb-2">
-              Seamlessly leverage Dapper Wallet assets on TSHOT—no need to move
-              them elsewhere.
-            </p>
-            <a
-              href="https://support.meetdapper.com/hc/en-us/articles/20744347884819-Account-Linking-and-FAQ"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-blue-500 hover:bg-blue-600 text-xs text-white font-bold px-2 py-1 rounded"
-              style={{ width: "auto" }}
-            >
-              Learn More
-            </a>
-          </div>
 
-          {/* 6) TSHOT Stats (Supply + Price) */}
-          <div className="bg-gray-600 p-3 rounded flex flex-col items-center justify-center">
-            <div className="flex items-center justify-center text-base font-bold text-white mb-1">
-              <Coins className="w-5 h-5 text-blue-300 mr-1" />
-              TSHOT Stats
+            {/* Sell Moments Instantly */}
+            <div className="bg-gray-700 p-6 rounded-lg flex flex-col transition-transform duration-300 hover:scale-105 hover:bg-gray-600">
+              <div className="flex items-center text-base font-bold mb-2">
+                <Globe2 className="w-5 h-5 text-pink-400 mr-2" />
+                Sell Moments Instantly
+              </div>
+              <p className="text-xs text-gray-200 mb-4 flex-grow">
+                Turn Moments into TSHOT, then swap TSHOT for FLOW or other
+                tokens quickly.
+              </p>
+              <div className="flex flex-col gap-2 mt-auto">
+                <a
+                  href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-pink-600 hover:bg-pink-700 text-xs text-white font-bold py-2 px-3 rounded"
+                >
+                  Sell Now (Cadence) - Increment.fi
+                </a>
+                <a
+                  href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-pink-600 hover:bg-pink-700 text-xs text-white font-bold py-2 px-3 rounded"
+                >
+                  Sell Now (FEVM) - PunchSwap
+                </a>
+              </div>
             </div>
-            {/* Supply */}
-            {loadingSupply ? (
-              <div className="flex items-center gap-2 justify-center">
-                <Loader2 className="h-5 w-5 text-gray-300 animate-spin" />
-                <p className="text-xs text-gray-300">Loading supply...</p>
+
+            {/* Earn Passive Yield */}
+            <div className="bg-gray-700 p-6 rounded-lg flex flex-col transition-transform duration-300 hover:scale-105 hover:bg-gray-600">
+              <div className="flex items-center text-base font-bold mb-2">
+                <CircleDollarSign className="w-5 h-5 text-green-400 mr-2" />
+                Earn Passive Yield
               </div>
-            ) : tshotSupply !== null ? (
-              <p className="text-xs text-blue-300">
-                Supply: {Math.floor(tshotSupply)}
+              <p className="text-xs text-gray-200 mb-4 flex-grow">
+                Provide TSHOT liquidity to earn rewards. More DeFi integrations
+                coming soon!
               </p>
-            ) : (
-              <p className="text-xs text-gray-300">Supply: Error</p>
-            )}
-            {/* Price */}
-            {loadingPrice ? (
-              <div className="flex items-center gap-2 justify-center mt-1">
-                <Loader2 className="h-5 w-5 text-gray-300 animate-spin" />
-                <p className="text-xs text-gray-300">Loading price...</p>
+              <div className="flex flex-col gap-2 mt-auto">
+                <a
+                  href="https://app.increment.fi/liquidity/add"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-green-600 hover:bg-green-700 text-xs font-bold text-white py-2 px-3 rounded"
+                >
+                  Add Liquidity (Cadence) - Increment.fi
+                </a>
+                <a
+                  href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="bg-green-600 hover:bg-green-700 text-xs font-bold text-white py-2 px-3 rounded"
+                >
+                  Add Liquidity (FEVM) - PunchSwap
+                </a>
               </div>
-            ) : priceFlow !== null ? (
-              <p className="text-xs text-lime-300 mt-1">
-                Price: {priceFlow.toFixed(4)} FLOW{" "}
-                {priceUSD ? `| ${formatUSD(priceUSD)} USD` : ""}
-              </p>
-            ) : (
-              <p className="text-xs text-gray-300 mt-1">Price: Error</p>
-            )}
+            </div>
           </div>
         </div>
       </div>

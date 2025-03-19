@@ -1,3 +1,4 @@
+// src/components/Footer.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -5,7 +6,11 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <footer className="bg-gray-700 text-white w-full z-40 border-t border-gray-800">
+    <footer className="bg-gray-700 text-white w-full z-40">
+      {/* Here’s the full-width horizontal line at the very top */}
+      <hr className="border-gray-800" />
+
+      {/* Now the rest of the footer is centered */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
