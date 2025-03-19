@@ -10,13 +10,12 @@ import { revealSwap } from "../flow/revealSwap";
 import { getTopShotBatched } from "../flow/getTopShotBatched";
 
 /**
- * Example inlined "enrichWithMetadata" function.
- * In your real code, you can import from your existing utility / UserContext.
+ * Updated enrichWithMetadata that also merges set name + momentCount
  */
 async function enrichWithMetadata(nftList, metadataCache) {
-  if (!metadataCache) return nftList; // no local metadata? just return raw
+  if (!metadataCache) return nftList; // if no cache, just return raw
 
-  // If you have subedition data, reference it here as needed:
+  // Example subedition data, if you have them:
   const SUBEDITIONS = {
     1: { name: "Explosion", minted: 500 },
     2: { name: "Torn", minted: 1000 },
@@ -27,7 +26,9 @@ async function enrichWithMetadata(nftList, metadataCache) {
     const enriched = { ...nft };
     const key = `${nft.setID}-${nft.playID}`;
     const meta = metadataCache[key];
+
     if (meta) {
+      // Player name & tier
       enriched.tier = meta.tier || enriched.tier;
       enriched.fullName =
         meta.FullName ||
@@ -35,11 +36,24 @@ async function enrichWithMetadata(nftList, metadataCache) {
         enriched.fullName ||
         enriched.playerName ||
         "Unknown Player";
+
+      // Series
       if (typeof meta.series !== "undefined") {
         enriched.series = meta.series;
       }
+
+      // Team
       if (meta.TeamAtMoment) {
         enriched.teamAtMoment = meta.TeamAtMoment;
+      }
+
+      // ---- NEW LINES: set name & moment count ----
+      // Check your backend to see if the property is "setName" or "SetName" or "name".
+      // We'll assume "setName" or fallback to "name".
+      enriched.name = meta.setName || meta.name || enriched.name;
+      // Some backends store momentCount as a string, so we parse it:
+      if (typeof meta.momentCount !== "undefined") {
+        enriched.momentCount = Number(meta.momentCount);
       }
     } else {
       console.warn(
@@ -47,12 +61,13 @@ async function enrichWithMetadata(nftList, metadataCache) {
       );
     }
 
-    // Handle subedition
+    // Subedition handling
     if (nft.subeditionID && SUBEDITIONS[nft.subeditionID]) {
       const sub = SUBEDITIONS[nft.subeditionID];
       enriched.subeditionName = sub.name;
       enriched.subeditionMaxMint = sub.minted;
     }
+
     return enriched;
   });
 }
@@ -67,7 +82,6 @@ export default function TSHOTToNFTPanel({
     user,
     accountData,
     selectedAccount,
-    selectedAccountType, // 'parent' or 'child'
     loadAllUserData,
     loadChildData,
     metadataCache,
@@ -87,14 +101,14 @@ export default function TSHOTToNFTPanel({
     );
   }
 
-  // The parent address from context
+  // Parent address from context (fallback to user.addr)
   const parentAddr = accountData?.parentAddress || user?.addr;
 
-  // Step logic: Are we on Step 1 or Step 2?
-  const depositStep = !accountData?.hasReceipt; // Step 1 if no receipt
-  const revealStep = !!accountData?.hasReceipt; // Step 2 if we do have a receipt
+  // Determine if we do Step 1 (deposit) or Step 2 (reveal)
+  const depositStep = !accountData?.hasReceipt; // If no receipt => step 1
+  const revealStep = !!accountData?.hasReceipt; // If there's a receipt => step 2
 
-  // Validate the numeric portion of sellAmount
+  // Validate numeric portion of sellAmount
   let numericValue = parseInt(sellAmount, 10);
   if (Number.isNaN(numericValue) || numericValue < 0) numericValue = 0;
   const isUnderMin = numericValue < 1;
@@ -148,7 +162,6 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // subscribe to intermediate statuses
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -176,7 +189,7 @@ export default function TSHOTToNFTPanel({
         });
       });
 
-      // wait for seal
+      // Wait for seal
       await fcl.tx(txId).onceSealed();
 
       onTransactionStart?.({
@@ -188,7 +201,7 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // refresh parent + child if needed
+      // Refresh parent + child if needed
       await loadAllUserData(parentAddr);
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
@@ -279,7 +292,7 @@ export default function TSHOTToNFTPanel({
       // wait for seal
       const sealedResult = await fcl.tx(txId).onceSealed();
 
-      // Gather minted NFT IDs from the deposit events
+      // Find any "TopShot.Deposit" events to see which IDs we received
       const depositEvents = sealedResult.events.filter(
         (evt) =>
           evt.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
@@ -289,7 +302,7 @@ export default function TSHOTToNFTPanel({
 
       let revealedNFTDetails = [];
       if (receivedNFTIDs.length > 0) {
-        // 1) get raw NFT data
+        // 1) Grab raw NFT data on-chain
         revealedNFTDetails = await fcl.query({
           cadence: getTopShotBatched,
           args: (arg, t) => [
@@ -298,7 +311,7 @@ export default function TSHOTToNFTPanel({
           ],
         });
 
-        // 2) enrich metadata
+        // 2) Enrich with metadata => includes name, momentCount, etc.
         if (metadataCache) {
           revealedNFTDetails = await enrichWithMetadata(
             revealedNFTDetails,
@@ -339,7 +352,7 @@ export default function TSHOTToNFTPanel({
   }
 
   // -------------------------------------------------------------
-  // RENDER:
+  // RENDER UI
   // -------------------------------------------------------------
   // Step 1 => deposit TSHOT
   if (depositStep) {
@@ -381,7 +394,7 @@ export default function TSHOTToNFTPanel({
 
   // Step 2 => reveal minted NFTs
   if (revealStep) {
-    // 1) Determine if the currently selected account has a TS collection
+    // Check if the currently selected account has a TS collection
     const isParentSelected = selectedAccount === parentAddr;
     let currentAccountHasCollection = false;
 
@@ -420,6 +433,6 @@ export default function TSHOTToNFTPanel({
     );
   }
 
-  // If something weird (no step 1 or 2?), just fallback
+  // If neither step applies, fallback
   return <div className="text-gray-400">Loading...</div>;
 }
