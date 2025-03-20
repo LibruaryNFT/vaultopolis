@@ -377,9 +377,6 @@ const Swap = () => {
     );
   }
 
-  // dynamic background for the from input => matches "to" panel
-  const fromInputBg = getToAssetBg(toAsset); // either bg-brand-primary or bg-brand-secondary
-
   return (
     <>
       {/* Transaction Modal */}
@@ -430,7 +427,7 @@ const Swap = () => {
                 maxLength={3}
                 className={`
                   w-16
-                  ${fromInputBg}  /* Dynamically match the "to" panel color */
+                  bg-brand-secondary
                   text-brand-text
                   p-2
                   rounded
@@ -553,7 +550,7 @@ const Swap = () => {
           <div className="w-full p-4">
             <div className="max-w-screen-lg space-y-4">
               {/* Selected Moments */}
-              <div className="bg-brand-secondary shadow-md p-2 rounded">
+              <div className="bg-brand-primary shadow-md p-2 rounded">
                 <h4 className="text-brand-text text-sm mb-2">
                   Selected Moments:
                 </h4>
@@ -590,7 +587,7 @@ const Swap = () => {
               </div>
 
               {/* Account Selection */}
-              <div className="bg-brand-secondary shadow-md p-2 rounded">
+              <div className="bg-brand-primary shadow-md p-2 rounded">
                 <AccountSelection
                   parentAccount={{
                     addr: accountData.parentAddress || user?.addr,
@@ -605,7 +602,7 @@ const Swap = () => {
               </div>
 
               {/* Moment Selection */}
-              <div className="bg-brand-secondary shadow-md p-2 rounded-lg">
+              <div className="bg-brand-primary shadow-md p-2 rounded-lg">
                 <MomentSelection excludeIds={excludedNftIds} />
               </div>
             </div>

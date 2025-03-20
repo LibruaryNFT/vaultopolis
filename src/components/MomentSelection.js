@@ -1,4 +1,5 @@
 // src/components/MomentSelection.js
+
 import React, { useContext, useMemo, useState, useEffect } from "react";
 import { UserContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
@@ -8,7 +9,7 @@ import MomentCard from "./MomentCard";
 const defaultTiers = ["common", "fandom"];
 const allPossibleTiers = ["common", "fandom", "rare", "legendary", "ultimate"];
 
-/** Tier color classes (unchanged from your snippet) */
+/** Tier color classes */
 function getTierColorClass(tierVal) {
   switch (tierVal) {
     case "common":
@@ -345,7 +346,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   // If account has no TopShot collection
   if (!hasCollection) {
     return (
-      <div className="bg-brand-secondary p-2 rounded-lg">
+      <div className="bg-brand-primary p-2 rounded-lg">
         <p className="text-brand-text/80 text-sm">
           This account does not have a TopShot collection.
         </p>
@@ -354,7 +355,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   }
 
   return (
-    <div className="w-full bg-brand-secondary text-brand-text rounded-lg">
+    <div className="w-full bg-brand-primary text-brand-text rounded-lg">
       {/* (A) Count + "Loading" status row */}
       <div className="flex justify-between items-center mb-2 px-2 pt-2">
         <div>
@@ -391,7 +392,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         <div
           className="
           flex flex-wrap items-center gap-4 text-sm
-          bg-brand-primary
+          bg-brand-secondary
           p-2
           rounded
           mb-2
@@ -471,7 +472,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setCurrentPage(1);
               }}
               className="
-                bg-brand-secondary
+                bg-brand-primary
                 text-brand-text
                 rounded
                 px-1
@@ -504,7 +505,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setCurrentPage(1);
               }}
               className="
-                bg-brand-secondary
+                bg-brand-primary
                 text-brand-text
                 rounded
                 px-1

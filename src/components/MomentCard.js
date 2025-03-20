@@ -83,7 +83,7 @@ const MomentCard = ({
     pb-0
     border
     border-brand-text/40
-    bg-brand-primary
+    bg-brand-secondary
     text-brand-text
   `;
 

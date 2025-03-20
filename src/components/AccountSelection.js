@@ -32,15 +32,12 @@ const AccountBox = ({
         /* Border color: opolis if selected, brand-border if not */
         ${isSelected ? "border-opolis" : "border-brand-border"}
 
-        /* Background color: 
-           if disabled => brand-primary
-           if enabled => brand-secondary (hover: brand-primary)
+        /*
+          Updated brand color classes:
+          - If disabled => bg-brand-blue
+          - If enabled => bg-brand-secondary (hover => bg-brand-blue)
         */
-        ${
-          isDisabled
-            ? "bg-brand-primary"
-            : "bg-brand-secondary hover:bg-brand-primary"
-        }
+        ${isDisabled ? "bg-brand-blue" : "bg-brand-primary hover:bg-brand-blue"}
       `}
     >
       <h4
@@ -92,7 +89,7 @@ const AccountSelection = ({
         <div
           key="loading"
           className="
-            bg-brand-secondary
+            bg-brand-primary
             p-2
             rounded
             flex
@@ -113,7 +110,7 @@ const AccountSelection = ({
         <div
           key="dapper-card"
           className="
-            bg-brand-secondary
+            bg-brand-primary
             p-2
             rounded
             flex
@@ -174,7 +171,7 @@ const AccountSelection = ({
   };
 
   const parentBoxEl = renderParentBox();
-  const childBoxEls = renderChildBoxes(); // can be an array or single element
+  const childBoxEls = renderChildBoxes();
   const allBoxes = parentBoxEl
     ? [parentBoxEl, ...[childBoxEls].flat()]
     : [childBoxEls].flat();
