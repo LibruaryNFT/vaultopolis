@@ -1,3 +1,5 @@
+// src/components/MomentCard.jsx
+
 import React, { useEffect, useState } from "react";
 
 // Export tierStyles so other components can use them if needed.
@@ -20,19 +22,11 @@ function getDisplayedName(nft) {
   const forcedUnknowns = ["Unknown Player", "unknown player"];
   let candidate = nft?.FullName || nft?.fullName;
 
-  // If candidate is explicitly forced as unknown, we'll set it to null
-  // so we can try other fields (team, playerName, etc.)
   if (candidate && forcedUnknowns.includes(candidate.trim())) {
     candidate = null;
   }
 
-  // Now return the first available fallback
-  return (
-    candidate || // use FullName if it's valid
-    nft?.teamAtMoment || // then try the team name
-    nft?.playerName || // next try playerName
-    "Unknown Player" // finally default to "Unknown Player"
-  );
+  return candidate || nft?.teamAtMoment || nft?.playerName || "Unknown Player";
 }
 
 /**
@@ -41,7 +35,7 @@ function getDisplayedName(nft) {
  * Props:
  * - nft: NFT object
  * - handleNFTSelection: function to call on click (if applicable)
- * - isSelected: applies a green border if true (only for interactive contexts)
+ * - isSelected: applies a highlight border if true (only for interactive contexts)
  * - disableHover: if true, disables hover effects (for static displays)
  */
 const MomentCard = ({
@@ -56,7 +50,7 @@ const MomentCard = ({
     if (nft?.id) {
       // Use the new Top Shot media endpoint
       setImageUrl(
-        `https://assets.nbatopshot.com/media/${nft.id}/image?width=250&quality=80`
+        `https://assets.nbatopshot.com/media/${nft.id}/transparent/image?width=250&quality=80`
       );
     }
   }, [nft?.id]);
@@ -66,31 +60,50 @@ const MomentCard = ({
   const finalMintCount = nft?.subeditionID
     ? nft?.subeditionMaxMint
     : nft?.momentCount;
+
+  // Tier color classes from tierStyles, fallback "text-gray-400"
   const tierClass = nft?.tier
     ? tierStyles[nft.tier.toLowerCase()] || "text-gray-400"
     : "text-gray-400";
+
   const tierLabel = nft?.tier
     ? nft.tier.charAt(0).toUpperCase() + nft.tier.slice(1).toLowerCase()
     : "Unknown Tier";
 
-  // Base styling for consistent card layout
-  const baseCardClasses =
-    "w-28 h-44 border bg-black rounded relative text-white border-gray-600 overflow-hidden flex flex-col pt-1 pr-1 pl-1 pb-0";
+  // Base styling for consistent layout
+  const baseCardClasses = `
+    w-28
+    h-44
+    rounded
+    overflow-hidden
+    flex
+    flex-col
+    pt-1
+    px-1
+    pb-0
+    border
+    border-brand-text/40
+    bg-brand-primary
+    text-brand-text
+  `;
 
-  // Apply hover/selection effects only if disableHover is false.
+  // If hover is enabled and card is selected, highlight; else if hover is enabled, show a pointer/hover effect
   const hoverClasses = disableHover
     ? ""
     : `cursor-pointer transition-colors duration-200 hover:border-2 hover:border-opolis ${
-        isSelected ? "border-green-500" : ""
+        isSelected ? "border-2 border-green-500" : ""
       }`;
 
   const cardClasses = `${baseCardClasses} ${hoverClasses}`;
 
+  const handleClick = () => {
+    if (!disableHover && handleNFTSelection) {
+      handleNFTSelection(nft.id);
+    }
+  };
+
   return (
-    <div
-      onClick={() => !disableHover && handleNFTSelection?.(nft.id)}
-      className={cardClasses}
-    >
+    <div onClick={handleClick} className={cardClasses}>
       {imageUrl && (
         <div
           className="relative overflow-hidden rounded mx-auto"
@@ -104,11 +117,30 @@ const MomentCard = ({
           />
         </div>
       )}
-      <div className="flex flex-col space-y-0">
-        <h3 className="text-center text-white mt-1 text-xs font-semibold truncate leading-tight mb-0">
+
+      <div className="flex flex-col space-y-0 mt-1">
+        <h3
+          className="
+            text-center
+            text-xs
+            font-semibold
+            truncate
+            leading-tight
+            mb-0
+          "
+        >
           {playerName}
         </h3>
-        <p className="text-center text-xs text-gray-400 truncate leading-tight mb-0">
+        <p
+          className="
+            text-center
+            text-xs
+            text-brand-text/60
+            truncate
+            leading-tight
+            mb-0
+          "
+        >
           Series {seriesText}
         </p>
         <p
@@ -116,10 +148,10 @@ const MomentCard = ({
         >
           {tierLabel}
         </p>
-        <p className="text-center text-xs text-gray-400 truncate leading-tight mb-0">
+        <p className="text-center text-xs text-brand-text/60 truncate leading-tight mb-0">
           {nft?.serialNumber ?? "?"} / {finalMintCount ?? "?"}
         </p>
-        <p className="text-center text-gray-400 text-xs truncate leading-tight mb-0">
+        <p className="text-center text-xs text-brand-text/50 truncate leading-tight mb-0">
           {nft?.name || "Unknown Set"}
         </p>
       </div>

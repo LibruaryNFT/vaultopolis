@@ -1,3 +1,5 @@
+// src/App.jsx
+
 import React, { useEffect } from "react";
 import {
   createBrowserRouter,
@@ -36,7 +38,6 @@ const router = createBrowserRouter(
         </Layout>
       ),
     },
-
     {
       path: "/swap",
       element: (
@@ -53,7 +54,6 @@ const router = createBrowserRouter(
         </Layout>
       ),
     },
-
     {
       path: "/terms",
       element: (
@@ -77,7 +77,7 @@ function App() {
 
   return (
     <UserProvider>
-      <div className="w-full min-h-screen bg-gray-600">
+      <div className="w-full min-h-screen bg-brand-secondary text-brand-text">
         {/* Main Content */}
         <div className="relative min-h-screen">
           <RouterProvider router={router} />

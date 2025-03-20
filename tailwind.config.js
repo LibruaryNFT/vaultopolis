@@ -1,5 +1,6 @@
 // tailwind.config.js
 module.exports = {
+  darkMode: "class", // Tailwind looks for .dark on <html> or <body>
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
@@ -18,20 +19,34 @@ module.exports = {
       fontFamily: {
         inter: ["Inter", "sans-serif"],
       },
+
+      // Original custom colors remain (flow, vault, etc.)
+      // We'll add new color keys that reference CSS variables:
       colors: {
+        // Our variable-based color keys:
+        "brand-primary": "var(--brand-primary-bg)",
+        "brand-secondary": "var(--brand-secondary-bg)",
+        "brand-text": "var(--brand-text)",
+        "brand-accent": "var(--brand-accent)",
+        "brand-border": "var(--brand-border)",
+
         flow: {
-          light: "#00EF8B", // flow-light
-          dark: "#02D87E", // flow-dark
-          darkest: "#029A5C", // flow-darkest
+          light: "#00EF8B",
+          dark: "#02D87E",
+          darkest: "#029A5C",
         },
         vault: {
-          DEFAULT: "#ffc700", // main "vault" color
+          DEFAULT: "#ffc700",
           light: "#ffe15c",
         },
-
         opolis: {
           DEFAULT: "#50c878",
           dark: "#40A060",
+        },
+        brandGrey: {
+          darkest: "#181818",
+          dark: "#2A2A2A",
+          light: "#E0E0E0",
         },
       },
     },

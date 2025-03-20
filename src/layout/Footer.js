@@ -6,11 +6,20 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <footer className="bg-gray-700 text-white w-full z-40">
-      {/* Here’s the full-width horizontal line at the very top */}
-      <hr className="border-gray-800" />
+    <footer
+      className="
+        w-full
+        z-40
 
-      {/* Now the rest of the footer is centered */}
+        /* Use brand-secondary for the footer background, brand-text for text */
+        bg-brand-primary
+        text-brand-text
+      "
+    >
+      {/* Full-width horizontal line at the very top (border-brand-border) */}
+      <hr className="border-brand-border" />
+
+      {/* Centered footer content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
@@ -23,14 +32,20 @@ const Footer = () => {
                 className="max-h-8"
               />
             </div>
-            <p className="text-sm text-gray-400">
+            <p
+              className="
+                text-sm
+                /* Slightly subdued text for disclaimers or tagline if you like */
+                text-brand-text/80
+              "
+            >
               Ownership Evolved, Possibilities Unlocked
             </p>
           </div>
 
           {/* Disclaimer Section */}
           <div>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-brand-text/80">
               Vaultopolis is not affiliated with NBA Top Shot or Dapper Labs.
               All operations are executed through decentralized smart contracts.
             </p>
@@ -38,14 +53,27 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <div className="text-sm text-gray-400 mb-4 md:mb-0">
+        <div
+          className="
+            border-t
+            border-brand-border
+            pt-8
+            flex flex-col md:flex-row
+            justify-between
+            items-center
+          "
+        >
+          <div className="text-sm text-brand-text/70 mb-4 md:mb-0">
             © {new Date().getFullYear()} Vaultopolis
           </div>
           <div>
             <button
               onClick={() => navigate("/terms")}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="
+                text-brand-text/70
+                hover:text-brand-text
+                transition-colors
+              "
             >
               Terms of Service
             </button>

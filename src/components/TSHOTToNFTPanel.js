@@ -15,7 +15,7 @@ import { getTopShotBatched } from "../flow/getTopShotBatched";
 async function enrichWithMetadata(nftList, metadataCache) {
   if (!metadataCache) return nftList; // if no cache, just return raw
 
-  // Example subedition data, if you have them:
+  // Example subedition data, if relevant:
   const SUBEDITIONS = {
     1: { name: "Explosion", minted: 500 },
     2: { name: "Torn", minted: 1000 },
@@ -47,11 +47,8 @@ async function enrichWithMetadata(nftList, metadataCache) {
         enriched.teamAtMoment = meta.TeamAtMoment;
       }
 
-      // ---- NEW LINES: set name & moment count ----
-      // Check your backend to see if the property is "setName" or "SetName" or "name".
-      // We'll assume "setName" or fallback to "name".
+      // Set name & moment count
       enriched.name = meta.setName || meta.name || enriched.name;
-      // Some backends store momentCount as a string, so we parse it:
       if (typeof meta.momentCount !== "undefined") {
         enriched.momentCount = Number(meta.momentCount);
       }
@@ -89,41 +86,67 @@ export default function TSHOTToNFTPanel({
 
   const isLoggedIn = Boolean(user?.loggedIn);
   if (!isLoggedIn) {
+    // Same style as NFTToTSHOTPanel for "Connect Wallet"
     return (
-      <div className="bg-gray-700 rounded-lg">
-        <button
-          onClick={() => fcl.authenticate()}
-          className="w-full p-4 text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest"
-        >
-          Connect Wallet
-        </button>
-      </div>
+      <button
+        onClick={() => fcl.authenticate()}
+        className="
+          w-full
+          text-lg
+          rounded-lg
+          font-bold
+          text-white
+          bg-flow-light
+          hover:bg-flow-dark
+          p-2
+        "
+      >
+        Connect Wallet
+      </button>
     );
   }
 
-  // Parent address from context (fallback to user.addr)
+  // Parent address & TSHOT balance
   const parentAddr = accountData?.parentAddress || user?.addr;
+  const parentTSHOTBalance = parseFloat(accountData?.tshotBalance || "0");
 
-  // Determine if we do Step 1 (deposit) or Step 2 (reveal)
-  const depositStep = !accountData?.hasReceipt; // If no receipt => step 1
-  const revealStep = !!accountData?.hasReceipt; // If there's a receipt => step 2
+  // Step logic: deposit => no receipt; reveal => has receipt
+  const depositStep = !accountData?.hasReceipt; // Step 1
+  const revealStep = !!accountData?.hasReceipt; // Step 2
 
   // Validate numeric portion of sellAmount
   let numericValue = parseInt(sellAmount, 10);
   if (Number.isNaN(numericValue) || numericValue < 0) numericValue = 0;
-  const isUnderMin = numericValue < 1;
+
+  // Additional checks
   const isOverMax = numericValue > 50;
-  const isValidAmount = !isUnderMin && !isOverMax;
+
+  // Prepare the deposit button label based on numericValue & TSHOT balance
+  let depositButtonLabel = "(Step 1 of 2) Swap TSHOT for Moments";
+  if (numericValue === 0) {
+    depositButtonLabel = "(Step 1 of 2) Enter an amount";
+  } else if (numericValue > parentTSHOTBalance) {
+    depositButtonLabel = "(Step 1 of 2) Insufficient TSHOT";
+  }
+
+  // Combined deposit disabled logic:
+  // - If depositDisabled is explicitly true
+  // - If numericValue === 0 or greater than parent's TSHOT
+  // - If numericValue > 50
+  const buttonDisabled =
+    depositDisabled ||
+    numericValue === 0 ||
+    numericValue > parentTSHOTBalance ||
+    isOverMax;
 
   // ---------------------------------------------
-  // STEP 1 => Deposit TSHOT (commitSwap)
+  // STEP 1 => deposit TSHOT (commitSwap)
   // ---------------------------------------------
   async function handleDeposit() {
-    if (depositDisabled || !isValidAmount) {
+    // If there's some reason it's disabled, or 0, or over balance, or over max
+    if (buttonDisabled) {
       if (isOverMax) {
         alert("Max 50 TSHOT allowed. Please lower your amount.");
-      } else if (isUnderMin) {
-        alert("Please enter at least 1 TSHOT.");
       }
       return;
     }
@@ -189,7 +212,6 @@ export default function TSHOTToNFTPanel({
         });
       });
 
-      // Wait for seal
       await fcl.tx(txId).onceSealed();
 
       onTransactionStart?.({
@@ -220,10 +242,9 @@ export default function TSHOTToNFTPanel({
   }
 
   // ---------------------------------------------
-  // STEP 2 => Reveal minted NFTs (revealSwap)
+  // STEP 2 => reveal minted NFTs (revealSwap)
   // ---------------------------------------------
   async function handleReveal() {
-    // If the user had placed a bet earlier, there's a betAmount in the receipt
     const betFromReceipt = accountData?.receiptDetails?.betAmount;
     const fallback = numericValue.toString();
     const betInteger = betFromReceipt || fallback;
@@ -331,7 +352,7 @@ export default function TSHOTToNFTPanel({
         revealedNFTDetails,
       });
 
-      // Refresh parent + child data
+      // Refresh parent + child
       await loadAllUserData(parentAddr);
       if (selectedAccount && selectedAccount !== parentAddr) {
         await loadChildData(selectedAccount);
@@ -352,56 +373,54 @@ export default function TSHOTToNFTPanel({
   }
 
   // -------------------------------------------------------------
-  // RENDER UI
+  // RENDER LOGIC
   // -------------------------------------------------------------
-  // Step 1 => deposit TSHOT
   if (depositStep) {
-    const buttonDisabled =
-      depositDisabled || numericValue === 0 || isOverMax || isUnderMin;
-
     return (
-      <div className="bg-gray-700 rounded-lg p-4">
+      <>
+        {/* Deposit Button */}
         <button
           onClick={handleDeposit}
           disabled={buttonDisabled}
-          className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-            buttonDisabled
-              ? "bg-gray-800 cursor-not-allowed"
-              : "bg-flow-dark hover:bg-flow-darkest"
-          }`}
+          className={`
+            w-full
+            p-4
+            text-lg
+            rounded-lg
+            font-bold
+            transition-colors
+            shadow-md
+            shadow-black/40
+            ${
+              buttonDisabled
+                ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
+                : "bg-flow-light text-white hover:bg-flow-dark"
+            }
+          `}
         >
-          (Step 1 of 2) Swap TSHOT for Moments
+          {depositButtonLabel}
         </button>
 
-        {!isValidAmount && (
+        {/* Show "over max" error only */}
+        {isOverMax && (
           <div className="mt-2 text-red-400 text-sm">
-            {isOverMax && (
-              <>
-                You have exceeded the maximum of <strong>50 TSHOT</strong>.
-                Please lower your amount.
-              </>
-            )}
-            {isUnderMin && (
-              <>
-                You must enter at least <strong>1 TSHOT</strong> to swap.
-              </>
-            )}
+            You have exceeded the maximum of <strong>50 TSHOT</strong>. Please
+            lower your amount.
           </div>
         )}
-      </div>
+      </>
     );
   }
 
-  // Step 2 => reveal minted NFTs
   if (revealStep) {
-    // Check if the currently selected account has a TS collection
+    // Step 2 => reveal minted NFTs
+    const parentAddr = accountData?.parentAddress || user?.addr;
     const isParentSelected = selectedAccount === parentAddr;
     let currentAccountHasCollection = false;
 
     if (isParentSelected) {
       currentAccountHasCollection = !!accountData?.hasCollection;
     } else {
-      // Child path
       const childData = accountData?.childrenData?.find(
         (c) => c.addr === selectedAccount
       );
@@ -411,28 +430,59 @@ export default function TSHOTToNFTPanel({
     const isRevealDisabled = !currentAccountHasCollection;
 
     return (
-      <div className="bg-gray-700 rounded-lg p-4">
+      <>
+        {/* Reveal Button */}
         <button
           onClick={handleReveal}
           disabled={isRevealDisabled}
-          className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-            isRevealDisabled
-              ? "bg-gray-600 cursor-not-allowed"
-              : "bg-flow-dark hover:bg-flow-darkest"
-          }`}
+          className={`
+            w-full
+            p-4
+            text-lg
+            rounded-lg
+            font-bold
+            transition-colors
+            shadow-md
+            shadow-black/40
+            ${
+              isRevealDisabled
+                ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
+                : "bg-flow-light text-white hover:bg-flow-dark"
+            }
+          `}
         >
-          (Step 2 of 2) Swap TSHOT for Moments
+          (Step 2 of 2) Receive Random Moments
         </button>
+
         {isRevealDisabled && (
           <p className="text-red-400 mt-2 text-sm">
             Please select an account that has a TopShot collection before
             revealing your minted Moments.
           </p>
         )}
-      </div>
+      </>
     );
   }
 
-  // If neither step applies, fallback
-  return <div className="text-gray-400">Loading...</div>;
+  // Fallback if state is still loading
+  return (
+    <button
+      disabled
+      className="
+        w-full
+        p-4
+        text-lg
+        rounded-lg
+        font-bold
+        transition-colors
+        shadow-md
+        shadow-black/40
+        cursor-not-allowed
+        bg-brand-primary
+        text-brand-text/50
+      "
+    >
+      Loading...
+    </button>
+  );
 }

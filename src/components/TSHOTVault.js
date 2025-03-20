@@ -1,6 +1,7 @@
+// src/components/TSHOTVault.jsx
 import React, { useEffect, useState, useMemo } from "react";
 import { Loader2 } from "lucide-react";
-import MomentCard, { tierStyles } from "./MomentCard"; // Using the new MomentCard & its tierStyles
+import MomentCard, { tierStyles } from "./MomentCard";
 
 const ALL_TIER_OPTIONS = ["common", "fandom", "rare", "legendary", "ultimate"];
 
@@ -30,6 +31,9 @@ async function enrichVaultMoments(vaultNfts) {
       const resp = await fetch(
         "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-data"
       );
+      if (!resp.ok) {
+        throw new Error(`HTTP error: ${resp.status}`);
+      }
       const data = await resp.json();
       metadataCache = data.reduce((acc, item) => {
         const key = `${item.setID}-${item.playID}`;
@@ -82,8 +86,9 @@ function TSHOTVault() {
         const response = await fetch(
           "https://flowconnectbackend-864654c6a577.herokuapp.com/tshot-vault"
         );
-        if (!response.ok)
+        if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         const nfts = Array.isArray(data) ? data : data.data || [];
         const enrichedNfts = await enrichVaultMoments(nfts);
@@ -97,16 +102,17 @@ function TSHOTVault() {
     fetchVaultData();
   }, []);
 
-  // --- Filter State ---
+  // ========== Filter State ==========
   const [selectedTiers, setSelectedTiers] = useState([]);
   const [selectedSeries, setSelectedSeries] = useState([]);
   const [selectedSetName, setSelectedSetName] = useState("All");
   const [selectedPlayer, setSelectedPlayer] = useState("All");
   const [onlySpecialSerials, setOnlySpecialSerials] = useState(false);
+
   const [itemsPerPage] = useState(50);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Tiers
+  // 1) Tiers
   const existingTiers = useMemo(() => {
     const found = new Set();
     allNfts.forEach((nft) => {
@@ -116,11 +122,14 @@ function TSHOTVault() {
     });
     return ALL_TIER_OPTIONS.filter((t) => found.has(t));
   }, [allNfts]);
+
   useEffect(() => {
+    // If we have actual tiers and haven't selected any yet, auto-select them
     if (existingTiers.length && selectedTiers.length === 0) {
       setSelectedTiers(existingTiers);
     }
   }, [existingTiers, selectedTiers]);
+
   const toggleTier = (tierVal) => {
     setSelectedTiers((prev) =>
       prev.includes(tierVal)
@@ -130,7 +139,7 @@ function TSHOTVault() {
     setCurrentPage(1);
   };
 
-  // Series
+  // 2) Series
   const seriesOptions = useMemo(() => {
     const s = new Set(
       allNfts.map((n) => {
@@ -139,13 +148,15 @@ function TSHOTVault() {
       })
     );
     s.delete(null);
-    return Array.from(s).sort((a, b) => a - b);
+    return [...s].sort((a, b) => a - b);
   }, [allNfts]);
+
   useEffect(() => {
     if (seriesOptions.length && selectedSeries.length === 0) {
       setSelectedSeries(seriesOptions);
     }
   }, [seriesOptions, selectedSeries]);
+
   const toggleSeries = (val) => {
     setSelectedSeries((prev) =>
       prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]
@@ -153,7 +164,6 @@ function TSHOTVault() {
     setCurrentPage(1);
   };
 
-  // Define handleAllSeriesToggle so that "All" toggles work
   const handleAllSeriesToggle = (checked) => {
     if (checked) {
       setSelectedSeries(seriesOptions);
@@ -163,13 +173,13 @@ function TSHOTVault() {
     setCurrentPage(1);
   };
 
-  // Set Name
+  // 3) Set Name
   const setNameOptions = useMemo(() => {
     const s = new Set(allNfts.map((n) => n.name).filter(Boolean));
-    return Array.from(s).sort((a, b) => a.localeCompare(b));
+    return [...s].sort((a, b) => a.localeCompare(b));
   }, [allNfts]);
 
-  // Player: using getDisplayedName for filtering; make comparisons case-insensitive
+  // 4) Player
   const subsetForPlayers = useMemo(() => {
     return allNfts.filter((n) => {
       const t = n?.tier?.toLowerCase();
@@ -198,6 +208,7 @@ function TSHOTVault() {
     selectedSetName,
     onlySpecialSerials,
   ]);
+
   const playerOptions = useMemo(() => {
     const forcedUnknowns = new Set(["unknown player"]);
     const p = new Set(
@@ -210,7 +221,7 @@ function TSHOTVault() {
     );
   }, [subsetForPlayers]);
 
-  // --- Reset selected set/player if no longer available ---
+  // Reset selected set/player if no longer valid
   useEffect(() => {
     if (
       selectedSetName !== "All" &&
@@ -219,6 +230,7 @@ function TSHOTVault() {
       setSelectedSetName("All");
     }
   }, [selectedSetName, setNameOptions]);
+
   useEffect(() => {
     if (
       selectedPlayer !== "All" &&
@@ -230,22 +242,23 @@ function TSHOTVault() {
     }
   }, [selectedPlayer, playerOptions]);
 
-  // --- Filtering Logic for NFTs to Display ---
+  // Actual filtering
   const filteredNfts = useMemo(() => {
     if (!allNfts.length) return [];
     return allNfts.filter((n) => {
       const tier = n?.tier?.toLowerCase();
       if (!selectedTiers.includes(tier)) return false;
       const numSeries = Number(n.series);
-      if (Number.isNaN(numSeries) || !selectedSeries.includes(numSeries))
+      if (Number.isNaN(numSeries) || !selectedSeries.includes(numSeries)) {
         return false;
+      }
       if (selectedSetName !== "All" && n.name !== selectedSetName) return false;
-      // Case-insensitive check for player
       if (
         selectedPlayer !== "All" &&
         getDisplayedName(n).toLowerCase() !== selectedPlayer.toLowerCase()
-      )
+      ) {
         return false;
+      }
       if (onlySpecialSerials) {
         const sn = parseInt(n.serialNumber, 10);
         const effectiveMax =
@@ -255,7 +268,7 @@ function TSHOTVault() {
         const jersey =
           n.jerseyNumber != null ? parseInt(n.jerseyNumber, 10) : null;
         const isSpecial =
-          sn === 1 || sn === effectiveMax || (jersey !== null && jersey === sn);
+          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
         if (!isSpecial) return false;
       }
       return true;
@@ -269,7 +282,7 @@ function TSHOTVault() {
     onlySpecialSerials,
   ]);
 
-  // --- Sorting and Pagination ---
+  // Sorting & Pagination
   const sortedNfts = useMemo(() => {
     return [...filteredNfts].sort(
       (a, b) => parseInt(a.serialNumber, 10) - parseInt(b.serialNumber, 10)
@@ -282,7 +295,7 @@ function TSHOTVault() {
     return sortedNfts.slice(start, start + itemsPerPage);
   }, [sortedNfts, currentPage, itemsPerPage]);
 
-  // --- Smart Pagination UI ---
+  // Renders pagination
   const renderPaginationButtons = () => {
     if (totalPages <= 1) return null;
     const pages = [];
@@ -317,11 +330,15 @@ function TSHOTVault() {
           <button
             key={`page-${idx}`}
             onClick={() => p !== "..." && setCurrentPage(Number(p))}
-            className={`px-3 py-1 mx-1 rounded ${
-              p === currentPage
-                ? "bg-blue-500 text-white"
-                : "bg-gray-700 text-gray-300"
-            } ${p === "..." ? "pointer-events-none" : ""}`}
+            className={`
+              px-3 py-1 mx-1 rounded
+              ${
+                p === currentPage
+                  ? "bg-brand-primary text-brand-text"
+                  : "bg-brand-secondary text-brand-text/80"
+              }
+              ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}
+            `}
           >
             {p}
           </button>
@@ -331,37 +348,37 @@ function TSHOTVault() {
   };
 
   return (
-    <div className="bg-gray-700 p-3 rounded-lg">
-      <h3 className="text-lg font-bold text-white mb-2">
-        TSHOT Vault Contents
-      </h3>
+    <div className="bg-brand-secondary text-brand-text p-3 rounded-lg">
+      <h3 className="text-lg font-bold mb-2">TSHOT Vault Contents</h3>
+
       <div className="flex justify-between items-center mb-2">
         {loadingVault ? (
           <div className="flex items-center gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
-            <p className="text-gray-400 text-sm">Loading vault data...</p>
+            <Loader2 className="h-5 w-5 animate-spin text-brand-text/70" />
+            <p className="text-sm text-brand-text/70">Loading vault data...</p>
           </div>
         ) : (
-          <p className="text-gray-400 text-sm">
+          <p className="text-sm text-brand-text/70">
             {sortedNfts.length} Moments match your filters. (Vault contents
             refresh every 5 minutes)
           </p>
         )}
       </div>
+
       {vaultError && <p className="text-red-500 mb-2">Error: {vaultError}</p>}
 
       {/* FILTER UI */}
       {!loadingVault && !vaultError && (
-        <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-600 p-2 rounded mb-2">
+        <div className="flex flex-wrap items-center gap-4 text-sm bg-brand-primary p-2 rounded mb-2">
           {/* Tier Filter */}
           {existingTiers.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-gray-200 font-semibold">Tiers:</span>
+              <span className="font-semibold">Tiers:</span>
               <div className="flex items-center gap-2 flex-wrap">
                 {existingTiers.map((tierVal) => {
                   const label =
                     tierVal.charAt(0).toUpperCase() + tierVal.slice(1);
-                  const textClass = tierStyles[tierVal] || "text-gray-200";
+                  const textClass = tierStyles[tierVal] || "text-brand-text";
                   return (
                     <label key={tierVal} className="flex items-center gap-1">
                       <input
@@ -376,12 +393,13 @@ function TSHOTVault() {
               </div>
             </div>
           )}
+
           {/* Series Filter */}
           {seriesOptions.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-gray-200 font-semibold">Series:</span>
+              <span className="font-semibold">Series:</span>
               <div className="flex items-center gap-2 flex-wrap">
-                <label className="flex items-center gap-1 text-gray-200">
+                <label className="flex items-center gap-1">
                   <input
                     type="checkbox"
                     checked={selectedSeries.length === seriesOptions.length}
@@ -390,10 +408,7 @@ function TSHOTVault() {
                   All
                 </label>
                 {seriesOptions.map((val) => (
-                  <label
-                    key={val}
-                    className="flex items-center gap-1 text-gray-200"
-                  >
+                  <label key={val} className="flex items-center gap-1">
                     <input
                       type="checkbox"
                       checked={selectedSeries.includes(val)}
@@ -405,52 +420,55 @@ function TSHOTVault() {
               </div>
             </div>
           )}
+
           {/* Set Name Filter */}
           {setNameOptions.length > 0 && (
             <div className="flex items-center gap-1">
-              <span className="text-gray-200 font-semibold">Set:</span>
+              <span className="font-semibold">Set:</span>
               <select
                 value={selectedSetName}
                 onChange={(e) => {
                   setSelectedSetName(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-gray-800 text-white rounded px-1 py-0.5"
+                className="bg-brand-secondary text-brand-text rounded px-1 py-0.5"
               >
-                <option value="All" className="text-white">
+                <option value="All" className="text-brand-text">
                   All
                 </option>
                 {setNameOptions.map((name) => (
-                  <option key={name} value={name} className="text-white">
+                  <option key={name} value={name} className="text-brand-text">
                     {name}
                   </option>
                 ))}
               </select>
             </div>
           )}
+
           {/* Player Filter */}
           {playerOptions.length > 0 && (
             <div className="flex items-center gap-1">
-              <span className="text-gray-200 font-semibold">Player:</span>
+              <span className="font-semibold">Player:</span>
               <select
                 value={selectedPlayer}
                 onChange={(e) => {
                   setSelectedPlayer(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-gray-800 text-white rounded px-1 py-0.5"
+                className="bg-brand-secondary text-brand-text rounded px-1 py-0.5"
               >
-                <option value="All" className="text-white">
+                <option value="All" className="text-brand-text">
                   All
                 </option>
                 {playerOptions.map((p) => (
-                  <option key={p} value={p} className="text-white">
+                  <option key={p} value={p} className="text-brand-text">
                     {p}
                   </option>
                 ))}
               </select>
             </div>
           )}
+
           {/* Special Serials Filter */}
           <div className="flex items-center gap-1">
             <input
@@ -461,9 +479,7 @@ function TSHOTVault() {
                 setCurrentPage(1);
               }}
             />
-            <label className="text-gray-200">
-              Show only #1, jersey match, or last mint
-            </label>
+            <label>Show only #1, jersey match, or last mint</label>
           </div>
         </div>
       )}
@@ -474,19 +490,15 @@ function TSHOTVault() {
           {paginatedNfts.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {paginatedNfts.map((nft) => (
-                <MomentCard
-                  key={nft.id}
-                  nft={nft}
-                  isVault
-                  disableHover={true}
-                />
+                <MomentCard key={nft.id} nft={nft} isVault disableHover />
               ))}
             </div>
           ) : (
-            <p className="text-gray-400 mt-4 text-sm">
+            <p className="text-brand-text/70 mt-4 text-sm">
               No moments match your filters.
             </p>
           )}
+
           {renderPaginationButtons()}
         </>
       )}

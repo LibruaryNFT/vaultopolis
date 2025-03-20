@@ -1,15 +1,39 @@
+// src/components/TermsAndPrivacy.jsx
+
 import React from "react";
 
 const TermsAndPrivacy = () => {
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-gray-900 rounded-lg shadow-xl m-4">
-      <h1 className="text-3xl font-bold mb-8 text-white">
+    <div
+      className="
+        max-w-4xl
+        mx-auto
+        m-4
+        p-8
+        bg-brand-secondary
+        text-brand-text
+        rounded-lg
+        shadow-xl
+      "
+    >
+      <h1 className="text-3xl font-bold mb-8">
         Vaultopolis Terms of Service and Privacy Policy
       </h1>
-      <div className="space-y-8 text-gray-300">
-        {/* Introduction */}
+
+      <div className="space-y-8 text-brand-text/80">
+        {/* =============== Introduction =============== */}
         <section className="mb-12">
-          <p className="mb-6 text-lg font-semibold bg-gray-800 p-4 rounded">
+          <p
+            className="
+              mb-6
+              text-lg
+              font-semibold
+              bg-brand-primary
+              text-brand-text
+              p-4
+              rounded
+            "
+          >
             PLEASE READ THESE TERMS CAREFULLY. BY USING VAULTOPOLIS OR ANY OF
             OUR SERVICES, YOU AGREE TO BE BOUND BY THESE TERMS AND CONDITIONS.
           </p>
@@ -27,9 +51,9 @@ const TermsAndPrivacy = () => {
           </p>
         </section>
 
-        {/* 1. Platform Status */}
+        {/* =============== 1. Platform Status =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             1. Platform Status
           </h2>
           <div className="space-y-4">
@@ -47,9 +71,9 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 2. Services */}
+        {/* =============== 2. Services =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             2. Services
           </h2>
           <div className="space-y-4">
@@ -68,9 +92,9 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 3. Smart Contract Operations */}
+        {/* =============== 3. Smart Contract Operations =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             3. Smart Contract Operations
           </h2>
           <div className="space-y-4">
@@ -94,9 +118,9 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 4. User Responsibilities */}
+        {/* =============== 4. User Responsibilities =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             4. User Responsibilities
           </h2>
           <div className="space-y-4">
@@ -115,9 +139,11 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 5. Risks */}
+        {/* =============== 5. Risks =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">5. Risks</h2>
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
+            5. Risks
+          </h2>
           <div className="space-y-4">
             <p className="font-semibold">
               YOU EXPRESSLY UNDERSTAND AND AGREE THAT:
@@ -136,9 +162,9 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 6. Prohibited Activities */}
+        {/* =============== 6. Prohibited Activities =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             6. Prohibited Activities
           </h2>
           <div className="space-y-4">
@@ -153,14 +179,15 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 7. Privacy Policy */}
+        {/* =============== 7. Privacy Policy =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             7. Privacy Policy
           </h2>
           <div className="space-y-4">
             <p>As a decentralized platform, our data collection is minimal:</p>
-            <h3 className="text-xl font-semibold text-white mb-2">
+
+            <h3 className="text-xl font-semibold text-brand-text mb-2">
               Information We Collect:
             </h3>
             <ul className="list-disc pl-6 space-y-2 mb-4">
@@ -170,7 +197,7 @@ const TermsAndPrivacy = () => {
               <li>Basic website analytics</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-white mb-2">
+            <h3 className="text-xl font-semibold text-brand-text mb-2">
               We Do Not Collect:
             </h3>
             <ul className="list-disc pl-6 space-y-2 mb-4">
@@ -180,7 +207,7 @@ const TermsAndPrivacy = () => {
               <li>User accounts or profiles</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-white mb-2">
+            <h3 className="text-xl font-semibold text-brand-text mb-2">
               Data Usage:
             </h3>
             <ul className="list-disc pl-6 space-y-2">
@@ -192,9 +219,9 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 8. Disclaimer of Warranties */}
+        {/* =============== 8. Disclaimer of Warranties =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             8. Disclaimer of Warranties
           </h2>
           <div className="space-y-4">
@@ -213,9 +240,9 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 9. Limitation of Liability */}
+        {/* =============== 9. Limitation of Liability =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             9. Limitation of Liability
           </h2>
           <p className="mb-4">
@@ -226,9 +253,9 @@ const TermsAndPrivacy = () => {
           </p>
         </section>
 
-        {/* 10. Changes to Terms */}
+        {/* =============== 10. Changes to Terms =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             10. Changes to Terms
           </h2>
           <p className="mb-4">
@@ -239,9 +266,9 @@ const TermsAndPrivacy = () => {
           </p>
         </section>
 
-        {/* 11. Authorized Use of Smart Contracts */}
+        {/* =============== 11. Authorized Use of Smart Contracts =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             11. Authorized Use of Smart Contracts
           </h2>
           <div className="space-y-4">
@@ -251,7 +278,7 @@ const TermsAndPrivacy = () => {
               official user interface at{" "}
               <a
                 href="https://vaultopolis.com"
-                className="text-green-400 hover:text-green-600"
+                className="text-flow-light hover:text-flow-dark"
               >
                 https://vaultopolis.com
               </a>{" "}
@@ -287,9 +314,9 @@ const TermsAndPrivacy = () => {
           </div>
         </section>
 
-        {/* 12. Indemnification */}
+        {/* =============== 12. Indemnification =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             12. Indemnification
           </h2>
           <p className="mb-4">
@@ -307,9 +334,9 @@ const TermsAndPrivacy = () => {
           </ul>
         </section>
 
-        {/* 13. Beta/Experimental Notice */}
+        {/* =============== 13. Beta/Experimental Notice =============== */}
         <section>
-          <h2 className="text-2xl font-semibold text-white mb-4">
+          <h2 className="text-2xl font-semibold text-brand-text mb-4">
             13. Beta/Experimental Status
           </h2>
           <p className="mb-4">

@@ -1,21 +1,41 @@
 /* src/index.css */
 
-/* Tailwind Imports */
+/* Tailwind core imports */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Global Styles */
+/* Global reset/typography */
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
-  -webkit-font-smoothing: antialiased; /* Optional: smooths fonts in WebKit */
-  -moz-osx-font-smoothing: grayscale; /* Optional: smooths fonts in Firefox on macOS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
-  /* Optional: used for <code> elements if your app displays code snippets */
 }
 
+/* ==============================
+   CSS Variables for Light vs. Dark
+   ============================== */
 
+/* 1) LIGHT MODE (Default) */
+:root {
+  /* Lighter background so the accent button stands out */
+  --brand-primary-bg: #f3f4f6;   /* a light neutral (Tailwind's 'gray-100'ish) */
+  --brand-secondary-bg: #ffffff; /* pure white to differentiate from primary */
+  --brand-text: #1a1a1a;         /* near-black text */
+  --brand-accent: #02d87e;       /* green accent button color */
+  --brand-border: #d4d4d8;       /* light border color (gray-300ish) */
+}
+
+/* 2) DARK MODE OVERRIDES */
+.dark {
+  --brand-primary-bg: #181818;      /* brandGrey.darkest or any dark bg */
+  --brand-secondary-bg: #2a2a2a;
+  --brand-text: #e0e0e0;            /* brandGrey.light for text in dark */
+  --brand-accent: #029a5c;          /* darker accent for dark mode */
+  --brand-border: #2a2a2a;          /* dark border color */
+}

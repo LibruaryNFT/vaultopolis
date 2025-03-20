@@ -1,10 +1,11 @@
+// src/components/TransactionModal.jsx
 import React, { useState, useEffect } from "react";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
 import { motion } from "framer-motion";
 import MomentCard from "./MomentCard";
 
-// Helper to decide singular vs plural
+/** Helper for singular vs plural */
 function pluralize(count, singular, plural) {
   return count === 1 ? singular : plural;
 }
@@ -16,9 +17,22 @@ function pluralize(count, singular, plural) {
 function HiddenCard({ nftId, onReveal }) {
   return (
     <div
-      className="w-28 h-48 border bg-black rounded relative text-white 
-                 border-gray-600 overflow-hidden flex flex-col items-center justify-center
-                 cursor-pointer transition-colors duration-200 hover:border-2 hover:border-opolis"
+      className="
+        w-28 h-48
+        border
+        border-brand-border
+        bg-black
+        text-white
+        rounded
+        relative
+        overflow-hidden
+        flex flex-col items-center justify-center
+        cursor-pointer
+        transition-colors
+        duration-200
+        hover:border-2
+        hover:border-opolis
+      "
       onClick={() => onReveal(nftId)}
     >
       <p className="text-center font-semibold text-sm">Reveal</p>
@@ -37,7 +51,6 @@ const TransactionModal = ({
   onClose,
   revealedNFTDetails,
 }) => {
-  // Track whether each NFT is revealed
   const [hiddenStates, setHiddenStates] = useState({});
 
   useEffect(() => {
@@ -152,12 +165,25 @@ const TransactionModal = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center pt-10 pb-10">
+      {/* Overlay */}
       <div className="absolute inset-0 bg-black bg-opacity-70"></div>
 
       <motion.div
-        className="relative bg-gray-900 text-white p-6 w-11/12 
-                   max-w-md sm:max-w-xl md:max-w-3xl 2xl:max-w-5xl
-                   rounded-lg shadow-lg overflow-y-auto max-h-[90vh]"
+        className="
+          relative
+          bg-brand-primary
+          text-brand-text
+          p-6
+          w-11/12
+          max-w-md
+          sm:max-w-xl
+          md:max-w-3xl
+          2xl:max-w-5xl
+          rounded-lg
+          shadow-lg
+          overflow-y-auto
+          max-h-[90vh]
+        "
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -166,7 +192,7 @@ const TransactionModal = ({
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Transaction Status</h2>
-          <button onClick={onClose} className="text-white text-2xl">
+          <button onClick={onClose} className="text-2xl hover:opacity-80">
             &times;
           </button>
         </div>
@@ -182,20 +208,28 @@ const TransactionModal = ({
           >
             {statusMessage}
           </motion.p>
-          <div className="text-lg text-gray-400 mt-4 text-center">
+          <div className="text-lg text-brand-text/80 mt-4 text-center">
             <p>{transactionMessage}</p>
           </div>
         </div>
 
         {/* Revealed NFTs */}
         {revealedCount > 0 && (
-          <div className="mt-4 p-2 border border-gray-600 rounded">
+          <div className="mt-4 p-2 border border-brand-border rounded">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-bold">{revealedHeading}</h3>
               {revealedCount > 1 && (
                 <button
                   onClick={handleRevealAll}
-                  className="bg-gray-700 text-white text-sm px-3 py-1 rounded hover:bg-gray-600"
+                  className="
+                    bg-brand-secondary
+                    text-brand-text
+                    text-sm
+                    px-3
+                    py-1
+                    rounded
+                    hover:opacity-80
+                  "
                 >
                   Reveal All
                 </button>
@@ -205,7 +239,7 @@ const TransactionModal = ({
               {revealedNFTDetails.map((nft) => {
                 const isRevealed = hiddenStates[nft.id];
                 return isRevealed ? (
-                  <MomentCard key={nft.id} nft={nft} disableHover={true} />
+                  <MomentCard key={nft.id} nft={nft} disableHover />
                 ) : (
                   <HiddenCard
                     key={nft.id}
@@ -224,7 +258,7 @@ const TransactionModal = ({
             href={`https://flowscan.io/transaction/${txId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="block mt-4 text-center text-blue-400 underline"
+            className="block mt-4 text-center text-flow-light underline hover:opacity-80"
           >
             View Transaction Details
           </a>

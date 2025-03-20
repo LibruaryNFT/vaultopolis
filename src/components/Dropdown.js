@@ -1,8 +1,8 @@
-// src/components/Dropdown.js
+// src/components/Dropdown.jsx
 import React, { useState, useRef, useEffect } from "react";
 
 /**
- * Single-line TSHOT label with bigger icon (w-9 h-9).
+ * TSHOT label with bigger icon (w-9 h-9).
  */
 const tshotLabel = (
   <div className="flex items-center gap-2">
@@ -16,8 +16,9 @@ const tshotLabel = (
 );
 
 /**
- * Single-line "TopShot Common / Fandom"
- * partial-colored for "Common" / "Fandom".
+ * "TopShot Common / Fandom" with partial coloring:
+ * - Common => text-gray-400
+ * - Fandom => text-lime-400
  */
 const topShotLabel = (
   <span>
@@ -31,13 +32,6 @@ export const FROM_OPTIONS = [
   { value: "TopShot Common / Fandom", label: topShotLabel },
 ];
 
-/**
- * A custom dropdown that:
- * - Excludes the current selection if 'excludeSelected' is true
- * - Has a fixed width (w-72) + fixed height (h-14)
- * - Larger TSHOT icon and arrow, no hover color changes
- * - Single-line text for TopShot
- */
 export default function Dropdown({
   options,
   selectedValue,
@@ -77,10 +71,16 @@ export default function Dropdown({
         onClick={handleToggle}
         className="
           flex items-center justify-between
-          bg-gray-700 text-white
-          px-3 py-2
-          rounded-lg text-base
-          w-72 h-14
+          bg-brand-primary
+          text-brand-text
+          px-3
+          py-2
+          rounded-lg
+          text-base
+          w-72
+          h-14
+          transition-colors
+          hover:opacity-90
         "
       >
         <div className="text-left">
@@ -97,20 +97,39 @@ export default function Dropdown({
         >
           <path
             fillRule="evenodd"
-            d="M10 3a1 1 0 0 1 .707.293l6.364 6.364a1 1 0 1 1-1.414 1.414L10 5.414 4.343 11.07a1 1 0 0 1-1.414-1.414l6.364-6.364A1 1 0 0 1 10 3z"
+            d="M10 3a1 1 0 0 1 .707.293l6.364 6.364a1 1 0 1 1-1.414 1.414L10 5.414 4.343 11.07a1 1 0 1 1-1.414-1.414l6.364-6.364A1 1 0 0 1 10 3z"
             clipRule="evenodd"
           />
         </svg>
       </button>
 
-      {/* Dropdown menu */}
+      {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 bg-gray-800 rounded shadow-lg w-72">
+        <div
+          className="
+            absolute
+            z-50
+            mt-1
+            bg-brand-primary
+            text-brand-text
+            border
+            border-brand-border
+            rounded
+            shadow-lg
+            w-72
+          "
+        >
           {filtered.map((opt) => (
             <div
               key={opt.value}
               onClick={() => handleSelect(opt.value)}
-              className="px-4 py-2 text-white cursor-pointer"
+              className="
+                px-4
+                py-2
+                cursor-pointer
+                hover:bg-brand-secondary
+                transition-colors
+              "
             >
               {opt.label}
             </div>

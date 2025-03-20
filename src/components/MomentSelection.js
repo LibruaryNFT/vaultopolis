@@ -8,7 +8,7 @@ import MomentCard from "./MomentCard";
 const defaultTiers = ["common", "fandom"];
 const allPossibleTiers = ["common", "fandom", "rare", "legendary", "ultimate"];
 
-/** Tier color classes */
+/** Tier color classes (unchanged from your snippet) */
 function getTierColorClass(tierVal) {
   switch (tierVal) {
     case "common":
@@ -320,11 +320,15 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
           <button
             key={`page-${idx}`}
             onClick={() => p !== "..." && setCurrentPage(Number(p))}
-            className={`px-3 py-1 mx-1 rounded ${
-              p === currentPage
-                ? "bg-blue-500 text-white"
-                : "bg-gray-700 text-gray-300"
-            } ${p === "..." ? "pointer-events-none" : ""}`}
+            className={`
+              px-3 py-1 mx-1 rounded
+              ${
+                p === currentPage
+                  ? "bg-flow-dark text-white"
+                  : "bg-brand-secondary text-brand-text/80"
+              }
+              ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}
+            `}
           >
             {p}
           </button>
@@ -333,16 +337,16 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     );
   };
 
-  // if user not logged in
+  // If user not logged in
   if (!user?.loggedIn) {
-    return <p className="text-gray-400">Please log in.</p>;
+    return <p className="text-brand-text/70 px-2">Please log in.</p>;
   }
 
-  // if account has no TopShot collection
+  // If account has no TopShot collection
   if (!hasCollection) {
     return (
-      <div className="bg-gray-700 p-1 rounded-lg">
-        <p className="text-gray-400 text-sm">
+      <div className="bg-brand-secondary p-2 rounded-lg">
+        <p className="text-brand-text/80 text-sm">
           This account does not have a TopShot collection.
         </p>
       </div>
@@ -350,26 +354,25 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   }
 
   return (
-    <div className="w-full bg-gray-700 rounded-lg">
+    <div className="w-full bg-brand-secondary text-brand-text rounded-lg">
       {/* (A) Count + "Loading" status row */}
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-center mb-2 px-2 pt-2">
         <div>
           {eligibleMoments.length === 0 ? (
-            <p className="text-gray-400">No Moments match your filters.</p>
+            <p className="text-brand-text/70">No Moments match your filters.</p>
           ) : (
-            <p className="text-gray-400">
+            <p className="text-brand-text/70">
               {eligibleMoments.length} Moments match your filters.
             </p>
           )}
-          {/* Same color => text-gray-400 */}
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-brand-text/60 mt-1">
             Note: Only unlocked Common and Fandom are eligible to be swapped for
             TSHOT.
           </p>
         </div>
 
         {isRefreshing && (
-          <span className="text-gray-400">
+          <span className="text-brand-text/70">
             <span className="animate-spin inline-block mr-2">⟳</span>
             Loading...
           </span>
@@ -378,17 +381,26 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
 
       {/* (B) If no series but we do have NFT details */}
       {seriesOptions.length === 0 && nftDetails.length > 0 && (
-        <p className="text-gray-400">
+        <p className="text-brand-text/70 px-2">
           You have no NFTs in this account. No Series available.
         </p>
       )}
 
-      {/* (C) Filters row, less padding => p-1 */}
+      {/* (C) Filters row */}
       {seriesOptions.length > 0 && (
-        <div className="flex flex-wrap items-center gap-4 text-sm bg-gray-600 p-1 rounded mb-2">
+        <div
+          className="
+          flex flex-wrap items-center gap-4 text-sm
+          bg-brand-primary
+          p-2
+          rounded
+          mb-2
+          mx-2
+        "
+        >
           {/* Tiers */}
           <div className="flex items-center gap-2">
-            <span className="text-gray-200 font-semibold">Tiers:</span>
+            <span className="text-brand-text font-semibold">Tiers:</span>
             <div className="flex items-center gap-2 flex-wrap">
               {tierOptions.map((tVal) => {
                 const label = tVal.charAt(0).toUpperCase() + tVal.slice(1);
@@ -416,9 +428,9 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
 
           {/* Series */}
           <div className="flex items-center gap-2">
-            <span className="text-gray-200 font-semibold">Series:</span>
+            <span className="text-brand-text font-semibold">Series:</span>
             <div className="flex items-center gap-2 flex-wrap">
-              <label className="flex items-center gap-1 text-gray-200">
+              <label className="flex items-center gap-1 text-brand-text">
                 <input
                   type="checkbox"
                   checked={allSeriesChecked}
@@ -429,7 +441,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
               {seriesOptions.map((val) => (
                 <label
                   key={val}
-                  className="flex items-center gap-1 text-gray-200"
+                  className="flex items-center gap-1 text-brand-text"
                 >
                   <input
                     type="checkbox"
@@ -451,14 +463,20 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
 
           {/* Set */}
           <div className="flex items-center gap-1">
-            <span className="text-gray-200 font-semibold">Set:</span>
+            <span className="text-brand-text font-semibold">Set:</span>
             <select
               value={selectedSetName}
               onChange={(e) => {
                 setSelectedSetName(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-gray-800 text-white rounded px-1 py-0.5"
+              className="
+                bg-brand-secondary
+                text-brand-text
+                rounded
+                px-1
+                py-0.5
+              "
               disabled={setNameOptions.length === 0}
             >
               {setNameOptions.length === 0 ? (
@@ -467,7 +485,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 <>
                   <option value="All">All</option>
                   {setNameOptions.map((name) => (
-                    <option key={name} value={name} className="text-white">
+                    <option key={name} value={name} className="text-brand-text">
                       {name}
                     </option>
                   ))}
@@ -478,14 +496,20 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
 
           {/* Player */}
           <div className="flex items-center gap-1">
-            <span className="text-gray-200 font-semibold">Player:</span>
+            <span className="text-brand-text font-semibold">Player:</span>
             <select
               value={selectedPlayer}
               onChange={(e) => {
                 setSelectedPlayer(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-gray-800 text-white rounded px-1 py-0.5"
+              className="
+                bg-brand-secondary
+                text-brand-text
+                rounded
+                px-1
+                py-0.5
+              "
               disabled={playerNameOptions.length === 0}
             >
               {playerNameOptions.length === 0 ? (
@@ -494,7 +518,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 <>
                   <option value="All">All</option>
                   {playerNameOptions.map((p) => (
-                    <option key={p} value={p} className="text-white">
+                    <option key={p} value={p} className="text-brand-text">
                       {p}
                     </option>
                   ))}
@@ -513,7 +537,9 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setCurrentPage(1);
               }}
             />
-            <label className="text-gray-200">Exclude #1, last, or jersey</label>
+            <label className="text-brand-text">
+              Exclude #1, last, or jersey
+            </label>
           </div>
 
           {/* Exclude serials <= 4000 */}
@@ -526,14 +552,14 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setCurrentPage(1);
               }}
             />
-            <label className="text-gray-200">Exclude serials ≤ 4000</label>
+            <label className="text-brand-text">Exclude serials ≤ 4000</label>
           </div>
         </div>
       )}
 
       {/* (D) - Main grid of unselected Moments */}
       {paginatedMoments.length > 0 ? (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-2 mt-2 px-2 pb-2">
           {paginatedMoments.map((nft) => (
             <MomentCard
               key={nft.id}
@@ -546,7 +572,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
       ) : (
         seriesOptions.length > 0 &&
         nftDetails.length > 0 && (
-          <p className="text-gray-400 mt-4 text-sm">
+          <p className="text-brand-text/70 mt-4 text-sm px-2 pb-2">
             No moments match your filters. Try adjusting them.
           </p>
         )

@@ -1,4 +1,4 @@
-// src/components/AccountSelection.js
+// src/components/AccountSelection.jsx
 
 import React from "react";
 import { Repeat } from "lucide-react";
@@ -25,21 +25,33 @@ const AccountBox = ({
     <div
       onClick={handleClick}
       title={isDisabled ? "This account has no TopShot collection." : ""}
-      className={`p-2 w-48 rounded-lg border-2 transition-all ${
-        isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
-      }
-      ${isSelected ? "border-opolis" : "border-gray-500"}
-      ${isDisabled ? "bg-gray-800" : "bg-gray-700 hover:bg-gray-800"}
-    `}
+      className={`
+        p-2 w-48 rounded-lg border-2 transition-all
+        ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+
+        /* Border color: opolis if selected, brand-border if not */
+        ${isSelected ? "border-opolis" : "border-brand-border"}
+
+        /* Background color: 
+           if disabled => brand-primary
+           if enabled => brand-secondary (hover: brand-primary)
+        */
+        ${
+          isDisabled
+            ? "bg-brand-primary"
+            : "bg-brand-secondary hover:bg-brand-primary"
+        }
+      `}
     >
       <h4
-        className={`text-sm font-semibold ${
-          isSelected ? "text-green-400" : "text-white"
-        }`}
+        className={`
+          text-sm font-semibold
+          ${isSelected ? "text-opolis" : "text-brand-text"}
+        `}
       >
         {label}
       </h4>
-      <p className="text-xs text-gray-400 truncate">{address}</p>
+      <p className="text-xs text-brand-text/70 truncate">{address}</p>
     </div>
   );
 };
@@ -51,7 +63,7 @@ const AccountSelection = ({
   selectedAccount,
   onSelectAccount,
   isLoadingChildren,
-  // You can pass this in if you only want to enforce it for Step 2
+  // You can pass this in if you only want to enforce a collection check for certain steps
   requireCollection = false,
 }) => {
   // Render the parent account box if available
@@ -79,9 +91,18 @@ const AccountSelection = ({
       return (
         <div
           key="loading"
-          className="bg-gray-600 p-2 rounded flex flex-col items-center text-center w-48"
+          className="
+            bg-brand-secondary
+            p-2
+            rounded
+            flex
+            flex-col
+            items-center
+            text-center
+            w-48
+          "
         >
-          <p className="text-sm text-gray-100">Loading child data...</p>
+          <p className="text-sm text-brand-text">Loading child data...</p>
         </div>
       );
     }
@@ -91,13 +112,22 @@ const AccountSelection = ({
       return (
         <div
           key="dapper-card"
-          className="bg-gray-600 p-2 rounded flex flex-col items-center text-center w-48"
+          className="
+            bg-brand-secondary
+            p-2
+            rounded
+            flex
+            flex-col
+            items-center
+            text-center
+            w-48
+          "
         >
-          <div className="flex items-center justify-center text-base font-bold text-white mb-1">
-            <Repeat className="w-5 h-5 text-blue-400 mr-1" />
+          <div className="flex items-center justify-center text-base font-bold text-brand-text mb-1">
+            <Repeat className="w-5 h-5 text-flow-light mr-1" />
             Use Your Dapper Wallet Moments
           </div>
-          <p className="text-xs text-gray-100 mb-2">
+          <p className="text-xs text-brand-text/70 mb-2">
             Seamlessly leverage Dapper Wallet assets on TSHOT—no need to move
             them elsewhere.
           </p>
@@ -105,7 +135,16 @@ const AccountSelection = ({
             href="https://support.meetdapper.com/hc/en-us/articles/20744347884819-Account-Linking-and-FAQ"
             target="_blank"
             rel="noreferrer"
-            className="bg-blue-500 hover:bg-blue-600 text-xs text-white font-bold px-2 py-1 rounded"
+            className="
+              bg-flow-dark
+              hover:bg-flow-darkest
+              text-xs
+              text-white
+              font-bold
+              px-2
+              py-1
+              rounded
+            "
           >
             Learn More
           </a>
@@ -142,7 +181,9 @@ const AccountSelection = ({
 
   return (
     <div className="text-center">
-      <h3 className="text-white text-sm font-bold mb-2">Account Selection</h3>
+      <h3 className="text-brand-text text-sm font-bold mb-2">
+        Account Selection
+      </h3>
       <div className="grid grid-cols-2 gap-3 justify-items-center">
         {allBoxes}
       </div>

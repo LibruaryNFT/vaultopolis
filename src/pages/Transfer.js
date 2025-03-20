@@ -3,7 +3,7 @@ import React, { useState, useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserContext } from "../context/UserContext";
 
-// Your two transaction scripts
+// Your transaction scripts
 import { batchTransfer } from "../flow/batchTransfer";
 import { batchTransfer_child } from "../flow/batchTransfer_child";
 
@@ -12,7 +12,7 @@ import MomentSelection from "../components/MomentSelection";
 import MomentCard from "../components/MomentCard";
 import TransactionModal from "../components/TransactionModal";
 
-const MAX_TRANSFER_COUNT = 500; // Limit to 500 Moments at once
+const MAX_TRANSFER_COUNT = 500;
 
 const Transfer = () => {
   const {
@@ -33,7 +33,7 @@ const Transfer = () => {
   const [transactionData, setTransactionData] = useState({});
   const [errorMessage, setErrorMessage] = useState("");
 
-  // For excluding NFTs so we don't see them reappear in the selection mid-transaction
+  // Exclude any NFTs we’ve already transferred so they don’t reappear
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
   const isLoggedIn = Boolean(user?.loggedIn);
@@ -85,7 +85,6 @@ const Transfer = () => {
 
     // ---------------------------------------------------------------------
     // 2) Choose which script to run, based on parent vs child
-    //    BUT the parent is always the FCL signer (fcl.authz).
     // ---------------------------------------------------------------------
     const cadenceScript = childSelected ? batchTransfer_child : batchTransfer;
 
@@ -101,10 +100,10 @@ const Transfer = () => {
     });
 
     try {
-      // Build transaction arguments:
+      // Build transaction args
       const args = childSelected
         ? (arg, t) => [
-            arg(selectedAccount, t.Address), // the child's address as "source"
+            arg(selectedAccount, t.Address),
             arg(recipient, t.Address),
             arg(selectedNFTs.map(String), t.Array(t.UInt64)),
           ]
@@ -113,20 +112,17 @@ const Transfer = () => {
             arg(selectedNFTs.map(String), t.Array(t.UInt64)),
           ];
 
-      // ---------------------------------------------------------------------
-      // 3) Use the parent to sign, same as TSHOTToNFTPanel does
-      //    (fcl.authz => the currently logged-in account => the parent).
-      // ---------------------------------------------------------------------
+      // Submit to Flow
       const txId = await fcl.mutate({
         cadence: cadenceScript,
         args,
         proposer: fcl.authz,
         payer: fcl.authz,
-        authorizations: [fcl.authz], // only the parent
+        authorizations: [fcl.authz],
         limit: 9999,
       });
 
-      // Immediately reset selection to avoid confusion
+      // Immediately reset selection
       dispatch({ type: "RESET_SELECTED_NFTS" });
       setExcludedNftIds((prev) => [...prev, ...selectedNFTs.map(String)]);
 
@@ -164,9 +160,7 @@ const Transfer = () => {
       // Wait for seal
       await fcl.tx(txId).onceSealed();
 
-      // ---------------------------------------------------------------------
-      // 4) Refresh parent's data. If child transfer, also refresh child.
-      // ---------------------------------------------------------------------
+      // Refresh data
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -184,21 +178,21 @@ const Transfer = () => {
     }
   };
 
-  // If user not logged in at all
+  // If user not logged in
   if (!isLoggedIn) {
     return (
-      <div className="p-4 text-gray-300">
+      <div className="p-4 text-brandGrey-light">
         <p>Please log in to transfer NFTs.</p>
       </div>
     );
   }
 
-  // Active account’s data (could be parent or the currently selected child)
+  // Active account’s data
   const activeAccountData =
     accountData.childrenData?.find((c) => c.addr === selectedAccount) ||
     accountData;
 
-  // Filter selected NFTs so we only show the ones from whichever account is active
+  // Filter selected NFTs to only those from active account
   const selectedNftsInAccount = selectedNFTs.filter((id) =>
     (activeAccountData.nftDetails || []).some(
       (nft) => Number(nft.id) === Number(id)
@@ -206,9 +200,9 @@ const Transfer = () => {
   );
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4 bg-brandGrey-dark rounded">
       <h2 className="text-xl font-bold text-white">Transfer</h2>
-      <p className="text-gray-300">
+      <p className="text-brandGrey-light">
         Select an account (parent or child) for NFTs, choose Moments, and
         transfer to another address. The parent account (logged in) will sign
         every time.
@@ -240,7 +234,7 @@ const Transfer = () => {
 
       {/* Selected NFTs section */}
       {selectedNftsInAccount.length > 0 && (
-        <div className="bg-gray-600 p-2 rounded">
+        <div className="bg-brandGrey-darkest p-2 rounded">
           <h4 className="text-white text-sm mb-2">Selected Moments:</h4>
           <div className="flex flex-wrap gap-2">
             {selectedNftsInAccount.map((momentId) => {
@@ -291,11 +285,16 @@ const Transfer = () => {
       {/* Transfer Button */}
       <button
         onClick={handleTransfer}
-        className={`w-full p-4 text-lg rounded-lg font-bold text-white bg-green-600 hover:bg-green-700 mt-2 ${
-          selectedNFTs.length === 0 || selectedNFTs.length > MAX_TRANSFER_COUNT
-            ? "opacity-50 cursor-not-allowed"
-            : ""
-        }`}
+        className={`
+          w-full p-4 text-lg rounded-lg font-bold text-white
+          mt-2 transition-colors
+          ${
+            selectedNFTs.length === 0 ||
+            selectedNFTs.length > MAX_TRANSFER_COUNT
+              ? "bg-brandGrey-darkest cursor-not-allowed opacity-60"
+              : "bg-flow-light hover:bg-flow-dark"
+          }
+        `}
         disabled={
           selectedNFTs.length === 0 || selectedNFTs.length > MAX_TRANSFER_COUNT
         }

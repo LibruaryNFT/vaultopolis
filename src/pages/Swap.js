@@ -1,4 +1,5 @@
 // src/components/Swap.js
+
 import React, { useState, useEffect, useContext } from "react";
 import { UserContext } from "../context/UserContext";
 
@@ -11,6 +12,7 @@ import TransactionModal from "../components/TransactionModal";
 import { AnimatePresence } from "framer-motion";
 import MomentCard from "../components/MomentCard";
 
+/** Utility to get total TSHOT balance across parent + child. */
 function getTotalTSHOTBalance(accountData) {
   if (!accountData) return 0;
   let total = parseFloat(accountData.tshotBalance || 0) || 0;
@@ -24,6 +26,7 @@ function getTotalTSHOTBalance(accountData) {
   return total;
 }
 
+/** Utility to get total Common & Fandom counts across parent + child. */
 function getTotalNFTCounts(accountData) {
   if (!accountData) return { common: 0, fandom: 0 };
   let common = 0;
@@ -47,8 +50,18 @@ function getTotalNFTCounts(accountData) {
   return { common, fandom };
 }
 
+/** If from=TSHOT => to=NFT, else from=NFT => to=TSHOT. */
 function getOppositeAsset(asset) {
   return asset === "TSHOT" ? "TopShot Common / Fandom" : "TSHOT";
+}
+
+/**
+ * Returns the background color class for whichever asset is "toAsset."
+ * If toAsset = TSHOT => we use brand-primary,
+ * If toAsset = "TopShot Common / Fandom" => we use brand-secondary.
+ */
+function getToAssetBg(toAsset) {
+  return toAsset === "TSHOT" ? "bg-brand-primary" : "bg-brand-secondary";
 }
 
 const Swap = () => {
@@ -58,26 +71,33 @@ const Swap = () => {
     selectedAccount,
     selectedNFTs,
     dispatch,
-    // Removed unused: loadAllUserData, isRefreshing
     isLoadingChildren,
   } = useContext(UserContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
+
+  // Initial direction: from NFT => TSHOT
   const [fromAsset, setFromAsset] = useState("TopShot Common / Fandom");
   const [toAsset, setToAsset] = useState("TSHOT");
+
+  // Text input for amounts
   const [fromInput, setFromInput] = useState("");
   const [toInput, setToInput] = useState("");
   const [lastFocus, setLastFocus] = useState(null);
 
+  // Transaction modal
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
+
+  // Excluded NFT IDs (committed for TSHOT, so we don’t see them again)
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
+  // Whenever fromAsset changes, auto-switch toAsset
   useEffect(() => {
     setToAsset(getOppositeAsset(fromAsset));
   }, [fromAsset]);
 
-  // If from=NFT => fromInput & toInput = selectedNFTs.length
+  // If from=NFT, then fromInput & toInput = selectedNFTs.length
   const isNFTMode = fromAsset === "TopShot Common / Fandom";
   useEffect(() => {
     if (isNFTMode) {
@@ -104,6 +124,7 @@ const Swap = () => {
     }
   }, [fromAsset, tshotReceiptAmount]);
 
+  // Decide if we show NFT->TSHOT or TSHOT->NFT swap panel
   function getDashboardMode() {
     if (fromAsset === "TopShot Common / Fandom" && toAsset === "TSHOT") {
       return "NFT_TO_TSHOT";
@@ -126,13 +147,14 @@ const Swap = () => {
     }
   }, [dashboardMode, fromInput, toInput, lastFocus]);
 
+  /** Safe parse integer from a string. */
   function safeNumberParse(str) {
     if (!str) return 0;
     const val = Number(str);
     return isNaN(val) ? 0 : val;
   }
 
-  // computedFrom
+  // Compute from & to
   let rawFrom;
   if (isNFTMode) {
     rawFrom = selectedNFTs.length;
@@ -144,7 +166,6 @@ const Swap = () => {
   const computedFrom = isNaN(rawFrom) ? 0 : rawFrom;
   const formattedFrom = computedFrom.toFixed(1);
 
-  // computedTo
   let rawTo;
   if (isNFTMode) {
     rawTo = selectedNFTs.length;
@@ -156,14 +177,13 @@ const Swap = () => {
   const computedTo = isNaN(rawTo) ? 0 : rawTo;
   const formattedTo = computedTo.toFixed(1);
 
-  // Render total balances across all accounts
+  // Render balances for the From/To boxes
   const renderFromBalance = () => {
     if (!isLoggedIn) return null;
-
     if (fromAsset === "TSHOT") {
       const totalTSHOT = getTotalTSHOTBalance(accountData);
       return (
-        <div className="text-xs text-gray-300 mt-1">
+        <div className="text-xs text-brand-text/70 mt-1">
           Balance: {Math.floor(totalTSHOT)} TSHOT
         </div>
       );
@@ -171,7 +191,7 @@ const Swap = () => {
     if (isNFTMode) {
       const { common, fandom } = getTotalNFTCounts(accountData);
       return (
-        <div className="text-xs text-gray-300 mt-1">
+        <div className="text-xs text-brand-text/70 mt-1">
           Balance: {common} Common / {fandom} Fandom
         </div>
       );
@@ -181,11 +201,10 @@ const Swap = () => {
 
   const renderToBalance = () => {
     if (!isLoggedIn) return null;
-
     if (toAsset === "TSHOT") {
       const totalTSHOT = getTotalTSHOTBalance(accountData);
       return (
-        <div className="text-xs text-gray-300 mt-1">
+        <div className="text-xs text-brand-text/70 mt-1">
           Balance: {Math.floor(totalTSHOT)} TSHOT
         </div>
       );
@@ -193,7 +212,7 @@ const Swap = () => {
     if (toAsset === "TopShot Common / Fandom") {
       const { common, fandom } = getTotalNFTCounts(accountData);
       return (
-        <div className="text-xs text-gray-300 mt-1">
+        <div className="text-xs text-brand-text/70 mt-1">
           Balance: {common} Common / {fandom} Fandom
         </div>
       );
@@ -201,6 +220,7 @@ const Swap = () => {
     return null;
   };
 
+  /** Called whenever a transaction starts or updates. */
   const handleTransactionStart = (txData) => {
     setTransactionData(txData);
     setShowModal(true);
@@ -220,6 +240,7 @@ const Swap = () => {
     setShowModal(false);
   };
 
+  /** Prevent typed input in from=NFT or TSHOT w/ receipt mode. */
   const handleFromKeyDown = (e) => {
     if (isNFTMode || (fromAsset === "TSHOT" && accountData?.hasReceipt)) {
       e.preventDefault();
@@ -231,6 +252,7 @@ const Swap = () => {
     }
   };
 
+  /** For TSHOT->NFT => fromInput & toInput must match, so also block typed input in 'to'. */
   const handleToKeyDown = (e) => {
     if (dashboardMode === "TSHOT_TO_NFT") {
       e.preventDefault();
@@ -242,6 +264,7 @@ const Swap = () => {
     }
   };
 
+  /** fromInput changing, if from=TSHOT/no receipt. */
   const handleFromInputChange = (e) => {
     if (isNFTMode || (fromAsset === "TSHOT" && accountData?.hasReceipt)) {
       return;
@@ -254,6 +277,7 @@ const Swap = () => {
     setLastFocus("from");
   };
 
+  /** toInput changing, if TSHOT->NFT is not the scenario. */
   const handleToInputChange = (e) => {
     if (dashboardMode === "TSHOT_TO_NFT") {
       e.preventDefault();
@@ -274,8 +298,8 @@ const Swap = () => {
     setToAsset(newTo);
   };
 
-  // We'll pass only the accounts that have a TopShot collection to <AccountSelection>
-  const filterAccountsWithCollection = () => {
+  /** Only accounts that have a TopShot collection. */
+  function filterAccountsWithCollection() {
     if (!accountData) return { parent: null, children: [] };
 
     const parentHasCollection = !!accountData.hasCollection;
@@ -290,12 +314,10 @@ const Swap = () => {
       (c) => c.hasCollection
     );
 
-    return {
-      parent: parentAccount,
-      children: validChildren,
-    };
-  };
+    return { parent: parentAccount, children: validChildren };
+  }
 
+  /** Called when user selects parent or child. */
   const handleSelectAccount = (addr) => {
     if (!accountData) return;
     const isChild = (accountData.childrenAddresses || []).includes(addr);
@@ -318,32 +340,25 @@ const Swap = () => {
     }
 
     if (dashboardMode === "TSHOT_TO_NFT") {
-      // Step 2 => hasReceipt => show separate account selection box
       const hasReceipt = !!accountData?.hasReceipt;
       return (
         <>
-          {/* Step 1 or 2 => TSHOTToNFTPanel */}
           <TSHOTToNFTPanel
             key="TSHOT_TO_NFT"
             sellAmount={formattedFrom}
             depositDisabled={false}
             onTransactionStart={handleTransactionStart}
           />
-
+          {/* If we have a deposit receipt, let user choose which account receives minted NFTs */}
           {hasReceipt && (
-            <div className="mt-2 bg-gray-700 p-2 rounded-lg">
+            <div className="mt-2 bg-brand-primary p-2 rounded-lg">
               {(() => {
                 const { parent, children } = filterAccountsWithCollection();
-                // If there's no parent with a collection and no children with a collection,
-                // you could show an error or just pass empty arrays.
-                const parentAccount = parent;
-                const childAccounts = children;
-
                 return (
                   <AccountSelection
-                    parentAccount={parentAccount}
-                    childrenAddresses={childAccounts.map((c) => c.addr)}
-                    childrenAccounts={childAccounts}
+                    parentAccount={parent}
+                    childrenAddresses={children.map((c) => c.addr)}
+                    childrenAccounts={children}
                     selectedAccount={selectedAccount}
                     onSelectAccount={handleSelectAccount}
                     isLoadingChildren={isLoadingChildren}
@@ -356,32 +371,42 @@ const Swap = () => {
       );
     }
 
+    // If invalid fromAsset/toAsset
     return (
-      <div className="p-4 text-gray-300">Please select a valid asset pair.</div>
+      <div className="p-4 text-brand-text/70">Please select a valid pair.</div>
     );
   }
 
+  // dynamic background for the from input => matches "to" panel
+  const fromInputBg = getToAssetBg(toAsset); // either bg-brand-primary or bg-brand-secondary
+
   return (
     <>
-      <div className="max-w-md mx-auto mt-2 space-y-2">
-        <AnimatePresence>
-          {showModal && transactionData.status && (
-            <TransactionModal {...transactionData} onClose={handleCloseModal} />
-          )}
-        </AnimatePresence>
+      {/* Transaction Modal */}
+      <AnimatePresence>
+        {showModal && transactionData.status && (
+          <TransactionModal {...transactionData} onClose={handleCloseModal} />
+        )}
+      </AnimatePresence>
 
-        {/* SWAP BOX (FROM/TO) */}
-        <div className="bg-gray-700 p-2 rounded-lg">
-          {/* FROM BOX */}
+      <div className="max-w-md mx-auto mt-2 space-y-4">
+        {/* Outer container => brand-primary with shadow */}
+        <div className="p-2 rounded-lg bg-brand-primary shadow-md shadow-black/30">
+          {/* FROM BOX => brand-secondary */}
           <div
             className="
-              bg-gray-600 p-2 rounded-lg mb-2
-              flex items-start justify-between
+              bg-brand-secondary
+              p-2
+              rounded-lg
+              mb-2
+              flex
+              items-start
+              justify-between
               min-h-[120px]
             "
           >
             <div className="mr-4 flex flex-col">
-              <label className="block text-sm text-white mb-1">From</label>
+              <label className="block text-sm text-brand-text mb-1">From</label>
               <Dropdown
                 options={FROM_OPTIONS}
                 selectedValue={fromAsset}
@@ -392,7 +417,9 @@ const Swap = () => {
             </div>
 
             <div className="flex flex-col">
-              <label className="block text-sm text-white mb-1">Amount</label>
+              <label className="block text-sm text-brand-text mb-1">
+                Amount
+              </label>
               <input
                 autoFocus
                 type="text"
@@ -401,50 +428,70 @@ const Swap = () => {
                 onChange={handleFromInputChange}
                 placeholder="0"
                 maxLength={3}
-                className="
-                  w-16 bg-gray-600 text-white
-                  p-2 rounded text-3xl text-center
-                "
+                className={`
+                  w-16
+                  ${fromInputBg}  /* Dynamically match the "to" panel color */
+                  text-brand-text
+                  p-2
+                  rounded
+                  text-3xl
+                  text-center
+                `}
                 readOnly={isNFTMode}
               />
             </div>
           </div>
 
-          {/* Exchange icon & horizontal line */}
+          {/* Exchange Icon + horizontal line => brand-primary button */}
           <div className="relative my-2 flex items-center justify-center">
-            <hr className="absolute inset-x-0 border-t border-gray-500 opacity-30 top-1/2 -translate-y-1/2" />
+            <hr className="absolute inset-x-0 border-t border-brand-text/50 opacity-30 top-1/2 -translate-y-1/2" />
             <button
               onClick={toggleAssets}
               className="
                 z-10
-                w-10 h-10
-                rounded-full border border-gray-400
-                bg-gray-700
-                text-2xl text-white
-                flex items-center justify-center
+                w-10
+                h-10
+                rounded-full
+                border
+                border-brand-text/30
+                bg-brand-primary
+                text-2xl
+                text-brand-text
+                flex
+                items-center
+                justify-center
               "
             >
               ⇅
             </button>
           </div>
 
-          {/* TO BOX */}
+          {/* TO BOX => brand-secondary */}
           <div
             className="
-              bg-gray-600 p-2 rounded-lg
-              flex items-start justify-between
+              bg-brand-secondary
+              p-2
+              rounded-lg
+              flex
+              items-start
+              justify-between
               min-h-[120px]
             "
           >
             <div className="mr-4 flex flex-col">
-              <label className="block text-sm text-white mb-1">To</label>
+              <label className="block text-sm text-brand-text mb-1">To</label>
               <div
                 className="
-                  bg-gray-700 text-white
-                  px-3 py-2
-                  rounded-lg text-base
-                  w-72 h-14
-                  flex items-center
+                  bg-brand-primary
+                  text-brand-text
+                  px-3
+                  py-2
+                  rounded-lg
+                  text-base
+                  w-72
+                  h-14
+                  flex
+                  items-center
                 "
               >
                 {toAsset === "TSHOT" ? (
@@ -457,6 +504,7 @@ const Swap = () => {
                     <span>TSHOT</span>
                   </div>
                 ) : (
+                  // partial coloring for Common / Fandom
                   <span>
                     TopShot <span className="text-gray-400">Common</span> /{" "}
                     <span className="text-lime-400">Fandom</span>
@@ -467,7 +515,9 @@ const Swap = () => {
             </div>
 
             <div className="flex flex-col">
-              <label className="block text-sm text-white mb-1">Amount</label>
+              <label className="block text-sm text-brand-text mb-1">
+                Amount
+              </label>
               <input
                 type="text"
                 value={toInput}
@@ -476,8 +526,13 @@ const Swap = () => {
                 placeholder="0"
                 maxLength={3}
                 className="
-                  w-16 bg-gray-600 text-white
-                  p-2 rounded text-3xl text-center
+                  w-16
+                  bg-brand-secondary
+                  text-brand-text
+                  p-2
+                  rounded
+                  text-3xl
+                  text-center
                 "
                 readOnly={
                   dashboardMode === "TSHOT_TO_NFT" ||
@@ -488,37 +543,20 @@ const Swap = () => {
           </div>
         </div>
 
-        {/* SWAP ACTION PANEL */}
-        <div className="space-y-2">{renderSwapPanel()}</div>
-
-        {/* If from=TopShot => show container to select which account sends NFT */}
-        {fromAsset === "TopShot Common / Fandom" &&
-          isLoggedIn &&
-          accountData?.parentAddress && (
-            <div className="bg-gray-700 p-2 rounded-lg shadow-md">
-              <AccountSelection
-                parentAccount={{
-                  addr: accountData.parentAddress || user?.addr,
-                  ...accountData,
-                }}
-                childrenAddresses={accountData.childrenAddresses || []}
-                childrenAccounts={accountData.childrenData || []}
-                selectedAccount={selectedAccount}
-                onSelectAccount={handleSelectAccount}
-                isLoadingChildren={isLoadingChildren}
-              />
-            </div>
-          )}
+        {/* ========== SWAP ACTION PANEL ========== */}
+        <div>{renderSwapPanel()}</div>
       </div>
 
-      {/* If from=TopShot => show MomentSelection + Selected Moments */}
       {fromAsset === "TopShot Common / Fandom" &&
         isLoggedIn &&
         accountData?.parentAddress && (
           <div className="w-full p-4">
-            <div className="max-w-screen-lg mx-auto space-y-4">
-              <div className="bg-gray-700 p-2 rounded">
-                <h4 className="text-white text-sm mb-2">Selected Moments:</h4>
+            <div className="max-w-screen-lg space-y-4">
+              {/* Selected Moments */}
+              <div className="bg-brand-secondary shadow-md p-2 rounded">
+                <h4 className="text-brand-text text-sm mb-2">
+                  Selected Moments:
+                </h4>
                 <div className="flex flex-wrap gap-2">
                   {selectedNFTs.length > 0 ? (
                     selectedNFTs.map((momentId) => {
@@ -544,12 +582,30 @@ const Swap = () => {
                       );
                     })
                   ) : (
-                    <span className="text-gray-400">No moments selected</span>
+                    <span className="text-brand-text/70">
+                      No moments selected
+                    </span>
                   )}
                 </div>
               </div>
 
-              <div className="bg-gray-700 p-2 rounded-lg">
+              {/* Account Selection */}
+              <div className="bg-brand-secondary shadow-md p-2 rounded">
+                <AccountSelection
+                  parentAccount={{
+                    addr: accountData.parentAddress || user?.addr,
+                    ...accountData,
+                  }}
+                  childrenAddresses={accountData.childrenAddresses || []}
+                  childrenAccounts={accountData.childrenData || []}
+                  selectedAccount={selectedAccount}
+                  onSelectAccount={handleSelectAccount}
+                  isLoadingChildren={isLoadingChildren}
+                />
+              </div>
+
+              {/* Moment Selection */}
+              <div className="bg-brand-secondary shadow-md p-2 rounded-lg">
                 <MomentSelection excludeIds={excludedNftIds} />
               </div>
             </div>

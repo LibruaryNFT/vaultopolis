@@ -1,10 +1,16 @@
-// DropdownMenu.jsx
-import React, { useContext, useEffect, useRef } from "react";
+// src/components/DropdownMenu.jsx
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { UserContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
-import { FaClipboard, FaSignOutAlt, FaSpinner } from "react-icons/fa";
+import {
+  FaClipboard,
+  FaSignOutAlt,
+  FaSpinner,
+  FaSun,
+  FaMoon,
+} from "react-icons/fa";
 
-// Helper component
+/** Helper for skeleton placeholders */
 const ValueOrSkeleton = ({
   value,
   className = "",
@@ -16,13 +22,15 @@ const ValueOrSkeleton = ({
   }
   return (
     <div
-      className={`${skeletonWidth} ${skeletonHeight} bg-gray-600 rounded animate-pulse`}
+      className={`${skeletonWidth} ${skeletonHeight} bg-brand-secondary animate-pulse rounded`}
     />
   );
 };
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
-  const { accountData, isRefreshing, dispatch } = useContext(UserContext);
+  const { accountData, isRefreshing, isLoadingChildren, dispatch } =
+    useContext(UserContext);
+
   const {
     parentAddress,
     flowBalance,
@@ -34,6 +42,40 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
 
   const popoutRef = useRef(null);
 
+  // ===== THEME LOGIC (Light or Dark) =====
+  const [themeMode, setThemeMode] = useState(null);
+
+  useEffect(() => {
+    let storedMode = localStorage.getItem("themeMode");
+    if (!storedMode) {
+      // default to 'dark'
+      storedMode = "dark";
+      localStorage.setItem("themeMode", "dark");
+    }
+    setThemeMode(storedMode);
+  }, []);
+
+  useEffect(() => {
+    if (themeMode === null) return; // not loaded yet
+    applyTheme(themeMode);
+  }, [themeMode]);
+
+  const applyTheme = (mode) => {
+    if (mode === "dark") {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("themeMode", "dark");
+    } else {
+      // light
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("themeMode", "light");
+    }
+  };
+
+  const setTheme = (mode) => {
+    setThemeMode(mode);
+  };
+
+  // ====== CLICK OUTSIDE => close ======
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -45,7 +87,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         closeMenu();
       }
     };
-    // Use a small timeout before adding the event listener to avoid immediate toggling
     setTimeout(
       () => document.addEventListener("mousedown", handleClickOutside),
       0
@@ -53,58 +94,53 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [closeMenu, buttonRef]);
 
-  const handleCopyAddress = (address) => {
-    navigator.clipboard.writeText(address);
-  };
-
+  // ====== LOGOUT ======
   const handleLogout = () => {
     fcl.unauthenticate();
     dispatch({ type: "RESET_STATE" });
     closeMenu();
   };
 
-  // Calculation helpers
+  // ====== ACCOUNT SUMMARY ======
   const calculateTotalTopShotCounts = (nfts) => (nfts ? nfts.length : 0);
 
   const calculateAllAccountTotals = () => {
     const totalFlow =
       parseFloat(flowBalance || 0) +
-      childrenData.reduce(
-        (sum, child) => sum + parseFloat(child.flowBalance || 0),
-        0
-      );
+      childrenData.reduce((sum, c) => sum + parseFloat(c.flowBalance || 0), 0);
+
     const totalTopShotCounts =
       calculateTotalTopShotCounts(nftDetails) +
       childrenData.reduce(
-        (sum, child) => sum + calculateTotalTopShotCounts(child.nftDetails),
+        (sum, c) => sum + calculateTotalTopShotCounts(c.nftDetails),
         0
       );
+
     const totalTSHOT =
       parseFloat(tshotBalance || 0) +
-      childrenData.reduce(
-        (sum, child) => sum + parseFloat(child.tshotBalance || 0),
-        0
-      );
+      childrenData.reduce((sum, c) => sum + parseFloat(c.tshotBalance || 0), 0);
+
     return { totalFlow, totalTopShotCounts, totalTSHOT };
   };
 
   const { totalFlow, totalTopShotCounts, totalTSHOT } =
     calculateAllAccountTotals();
 
-  const calculateTierBreakdown = (nfts) =>
-    (nfts || []).reduce((acc, nft) => {
-      const tier = nft.tier ? nft.tier.toLowerCase() : "unknown";
-      acc[tier] = (acc[tier] || 0) + 1;
-      return acc;
-    }, {});
-
+  // Tier color mapping
   const tierTextColors = {
     common: "text-gray-400",
-    rare: "text-blue-500",
     fandom: "text-lime-400",
+    rare: "text-blue-500",
     legendary: "text-orange-500",
     ultimate: "text-pink-500",
   };
+
+  const calculateTierBreakdown = (nfts) =>
+    (nfts || []).reduce((acc, nft) => {
+      const tier = nft.tier?.toLowerCase() || "unknown";
+      acc[tier] = (acc[tier] || 0) + 1;
+      return acc;
+    }, {});
 
   const renderBreakdownVertical = (breakdown) => {
     const tiers = ["common", "fandom", "rare", "legendary", "ultimate"];
@@ -123,7 +159,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       ));
   };
 
-  // Aggregate tier breakdown across all accounts
+  // Build aggregated breakdown
   const aggregatedBreakdown = { ...calculateTierBreakdown(nftDetails) };
   childrenData.forEach((child) => {
     const childBreakdown = calculateTierBreakdown(child.nftDetails);
@@ -133,81 +169,161 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     });
   });
 
-  // Include TSHOT balance and collection status for each account
   const allAccounts = [
     {
       label: "Parent Account",
       address: parentAddress,
       flowBalance,
-      topShotCount: calculateTotalTopShotCounts(nftDetails),
       tshotBalance,
-      breakdown: calculateTierBreakdown(nftDetails),
+      nftDetails,
       hasCollection,
     },
     ...childrenData.map((child, index) => ({
       label: `Child Account ${index + 1}`,
       address: child.addr,
       flowBalance: child.flowBalance,
-      topShotCount: calculateTotalTopShotCounts(child.nftDetails),
       tshotBalance: child.tshotBalance,
-      breakdown: calculateTierBreakdown(child.nftDetails),
+      nftDetails: child.nftDetails,
       hasCollection: child.hasCollection,
     })),
   ];
 
   const hasAnyTopShot = totalTopShotCounts > 0;
 
+  const handleCopyAddress = (addr) => {
+    navigator.clipboard.writeText(addr);
+  };
+
+  // ====== RENDER ======
   return (
     <div
       ref={popoutRef}
-      className="absolute top-12 right-0 mt-2 w-[calc(100vw-32px)] md:w-96 bg-gray-800 shadow-xl overflow-hidden rounded-lg border border-gray-600/50"
+      className="
+        absolute
+        top-12
+        right-0
+        mt-2
+        w-[calc(100vw-32px)]
+        md:w-96
+        z-50
+        rounded-lg
+        shadow-xl
+        border
+        border-brand-border
+        bg-brand-primary
+        text-brand-text
+      "
     >
-      {/* Top Header */}
-      <div className="bg-gray-900 px-4 py-2 border-b border-gray-700 flex justify-between items-center">
-        <h4 className="text-lg font-medium text-white">
-          Summary - All Accounts
-        </h4>
-        <div className="flex items-center">
-          {isRefreshing && (
-            <FaSpinner className="animate-spin text-white mr-2" size={16} />
+      {/* THEME ROW (Light / Dark) + Loading indicator */}
+      <div
+        className="
+          flex
+          items-center
+          justify-between
+          px-4
+          py-2
+          border-b
+          border-brand-border
+          bg-brand-secondary
+        "
+      >
+        {/* Left: 'Theme' + Buttons */}
+        <div className="flex items-center space-x-2">
+          <span className="font-medium">Theme:</span>
+
+          {/* Light */}
+          <button
+            onClick={() => setTheme("light")}
+            className={`
+              text-sm px-2 py-1 rounded transition-colors
+              ${
+                themeMode === "light"
+                  ? "bg-brand-accent text-white"
+                  : "bg-brand-primary text-brand-text hover:opacity-80"
+              }
+            `}
+            title="Light Mode"
+            disabled={themeMode === null}
+          >
+            <FaSun />
+          </button>
+
+          {/* Dark */}
+          <button
+            onClick={() => setTheme("dark")}
+            className={`
+              text-sm px-2 py-1 rounded transition-colors
+              ${
+                themeMode === "dark"
+                  ? "bg-brand-accent text-white"
+                  : "bg-brand-primary text-brand-text hover:opacity-80"
+              }
+            `}
+            title="Dark Mode"
+            disabled={themeMode === null}
+          >
+            <FaMoon />
+          </button>
+        </div>
+
+        {/* Right: Loading + Logout */}
+        <div className="flex items-center space-x-2">
+          {(isRefreshing || isLoadingChildren) && (
+            <>
+              <FaSpinner className="animate-spin" size={16} />
+              <span className="text-sm">
+                {isRefreshing && isLoadingChildren
+                  ? "Loading parent & children..."
+                  : isRefreshing
+                  ? "Loading parent..."
+                  : "Loading children..."}
+              </span>
+            </>
           )}
           <button
             onClick={handleLogout}
-            className="p-1 text-red-500 hover:text-white hover:bg-red-600 rounded transition-colors"
+            className="
+              text-red-500
+              hover:text-white
+              hover:bg-red-600
+              transition-colors
+              p-1
+              rounded
+            "
             title="Disconnect"
           >
-            <FaSignOutAlt size={20} />
+            <FaSignOutAlt size={16} />
           </button>
         </div>
       </div>
 
-      {/* Portfolio Summary */}
-      <div className="px-4 py-2 border-b border-gray-700">
+      {/* PORTFOLIO SUMMARY */}
+      <div className="px-4 py-2 border-b border-brand-border">
         <div className="flex">
           <div className="w-1/3">
             <div>
-              <p className="text-sm text-gray-400 m-0">Flow</p>
+              <p className="text-sm m-0">Flow</p>
               <ValueOrSkeleton
                 value={parseFloat(totalFlow).toFixed(2)}
-                className="text-xl font-semibold text-white m-0"
+                className="text-xl font-semibold"
                 skeletonWidth="w-24"
                 skeletonHeight="h-7"
               />
             </div>
             <div className="mt-2">
-              <p className="text-sm text-gray-400 m-0">TopShot</p>
+              <p className="text-sm m-0">TopShot</p>
               <ValueOrSkeleton
-                value={totalTopShotCounts}
-                className="text-xl font-semibold text-white m-0"
+                value={hasAnyTopShot ? totalTopShotCounts : null}
+                className="text-xl font-semibold"
                 skeletonWidth="w-16"
                 skeletonHeight="h-7"
               />
             </div>
             <div className="mt-2">
-              <p className="text-sm text-gray-400 m-0">TSHOT</p>
+              <p className="text-sm m-0">TSHOT</p>
               <ValueOrSkeleton
                 value={parseFloat(totalTSHOT).toFixed(1)}
-                className="text-xl font-semibold text-white m-0"
+                className="text-xl font-semibold"
                 skeletonWidth="w-24"
                 skeletonHeight="h-7"
               />
@@ -217,27 +333,30 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
             {hasAnyTopShot ? (
               renderBreakdownVertical(aggregatedBreakdown)
             ) : (
-              <div className="text-gray-400 italic">No TopShot Collection</div>
+              <div className="italic">No TopShot Collection</div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Individual Accounts */}
+      {/* INDIVIDUAL ACCOUNTS */}
       <div className="pb-0">
-        <div className="divide-y divide-gray-700">
-          {allAccounts.map((account) => (
+        {allAccounts.map((account) => {
+          const breakdown = calculateTierBreakdown(account.nftDetails);
+          const hasNFTs = (account.nftDetails || []).length > 0;
+
+          return (
             <div
               key={account.address}
               className="w-full hover:shadow-xl transition-shadow"
             >
-              <div className="bg-gray-900 px-2 py-1 flex justify-between items-center">
-                <h5 className="text-base md:text-lg font-medium text-white m-0">
+              <div className="bg-brand-secondary px-2 py-1 flex justify-between items-center">
+                <h5 className="text-base md:text-lg font-medium m-0">
                   {account.label}
                 </h5>
                 <button
                   onClick={() => handleCopyAddress(account.address)}
-                  className="text-xs text-gray-400 hover:text-white flex items-center"
+                  className="text-xs hover:opacity-80 flex items-center"
                 >
                   <span className="truncate max-w-[140px]">
                     {account.address}
@@ -245,32 +364,32 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                   <FaClipboard className="ml-2" />
                 </button>
               </div>
-              <div className="bg-gray-800 px-2 py-2 w-full">
-                <div className="flex w-full">
+              <div className="bg-brand-primary px-2 py-2">
+                <div className="flex">
                   <div className="w-1/3">
                     <div>
-                      <p className="text-sm text-gray-400 m-0">Flow</p>
+                      <p className="text-sm m-0">Flow</p>
                       <ValueOrSkeleton
                         value={parseFloat(account.flowBalance).toFixed(2)}
-                        className="text-xl font-semibold text-white m-0"
+                        className="text-xl font-semibold"
                         skeletonWidth="w-24"
                         skeletonHeight="h-7"
                       />
                     </div>
                     <div className="mt-2">
-                      <p className="text-sm text-gray-400 m-0">TopShot</p>
+                      <p className="text-sm m-0">TopShot</p>
                       <ValueOrSkeleton
-                        value={account.topShotCount}
-                        className="text-xl font-semibold text-white m-0"
+                        value={hasNFTs ? account.nftDetails.length : null}
+                        className="text-xl font-semibold"
                         skeletonWidth="w-16"
                         skeletonHeight="h-7"
                       />
                     </div>
                     <div className="mt-2">
-                      <p className="text-sm text-gray-400 m-0">TSHOT</p>
+                      <p className="text-sm m-0">TSHOT</p>
                       <ValueOrSkeleton
                         value={parseFloat(account.tshotBalance || 0).toFixed(1)}
-                        className="text-xl font-semibold text-white m-0"
+                        className="text-xl font-semibold"
                         skeletonWidth="w-24"
                         skeletonHeight="h-7"
                       />
@@ -278,22 +397,20 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                   </div>
                   <div className="w-2/3 pl-4">
                     {account.hasCollection ? (
-                      Object.keys(account.breakdown).length > 0 ? (
-                        renderBreakdownVertical(account.breakdown)
+                      Object.keys(breakdown).length > 0 ? (
+                        renderBreakdownVertical(breakdown)
                       ) : (
-                        <div className="text-gray-400 italic">No tier data</div>
+                        <div className="italic">No tier data</div>
                       )
                     ) : (
-                      <div className="text-gray-400 italic">
-                        No TopShot Collection
-                      </div>
+                      <div className="italic">No TopShot Collection</div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

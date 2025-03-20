@@ -1,4 +1,6 @@
-import React, { useContext, useState, useRef } from "react";
+// src/components/Header.jsx
+
+import React, { useContext, useState, useRef, useEffect } from "react";
 import { UserContext } from "../context/UserContext";
 import { Link, useLocation } from "react-router-dom";
 import DropdownMenu from "../components/DropdownMenu";
@@ -9,8 +11,10 @@ const Header = () => {
   const { user, selectedAccount } = useContext(UserContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const location = useLocation();
   const buttonRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   const activeAddress = selectedAccount || user?.addr;
 
@@ -21,16 +25,49 @@ const Header = () => {
     fcl.authenticate();
   };
 
+  // Close mobile menu if user clicks outside of it
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+    if (isMobileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
+
   return (
-    <header className="bg-transparent text-white py-4 w-full relative z-50">
-      {/* 
-        Use a full-width container (remove `max-w-7xl mx-auto`).
-        This ensures the header spans the entire screen width.
-      */}
-      <div className="px-2 md:px-4 flex items-center justify-between w-full">
-        {/* Left container: Hamburger icon and Logo */}
+    <header
+      className="
+        w-full
+        relative
+        z-50
+        shadow-md
+        shadow-black/30
+
+        bg-brand-primary
+        text-brand-text
+      "
+    >
+      <div
+        className="
+          border-b
+          border-brand-border
+          px-4
+          py-4
+          flex
+          items-center
+          justify-between
+          w-full
+        "
+      >
+        {/* Left container: Hamburger + Logo */}
         <div className="flex items-center">
-          {/* Mobile Hamburger Icon (visible on mobile only) */}
+          {/* Mobile Menu Toggle */}
           <button
             onClick={toggleMobileMenu}
             className="md:hidden focus:outline-none"
@@ -38,7 +75,7 @@ const Header = () => {
             <FaBars size={20} />
           </button>
 
-          {/* Logo (shown at all screen sizes; adjust if desired) */}
+          {/* Logo */}
           <Link to="/" className="ml-2 flex items-center">
             <img
               src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
@@ -48,21 +85,17 @@ const Header = () => {
           </Link>
         </div>
 
-        {/* Desktop Navigation Links (centered) */}
-        <nav className="hidden md:flex items-center space-x-2 flex-grow justify-center">
-          <div className="flex items-center space-x-2">
-            <NavLink to="/swap" isActive={location.pathname === "/swap"}>
-              Swap
-            </NavLink>
-          </div>
-          <div className="flex items-center space-x-2">
-            <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
-              TSHOT
-            </NavLink>
-          </div>
+        {/* Desktop Nav */}
+        <nav className="hidden md:flex items-center space-x-4 flex-grow justify-center">
+          <NavLink to="/swap" isActive={location.pathname === "/swap"}>
+            Swap
+          </NavLink>
+          <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
+            TSHOT
+          </NavLink>
         </nav>
 
-        {/* Right container: User Profile/Connect Button */}
+        {/* Right container: connect or user menu */}
         <div className="flex items-center space-x-4">
           {user.loggedIn ? (
             <div className="relative">
@@ -75,15 +108,21 @@ const Header = () => {
                 <DropdownMenu
                   closeMenu={() => setIsMenuOpen(false)}
                   buttonRef={buttonRef}
-                  // If you want the dropdown to align right:
-                  // className="absolute right-0 mt-2"
                 />
               )}
             </div>
           ) : (
             <button
               onClick={connectWallet}
-              className="px-4 py-2 bg-flow-dark rounded hover:bg-flow-darkest focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="
+                px-4
+                py-2
+                rounded
+                transition-colors
+                bg-brand-accent
+                text-white
+                hover:opacity-80
+              "
             >
               Connect
             </button>
@@ -91,33 +130,62 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Navigation Menu */}
+      {/* 
+        Mobile Navigation + Overlay 
+        (Only visible if isMobileMenuOpen=true) 
+      */}
       {isMobileMenuOpen && (
-        <div className="absolute top-16 left-0 w-full bg-gray-800 text-white md:hidden">
-          <div className="flex flex-col divide-y divide-gray-700">
-            <MobileNavLink
-              to="/swap"
-              isActive={location.pathname === "/swap"}
-              onClick={toggleMobileMenu}
-            >
-              Swap
-            </MobileNavLink>
+        <>
+          {/* Overlay: click anywhere to close */}
+          <div
+            className="
+              fixed
+              inset-0
+              bg-black
+              bg-opacity-40
+              z-40
+            "
+          />
+          {/* Actual mobile menu content */}
+          <div
+            ref={mobileMenuRef}
+            className="
+              absolute
+              top-[68px]
+              left-0
+              w-full
+              shadow-md
+              shadow-black/50
+              md:hidden
+              bg-brand-secondary
+              text-brand-text
+              z-50
+            "
+          >
+            <div className="flex flex-col items-center divide-y divide-brand-border">
+              <MobileNavLink
+                to="/swap"
+                isActive={location.pathname === "/swap"}
+                onClick={toggleMobileMenu}
+              >
+                Swap
+              </MobileNavLink>
+              <MobileNavLink
+                to="/tshot"
+                isActive={location.pathname === "/tshot"}
+                onClick={toggleMobileMenu}
+              >
+                TSHOT
+              </MobileNavLink>
+            </div>
           </div>
-          <div className="flex flex-col divide-y divide-gray-700">
-            <MobileNavLink
-              to="/tshot"
-              isActive={location.pathname === "/tshot"}
-              onClick={toggleMobileMenu}
-            >
-              TSHOT
-            </MobileNavLink>
-          </div>
-        </div>
+        </>
       )}
     </header>
   );
 };
 
+/** NavLink for desktop menu */
 const NavLink = ({ to, isActive, children, onClick, external }) =>
   external ? (
     <a
@@ -125,7 +193,14 @@ const NavLink = ({ to, isActive, children, onClick, external }) =>
       onClick={onClick}
       target="_blank"
       rel="noopener noreferrer"
-      className="block px-4 py-2 text-gray-400 hover:text-white transition-colors"
+      className="
+        block
+        px-4
+        py-2
+        transition-colors
+        hover:opacity-80
+        text-brand-text
+      "
     >
       {children}
     </a>
@@ -133,14 +208,22 @@ const NavLink = ({ to, isActive, children, onClick, external }) =>
     <Link
       to={to}
       onClick={onClick}
-      className={`${
-        isActive ? "text-white" : "text-gray-400"
-      } hover:text-white transition-colors py-2 px-4 rounded-md whitespace-nowrap`}
+      className={`
+        py-2
+        px-4
+        rounded-md
+        whitespace-nowrap
+        transition-colors
+        text-brand-text
+        hover:opacity-80
+        ${isActive ? "font-bold" : ""}
+      `}
     >
       {children}
     </Link>
   );
 
+/** MobileNavLink for mobile menu */
 const MobileNavLink = ({ to, isActive, children, onClick, external }) =>
   external ? (
     <a
@@ -148,7 +231,14 @@ const MobileNavLink = ({ to, isActive, children, onClick, external }) =>
       onClick={onClick}
       target="_blank"
       rel="noopener noreferrer"
-      className="block px-6 py-4 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+      className="
+        w-full
+        text-center
+        py-4
+        transition-colors
+        hover:opacity-80
+        text-brand-text
+      "
     >
       {children}
     </a>
@@ -156,20 +246,44 @@ const MobileNavLink = ({ to, isActive, children, onClick, external }) =>
     <Link
       to={to}
       onClick={onClick}
-      className={`block px-6 py-4 ${
-        isActive ? "text-white" : "text-gray-400"
-      } hover:text-white hover:bg-gray-700 transition-colors`}
+      className={`
+        w-full
+        text-center
+        py-4
+        transition-colors
+        hover:opacity-80
+        text-brand-text
+        ${isActive ? "font-bold" : ""}
+      `}
     >
       {children}
     </Link>
   );
 
+/**
+ * Updated:
+ * UserButton for a logged-in user (address at top-right)
+ * with a stronger shadow effect on the button
+ */
 const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button
     ref={ref}
     onClick={onClick}
-    className="flex items-center px-4 py-2 bg-gray-700 rounded hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500"
-    style={{ zIndex: 50 }}
+    className="
+      flex
+      items-center
+      px-4
+      py-2
+      rounded
+      transition-all
+      bg-brand-secondary
+      text-brand-text
+      shadow-md
+      shadow-black/30
+      hover:shadow-lg
+      hover:shadow-black/50
+      focus:outline-none
+    "
   >
     <FaUserCircle className="mr-2" size={20} />
     <span className="truncate max-w-[120px]">{activeAddress}</span>

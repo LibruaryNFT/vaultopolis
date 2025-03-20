@@ -7,8 +7,7 @@ import { UserContext } from "../context/UserContext";
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
 import { exchangeNFTForTSHOT_child } from "../flow/exchangeNFTForTSHOT_child";
 
-function NFTToTSHOTPanel(props) {
-  let { nftIds, buyAmount, onTransactionStart } = props;
+function NFTToTSHOTPanel({ nftIds, buyAmount, onTransactionStart }) {
   if (!Array.isArray(nftIds)) nftIds = [];
   if (!buyAmount) buyAmount = "0";
 
@@ -23,44 +22,57 @@ function NFTToTSHOTPanel(props) {
   } = useContext(UserContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
-  const parentAddr = accountData.parentAddress || user?.addr;
+  const parentAddr = accountData?.parentAddress || user?.addr;
   const isChildSwap = selectedAccountType === "child";
+
+  // Determine which transaction script to use
   const cadenceScript = isChildSwap
     ? exchangeNFTForTSHOT_child
     : exchangeNFTForTSHOT;
 
-  // --- Added limit constant ---
+  // Limit constants
   const MAX_NFTS = 200;
   const isOverLimit = nftIds.length > MAX_NFTS;
 
+  // If user not logged in => "Connect Wallet"
   if (!isLoggedIn) {
     return (
       <button
         onClick={() => fcl.authenticate()}
-        className="w-full text-lg rounded-lg font-bold text-white bg-flow-dark hover:bg-flow-darkest p-2"
+        className="
+          w-full
+          text-lg
+          rounded-lg
+          font-bold
+          text-white
+          bg-flow-light
+          hover:bg-flow-dark
+          p-2
+        "
       >
         Connect Wallet
       </button>
     );
   }
 
+  // Dynamically label the button
+  const buttonLabel = nftIds.length === 0 ? "Select Moments" : "Swap";
+
   const handleSwap = async () => {
-    if (!nftIds || nftIds.length === 0) {
+    if (nftIds.length === 0) {
       alert("Please select at least one Moment to swap for TSHOT.");
       return;
     }
-
-    // -- Add a final check to prevent going beyond 200 --
     if (nftIds.length > MAX_NFTS) {
       alert(`You can only swap up to ${MAX_NFTS} NFTs at a time.`);
       return;
     }
-
     if (!parentAddr?.startsWith("0x")) {
       console.error("Invalid parent address:", parentAddr);
       return;
     }
 
+    // Fire the initial "Awaiting Approval" event
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -90,8 +102,10 @@ function NFTToTSHOTPanel(props) {
         limit: 9999,
       });
 
+      // Clear selected NFTs
       dispatch({ type: "RESET_SELECTED_NFTS" });
 
+      // Fire "Pending" event
       onTransactionStart?.({
         status: "Pending",
         txId,
@@ -102,6 +116,7 @@ function NFTToTSHOTPanel(props) {
         nftIds,
       });
 
+      // Subscribe for status changes
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -120,7 +135,6 @@ function NFTToTSHOTPanel(props) {
           default:
             break;
         }
-
         const errorMsg = txStatus.errorMessage?.length
           ? txStatus.errorMessage
           : null;
@@ -140,8 +154,10 @@ function NFTToTSHOTPanel(props) {
         }
       });
 
+      // Wait for seal
       await fcl.tx(txId).onceSealed();
 
+      // Reload parent's data (and child if necessary)
       if (parentAddr) {
         await loadAllUserData(parentAddr);
       }
@@ -163,28 +179,44 @@ function NFTToTSHOTPanel(props) {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg p-2">
+    <>
+      {/* 
+        Swap button spanning full width; we add a box-shadow for a “raised” effect. 
+        Adjust shadow classes as you like: 
+          "shadow-md shadow-black/40" or "shadow-lg shadow-black/50" etc.
+      */}
       <button
         onClick={handleSwap}
-        // --- Disable button if 0 or >200 NFTs selected ---
         disabled={nftIds.length === 0 || isOverLimit}
-        className={`w-full p-4 text-lg rounded-lg font-bold text-white ${
-          nftIds.length === 0 || isOverLimit
-            ? "bg-gray-800 cursor-not-allowed"
-            : "bg-flow-dark hover:bg-flow-darkest"
-        }`}
+        className={`
+          w-full
+          p-4
+          text-lg
+          rounded-lg
+          font-bold
+          transition-colors
+          shadow-md 
+          shadow-black/40
+          ${
+            nftIds.length === 0 || isOverLimit
+              ? /* Disabled style */
+                "cursor-not-allowed bg-brand-primary text-brand-text/50"
+              : /* Normal style */
+                "bg-flow-light text-white hover:bg-flow-dark"
+          }
+        `}
       >
-        Swap
+        {buttonLabel}
       </button>
 
-      {/* Show a message if user exceeded the limit */}
+      {/* If user selected more than the limit, show small warning. */}
       {isOverLimit && (
-        <div className="mt-2 text-sm text-red-500">
+        <div className="mt-2 text-sm text-red-500 px-3 pb-2">
           You can only swap up to {MAX_NFTS} NFTs at a time. Please reduce your
           selection.
         </div>
       )}
-    </div>
+    </>
   );
 }
 
