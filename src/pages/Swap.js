@@ -1,5 +1,3 @@
-// src/components/Swap.js
-
 import React, { useState, useEffect, useContext } from "react";
 import { UserContext } from "../context/UserContext";
 
@@ -416,15 +414,7 @@ const Swap = () => {
                 onChange={handleFromInputChange}
                 placeholder="0"
                 maxLength={3}
-                className={`
-                  w-16
-                  bg-brand-secondary
-                  text-brand-text
-                  p-2
-                  rounded
-                  text-3xl
-                  text-center
-                `}
+                className="w-16 bg-brand-secondary text-brand-text p-2 rounded text-3xl text-center"
                 readOnly={isNFTMode}
               />
             </div>
@@ -538,64 +528,62 @@ const Swap = () => {
       {fromAsset === "TopShot Common / Fandom" &&
         isLoggedIn &&
         accountData?.parentAddress && (
-          <div className="w-full p-4">
-            <div className="max-w-screen-lg space-y-4">
-              {/* Selected Moments */}
-              <div className="bg-brand-primary shadow-md p-2 rounded">
-                <h4 className="text-brand-text text-sm mb-2">
-                  Selected Moments:
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedNFTs.length > 0 ? (
-                    selectedNFTs.map((momentId) => {
-                      const activeAcc =
-                        (accountData.childrenData || []).find(
-                          (c) => c.addr === selectedAccount
-                        ) || accountData;
-                      const nft = (activeAcc.nftDetails || []).find(
-                        (item) => Number(item.id) === Number(momentId)
-                      );
-                      return (
-                        <MomentCard
-                          key={momentId}
-                          nft={nft}
-                          handleNFTSelection={() =>
-                            dispatch({
-                              type: "SET_SELECTED_NFTS",
-                              payload: momentId,
-                            })
-                          }
-                          isSelected={true}
-                        />
-                      );
-                    })
-                  ) : (
-                    <span className="text-brand-text/70">
-                      No moments selected
-                    </span>
-                  )}
-                </div>
+          <div className="w-full p-4 space-y-4">
+            {/* Selected Moments (full width) */}
+            <div className="bg-brand-primary shadow-md p-2 rounded w-full">
+              <h4 className="text-brand-text text-sm mb-2">
+                Selected Moments:
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {selectedNFTs.length > 0 ? (
+                  selectedNFTs.map((momentId) => {
+                    const activeAcc =
+                      (accountData.childrenData || []).find(
+                        (c) => c.addr === selectedAccount
+                      ) || accountData;
+                    const nft = (activeAcc.nftDetails || []).find(
+                      (item) => Number(item.id) === Number(momentId)
+                    );
+                    return (
+                      <MomentCard
+                        key={momentId}
+                        nft={nft}
+                        handleNFTSelection={() =>
+                          dispatch({
+                            type: "SET_SELECTED_NFTS",
+                            payload: momentId,
+                          })
+                        }
+                        isSelected={true}
+                      />
+                    );
+                  })
+                ) : (
+                  <span className="text-brand-text/70">
+                    No moments selected
+                  </span>
+                )}
               </div>
+            </div>
 
-              {/* Account Selection */}
-              <div className="bg-brand-primary shadow-md p-2 rounded">
-                <AccountSelection
-                  parentAccount={{
-                    addr: accountData.parentAddress || user?.addr,
-                    ...accountData,
-                  }}
-                  childrenAddresses={accountData.childrenAddresses || []}
-                  childrenAccounts={accountData.childrenData || []}
-                  selectedAccount={selectedAccount}
-                  onSelectAccount={handleSelectAccount}
-                  isLoadingChildren={isLoadingChildren}
-                />
-              </div>
+            {/* Account Selection (left-aligned, not full width) */}
+            <div className="bg-brand-primary shadow-md p-2 rounded inline-flex flex-wrap gap-2">
+              <AccountSelection
+                parentAccount={{
+                  addr: accountData.parentAddress || user?.addr,
+                  ...accountData,
+                }}
+                childrenAddresses={accountData.childrenAddresses || []}
+                childrenAccounts={accountData.childrenData || []}
+                selectedAccount={selectedAccount}
+                onSelectAccount={handleSelectAccount}
+                isLoadingChildren={isLoadingChildren}
+              />
+            </div>
 
-              {/* Moment Selection */}
-              <div className="bg-brand-primary shadow-md p-2 rounded-lg">
-                <MomentSelection excludeIds={excludedNftIds} />
-              </div>
+            {/* Moment Selection (full width) */}
+            <div className="bg-brand-primary shadow-md p-2 rounded-lg w-full">
+              <MomentSelection excludeIds={excludedNftIds} />
             </div>
           </div>
         )}
