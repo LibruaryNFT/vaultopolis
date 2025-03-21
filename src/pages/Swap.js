@@ -55,15 +55,6 @@ function getOppositeAsset(asset) {
   return asset === "TSHOT" ? "TopShot Common / Fandom" : "TSHOT";
 }
 
-/**
- * Returns the background color class for whichever asset is "toAsset."
- * If toAsset = TSHOT => we use brand-primary,
- * If toAsset = "TopShot Common / Fandom" => we use brand-secondary.
- */
-function getToAssetBg(toAsset) {
-  return toAsset === "TSHOT" ? "bg-brand-primary" : "bg-brand-secondary";
-}
-
 const Swap = () => {
   const {
     user,

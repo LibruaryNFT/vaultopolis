@@ -31,7 +31,6 @@ const Transfer = () => {
   const [recipient, setRecipient] = useState("0x");
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
-  const [errorMessage, setErrorMessage] = useState("");
 
   // Exclude any NFTs we’ve already transferred so they don’t reappear
   const [excludedNftIds, setExcludedNftIds] = useState([]);
@@ -40,9 +39,7 @@ const Transfer = () => {
   const parentAddr = accountData?.parentAddress;
   const childSelected = selectedAccountType === "child";
 
-  // ---------------------------------------------------------------------
-  // 1) Ensure the parent is actually logged in. If not, show an error.
-  // ---------------------------------------------------------------------
+  // If user mismatch
   if (isLoggedIn && user.addr !== parentAddr) {
     return (
       <div className="p-4 text-red-500">
@@ -55,37 +52,53 @@ const Transfer = () => {
     );
   }
 
+  // If user not logged in
+  if (!isLoggedIn) {
+    return (
+      <div className="p-4 text-brandGrey-light">
+        <p>Please log in to transfer NFTs.</p>
+      </div>
+    );
+  }
+
+  // Active account’s data
+  const activeAccountData =
+    accountData.childrenData?.find((c) => c.addr === selectedAccount) ||
+    accountData;
+
+  // Filter selected NFTs to only those from the active account
+  const selectedNftsInAccount = selectedNFTs.filter((id) =>
+    (activeAccountData.nftDetails || []).some(
+      (nft) => Number(nft.id) === Number(id)
+    )
+  );
+
+  // Decide the button label & whether it's disabled
+  let transferButtonLabel = "Transfer Moments";
+  let transferDisabled = false;
+
+  if (selectedNftsInAccount.length === 0) {
+    transferButtonLabel = "Select Moments";
+    transferDisabled = true;
+  } else if (recipient === "0x") {
+    transferButtonLabel = "Enter Recipient";
+    transferDisabled = true;
+  } else if (selectedNftsInAccount.length > MAX_TRANSFER_COUNT) {
+    // Over the 500 limit
+    transferButtonLabel = `Max ${MAX_TRANSFER_COUNT} allowed`;
+    transferDisabled = true;
+  }
+
   const closeModal = () => {
     setShowModal(false);
     setTransactionData({});
   };
 
   const handleTransfer = async () => {
-    setErrorMessage("");
+    // We assume the button is never clicked if disabled, so no further checks needed
+    // except for the child vs. parent script logic below:
 
-    // Basic validations
-    if (selectedNFTs.length === 0) {
-      setErrorMessage("Please select at least one Moment to transfer.");
-      return;
-    }
-    if (selectedNFTs.length > MAX_TRANSFER_COUNT) {
-      setErrorMessage(
-        `You cannot transfer more than ${MAX_TRANSFER_COUNT} Moments at once.`
-      );
-      return;
-    }
-    if (!recipient.startsWith("0x")) {
-      setErrorMessage("Recipient address must start with 0x.");
-      return;
-    }
-    if (!isLoggedIn) {
-      setErrorMessage("You must log in as the parent account first.");
-      return;
-    }
-
-    // ---------------------------------------------------------------------
-    // 2) Choose which script to run, based on parent vs child
-    // ---------------------------------------------------------------------
+    // Pick the transaction script
     const cadenceScript = childSelected ? batchTransfer_child : batchTransfer;
 
     // Show transaction modal in "Awaiting Approval"
@@ -94,22 +107,21 @@ const Transfer = () => {
       status: "Awaiting Approval",
       txId: null,
       error: null,
-      nftCount: selectedNFTs.length,
+      nftCount: selectedNftsInAccount.length,
       swapType: "BATCH_TRANSFER",
       transactionAction: "BATCH_TRANSFER",
     });
 
     try {
-      // Build transaction args
       const args = childSelected
         ? (arg, t) => [
             arg(selectedAccount, t.Address),
             arg(recipient, t.Address),
-            arg(selectedNFTs.map(String), t.Array(t.UInt64)),
+            arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
           ]
         : (arg, t) => [
             arg(recipient, t.Address),
-            arg(selectedNFTs.map(String), t.Array(t.UInt64)),
+            arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
           ];
 
       // Submit to Flow
@@ -124,7 +136,10 @@ const Transfer = () => {
 
       // Immediately reset selection
       dispatch({ type: "RESET_SELECTED_NFTS" });
-      setExcludedNftIds((prev) => [...prev, ...selectedNFTs.map(String)]);
+      setExcludedNftIds((prev) => [
+        ...prev,
+        ...selectedNftsInAccount.map(String),
+      ]);
 
       // Update modal to "Pending"
       setTransactionData((prev) => ({ ...prev, status: "Pending", txId }));
@@ -174,68 +189,17 @@ const Transfer = () => {
         status: "Error",
         error: err?.message || String(err),
       }));
-      setErrorMessage(err?.message ?? String(err));
     }
   };
 
-  // If user not logged in
-  if (!isLoggedIn) {
+  // =================== RENDERING ===================
+
+  // 1) Selected Moments (full width)
+  const renderSelectedMoments = () => {
     return (
-      <div className="p-4 text-brandGrey-light">
-        <p>Please log in to transfer NFTs.</p>
-      </div>
-    );
-  }
-
-  // Active account’s data
-  const activeAccountData =
-    accountData.childrenData?.find((c) => c.addr === selectedAccount) ||
-    accountData;
-
-  // Filter selected NFTs to only those from active account
-  const selectedNftsInAccount = selectedNFTs.filter((id) =>
-    (activeAccountData.nftDetails || []).some(
-      (nft) => Number(nft.id) === Number(id)
-    )
-  );
-
-  return (
-    <div className="p-4 space-y-4 bg-brandGrey-dark rounded">
-      <h2 className="text-xl font-bold text-white">Transfer</h2>
-      <p className="text-brandGrey-light">
-        Select an account (parent or child) for NFTs, choose Moments, and
-        transfer to another address. The parent account (logged in) will sign
-        every time.
-      </p>
-
-      {/* Account Selection */}
-      <AccountSelection
-        parentAccount={{
-          addr: parentAddr,
-          ...accountData,
-        }}
-        childrenAddresses={accountData.childrenAddresses}
-        childrenAccounts={accountData.childrenData}
-        selectedAccount={selectedAccount}
-        onSelectAccount={(addr) => {
-          const isChild = accountData.childrenAddresses.includes(addr);
-          dispatch({
-            type: "SET_SELECTED_ACCOUNT",
-            payload: {
-              address: addr,
-              type: isChild ? "child" : "parent",
-            },
-          });
-        }}
-        onRefresh={() => parentAddr && loadAllUserData(parentAddr)}
-        isRefreshing={isRefreshing}
-        isLoadingChildren={isLoadingChildren}
-      />
-
-      {/* Selected NFTs section */}
-      {selectedNftsInAccount.length > 0 && (
-        <div className="bg-brandGrey-darkest p-2 rounded">
-          <h4 className="text-white text-sm mb-2">Selected Moments:</h4>
+      <div className="bg-brand-primary p-2 rounded">
+        <h4 className="text-sm mb-2 text-brand">Selected Moments:</h4>
+        {selectedNftsInAccount.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {selectedNftsInAccount.map((momentId) => {
               const nft = (activeAccountData.nftDetails || []).find(
@@ -257,56 +221,87 @@ const Transfer = () => {
               );
             })}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm text-brand">No Moments selected yet.</p>
+        )}
+      </div>
+    );
+  };
 
-      {/* Grid of all Moments (excluding any we just transferred) */}
-      <MomentSelection allowAllTiers excludeIds={excludedNftIds} />
-
-      {/* Error message if any */}
-      {errorMessage && (
-        <div className="text-red-500 bg-red-100 p-2 rounded">
-          {errorMessage}
-        </div>
-      )}
-
-      {/* Recipient Address */}
-      <div>
-        <label className="block text-white mb-1">Recipient Address</label>
-        <input
-          type="text"
-          placeholder="0xRecipient"
-          className="w-full p-2 rounded text-black"
-          value={recipient}
-          onChange={(e) => setRecipient(e.target.value)}
-        />
+  return (
+    <>
+      {/* 1) Selected Moments (FULL WIDTH) */}
+      <div className="w-full p-4">
+        <div className="max-w-screen-lg mx-auto">{renderSelectedMoments()}</div>
       </div>
 
-      {/* Transfer Button */}
-      <button
-        onClick={handleTransfer}
-        className={`
-          w-full p-4 text-lg rounded-lg font-bold text-white
-          mt-2 transition-colors
-          ${
-            selectedNFTs.length === 0 ||
-            selectedNFTs.length > MAX_TRANSFER_COUNT
-              ? "bg-brandGrey-darkest cursor-not-allowed opacity-60"
-              : "bg-flow-light hover:bg-flow-dark"
-          }
-        `}
-        disabled={
-          selectedNFTs.length === 0 || selectedNFTs.length > MAX_TRANSFER_COUNT
-        }
-      >
-        Transfer Selected NFTs
-      </button>
+      {/* 2) Recipient Address & 3) Transfer Button (centered, max-w-md) */}
+      <div className="max-w-md mx-auto space-y-4 p-4 rounded bg-brand-primary">
+        <div>
+          <label className="block mb-1 text-brand">Recipient Address</label>
+          <input
+            type="text"
+            placeholder="0xRecipient"
+            className="w-full p-2 rounded text-black"
+            value={recipient}
+            onChange={(e) => setRecipient(e.target.value)}
+          />
+        </div>
+
+        <button
+          onClick={handleTransfer}
+          disabled={transferDisabled}
+          className={`
+            w-full p-4 text-lg rounded-lg font-bold text-white
+            mt-2 transition-colors
+            ${
+              transferDisabled
+                ? "bg-brand-secondary cursor-not-allowed opacity-60"
+                : "bg-flow-light hover:bg-flow-dark"
+            }
+          `}
+        >
+          {transferButtonLabel}
+        </button>
+      </div>
+
+      {/* 4) Account Selection (FULL WIDTH, brand-primary) + 5) Moment Selection */}
+      <div className="w-full p-4">
+        <div className="max-w-screen-lg mx-auto space-y-4">
+          <div className="bg-brand-primary p-2 rounded">
+            <AccountSelection
+              parentAccount={{
+                addr: parentAddr,
+                ...accountData,
+              }}
+              childrenAddresses={accountData.childrenAddresses}
+              childrenAccounts={accountData.childrenData}
+              selectedAccount={selectedAccount}
+              onSelectAccount={(addr) => {
+                const isChild = accountData.childrenAddresses.includes(addr);
+                dispatch({
+                  type: "SET_SELECTED_ACCOUNT",
+                  payload: {
+                    address: addr,
+                    type: isChild ? "child" : "parent",
+                  },
+                });
+              }}
+              onRefresh={() => parentAddr && loadAllUserData(parentAddr)}
+              isRefreshing={isRefreshing}
+              isLoadingChildren={isLoadingChildren}
+            />
+          </div>
+
+          <MomentSelection allowAllTiers excludeIds={excludedNftIds} />
+        </div>
+      </div>
 
       {/* Transaction Modal */}
       {showModal && transactionData?.status && (
         <TransactionModal {...transactionData} onClose={closeModal} />
       )}
-    </div>
+    </>
   );
 };
 

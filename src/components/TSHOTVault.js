@@ -334,8 +334,8 @@ function TSHOTVault() {
               px-3 py-1 mx-1 rounded
               ${
                 p === currentPage
-                  ? "bg-brand-primary text-brand-text"
-                  : "bg-brand-secondary text-brand-text/80"
+                  ? "bg-brand-secondary text-brand-text"
+                  : "bg-brand-primary text-brand-text/80"
               }
               ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}
             `}
@@ -348,7 +348,7 @@ function TSHOTVault() {
   };
 
   return (
-    <div className="bg-brand-secondary text-brand-text p-3 rounded-lg">
+    <div className="bg-brand-primary text-brand-text p-3 rounded-lg">
       <h3 className="text-lg font-bold mb-2">TSHOT Vault Contents</h3>
 
       <div className="flex justify-between items-center mb-2">
@@ -369,7 +369,7 @@ function TSHOTVault() {
 
       {/* FILTER UI */}
       {!loadingVault && !vaultError && (
-        <div className="flex flex-wrap items-center gap-4 text-sm bg-brand-primary p-2 rounded mb-2">
+        <div className="flex flex-wrap items-center gap-4 text-sm bg-brand-secondary p-2 rounded mb-2">
           {/* Tier Filter */}
           {existingTiers.length > 0 && (
             <div className="flex items-center gap-2">
@@ -431,7 +431,7 @@ function TSHOTVault() {
                   setSelectedSetName(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-brand-secondary text-brand-text rounded px-1 py-0.5"
+                className="bg-brand-primary text-brand-text rounded px-1 py-0.5"
               >
                 <option value="All" className="text-brand-text">
                   All
@@ -455,7 +455,7 @@ function TSHOTVault() {
                   setSelectedPlayer(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="bg-brand-secondary text-brand-text rounded px-1 py-0.5"
+                className="bg-brand-primary text-brand-text rounded px-1 py-0.5"
               >
                 <option value="All" className="text-brand-text">
                   All

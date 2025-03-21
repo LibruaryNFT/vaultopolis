@@ -22,10 +22,12 @@ function getDisplayedName(nft) {
   const forcedUnknowns = ["Unknown Player", "unknown player"];
   let candidate = nft?.FullName || nft?.fullName;
 
+  // If candidate is "Unknown Player", force it to null
   if (candidate && forcedUnknowns.includes(candidate.trim())) {
     candidate = null;
   }
 
+  // Fallback chain: candidate -> teamAtMoment -> playerName -> "Unknown Player"
   return candidate || nft?.teamAtMoment || nft?.playerName || "Unknown Player";
 }
 

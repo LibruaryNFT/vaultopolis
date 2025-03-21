@@ -93,6 +93,9 @@ const Header = () => {
           <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
             TSHOT
           </NavLink>
+          <NavLink to="/transfer" isActive={location.pathname === "/tshot"}>
+            Bulk Transfer
+          </NavLink>
         </nav>
 
         {/* Right container: connect or user menu */}
@@ -176,6 +179,13 @@ const Header = () => {
                 onClick={toggleMobileMenu}
               >
                 TSHOT
+              </MobileNavLink>
+              <MobileNavLink
+                to="/tshot"
+                isActive={location.pathname === "/transfer"}
+                onClick={toggleMobileMenu}
+              >
+                Bulk Transfer
               </MobileNavLink>
             </div>
           </div>
