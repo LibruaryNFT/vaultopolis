@@ -19,16 +19,22 @@ export const tierStyles = {
  * - Finally, default to "Unknown Player".
  */
 function getDisplayedName(nft) {
-  const forcedUnknowns = ["Unknown Player", "unknown player"];
+  const forcedUnknowns = ["Unknown Player", "unknown player", "Unknown"];
   let candidate = nft?.FullName || nft?.fullName;
 
-  // If candidate is "Unknown Player", force it to null
-  if (candidate && forcedUnknowns.includes(candidate.trim())) {
+  // If candidate is "Unknown Player" or similar, force it to null
+  if (
+    candidate &&
+    forcedUnknowns.some((unknown) => candidate.trim() === unknown)
+  ) {
     candidate = null;
   }
 
-  // Fallback chain: candidate -> teamAtMoment -> playerName -> "Unknown Player"
-  return candidate || nft?.teamAtMoment || nft?.playerName || "Unknown Player";
+  // Check for TeamAtMoment first (fall back to teamAtMoment for case variations)
+  const teamName = nft?.TeamAtMoment || nft?.teamAtMoment;
+
+  // Fallback chain: candidate -> teamName -> playerName -> "Unknown Player"
+  return candidate || teamName || nft?.playerName || "Unknown Player";
 }
 
 /**

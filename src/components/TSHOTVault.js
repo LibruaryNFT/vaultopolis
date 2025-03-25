@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import MomentCard, { tierStyles } from "./MomentCard";
 
-// Hard-coded tiers: show "Common" & "Fandom" in the UI, send them lowercase to the server
+// Hard-coded tiers
 const TIER_OPTIONS = [
   { label: "Common", value: "common" },
   { label: "Fandom", value: "fandom" },
@@ -14,30 +14,20 @@ const ALL_SERIES_OPTIONS = [0, 2, 3, 4, 5, 6, 7];
 function TSHOTVault() {
   // ---------- Data from server ----------
   const [vaultData, setVaultData] = useState([]); // items for the current page
-  const [totalCount, setTotalCount] = useState(0); // total matching docs in DB
+  const [totalCount, setTotalCount] = useState(0); // total matching docs
+  const [summary, setSummary] = useState(null); // entire vault summary
 
   // ---------- Loading & error ----------
   const [loadingVault, setLoadingVault] = useState(false);
-  const [filterError, setFilterError] = useState(false);
   const [vaultError, setVaultError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
   // ---------- Filter states ----------
   const [selectedTiers, setSelectedTiers] = useState(
-    TIER_OPTIONS.map((t) => t.value) // by default: ["common","fandom"]
+    TIER_OPTIONS.map((t) => t.value)
   );
   const [selectedSeries, setSelectedSeries] = useState(ALL_SERIES_OPTIONS);
-
-  // If user checks "special serials," we pass specialSerials=true to server
   const [onlySpecialSerials, setOnlySpecialSerials] = useState(false);
-
-  // ---------- Dynamic filters (optional) ----------
-  const [players, setPlayers] = useState([]);
-  const [teams, setTeams] = useState([]);
-  const [sets, setSets] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState("");
-  const [selectedTeam, setSelectedTeam] = useState("");
-  const [selectedSet, setSelectedSet] = useState("");
 
   // ---------- Pagination ----------
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,57 +35,16 @@ function TSHOTVault() {
   const [maxPages, setMaxPages] = useState(1);
 
   // --------------------------------------------------
-  // 1) Fetch dynamic filters once on component mount
+  // 1) Fetch vault data whenever filters or page changes
   // --------------------------------------------------
   useEffect(() => {
-    async function fetchFilters() {
-      try {
-        const resp = await fetch(
-          "https://api.vaultopolis.com/tshot-vault/filters"
-        );
-
-        if (!resp.ok) {
-          // If filters fail, we can still use the vault with basic filters
-          setFilterError(true);
-          console.error("Failed to load filters:", resp.status);
-          return;
-        }
-
-        const data = await resp.json();
-
-        // Only set filters if we have arrays returned
-        if (Array.isArray(data.allPlayers)) {
-          setPlayers(data.allPlayers);
-        }
-
-        if (Array.isArray(data.allTeams)) {
-          setTeams(data.allTeams);
-        }
-
-        if (Array.isArray(data.allSets)) {
-          setSets(data.allSets);
-        }
-
-        setFilterError(false);
-      } catch (err) {
-        console.error("Error fetching filters:", err);
-        setFilterError(true);
-      }
-    }
-
-    fetchFilters();
-  }, []);
-
-  // --------------------------------------------------
-  // 2) Fetch vault data whenever filters or page changes
-  // --------------------------------------------------
-  useEffect(() => {
-    // If user unchecks all series => no results
     if (selectedSeries.length === 0) {
+      // No series selected => no results
       setVaultData([]);
       setTotalCount(0);
       setLoadingVault(false);
       setVaultError("");
+      setMaxPages(1);
       return;
     }
 
@@ -106,13 +55,9 @@ function TSHOTVault() {
     selectedSeries,
     onlySpecialSerials,
     currentPage,
-    selectedPlayer,
-    selectedTeam,
-    selectedSet,
     retryCount,
   ]);
 
-  // Main data fetching function
   async function fetchVaultPage() {
     try {
       setLoadingVault(true);
@@ -120,62 +65,43 @@ function TSHOTVault() {
 
       // Build query string
       const params = new URLSearchParams();
-
-      // Tiers => e.g. tier=common,fandom
       if (selectedTiers.length > 0) {
         params.set("tier", selectedTiers.join(","));
       }
-
-      // Series => e.g. series=0,2,3,4,5,6,7
       if (selectedSeries.length > 0) {
         params.set("series", selectedSeries.join(","));
       }
-
-      // Additional filters (only if selected)
-      if (selectedPlayer) {
-        params.set("player", selectedPlayer);
-      }
-
-      if (selectedTeam) {
-        params.set("team", selectedTeam);
-      }
-
-      if (selectedSet && selectedSet !== "all") {
-        params.set("setName", selectedSet);
-      }
-
-      // specialSerials => pass if user checked
       if (onlySpecialSerials) {
         params.set("specialSerials", "true");
       }
-
-      // Pagination
       params.set("page", currentPage);
       params.set("pageSize", itemsPerPage);
 
-      console.log(
-        "Fetching:",
-        `https://api.vaultopolis.com/tshot-vault?${params.toString()}`
-      );
-      const resp = await fetch(
-        `https://api.vaultopolis.com/tshot-vault?${params.toString()}`
-      );
+      const url = `https://api.vaultopolis.com/tshot-vault?${params.toString()}`;
+      console.log("Fetching:", url);
 
+      const resp = await fetch(url);
       if (!resp.ok) {
         throw new Error(`Vault fetch error: ${resp.status}`);
       }
 
       const json = await resp.json();
 
-      setTotalCount(json.total || 0);
+      // Set states from response
       setVaultData(json.data || []);
+      setTotalCount(json.total || 0);
 
-      // Calculate max pages based on total
+      // If the server includes a "summary" object, capture it
+      if (json.summary) {
+        setSummary(json.summary);
+      }
+
+      // Calculate max pages
       const newMax =
         Math.ceil((json.total || 0) / (json.pageSize || itemsPerPage)) || 1;
       setMaxPages(newMax);
 
-      // If server returned a page number and it's different, update our state
+      // In case server overrides the page
       if (json.page && json.page !== currentPage) {
         setCurrentPage(json.page);
       }
@@ -184,13 +110,15 @@ function TSHOTVault() {
       setVaultError(err.message || "Failed to fetch vault data");
       setVaultData([]);
       setTotalCount(0);
+      setSummary(null);
+      setMaxPages(1);
     } finally {
       setLoadingVault(false);
     }
   }
 
   // --------------------------------------------------
-  // 3) Prevent going past max pages
+  // 2) Prevent going past max pages
   // --------------------------------------------------
   useEffect(() => {
     if (currentPage > maxPages && maxPages > 0) {
@@ -199,65 +127,21 @@ function TSHOTVault() {
   }, [maxPages, currentPage]);
 
   // --------------------------------------------------
-  // 4) Helper to handle page navigation
+  // 3) Page navigation (just Prev/Next)
   // --------------------------------------------------
   function goToPage(pageNum) {
-    // Ensure we stay in valid range and convert to number
-    const page = Math.max(1, Math.min(parseInt(pageNum, 10) || 1, maxPages));
+    const page = Math.max(1, Math.min(pageNum, maxPages));
     setCurrentPage(page);
   }
 
   // --------------------------------------------------
-  // 5) Render pagination controls
+  // 4) Render simpler pagination controls
   // --------------------------------------------------
-  function renderPaginationButtons() {
+  function renderPaginationControls() {
     if (maxPages <= 1) return null;
 
-    // Create an array of visible page numbers
-    const pages = [];
-
-    if (maxPages <= 7) {
-      // Show all pages if 7 or fewer
-      for (let i = 1; i <= maxPages; i++) {
-        pages.push(i);
-      }
-    } else if (currentPage <= 4) {
-      // Near start: show first 5, ellipsis, last
-      pages.push(1, 2, 3, 4, 5, "...", maxPages);
-    } else if (currentPage >= maxPages - 3) {
-      // Near end: show first, ellipsis, last 5
-      pages.push(
-        1,
-        "...",
-        maxPages - 4,
-        maxPages - 3,
-        maxPages - 2,
-        maxPages - 1,
-        maxPages
-      );
-    } else {
-      // Middle: show first, ellipsis, current-1, current, current+1, ellipsis, last
-      pages.push(
-        1,
-        "...",
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        "...",
-        maxPages
-      );
-    }
-
     return (
-      <div className="flex flex-wrap justify-center mt-4 gap-2">
-        {/* First & Previous buttons */}
-        <button
-          onClick={() => goToPage(1)}
-          disabled={currentPage === 1}
-          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-        >
-          First
-        </button>
+      <div className="flex justify-center gap-3 mt-4">
         <button
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage === 1}
@@ -265,23 +149,9 @@ function TSHOTVault() {
         >
           Prev
         </button>
-
-        {/* Page numbers */}
-        {pages.map((p, idx) => (
-          <button
-            key={`page-${idx}`}
-            onClick={() => p !== "..." && goToPage(p)}
-            className={`px-3 py-1 rounded ${
-              p === currentPage
-                ? "bg-brand-secondary text-brand-text"
-                : "bg-brand-primary text-brand-text/80"
-            } ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}`}
-          >
-            {p}
-          </button>
-        ))}
-
-        {/* Next & Last buttons */}
+        <span className="text-sm text-brand-text/80">
+          Page {currentPage} of {maxPages}
+        </span>
         <button
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage === maxPages}
@@ -289,19 +159,12 @@ function TSHOTVault() {
         >
           Next
         </button>
-        <button
-          onClick={() => goToPage(maxPages)}
-          disabled={currentPage === maxPages}
-          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-        >
-          Last
-        </button>
       </div>
     );
   }
 
   // --------------------------------------------------
-  // 6) Filter toggle handlers
+  // 5) Filter toggle handlers
   // --------------------------------------------------
   function toggleTier(tierVal) {
     setSelectedTiers((prev) =>
@@ -328,32 +191,34 @@ function TSHOTVault() {
     setCurrentPage(1);
   }
 
-  function handlePlayerChange(e) {
-    setSelectedPlayer(e.target.value);
-    setCurrentPage(1);
-  }
-
-  function handleTeamChange(e) {
-    setSelectedTeam(e.target.value);
-    setCurrentPage(1);
-  }
-
-  function handleSetChange(e) {
-    setSelectedSet(e.target.value);
-    setCurrentPage(1);
-  }
-
   function retryFetch() {
     setRetryCount((prev) => prev + 1);
   }
 
   // --------------------------------------------------
-  // 7) Main render
+  // 6) Main render
   // --------------------------------------------------
   return (
     <div className="bg-brand-primary text-brand-text p-3 rounded-lg">
       <h3 className="text-lg font-bold mb-2">TSHOT Vault</h3>
 
+      {/* Optional: Display a vault-level summary if available */}
+      {summary && (
+        <div className="bg-brand-secondary p-2 rounded mb-3 text-sm">
+          <p className="mb-1 text-brand-text/80 font-semibold">
+            Overall Vault Summary
+          </p>
+          <p>Total in vault: {summary.totalInVault?.toLocaleString()}</p>
+          <p>Common: {summary.totalCommon?.toLocaleString()}</p>
+          <p>Fandom: {summary.totalFandom?.toLocaleString()}</p>
+          <p>#1 Mints: {summary.totalFirstMints?.toLocaleString()}</p>
+          <p>Jersey Matches: {summary.totalJerseyMatches?.toLocaleString()}</p>
+          <p>Last Mints: {summary.totalLastMints?.toLocaleString()}</p>
+          <p>Series 0: {summary.totalSeries0?.toLocaleString()}</p>
+        </div>
+      )}
+
+      {/* Loading & Error */}
       {loadingVault && selectedSeries.length > 0 && (
         <div className="flex items-center gap-2 mb-2">
           <Loader2 className="h-5 w-5 animate-spin" />
@@ -375,7 +240,7 @@ function TSHOTVault() {
         </div>
       )}
 
-      {/* FILTER UI - Basic Filters */}
+      {/* FILTER UI */}
       <div className="flex flex-wrap items-center gap-4 text-sm bg-brand-secondary p-2 rounded mb-2">
         {/* Tiers */}
         <div className="flex items-center gap-2">
@@ -433,79 +298,17 @@ function TSHOTVault() {
         </label>
       </div>
 
-      {/* Advanced filters - only show if we have data */}
-      {(players.length > 0 || teams.length > 0 || sets.length > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
-          {/* Player filter */}
-          {players.length > 0 && (
-            <div>
-              <label className="block text-sm mb-1">Player:</label>
-              <select
-                value={selectedPlayer}
-                onChange={handlePlayerChange}
-                className="w-full bg-brand-secondary text-brand-text p-2 rounded"
-              >
-                <option value="">All Players</option>
-                {players.map((player) => (
-                  <option key={player} value={player}>
-                    {player}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Team filter */}
-          {teams.length > 0 && (
-            <div>
-              <label className="block text-sm mb-1">Team:</label>
-              <select
-                value={selectedTeam}
-                onChange={handleTeamChange}
-                className="w-full bg-brand-secondary text-brand-text p-2 rounded"
-              >
-                <option value="">All Teams</option>
-                {teams.map((team) => (
-                  <option key={team} value={team}>
-                    {team}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Set filter */}
-          {sets.length > 0 && (
-            <div>
-              <label className="block text-sm mb-1">Set:</label>
-              <select
-                value={selectedSet}
-                onChange={handleSetChange}
-                className="w-full bg-brand-secondary text-brand-text p-2 rounded"
-              >
-                <option value="">All Sets</option>
-                {sets.map((set) => (
-                  <option key={set} value={set}>
-                    {set}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Results display */}
+      {/* Main Results */}
       {selectedSeries.length === 0 ? (
         <p className="text-sm text-brand-text/70">
           Please select at least one series to view results.
         </p>
       ) : !loadingVault && !vaultError ? (
         <>
+          {/* Show how many found + which page */}
           <div className="flex justify-between items-center mb-2">
             <p className="text-sm text-brand-text/70">
-              Showing {vaultData.length} of {totalCount.toLocaleString()} total
-              items
+              Showing {vaultData.length} of {totalCount.toLocaleString()} items
             </p>
             {maxPages > 1 && (
               <p className="text-sm text-brand-text/70">
@@ -518,10 +321,15 @@ function TSHOTVault() {
             <>
               <div className="flex flex-wrap gap-2">
                 {vaultData.map((nft) => (
-                  <MomentCard key={nft.id || nft._id} nft={nft} isVault />
+                  <MomentCard
+                    key={nft.id || nft._id}
+                    nft={nft}
+                    isVault
+                    disableHover
+                  />
                 ))}
               </div>
-              {renderPaginationButtons()}
+              {renderPaginationControls()}
             </>
           ) : (
             <p className="text-sm text-brand-text/70">
