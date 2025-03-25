@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { UserContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext";
 
 import Dropdown, { FROM_OPTIONS } from "../components/Dropdown";
 import NFTToTSHOTPanel from "../components/NFTToTSHOTPanel";
@@ -61,7 +61,7 @@ const Swap = () => {
     selectedNFTs,
     dispatch,
     isLoadingChildren,
-  } = useContext(UserContext);
+  } = useContext(UserDataContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
 

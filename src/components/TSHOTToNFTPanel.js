@@ -1,8 +1,7 @@
 // src/components/TSHOTToNFTPanel.js
-
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
-import { UserContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext";
 
 // Flow scripts
 import { commitSwap } from "../flow/commitSwap";
@@ -82,7 +81,7 @@ export default function TSHOTToNFTPanel({
     loadAllUserData,
     loadChildData,
     metadataCache,
-  } = useContext(UserContext);
+  } = useContext(UserDataContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
   if (!isLoggedIn) {
@@ -223,10 +222,13 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
-      // Refresh parent + child if needed
-      await loadAllUserData(parentAddr);
+      // Refresh parent / child
+      // If selectedAccount != parentAddr => skip child load, then load child
       if (selectedAccount && selectedAccount !== parentAddr) {
+        await loadAllUserData(parentAddr, { skipChildLoad: true });
         await loadChildData(selectedAccount);
+      } else {
+        await loadAllUserData(parentAddr);
       }
     } catch (err) {
       console.error("Deposit TX failed:", err);
@@ -352,10 +354,12 @@ export default function TSHOTToNFTPanel({
         revealedNFTDetails,
       });
 
-      // Refresh parent + child
-      await loadAllUserData(parentAddr);
+      // Refresh parent + child if needed
       if (selectedAccount && selectedAccount !== parentAddr) {
+        await loadAllUserData(parentAddr, { skipChildLoad: true });
         await loadChildData(selectedAccount);
+      } else {
+        await loadAllUserData(parentAddr);
       }
 
       onRevealComplete?.();
@@ -414,7 +418,6 @@ export default function TSHOTToNFTPanel({
 
   if (revealStep) {
     // Step 2 => reveal minted NFTs
-    const parentAddr = accountData?.parentAddress || user?.addr;
     const isParentSelected = selectedAccount === parentAddr;
     let currentAccountHasCollection = false;
 

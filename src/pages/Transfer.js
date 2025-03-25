@@ -1,7 +1,7 @@
 // src/components/Transfer.js
 import React, { useState, useContext } from "react";
 import * as fcl from "@onflow/fcl";
-import { UserContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext";
 
 // Your transaction scripts
 import { batchTransfer } from "../flow/batchTransfer";
@@ -26,7 +26,7 @@ const Transfer = () => {
     loadChildData,
     isRefreshing,
     isLoadingChildren,
-  } = useContext(UserContext);
+  } = useContext(UserDataContext);
 
   const [recipient, setRecipient] = useState("0x");
   const [showModal, setShowModal] = useState(false);

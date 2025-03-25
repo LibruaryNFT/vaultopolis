@@ -1,7 +1,7 @@
 // src/components/NFTToTSHOTPanel.js
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
-import { UserContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext";
 
 // Cadence scripts
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
@@ -19,7 +19,7 @@ function NFTToTSHOTPanel({ nftIds, buyAmount, onTransactionStart }) {
     loadAllUserData,
     loadChildData,
     dispatch,
-  } = useContext(UserContext);
+  } = useContext(UserDataContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
   const parentAddr = accountData?.parentAddress || user?.addr;
@@ -157,12 +157,18 @@ function NFTToTSHOTPanel({ nftIds, buyAmount, onTransactionStart }) {
       // Wait for seal
       await fcl.tx(txId).onceSealed();
 
-      // Reload parent's data (and child if necessary)
+      // Reload parent's data
       if (parentAddr) {
-        await loadAllUserData(parentAddr);
-      }
-      if (isChildSwap) {
-        await loadChildData(selectedAccount);
+        // If we swapped in a child context, skip child load in loadAllUserData
+        if (isChildSwap) {
+          // 1) reload parent but skip child
+          await loadAllUserData(parentAddr, { skipChildLoad: true });
+          // 2) now reload child once
+          await loadChildData(selectedAccount);
+        } else {
+          // normal case => reload parent & children
+          await loadAllUserData(parentAddr);
+        }
       }
     } catch (err) {
       console.error("Transaction failed:", err);
@@ -180,11 +186,6 @@ function NFTToTSHOTPanel({ nftIds, buyAmount, onTransactionStart }) {
 
   return (
     <>
-      {/* 
-        Swap button spanning full width; we add a box-shadow for a “raised” effect. 
-        Adjust shadow classes as you like: 
-          "shadow-md shadow-black/40" or "shadow-lg shadow-black/50" etc.
-      */}
       <button
         onClick={handleSwap}
         disabled={nftIds.length === 0 || isOverLimit}
@@ -209,7 +210,6 @@ function NFTToTSHOTPanel({ nftIds, buyAmount, onTransactionStart }) {
         {buttonLabel}
       </button>
 
-      {/* If user selected more than the limit, show small warning. */}
       {isOverLimit && (
         <div className="mt-2 text-sm text-red-500 px-3 pb-2">
           You can only swap up to {MAX_NFTS} NFTs at a time. Please reduce your

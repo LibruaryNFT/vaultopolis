@@ -1,319 +1,242 @@
-// src/components/TSHOTVault.jsx
-import React, { useEffect, useState, useMemo } from "react";
-import { Loader2 } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import MomentCard, { tierStyles } from "./MomentCard";
 
-const ALL_TIER_OPTIONS = ["common", "fandom", "rare", "legendary", "ultimate"];
+// Hard-coded tiers: show "Common" & "Fandom" in the UI, send them lowercase to the server
+const TIER_OPTIONS = [
+  { label: "Common", value: "common" },
+  { label: "Fandom", value: "fandom" },
+];
 
-/**
- * Returns the display name for an NFT.
- * If the NFT's fullName is "Unknown Player", it falls back to playerName then teamAtMoment.
- */
-function getDisplayedName(nft) {
-  const forcedUnknowns = ["Unknown Player", "unknown player"];
-  let candidate = nft?.fullName || nft?.FullName;
-  if (candidate && forcedUnknowns.includes(candidate.trim())) {
-    candidate = null;
-  }
-  return candidate || nft?.playerName || nft?.teamAtMoment || "Unknown Player";
-}
-
-/**
- * Enrich vault data with metadata (jerseyNumber, subedition fields, etc.) from a cache or endpoint.
- */
-async function enrichVaultMoments(vaultNfts) {
-  let metadataCache = {};
-  try {
-    const cached = localStorage.getItem("topshotMetadata");
-    if (cached) {
-      metadataCache = JSON.parse(cached);
-    } else {
-      const resp = await fetch(
-        "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-data"
-      );
-      if (!resp.ok) {
-        throw new Error(`HTTP error: ${resp.status}`);
-      }
-      const data = await resp.json();
-      metadataCache = data.reduce((acc, item) => {
-        const key = `${item.setID}-${item.playID}`;
-        acc[key] = item;
-        return acc;
-      }, {});
-      localStorage.setItem("topshotMetadata", JSON.stringify(metadataCache));
-    }
-  } catch (err) {
-    console.error("Error loading metadata for vault enrichment:", err);
-  }
-  return vaultNfts.map((nft) => {
-    const key = `${nft.setID}-${nft.playID}`;
-    const meta = metadataCache[key];
-    if (!meta) return nft;
-    return {
-      ...nft,
-      tier: meta.tier || nft.tier,
-      fullName:
-        meta.FullName ||
-        meta.fullName ||
-        nft.fullName ||
-        nft.playerName ||
-        "Unknown Player",
-      momentCount: Number(meta.momentCount) || nft.momentCount,
-      jerseyNumber:
-        (nft.jerseyNumber != null ? parseInt(nft.jerseyNumber, 10) : null) ||
-        (meta.JerseyNumber != null ? parseInt(meta.JerseyNumber, 10) : null),
-      series: meta.series !== undefined ? meta.series : nft.series,
-      name: meta.name || nft.name,
-      subeditionID: nft.subeditionID || meta.subeditionID || null,
-      subeditionMaxMint:
-        nft.subeditionMaxMint || meta.subeditionMaxMint || null,
-      teamAtMoment: meta.TeamAtMoment || nft.teamAtMoment,
-    };
-  });
-}
+// Hard-coded series
+const ALL_SERIES_OPTIONS = [0, 2, 3, 4, 5, 6, 7];
 
 function TSHOTVault() {
-  const [allNfts, setAllNfts] = useState([]);
+  // ---------- Data from server ----------
+  const [vaultData, setVaultData] = useState([]); // items for the current page
+  const [totalCount, setTotalCount] = useState(0); // total matching docs in DB
+
+  // ---------- Loading & error ----------
   const [loadingVault, setLoadingVault] = useState(false);
+  const [filterError, setFilterError] = useState(false);
   const [vaultError, setVaultError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Fetch vault data and enrich metadata on mount
-  useEffect(() => {
-    async function fetchVaultData() {
-      setLoadingVault(true);
-      setVaultError("");
-      try {
-        const response = await fetch(
-          "https://flowconnectbackend-864654c6a577.herokuapp.com/tshot-vault"
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        const nfts = Array.isArray(data) ? data : data.data || [];
-        const enrichedNfts = await enrichVaultMoments(nfts);
-        setAllNfts(enrichedNfts);
-      } catch (err) {
-        setVaultError(err.message || "Failed to fetch vault data");
-      } finally {
-        setLoadingVault(false);
-      }
-    }
-    fetchVaultData();
-  }, []);
+  // ---------- Filter states ----------
+  const [selectedTiers, setSelectedTiers] = useState(
+    TIER_OPTIONS.map((t) => t.value) // by default: ["common","fandom"]
+  );
+  const [selectedSeries, setSelectedSeries] = useState(ALL_SERIES_OPTIONS);
 
-  // ========== Filter State ==========
-  const [selectedTiers, setSelectedTiers] = useState([]);
-  const [selectedSeries, setSelectedSeries] = useState([]);
-  const [selectedSetName, setSelectedSetName] = useState("All");
-  const [selectedPlayer, setSelectedPlayer] = useState("All");
+  // If user checks "special serials," we pass specialSerials=true to server
   const [onlySpecialSerials, setOnlySpecialSerials] = useState(false);
 
-  const [itemsPerPage] = useState(50);
+  // ---------- Dynamic filters (optional) ----------
+  const [players, setPlayers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [sets, setSets] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState("");
+  const [selectedSet, setSelectedSet] = useState("");
+
+  // ---------- Pagination ----------
   const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50;
+  const [maxPages, setMaxPages] = useState(1);
 
-  // 1) Tiers
-  const existingTiers = useMemo(() => {
-    const found = new Set();
-    allNfts.forEach((nft) => {
-      if (nft?.tier) {
-        found.add(nft.tier.toLowerCase());
-      }
-    });
-    return ALL_TIER_OPTIONS.filter((t) => found.has(t));
-  }, [allNfts]);
-
+  // --------------------------------------------------
+  // 1) Fetch dynamic filters once on component mount
+  // --------------------------------------------------
   useEffect(() => {
-    // If we have actual tiers and haven't selected any yet, auto-select them
-    if (existingTiers.length && selectedTiers.length === 0) {
-      setSelectedTiers(existingTiers);
-    }
-  }, [existingTiers, selectedTiers]);
+    async function fetchFilters() {
+      try {
+        const resp = await fetch(
+          "https://api.vaultopolis.com/tshot-vault/filters"
+        );
 
-  const toggleTier = (tierVal) => {
-    setSelectedTiers((prev) =>
-      prev.includes(tierVal)
-        ? prev.filter((t) => t !== tierVal)
-        : [...prev, tierVal]
-    );
-    setCurrentPage(1);
-  };
+        if (!resp.ok) {
+          // If filters fail, we can still use the vault with basic filters
+          setFilterError(true);
+          console.error("Failed to load filters:", resp.status);
+          return;
+        }
 
-  // 2) Series
-  const seriesOptions = useMemo(() => {
-    const s = new Set(
-      allNfts.map((n) => {
-        const val = Number(n.series);
-        return Number.isNaN(val) ? null : val;
-      })
-    );
-    s.delete(null);
-    return [...s].sort((a, b) => a - b);
-  }, [allNfts]);
+        const data = await resp.json();
 
-  useEffect(() => {
-    if (seriesOptions.length && selectedSeries.length === 0) {
-      setSelectedSeries(seriesOptions);
-    }
-  }, [seriesOptions, selectedSeries]);
+        // Only set filters if we have arrays returned
+        if (Array.isArray(data.allPlayers)) {
+          setPlayers(data.allPlayers);
+        }
 
-  const toggleSeries = (val) => {
-    setSelectedSeries((prev) =>
-      prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]
-    );
-    setCurrentPage(1);
-  };
+        if (Array.isArray(data.allTeams)) {
+          setTeams(data.allTeams);
+        }
 
-  const handleAllSeriesToggle = (checked) => {
-    if (checked) {
-      setSelectedSeries(seriesOptions);
-    } else {
-      setSelectedSeries([]);
-    }
-    setCurrentPage(1);
-  };
+        if (Array.isArray(data.allSets)) {
+          setSets(data.allSets);
+        }
 
-  // 3) Set Name
-  const setNameOptions = useMemo(() => {
-    const s = new Set(allNfts.map((n) => n.name).filter(Boolean));
-    return [...s].sort((a, b) => a.localeCompare(b));
-  }, [allNfts]);
-
-  // 4) Player
-  const subsetForPlayers = useMemo(() => {
-    return allNfts.filter((n) => {
-      const t = n?.tier?.toLowerCase();
-      if (!selectedTiers.includes(t)) return false;
-      const s = Number(n.series);
-      if (Number.isNaN(s) || !selectedSeries.includes(s)) return false;
-      if (selectedSetName !== "All" && n.name !== selectedSetName) return false;
-      if (onlySpecialSerials) {
-        const sn = parseInt(n.serialNumber, 10);
-        const effectiveMax =
-          n.subeditionID && n.subeditionMaxMint
-            ? parseInt(n.subeditionMaxMint, 10)
-            : parseInt(n.momentCount, 10);
-        const jersey =
-          n.jerseyNumber != null ? parseInt(n.jerseyNumber, 10) : null;
-        const isSpecial =
-          sn === 1 || sn === effectiveMax || (jersey !== null && jersey === sn);
-        if (!isSpecial) return false;
+        setFilterError(false);
+      } catch (err) {
+        console.error("Error fetching filters:", err);
+        setFilterError(true);
       }
-      return true;
-    });
+    }
+
+    fetchFilters();
+  }, []);
+
+  // --------------------------------------------------
+  // 2) Fetch vault data whenever filters or page changes
+  // --------------------------------------------------
+  useEffect(() => {
+    // If user unchecks all series => no results
+    if (selectedSeries.length === 0) {
+      setVaultData([]);
+      setTotalCount(0);
+      setLoadingVault(false);
+      setVaultError("");
+      return;
+    }
+
+    fetchVaultPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    allNfts,
     selectedTiers,
     selectedSeries,
-    selectedSetName,
     onlySpecialSerials,
-  ]);
-
-  const playerOptions = useMemo(() => {
-    const forcedUnknowns = new Set(["unknown player"]);
-    const p = new Set(
-      subsetForPlayers
-        .map((n) => getDisplayedName(n).trim())
-        .filter((val) => val && !forcedUnknowns.has(val.toLowerCase()))
-    );
-    return [...p].sort((a, b) =>
-      a.toLowerCase().localeCompare(b.toLowerCase())
-    );
-  }, [subsetForPlayers]);
-
-  // Reset selected set/player if no longer valid
-  useEffect(() => {
-    if (
-      selectedSetName !== "All" &&
-      !setNameOptions.includes(selectedSetName)
-    ) {
-      setSelectedSetName("All");
-    }
-  }, [selectedSetName, setNameOptions]);
-
-  useEffect(() => {
-    if (
-      selectedPlayer !== "All" &&
-      !playerOptions
-        .map((p) => p.toLowerCase())
-        .includes(selectedPlayer.toLowerCase())
-    ) {
-      setSelectedPlayer("All");
-    }
-  }, [selectedPlayer, playerOptions]);
-
-  // Actual filtering
-  const filteredNfts = useMemo(() => {
-    if (!allNfts.length) return [];
-    return allNfts.filter((n) => {
-      const tier = n?.tier?.toLowerCase();
-      if (!selectedTiers.includes(tier)) return false;
-      const numSeries = Number(n.series);
-      if (Number.isNaN(numSeries) || !selectedSeries.includes(numSeries)) {
-        return false;
-      }
-      if (selectedSetName !== "All" && n.name !== selectedSetName) return false;
-      if (
-        selectedPlayer !== "All" &&
-        getDisplayedName(n).toLowerCase() !== selectedPlayer.toLowerCase()
-      ) {
-        return false;
-      }
-      if (onlySpecialSerials) {
-        const sn = parseInt(n.serialNumber, 10);
-        const effectiveMax =
-          n.subeditionID && n.subeditionMaxMint
-            ? parseInt(n.subeditionMaxMint, 10)
-            : parseInt(n.momentCount, 10);
-        const jersey =
-          n.jerseyNumber != null ? parseInt(n.jerseyNumber, 10) : null;
-        const isSpecial =
-          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
-        if (!isSpecial) return false;
-      }
-      return true;
-    });
-  }, [
-    allNfts,
-    selectedTiers,
-    selectedSeries,
-    selectedSetName,
+    currentPage,
     selectedPlayer,
-    onlySpecialSerials,
+    selectedTeam,
+    selectedSet,
+    retryCount,
   ]);
 
-  // Sorting & Pagination
-  const sortedNfts = useMemo(() => {
-    return [...filteredNfts].sort(
-      (a, b) => parseInt(a.serialNumber, 10) - parseInt(b.serialNumber, 10)
-    );
-  }, [filteredNfts]);
+  // Main data fetching function
+  async function fetchVaultPage() {
+    try {
+      setLoadingVault(true);
+      setVaultError("");
 
-  const totalPages = Math.ceil(sortedNfts.length / itemsPerPage);
-  const paginatedNfts = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return sortedNfts.slice(start, start + itemsPerPage);
-  }, [sortedNfts, currentPage, itemsPerPage]);
+      // Build query string
+      const params = new URLSearchParams();
 
-  // Renders pagination
-  const renderPaginationButtons = () => {
-    if (totalPages <= 1) return null;
+      // Tiers => e.g. tier=common,fandom
+      if (selectedTiers.length > 0) {
+        params.set("tier", selectedTiers.join(","));
+      }
+
+      // Series => e.g. series=0,2,3,4,5,6,7
+      if (selectedSeries.length > 0) {
+        params.set("series", selectedSeries.join(","));
+      }
+
+      // Additional filters (only if selected)
+      if (selectedPlayer) {
+        params.set("player", selectedPlayer);
+      }
+
+      if (selectedTeam) {
+        params.set("team", selectedTeam);
+      }
+
+      if (selectedSet && selectedSet !== "all") {
+        params.set("setName", selectedSet);
+      }
+
+      // specialSerials => pass if user checked
+      if (onlySpecialSerials) {
+        params.set("specialSerials", "true");
+      }
+
+      // Pagination
+      params.set("page", currentPage);
+      params.set("pageSize", itemsPerPage);
+
+      console.log(
+        "Fetching:",
+        `https://api.vaultopolis.com/tshot-vault?${params.toString()}`
+      );
+      const resp = await fetch(
+        `https://api.vaultopolis.com/tshot-vault?${params.toString()}`
+      );
+
+      if (!resp.ok) {
+        throw new Error(`Vault fetch error: ${resp.status}`);
+      }
+
+      const json = await resp.json();
+
+      setTotalCount(json.total || 0);
+      setVaultData(json.data || []);
+
+      // Calculate max pages based on total
+      const newMax =
+        Math.ceil((json.total || 0) / (json.pageSize || itemsPerPage)) || 1;
+      setMaxPages(newMax);
+
+      // If server returned a page number and it's different, update our state
+      if (json.page && json.page !== currentPage) {
+        setCurrentPage(json.page);
+      }
+    } catch (err) {
+      console.error("TSHOTVault error:", err);
+      setVaultError(err.message || "Failed to fetch vault data");
+      setVaultData([]);
+      setTotalCount(0);
+    } finally {
+      setLoadingVault(false);
+    }
+  }
+
+  // --------------------------------------------------
+  // 3) Prevent going past max pages
+  // --------------------------------------------------
+  useEffect(() => {
+    if (currentPage > maxPages && maxPages > 0) {
+      setCurrentPage(maxPages);
+    }
+  }, [maxPages, currentPage]);
+
+  // --------------------------------------------------
+  // 4) Helper to handle page navigation
+  // --------------------------------------------------
+  function goToPage(pageNum) {
+    // Ensure we stay in valid range and convert to number
+    const page = Math.max(1, Math.min(parseInt(pageNum, 10) || 1, maxPages));
+    setCurrentPage(page);
+  }
+
+  // --------------------------------------------------
+  // 5) Render pagination controls
+  // --------------------------------------------------
+  function renderPaginationButtons() {
+    if (maxPages <= 1) return null;
+
+    // Create an array of visible page numbers
     const pages = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
+
+    if (maxPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= maxPages; i++) {
+        pages.push(i);
+      }
     } else if (currentPage <= 4) {
-      pages.push(1, 2, 3, 4, 5, "...", totalPages);
-    } else if (currentPage > totalPages - 4) {
+      // Near start: show first 5, ellipsis, last
+      pages.push(1, 2, 3, 4, 5, "...", maxPages);
+    } else if (currentPage >= maxPages - 3) {
+      // Near end: show first, ellipsis, last 5
       pages.push(
         1,
         "...",
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages
+        maxPages - 4,
+        maxPages - 3,
+        maxPages - 2,
+        maxPages - 1,
+        maxPages
       );
     } else {
+      // Middle: show first, ellipsis, current-1, current, current+1, ellipsis, last
       pages.push(
         1,
         "...",
@@ -321,187 +244,292 @@ function TSHOTVault() {
         currentPage,
         currentPage + 1,
         "...",
-        totalPages
+        maxPages
       );
     }
+
     return (
-      <div className="flex justify-center mt-4">
+      <div className="flex flex-wrap justify-center mt-4 gap-2">
+        {/* First & Previous buttons */}
+        <button
+          onClick={() => goToPage(1)}
+          disabled={currentPage === 1}
+          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+        >
+          First
+        </button>
+        <button
+          onClick={() => goToPage(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+        >
+          Prev
+        </button>
+
+        {/* Page numbers */}
         {pages.map((p, idx) => (
           <button
             key={`page-${idx}`}
-            onClick={() => p !== "..." && setCurrentPage(Number(p))}
-            className={`
-              px-3 py-1 mx-1 rounded
-              ${
-                p === currentPage
-                  ? "bg-brand-secondary text-brand-text"
-                  : "bg-brand-primary text-brand-text/80"
-              }
-              ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}
-            `}
+            onClick={() => p !== "..." && goToPage(p)}
+            className={`px-3 py-1 rounded ${
+              p === currentPage
+                ? "bg-brand-secondary text-brand-text"
+                : "bg-brand-primary text-brand-text/80"
+            } ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}`}
           >
             {p}
           </button>
         ))}
+
+        {/* Next & Last buttons */}
+        <button
+          onClick={() => goToPage(currentPage + 1)}
+          disabled={currentPage === maxPages}
+          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+        >
+          Next
+        </button>
+        <button
+          onClick={() => goToPage(maxPages)}
+          disabled={currentPage === maxPages}
+          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+        >
+          Last
+        </button>
       </div>
     );
-  };
+  }
 
+  // --------------------------------------------------
+  // 6) Filter toggle handlers
+  // --------------------------------------------------
+  function toggleTier(tierVal) {
+    setSelectedTiers((prev) =>
+      prev.includes(tierVal)
+        ? prev.filter((t) => t !== tierVal)
+        : [...prev, tierVal]
+    );
+    setCurrentPage(1);
+  }
+
+  function toggleSeries(val) {
+    setSelectedSeries((prev) =>
+      prev.includes(val) ? prev.filter((x) => x !== val) : [...prev, val]
+    );
+    setCurrentPage(1);
+  }
+
+  function handleAllSeriesToggle(checked) {
+    if (checked) {
+      setSelectedSeries(ALL_SERIES_OPTIONS);
+    } else {
+      setSelectedSeries([]);
+    }
+    setCurrentPage(1);
+  }
+
+  function handlePlayerChange(e) {
+    setSelectedPlayer(e.target.value);
+    setCurrentPage(1);
+  }
+
+  function handleTeamChange(e) {
+    setSelectedTeam(e.target.value);
+    setCurrentPage(1);
+  }
+
+  function handleSetChange(e) {
+    setSelectedSet(e.target.value);
+    setCurrentPage(1);
+  }
+
+  function retryFetch() {
+    setRetryCount((prev) => prev + 1);
+  }
+
+  // --------------------------------------------------
+  // 7) Main render
+  // --------------------------------------------------
   return (
     <div className="bg-brand-primary text-brand-text p-3 rounded-lg">
-      <h3 className="text-lg font-bold mb-2">TSHOT Vault Contents</h3>
+      <h3 className="text-lg font-bold mb-2">TSHOT Vault</h3>
 
-      <div className="flex justify-between items-center mb-2">
-        {loadingVault ? (
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-brand-text/70" />
-            <p className="text-sm text-brand-text/70">Loading vault data...</p>
-          </div>
-        ) : (
-          <p className="text-sm text-brand-text/70">
-            {sortedNfts.length} Moments match your filters. (Vault contents
-            refresh every 5 minutes)
-          </p>
-        )}
-      </div>
-
-      {vaultError && <p className="text-red-500 mb-2">Error: {vaultError}</p>}
-
-      {/* FILTER UI */}
-      {!loadingVault && !vaultError && (
-        <div className="flex flex-wrap items-center gap-4 text-sm bg-brand-secondary p-2 rounded mb-2">
-          {/* Tier Filter */}
-          {existingTiers.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Tiers:</span>
-              <div className="flex items-center gap-2 flex-wrap">
-                {existingTiers.map((tierVal) => {
-                  const label =
-                    tierVal.charAt(0).toUpperCase() + tierVal.slice(1);
-                  const textClass = tierStyles[tierVal] || "text-brand-text";
-                  return (
-                    <label key={tierVal} className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedTiers.includes(tierVal)}
-                        onChange={() => toggleTier(tierVal)}
-                      />
-                      <span className={textClass}>{label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Series Filter */}
-          {seriesOptions.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Series:</span>
-              <div className="flex items-center gap-2 flex-wrap">
-                <label className="flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    checked={selectedSeries.length === seriesOptions.length}
-                    onChange={(e) => handleAllSeriesToggle(e.target.checked)}
-                  />
-                  All
-                </label>
-                {seriesOptions.map((val) => (
-                  <label key={val} className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedSeries.includes(val)}
-                      onChange={() => toggleSeries(val)}
-                    />
-                    {val}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Set Name Filter */}
-          {setNameOptions.length > 0 && (
-            <div className="flex items-center gap-1">
-              <span className="font-semibold">Set:</span>
-              <select
-                value={selectedSetName}
-                onChange={(e) => {
-                  setSelectedSetName(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-brand-primary text-brand-text rounded px-1 py-0.5"
-              >
-                <option value="All" className="text-brand-text">
-                  All
-                </option>
-                {setNameOptions.map((name) => (
-                  <option key={name} value={name} className="text-brand-text">
-                    {name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Player Filter */}
-          {playerOptions.length > 0 && (
-            <div className="flex items-center gap-1">
-              <span className="font-semibold">Player:</span>
-              <select
-                value={selectedPlayer}
-                onChange={(e) => {
-                  setSelectedPlayer(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="bg-brand-primary text-brand-text rounded px-1 py-0.5"
-              >
-                <option value="All" className="text-brand-text">
-                  All
-                </option>
-                {playerOptions.map((p) => (
-                  <option key={p} value={p} className="text-brand-text">
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {/* Special Serials Filter */}
-          <div className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={onlySpecialSerials}
-              onChange={() => {
-                setOnlySpecialSerials((prev) => !prev);
-                setCurrentPage(1);
-              }}
-            />
-            <label>Show only #1, jersey match, or last mint</label>
-          </div>
+      {loadingVault && selectedSeries.length > 0 && (
+        <div className="flex items-center gap-2 mb-2">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <p className="text-sm text-brand-text/70">Loading vault data...</p>
         </div>
       )}
 
-      {/* NFT GRID */}
-      {!loadingVault && !vaultError && (
-        <>
-          {paginatedNfts.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {paginatedNfts.map((nft) => (
-                <MomentCard key={nft.id} nft={nft} isVault disableHover />
-              ))}
+      {vaultError && (
+        <div className="flex items-center gap-2 bg-red-900/20 p-3 rounded mb-3">
+          <AlertTriangle className="h-5 w-5 text-red-500" />
+          <p className="text-red-400 flex-1">{vaultError}</p>
+          <button
+            onClick={retryFetch}
+            className="px-2 py-1 bg-brand-secondary rounded hover:opacity-80 flex items-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* FILTER UI - Basic Filters */}
+      <div className="flex flex-wrap items-center gap-4 text-sm bg-brand-secondary p-2 rounded mb-2">
+        {/* Tiers */}
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Tiers:</span>
+          {TIER_OPTIONS.map((opt) => {
+            const checked = selectedTiers.includes(opt.value);
+            const textClass = tierStyles[opt.value] || "text-brand-text";
+            return (
+              <label key={opt.value} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleTier(opt.value)}
+                />
+                <span className={textClass}>{opt.label}</span>
+              </label>
+            );
+          })}
+        </div>
+
+        {/* Series */}
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">Series:</span>
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={selectedSeries.length === ALL_SERIES_OPTIONS.length}
+              onChange={(e) => handleAllSeriesToggle(e.target.checked)}
+            />
+            All
+          </label>
+          {ALL_SERIES_OPTIONS.map((val) => (
+            <label key={val} className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={selectedSeries.includes(val)}
+                onChange={() => toggleSeries(val)}
+              />
+              {val}
+            </label>
+          ))}
+        </div>
+
+        {/* Special Serials */}
+        <label className="flex items-center gap-1">
+          <input
+            type="checkbox"
+            checked={onlySpecialSerials}
+            onChange={() => {
+              setOnlySpecialSerials((prev) => !prev);
+              setCurrentPage(1);
+            }}
+          />
+          <span>#1 / Jersey / Last Mint</span>
+        </label>
+      </div>
+
+      {/* Advanced filters - only show if we have data */}
+      {(players.length > 0 || teams.length > 0 || sets.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3">
+          {/* Player filter */}
+          {players.length > 0 && (
+            <div>
+              <label className="block text-sm mb-1">Player:</label>
+              <select
+                value={selectedPlayer}
+                onChange={handlePlayerChange}
+                className="w-full bg-brand-secondary text-brand-text p-2 rounded"
+              >
+                <option value="">All Players</option>
+                {players.map((player) => (
+                  <option key={player} value={player}>
+                    {player}
+                  </option>
+                ))}
+              </select>
             </div>
+          )}
+
+          {/* Team filter */}
+          {teams.length > 0 && (
+            <div>
+              <label className="block text-sm mb-1">Team:</label>
+              <select
+                value={selectedTeam}
+                onChange={handleTeamChange}
+                className="w-full bg-brand-secondary text-brand-text p-2 rounded"
+              >
+                <option value="">All Teams</option>
+                {teams.map((team) => (
+                  <option key={team} value={team}>
+                    {team}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Set filter */}
+          {sets.length > 0 && (
+            <div>
+              <label className="block text-sm mb-1">Set:</label>
+              <select
+                value={selectedSet}
+                onChange={handleSetChange}
+                className="w-full bg-brand-secondary text-brand-text p-2 rounded"
+              >
+                <option value="">All Sets</option>
+                {sets.map((set) => (
+                  <option key={set} value={set}>
+                    {set}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Results display */}
+      {selectedSeries.length === 0 ? (
+        <p className="text-sm text-brand-text/70">
+          Please select at least one series to view results.
+        </p>
+      ) : !loadingVault && !vaultError ? (
+        <>
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm text-brand-text/70">
+              Showing {vaultData.length} of {totalCount.toLocaleString()} total
+              items
+            </p>
+            {maxPages > 1 && (
+              <p className="text-sm text-brand-text/70">
+                Page {currentPage} of {maxPages}
+              </p>
+            )}
+          </div>
+
+          {vaultData.length > 0 ? (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {vaultData.map((nft) => (
+                  <MomentCard key={nft.id || nft._id} nft={nft} isVault />
+                ))}
+              </div>
+              {renderPaginationButtons()}
+            </>
           ) : (
-            <p className="text-brand-text/70 mt-4 text-sm">
+            <p className="text-sm text-brand-text/70">
               No moments match your filters.
             </p>
           )}
-
-          {renderPaginationButtons()}
         </>
-      )}
+      ) : null}
     </div>
   );
 }

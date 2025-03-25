@@ -1,14 +1,14 @@
 // src/components/Header.jsx
 
 import React, { useContext, useState, useRef, useEffect } from "react";
-import { UserContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext";
 import { Link, useLocation } from "react-router-dom";
 import DropdownMenu from "../components/DropdownMenu";
 import { FaUserCircle, FaBars } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 const Header = () => {
-  const { user, selectedAccount } = useContext(UserContext);
+  const { user, selectedAccount } = useContext(UserDataContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 

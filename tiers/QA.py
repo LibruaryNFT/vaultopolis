@@ -29,7 +29,7 @@ CADENCE_FILE_PATH = r"C:\Code\vaultopolis\tiers\transactions\bulk_add_playIDs.cd
 #   },
 #   ...
 # ]
-TOPSHOT_TIERS_ENDPOINT = "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-tiers"
+TOPSHOT_TIERS_ENDPOINT = "https://api.vaultopolis.com/topshot-tiers"
 
 # Endpoint returning JSON like:
 # [
@@ -42,7 +42,7 @@ TOPSHOT_TIERS_ENDPOINT = "https://flowconnectbackend-864654c6a577.herokuapp.com/
 #   },
 #   ...
 # ]
-TOPSHOT_DATA_ENDPOINT = "https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-data"
+TOPSHOT_DATA_ENDPOINT = "https://api.vaultopolis.com/topshot-data"
 
 OUTPUT_CSV = "tier_checks_report.csv"
 

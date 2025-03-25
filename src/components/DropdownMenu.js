@@ -1,6 +1,6 @@
 // src/components/DropdownMenu.jsx
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { UserContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
 import {
   FaClipboard,
@@ -28,8 +28,14 @@ const ValueOrSkeleton = ({
 };
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
-  const { accountData, isRefreshing, isLoadingChildren, dispatch } =
-    useContext(UserContext);
+  const {
+    accountData,
+    isRefreshing,
+    isLoadingChildren,
+    dispatch,
+    user,
+    refreshUserData,
+  } = useContext(UserDataContext);
 
   const {
     parentAddress,
@@ -42,13 +48,12 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
 
   const popoutRef = useRef(null);
 
-  // ===== THEME LOGIC (Light or Dark) =====
+  // THEME
   const [themeMode, setThemeMode] = useState(null);
 
   useEffect(() => {
     let storedMode = localStorage.getItem("themeMode");
     if (!storedMode) {
-      // default to 'dark'
       storedMode = "dark";
       localStorage.setItem("themeMode", "dark");
     }
@@ -56,7 +61,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
   }, []);
 
   useEffect(() => {
-    if (themeMode === null) return; // not loaded yet
+    if (themeMode === null) return;
     applyTheme(themeMode);
   }, [themeMode]);
 
@@ -65,17 +70,13 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       document.documentElement.classList.add("dark");
       localStorage.setItem("themeMode", "dark");
     } else {
-      // light
       document.documentElement.classList.remove("dark");
       localStorage.setItem("themeMode", "light");
     }
   };
+  const setTheme = (mode) => setThemeMode(mode);
 
-  const setTheme = (mode) => {
-    setThemeMode(mode);
-  };
-
-  // ====== CLICK OUTSIDE => close ======
+  // click outside => close
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -87,21 +88,20 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         closeMenu();
       }
     };
-    setTimeout(
-      () => document.addEventListener("mousedown", handleClickOutside),
-      0
-    );
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [closeMenu, buttonRef]);
 
-  // ====== LOGOUT ======
+  // Logout
   const handleLogout = () => {
     fcl.unauthenticate();
     dispatch({ type: "RESET_STATE" });
     closeMenu();
   };
 
-  // ====== ACCOUNT SUMMARY ======
+  // Summaries
   const calculateTotalTopShotCounts = (nfts) => (nfts ? nfts.length : 0);
 
   const calculateAllAccountTotals = () => {
@@ -126,7 +126,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const { totalFlow, totalTopShotCounts, totalTSHOT } =
     calculateAllAccountTotals();
 
-  // Tier color mapping
+  // Tier text colors
   const tierTextColors = {
     common: "text-gray-400",
     fandom: "text-lime-400",
@@ -159,7 +159,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       ));
   };
 
-  // Build aggregated breakdown
+  // aggregated breakdown
   const aggregatedBreakdown = { ...calculateTierBreakdown(nftDetails) };
   childrenData.forEach((child) => {
     const childBreakdown = calculateTierBreakdown(child.nftDetails);
@@ -194,7 +194,13 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     navigator.clipboard.writeText(addr);
   };
 
-  // ====== RENDER ======
+  // Manual "Refresh" button if desired:
+  const handleRefresh = async () => {
+    if (user?.addr?.startsWith("0x")) {
+      await refreshUserData();
+    }
+  };
+
   return (
     <div
       ref={popoutRef}
@@ -214,7 +220,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         text-brand-text
       "
     >
-      {/* THEME ROW (Light / Dark) + Loading indicator */}
+      {/* HEADER: THEME + LOGOUT etc. */}
       <div
         className="
           flex
@@ -227,10 +233,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           bg-brand-secondary
         "
       >
-        {/* Left: 'Theme' + Buttons */}
+        {/* Left: Theme */}
         <div className="flex items-center space-x-2">
           <span className="font-medium">Theme:</span>
-
           {/* Light */}
           <button
             onClick={() => setTheme("light")}
@@ -247,7 +252,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           >
             <FaSun />
           </button>
-
           {/* Dark */}
           <button
             onClick={() => setTheme("dark")}
@@ -337,11 +341,44 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
             )}
           </div>
         </div>
+
+        {/* Optional Manual Refresh Button */}
+        <button
+          onClick={handleRefresh}
+          className="
+            mt-2
+            bg-green-600
+            hover:bg-green-700
+            text-white
+            px-3 py-1
+            rounded
+            text-sm
+          "
+        >
+          Refresh
+        </button>
       </div>
 
       {/* INDIVIDUAL ACCOUNTS */}
       <div className="pb-0">
-        {allAccounts.map((account) => {
+        {[
+          {
+            label: "Parent Account",
+            address: parentAddress,
+            flowBalance,
+            tshotBalance,
+            nftDetails,
+            hasCollection,
+          },
+          ...childrenData.map((child, index) => ({
+            label: `Child Account ${index + 1}`,
+            address: child.addr,
+            flowBalance: child.flowBalance,
+            tshotBalance: child.tshotBalance,
+            nftDetails: child.nftDetails,
+            hasCollection: child.hasCollection,
+          })),
+        ].map((account) => {
           const breakdown = calculateTierBreakdown(account.nftDetails);
           const hasNFTs = (account.nftDetails || []).length > 0;
 
@@ -355,7 +392,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                   {account.label}
                 </h5>
                 <button
-                  onClick={() => handleCopyAddress(account.address)}
+                  onClick={() => navigator.clipboard.writeText(account.address)}
                   className="text-xs hover:opacity-80 flex items-center"
                 >
                   <span className="truncate max-w-[140px]">

@@ -1,7 +1,7 @@
 // src/components/MomentSelection.js
 
 import React, { useContext, useMemo, useState, useEffect } from "react";
-import { UserContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 
 // If allowAllTiers=false => ["common","fandom"]
@@ -35,7 +35,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     selectedNFTs,
     dispatch,
     isRefreshing,
-  } = useContext(UserContext);
+  } = useContext(UserDataContext);
 
   // Identify the active account
   const activeAccount =
