@@ -93,6 +93,7 @@ const MomentCard = ({
     border-brand-text/40
     bg-brand-secondary
     text-brand-text
+    select-none
   `;
 
   // If hover is enabled and card is selected, highlight; else if hover is enabled, show a pointer/hover effect

@@ -1,4 +1,5 @@
 // src/components/DropdownMenu.jsx
+
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { UserDataContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
@@ -169,6 +170,16 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     });
   });
 
+  // Determine label for child accounts
+  const childLabel = (index, totalChildren) => {
+    if (totalChildren === 1) {
+      return "Child Account";
+    }
+    return `Child Account ${index + 1}`;
+  };
+
+  // Build array for rendering
+  const totalChildren = childrenData.length;
   const allAccounts = [
     {
       label: "Parent Account",
@@ -179,7 +190,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       hasCollection,
     },
     ...childrenData.map((child, index) => ({
-      label: `Child Account ${index + 1}`,
+      label: childLabel(index, totalChildren),
       address: child.addr,
       flowBalance: child.flowBalance,
       tshotBalance: child.tshotBalance,
@@ -188,13 +199,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     })),
   ];
 
-  const hasAnyTopShot = totalTopShotCounts > 0;
-
-  const handleCopyAddress = (addr) => {
-    navigator.clipboard.writeText(addr);
-  };
-
-  // Manual "Refresh" button if desired:
+  // Manual "Refresh Data" button
   const handleRefresh = async () => {
     if (user?.addr?.startsWith("0x")) {
       await refreshUserData();
@@ -214,13 +219,13 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         z-50
         rounded-lg
         shadow-xl
-        border
-        border-brand-border
+        border-2
+        border-brand-primary
         bg-brand-primary
         text-brand-text
       "
     >
-      {/* HEADER: THEME + LOGOUT etc. */}
+      {/* HEADER: THEME + REFRESH + LOGOUT */}
       <div
         className="
           flex
@@ -270,7 +275,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           </button>
         </div>
 
-        {/* Right: Loading + Logout */}
+        {/* Right: Loading + Refresh + Logout */}
         <div className="flex items-center space-x-2">
           {(isRefreshing || isLoadingChildren) && (
             <>
@@ -284,6 +289,14 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
               </span>
             </>
           )}
+
+          <button
+            onClick={handleRefresh}
+            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+          >
+            Refresh Data
+          </button>
+
           <button
             onClick={handleLogout}
             className="
@@ -302,90 +315,83 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
       </div>
 
       {/* PORTFOLIO SUMMARY */}
-      <div className="px-4 py-2 border-b border-brand-border">
-        <div className="flex">
-          <div className="w-1/3">
-            <div>
-              <p className="text-sm m-0">Flow</p>
-              <ValueOrSkeleton
-                value={parseFloat(totalFlow).toFixed(2)}
-                className="text-xl font-semibold"
-                skeletonWidth="w-24"
-                skeletonHeight="h-7"
-              />
-            </div>
-            <div className="mt-2">
-              <p className="text-sm m-0">TopShot</p>
-              <ValueOrSkeleton
-                value={hasAnyTopShot ? totalTopShotCounts : null}
-                className="text-xl font-semibold"
-                skeletonWidth="w-16"
-                skeletonHeight="h-7"
-              />
-            </div>
-            <div className="mt-2">
-              <p className="text-sm m-0">TSHOT</p>
-              <ValueOrSkeleton
-                value={parseFloat(totalTSHOT).toFixed(1)}
-                className="text-xl font-semibold"
-                skeletonWidth="w-24"
-                skeletonHeight="h-7"
-              />
-            </div>
+      <div className="px-4 py-3 border-b border-brand-border">
+        {/* Clear heading */}
+        <h4 className="text-lg font-semibold mb-2">Portfolio Summary</h4>
+
+        {/* Row for Flow, TopShot, TSHOT */}
+        <div className="flex items-center justify-around">
+          {/* Flow */}
+          <div className="text-center">
+            <p className="text-sm m-0">Flow</p>
+            <ValueOrSkeleton
+              value={
+                isRefreshing || isLoadingChildren
+                  ? undefined
+                  : parseFloat(totalFlow).toFixed(2)
+              }
+              className="text-xl font-semibold"
+              skeletonWidth="w-16"
+              skeletonHeight="h-7"
+            />
           </div>
-          <div className="w-2/3 pl-4">
-            {hasAnyTopShot ? (
-              renderBreakdownVertical(aggregatedBreakdown)
-            ) : (
-              <div className="italic">No TopShot Collection</div>
-            )}
+          {/* TopShot */}
+          <div className="text-center">
+            <p className="text-sm m-0">TopShot</p>
+            <ValueOrSkeleton
+              // If loading, skeleton => undefined
+              // Otherwise, show total (can be 0)
+              value={
+                isRefreshing || isLoadingChildren
+                  ? undefined
+                  : totalTopShotCounts
+              }
+              className="text-xl font-semibold"
+              skeletonWidth="w-16"
+              skeletonHeight="h-7"
+            />
+          </div>
+          {/* TSHOT */}
+          <div className="text-center">
+            <p className="text-sm m-0">TSHOT</p>
+            <ValueOrSkeleton
+              value={
+                isRefreshing || isLoadingChildren
+                  ? undefined
+                  : parseFloat(totalTSHOT).toFixed(1)
+              }
+              className="text-xl font-semibold"
+              skeletonWidth="w-16"
+              skeletonHeight="h-7"
+            />
           </div>
         </div>
 
-        {/* Optional Manual Refresh Button */}
-        <button
-          onClick={handleRefresh}
-          className="
-            mt-2
-            bg-green-600
-            hover:bg-green-700
-            text-white
-            px-3 py-1
-            rounded
-            text-sm
-          "
-        >
-          Refresh
-        </button>
+        {/* Tier breakdown or "No TopShot Collection" */}
+        <div className="mt-3">
+          {totalTopShotCounts > 0 ? (
+            renderBreakdownVertical(aggregatedBreakdown)
+          ) : (
+            <div className="italic">No TopShot Collection</div>
+          )}
+        </div>
       </div>
 
       {/* INDIVIDUAL ACCOUNTS */}
-      <div className="pb-0">
-        {[
-          {
-            label: "Parent Account",
-            address: parentAddress,
-            flowBalance,
-            tshotBalance,
-            nftDetails,
-            hasCollection,
-          },
-          ...childrenData.map((child, index) => ({
-            label: `Child Account ${index + 1}`,
-            address: child.addr,
-            flowBalance: child.flowBalance,
-            tshotBalance: child.tshotBalance,
-            nftDetails: child.nftDetails,
-            hasCollection: child.hasCollection,
-          })),
-        ].map((account) => {
+      <div className="py-3 pb-0">
+        <h4 className="text-lg font-semibold px-4 mb-2">Accounts Breakdown</h4>
+        {allAccounts.map((account, index) => {
+          // Basic count, or 0 if empty
+          const topShotCount = account.nftDetails?.length ?? 0;
+          // Breakdown of tiers
           const breakdown = calculateTierBreakdown(account.nftDetails);
-          const hasNFTs = (account.nftDetails || []).length > 0;
+          // Determine if this is the last account
+          const isLastAccount = index === allAccounts.length - 1;
 
           return (
             <div
               key={account.address}
-              className="w-full hover:shadow-xl transition-shadow"
+              className={`w-full shadow-md ${!isLastAccount ? "mb-3" : ""}`}
             >
               <div className="bg-brand-secondary px-2 py-1 flex justify-between items-center">
                 <h5 className="text-base md:text-lg font-medium m-0">
@@ -401,48 +407,65 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                   <FaClipboard className="ml-2" />
                 </button>
               </div>
+
               <div className="bg-brand-primary px-2 py-2">
-                <div className="flex">
-                  <div className="w-1/3">
-                    <div>
-                      <p className="text-sm m-0">Flow</p>
-                      <ValueOrSkeleton
-                        value={parseFloat(account.flowBalance).toFixed(2)}
-                        className="text-xl font-semibold"
-                        skeletonWidth="w-24"
-                        skeletonHeight="h-7"
-                      />
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-sm m-0">TopShot</p>
-                      <ValueOrSkeleton
-                        value={hasNFTs ? account.nftDetails.length : null}
-                        className="text-xl font-semibold"
-                        skeletonWidth="w-16"
-                        skeletonHeight="h-7"
-                      />
-                    </div>
-                    <div className="mt-2">
-                      <p className="text-sm m-0">TSHOT</p>
-                      <ValueOrSkeleton
-                        value={parseFloat(account.tshotBalance || 0).toFixed(1)}
-                        className="text-xl font-semibold"
-                        skeletonWidth="w-24"
-                        skeletonHeight="h-7"
-                      />
-                    </div>
+                {/* Row for Flow, TopShot, TSHOT */}
+                <div className="flex items-center justify-around">
+                  {/* Flow */}
+                  <div className="text-center">
+                    <p className="text-sm m-0">Flow</p>
+                    <ValueOrSkeleton
+                      value={
+                        isRefreshing || isLoadingChildren
+                          ? undefined
+                          : parseFloat(account.flowBalance).toFixed(2)
+                      }
+                      className="text-xl font-semibold"
+                      skeletonWidth="w-16"
+                      skeletonHeight="h-7"
+                    />
                   </div>
-                  <div className="w-2/3 pl-4">
-                    {account.hasCollection ? (
-                      Object.keys(breakdown).length > 0 ? (
-                        renderBreakdownVertical(breakdown)
-                      ) : (
-                        <div className="italic">No tier data</div>
-                      )
+                  {/* TopShot */}
+                  <div className="text-center">
+                    <p className="text-sm m-0">TopShot</p>
+                    <ValueOrSkeleton
+                      value={
+                        isRefreshing || isLoadingChildren
+                          ? undefined
+                          : topShotCount
+                      }
+                      className="text-xl font-semibold"
+                      skeletonWidth="w-16"
+                      skeletonHeight="h-7"
+                    />
+                  </div>
+                  {/* TSHOT */}
+                  <div className="text-center">
+                    <p className="text-sm m-0">TSHOT</p>
+                    <ValueOrSkeleton
+                      value={
+                        isRefreshing || isLoadingChildren
+                          ? undefined
+                          : parseFloat(account.tshotBalance || 0).toFixed(1)
+                      }
+                      className="text-xl font-semibold"
+                      skeletonWidth="w-16"
+                      skeletonHeight="h-7"
+                    />
+                  </div>
+                </div>
+
+                {/* Tier breakdown or "No TopShot Collection" */}
+                <div className="mt-3">
+                  {account.hasCollection ? (
+                    Object.keys(breakdown).length > 0 ? (
+                      renderBreakdownVertical(breakdown)
                     ) : (
-                      <div className="italic">No TopShot Collection</div>
-                    )}
-                  </div>
+                      <div className="italic">No tier data</div>
+                    )
+                  ) : (
+                    <div className="italic">No TopShot Collection</div>
+                  )}
                 </div>
               </div>
             </div>

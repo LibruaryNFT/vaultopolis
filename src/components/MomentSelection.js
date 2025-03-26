@@ -1,6 +1,6 @@
 // src/components/MomentSelection.js
 
-import React, { useContext, useMemo, useState, useEffect } from "react";
+import React, { useContext, useMemo, useState, useEffect, useRef } from "react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 
@@ -42,57 +42,89 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     accountData?.childrenData?.find(
       (child) => child.addr === selectedAccount
     ) || accountData;
+
   const { nftDetails = [], hasCollection } = activeAccount || {};
 
-  // Tiers
+  // 1) Tiers: always show common/fandom; if allowAllTiers => add rare/legendary/ultimate
   const tierOptions = useMemo(
     () => (allowAllTiers ? allPossibleTiers : defaultTiers),
     [allowAllTiers]
   );
   const [selectedTiers, setSelectedTiers] = useState(tierOptions);
 
-  // Additional toggles
-  const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
-  const [excludeLowSerials, setExcludeLowSerials] = useState(true);
-
-  // Series
-  const [selectedSeries, setSelectedSeries] = useState([]);
+  // 2) Series: always show 0,2,3,4,5,6,7 plus any from user's NFTs
   const seriesOptions = useMemo(() => {
-    const setOfSeries = new Set(
-      (nftDetails || []).map((n) => {
-        const val = Number(n.series);
-        return Number.isNaN(val) ? null : val;
-      })
-    );
-    setOfSeries.delete(null);
-    return [...setOfSeries].sort((a, b) => a - b);
-  }, [nftDetails]);
+    // Define forced series inside the memo to prevent unnecessary rerenders
+    const forcedSeries = [0, 2, 3, 4, 5, 6, 7];
 
-  // On mount, if no selectedSeries, select them all
+    // Combine forced series + actual series from user's NFT details
+    const setOfSeries = new Set(forcedSeries);
+    (nftDetails || []).forEach((n) => {
+      const val = Number(n.series);
+      if (!Number.isNaN(val)) {
+        setOfSeries.add(val);
+      }
+    });
+    return [...setOfSeries].sort((a, b) => a - b);
+  }, [nftDetails]); // Only nftDetails as dependency
+
+  const [selectedSeries, setSelectedSeries] = useState([]);
+
+  // Track if this is initial load - only set defaults on first load
+  const initialLoadDone = useRef(false);
+  const prevSeriesOptions = useRef([]);
+
+  // On mount or when seriesOptions change, handle default selection
   useEffect(() => {
-    if (seriesOptions.length && selectedSeries.length === 0) {
-      setSelectedSeries(seriesOptions);
+    // Case 1: First load - select all series by default
+    if (!initialLoadDone.current && seriesOptions.length > 0) {
+      setSelectedSeries([...seriesOptions]);
+      initialLoadDone.current = true;
+      prevSeriesOptions.current = [...seriesOptions];
+    }
+    // Case 2: New series options appeared (and we weren't manually cleared)
+    else if (
+      seriesOptions.length > prevSeriesOptions.current.length &&
+      selectedSeries.length > 0
+    ) {
+      // Find new options that weren't in the previous set
+      const newOptions = seriesOptions.filter(
+        (option) => !prevSeriesOptions.current.includes(option)
+      );
+
+      // Add only new options to selection
+      setSelectedSeries((prev) => [...prev, ...newOptions]);
+      prevSeriesOptions.current = [...seriesOptions];
     }
   }, [seriesOptions, selectedSeries]);
 
+  // For "Select All" or "Unselect All" series
   const allSeriesChecked =
     selectedSeries.length > 0 && selectedSeries.length === seriesOptions.length;
 
   const handleAllSeriesToggle = (checked) => {
     if (checked) {
-      setSelectedSeries(seriesOptions);
+      // User checked "All" => select all series
+      setSelectedSeries([...seriesOptions]);
     } else {
+      // User unchecked "All" => deselect everything => no results
       setSelectedSeries([]);
     }
     setCurrentPage(1);
   };
 
+  // Additional toggles
+  const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
+  const [excludeLowSerials, setExcludeLowSerials] = useState(true);
+
   // Set & Player
   const [selectedSetName, setSelectedSetName] = useState("All");
   const [selectedPlayer, setSelectedPlayer] = useState("All");
 
-  // 1) Subset for building setNameOptions
+  // 3) Subset for building setNameOptions
   const subsetForSets = useMemo(() => {
+    // If no series is selected => no need to filter further
+    if (selectedSeries.length === 0) return [];
     return (nftDetails || []).filter((n) => {
       const s = Number(n.series);
       if (!selectedSeries.includes(s)) return false;
@@ -101,9 +133,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
       if (!selectedTiers.includes(t)) return false;
 
       if (selectedPlayer !== "All") {
-        if (!n.fullName || n.fullName !== selectedPlayer) {
-          return false;
-        }
+        if (!n.fullName || n.fullName !== selectedPlayer) return false;
       }
 
       if (excludeSpecialSerials) {
@@ -135,8 +165,10 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     excludeLowSerials,
   ]);
 
-  // 2) Subset for building playerNameOptions
+  // 4) Subset for building playerNameOptions
   const subsetForPlayers = useMemo(() => {
+    // If no series is selected => no need to filter further
+    if (selectedSeries.length === 0) return [];
     return (nftDetails || []).filter((n) => {
       const s = Number(n.series);
       if (!selectedSeries.includes(s)) return false;
@@ -176,13 +208,13 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     excludeLowSerials,
   ]);
 
-  // Build setNameOptions
+  // 5) Build setNameOptions
   const setNameOptions = useMemo(() => {
     const s = new Set(subsetForSets.map((n) => n.name).filter(Boolean));
     return [...s].sort((a, b) => a.localeCompare(b));
   }, [subsetForSets]);
 
-  // Build playerNameOptions
+  // 6) Build playerNameOptions
   const playerNameOptions = useMemo(() => {
     const p = new Set(
       subsetForPlayers.map((n) => n.fullName).filter((val) => val && val !== "")
@@ -190,7 +222,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     return [...p].sort((a, b) => a.localeCompare(b));
   }, [subsetForPlayers]);
 
-  // Reset setName/player if invalid
+  // 7) Ensure selectedSetName/player remain valid
   useEffect(() => {
     if (
       selectedSetName !== "All" &&
@@ -209,31 +241,41 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     }
   }, [selectedPlayer, playerNameOptions]);
 
-  // Final list => eligibleMoments
+  // 8) Build final list => eligibleMoments
   const eligibleMoments = useMemo(() => {
-    if (!nftDetails.length) return [];
+    if (!nftDetails?.length) return [];
+
+    // If no series is selected => short-circuit to "no results"
+    if (selectedSeries.length === 0) {
+      return [];
+    }
 
     return nftDetails
       .filter((n) => {
         if (excludeIds.includes(String(n.id))) return false;
         if (n.isLocked) return false;
 
+        // Tier
         const t = n.tier?.toLowerCase();
         if (!selectedTiers.includes(t)) return false;
 
+        // Series
         const s = Number(n.series);
         if (!selectedSeries.includes(s)) return false;
 
+        // Set
         if (selectedSetName !== "All" && n.name !== selectedSetName) {
           return false;
         }
 
+        // Player
         if (selectedPlayer !== "All") {
           if (!n.fullName || n.fullName !== selectedPlayer) {
             return false;
           }
         }
 
+        // Exclude special serials
         if (excludeSpecialSerials) {
           const sn = parseInt(n.serialNumber, 10);
           const effectiveMax =
@@ -246,6 +288,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
           if (isSpecial) return false;
         }
 
+        // Exclude low serials
         if (excludeLowSerials) {
           const sn = parseInt(n.serialNumber, 10);
           if (sn <= 4000) return false;
@@ -271,7 +314,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     selectedNFTs,
   ]);
 
-  // Pagination - now 30 items per page
+  // 9) Pagination - 30 items/page
   const [itemsPerPage] = useState(30);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -338,12 +381,12 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
     );
   };
 
-  // If user not logged in
+  // Early return: Not logged in
   if (!user?.loggedIn) {
     return <p className="text-brand-text/70 px-2">Please log in.</p>;
   }
 
-  // If account has no TopShot collection
+  // Early return: No TopShot collection
   if (!hasCollection) {
     return (
       <div className="bg-brand-primary p-2 rounded-lg">
@@ -359,7 +402,11 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
       {/* (A) Count + "Loading" status row */}
       <div className="flex justify-between items-center mb-2 px-2 pt-2">
         <div>
-          {eligibleMoments.length === 0 ? (
+          {selectedSeries.length === 0 ? (
+            <p className="text-brand-text/70 font-semibold">
+              Please select at least one Series to view available Moments.
+            </p>
+          ) : eligibleMoments.length === 0 ? (
             <p className="text-brand-text/70">No Moments match your filters.</p>
           ) : (
             <p className="text-brand-text/70">
@@ -380,7 +427,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
         )}
       </div>
 
-      {/* (B) If no series but we do have NFT details */}
+      {/* (B) If we have NFT details, but no recognized series? */}
       {seriesOptions.length === 0 && nftDetails.length > 0 && (
         <p className="text-brand-text/70 px-2">
           You have no NFTs in this account. No Series available.
@@ -391,13 +438,13 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
       {seriesOptions.length > 0 && (
         <div
           className="
-          flex flex-wrap items-center gap-4 text-sm
-          bg-brand-secondary
-          p-2
-          rounded
-          mb-2
-          mx-2
-        "
+            flex flex-wrap items-center gap-4 text-sm
+            bg-brand-secondary
+            p-2
+            rounded
+            mb-2
+            mx-2
+          "
         >
           {/* Tiers */}
           <div className="flex items-center gap-2">
@@ -448,11 +495,12 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                     type="checkbox"
                     checked={selectedSeries.includes(val)}
                     onChange={() => {
-                      setSelectedSeries((prev) =>
-                        prev.includes(val)
-                          ? prev.filter((x) => x !== val)
-                          : [...prev, val]
-                      );
+                      // Handle individual checkbox toggle
+                      const newSelectedSeries = selectedSeries.includes(val)
+                        ? selectedSeries.filter((x) => x !== val)
+                        : [...selectedSeries, val];
+
+                      setSelectedSeries(newSelectedSeries);
                       setCurrentPage(1);
                     }}
                   />
@@ -570,7 +618,13 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
             />
           ))}
         </div>
+      ) : // Only show message if we have series options and no series is selected
+      selectedSeries.length === 0 ? (
+        <p className="text-brand-text/70 mt-4 text-sm px-2 pb-2">
+          Please select at least one Series to view available Moments.
+        </p>
       ) : (
+        // Only show "no matches" text if we do have some series & NFT data
         seriesOptions.length > 0 &&
         nftDetails.length > 0 && (
           <p className="text-brand-text/70 mt-4 text-sm px-2 pb-2">
