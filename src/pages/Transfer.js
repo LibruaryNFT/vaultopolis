@@ -1,11 +1,15 @@
 // src/components/Transfer.js
+
 import React, { useState, useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserDataContext } from "../context/UserContext";
 
-// Your transaction scripts
+// Scripts for Flow -> Flow transfer
 import { batchTransfer } from "../flow/batchTransfer";
 import { batchTransfer_child } from "../flow/batchTransfer_child";
+
+// Bridging script (parent-only)
+import { bridgeEVM } from "../flow/bridgeEVM";
 
 import AccountSelection from "../components/AccountSelection";
 import MomentSelection from "../components/MomentSelection";
@@ -28,13 +32,18 @@ const Transfer = () => {
     isLoadingChildren,
   } = useContext(UserDataContext);
 
+  // Destination type: "flow" or "evm"
+  const [destinationType, setDestinationType] = useState("flow");
+
+  // Only needed if Flow→Flow
   const [recipient, setRecipient] = useState("0x");
+
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
-
-  // Exclude any NFTs we’ve already transferred so they don’t reappear
+  // Track any NFT IDs we've already transferred so we can exclude them
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
+  // Basic checks
   const isLoggedIn = Boolean(user?.loggedIn);
   const parentAddr = accountData?.parentAddress;
   const childSelected = selectedAccountType === "child";
@@ -61,7 +70,7 @@ const Transfer = () => {
     );
   }
 
-  // Active account’s data
+  // Identify the active account’s data (parent or selected child)
   const activeAccountData =
     accountData.childrenData?.find((c) => c.addr === selectedAccount) ||
     accountData;
@@ -73,49 +82,50 @@ const Transfer = () => {
     )
   );
 
-  // Decide the button label & whether it's disabled
+  // ===== Decide the button label & disabled logic =====
   let transferButtonLabel = "Transfer Moments";
   let transferDisabled = false;
 
+  // If no NFTs selected
   if (selectedNftsInAccount.length === 0) {
     transferButtonLabel = "Select Moments";
     transferDisabled = true;
-  } else if (recipient === "0x") {
+  }
+  // If Flow->Flow but no valid recipient
+  else if (destinationType === "flow" && recipient === "0x") {
     transferButtonLabel = "Enter Recipient";
     transferDisabled = true;
-  } else if (selectedNftsInAccount.length > MAX_TRANSFER_COUNT) {
-    // Over the 500 limit
+  }
+  // If over limit
+  else if (selectedNftsInAccount.length > MAX_TRANSFER_COUNT) {
     transferButtonLabel = `Max ${MAX_TRANSFER_COUNT} allowed`;
     transferDisabled = true;
   }
+  // If bridging from child
+  else if (destinationType === "evm" && childSelected) {
+    transferButtonLabel = "Bridging only on parent";
+    transferDisabled = true;
+  }
 
+  // Close transaction modal
   const closeModal = () => {
     setShowModal(false);
     setTransactionData({});
   };
 
+  // ===== Transfer (Flow->Flow) or Bridge (Flow->EVM) =====
   const handleTransfer = async () => {
-    // We assume the button is never clicked if disabled, so no further checks needed
-    // except for the child vs. parent script logic below:
+    if (transferDisabled) return;
 
-    // Pick the transaction script
-    const cadenceScript = childSelected ? batchTransfer_child : batchTransfer;
+    let cadenceScript;
+    let argsFn;
 
-    // Show transaction modal in "Awaiting Approval"
-    setShowModal(true);
-    setTransactionData({
-      status: "Awaiting Approval",
-      txId: null,
-      error: null,
-      nftCount: selectedNftsInAccount.length,
-      swapType: "BATCH_TRANSFER",
-      transactionAction: "BATCH_TRANSFER",
-    });
-
-    try {
-      const args = childSelected
+    if (destinationType === "flow") {
+      // Flow -> Flow
+      cadenceScript = childSelected ? batchTransfer_child : batchTransfer;
+      argsFn = childSelected
         ? (arg, t) => [
-            arg(selectedAccount, t.Address),
+            arg(selectedAccount, t.Address), // child address
             arg(recipient, t.Address),
             arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
           ]
@@ -123,30 +133,56 @@ const Transfer = () => {
             arg(recipient, t.Address),
             arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
           ];
+    } else {
+      // EVM bridging (parent-only)
+      // transaction(nftIdentifier: String, ids: [UInt64]) { ... }
+      cadenceScript = bridgeEVM;
 
-      // Submit to Flow
+      // Hardcode the known type for TopShot:
+      // A.0b2a3299cc857e29.TopShot.NFT
+      const typeIdentifier = "A.0b2a3299cc857e29.TopShot.NFT";
+
+      argsFn = (arg, t) => [
+        arg(typeIdentifier, t.String),
+        arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
+      ];
+    }
+
+    // Show transaction modal
+    setShowModal(true);
+    setTransactionData({
+      status: "Awaiting Approval",
+      txId: null,
+      error: null,
+      nftCount: selectedNftsInAccount.length,
+      swapType: destinationType.toUpperCase(),
+      transactionAction: "BATCH_TRANSFER",
+    });
+
+    try {
+      // 1) Send transaction
       const txId = await fcl.mutate({
         cadence: cadenceScript,
-        args,
+        args: argsFn,
         proposer: fcl.authz,
         payer: fcl.authz,
         authorizations: [fcl.authz],
         limit: 9999,
       });
 
-      // Immediately reset selection
+      // 2) Immediately reset selection
       dispatch({ type: "RESET_SELECTED_NFTS" });
       setExcludedNftIds((prev) => [
         ...prev,
         ...selectedNftsInAccount.map(String),
       ]);
 
-      // Update modal to "Pending"
+      // 3) Update modal to "Pending"
       setTransactionData((prev) => ({ ...prev, status: "Pending", txId }));
 
-      // Subscribe to transaction status
+      // 4) Subscribe to transaction status (optional, you already do this)
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
-        let newStatus = "Processing transaction...";
+        let newStatus = "Processing...";
         switch (txStatus.statusString) {
           case "PENDING":
             newStatus = "Pending";
@@ -172,16 +208,28 @@ const Transfer = () => {
         }
       });
 
-      // Wait for seal
+      // 5) Wait for the transaction to seal
       await fcl.tx(txId).onceSealed();
 
-      // Refresh data
-      if (parentAddr) {
+      // ======== REFRESH LOGIC AFTER SEAL ========
+      // If child is sending
+      if (childSelected && selectedAccount) {
+        // If child -> parent address
+        if (recipient?.toLowerCase() === parentAddr?.toLowerCase()) {
+          // Refresh child data (NFT gone) + parent data (NFT received)
+          await loadChildData(selectedAccount);
+          await loadAllUserData(parentAddr, { skipChildLoad: true });
+        } else {
+          // Child -> random Flow address (not the parent)
+          // Parent doesn't change
+          await loadChildData(selectedAccount);
+        }
+      } else {
+        // Parent is sending (Flow->Flow or bridging to EVM)
+        // Typically we do a full refresh on the parent
         await loadAllUserData(parentAddr);
       }
-      if (childSelected && selectedAccount) {
-        await loadChildData(selectedAccount);
-      }
+      // ==========================================
     } catch (err) {
       console.error("Failed to submit transfer tx:", err);
       setTransactionData((prev) => ({
@@ -192,61 +240,107 @@ const Transfer = () => {
     }
   };
 
-  // =================== RENDERING ===================
-
-  // 1) Selected Moments (full width)
-  const renderSelectedMoments = () => {
-    return (
-      <div className="bg-brand-primary p-2 rounded">
-        <h4 className="text-sm mb-2 text-brand">Selected Moments:</h4>
-        {selectedNftsInAccount.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {selectedNftsInAccount.map((momentId) => {
-              const nft = (activeAccountData.nftDetails || []).find(
-                (item) => Number(item.id) === Number(momentId)
-              );
-              if (!nft) return null;
-              return (
-                <MomentCard
-                  key={momentId}
-                  nft={nft}
-                  handleNFTSelection={() =>
-                    dispatch({
-                      type: "SET_SELECTED_NFTS",
-                      payload: momentId,
-                    })
-                  }
-                  isSelected={true}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <p className="text-sm text-brand">No Moments selected yet.</p>
-        )}
-      </div>
-    );
-  };
+  // Render the currently selected Moments
+  const renderSelectedMoments = () => (
+    <div className="bg-brand-primary p-2 rounded">
+      <h4 className="text-sm mb-2 text-brand">Selected Moments:</h4>
+      {selectedNftsInAccount.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {selectedNftsInAccount.map((momentId) => {
+            const nft = (activeAccountData.nftDetails || []).find(
+              (item) => Number(item.id) === Number(momentId)
+            );
+            if (!nft) return null;
+            return (
+              <MomentCard
+                key={momentId}
+                nft={nft}
+                handleNFTSelection={() =>
+                  dispatch({
+                    type: "SET_SELECTED_NFTS",
+                    payload: momentId,
+                  })
+                }
+                isSelected={true}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <p className="text-sm text-brand">No Moments selected yet.</p>
+      )}
+    </div>
+  );
 
   return (
     <>
-      {/* 1) Selected Moments (FULL WIDTH) */}
+      {/* 1) Selected Moments */}
       <div className="w-full p-4">
         <div className="max-w-screen-lg mx-auto">{renderSelectedMoments()}</div>
       </div>
 
-      {/* 2) Recipient Address & 3) Transfer Button (centered, max-w-md) */}
+      {/* 2) Destination Toggle + (possibly) Recipient + Transfer Button */}
       <div className="max-w-md mx-auto space-y-4 p-4 rounded bg-brand-primary">
         <div>
-          <label className="block mb-1 text-brand">Recipient Address</label>
-          <input
-            type="text"
-            placeholder="0xRecipient"
-            className="w-full p-2 rounded text-black"
-            value={recipient}
-            onChange={(e) => setRecipient(e.target.value)}
-          />
+          <label className="block mb-2 text-brand font-semibold">
+            Transfer Destination:
+          </label>
+          <div className="flex items-center space-x-4">
+            {/* FLOW RADIO */}
+            <label className="flex items-center">
+              <input
+                type="radio"
+                value="flow"
+                checked={destinationType === "flow"}
+                onChange={() => setDestinationType("flow")}
+              />
+              <span className="ml-2">Flow (External Address)</span>
+            </label>
+
+            {/* EVM RADIO (only parent) */}
+            <label
+              className="flex items-center"
+              title="Bridging is only supported on the parent account."
+            >
+              <input
+                type="radio"
+                value="evm"
+                checked={destinationType === "evm"}
+                onChange={() => setDestinationType("evm")}
+                disabled={childSelected}
+              />
+              <span className="ml-2">EVM (Signer's COA)</span>
+            </label>
+          </div>
+          {childSelected && (
+            <p className="text-xs mt-1 text-gray-400">
+              Bridging is only supported on the parent account.
+            </p>
+          )}
         </div>
+
+        {/* If flow->flow, show recipient; else bridging explanation */}
+        {destinationType === "flow" ? (
+          <div>
+            <label className="block mb-1 text-brand">
+              Recipient Address (Flow)
+            </label>
+            <input
+              type="text"
+              placeholder="0xRecipient"
+              className="w-full p-2 rounded text-black"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+            />
+          </div>
+        ) : (
+          <div className="border border-gray-300 rounded p-2 text-sm bg-gray-50 text-gray-800">
+            <p>
+              Bridging these NFTs will deposit them into <strong>your</strong>{" "}
+              EVM COA on Ethereum. No separate recipient address is required.
+            </p>
+          </div>
+        )}
 
         <button
           onClick={handleTransfer}
@@ -265,7 +359,7 @@ const Transfer = () => {
         </button>
       </div>
 
-      {/* 4) Account Selection (FULL WIDTH, brand-primary) + 5) Moment Selection */}
+      {/* 3) Account Selection + Moment Selection */}
       <div className="w-full p-4">
         <div className="max-w-screen-lg mx-auto space-y-4">
           <div className="bg-brand-primary p-2 rounded">
@@ -297,7 +391,7 @@ const Transfer = () => {
         </div>
       </div>
 
-      {/* Transaction Modal */}
+      {/* 4) Transaction Modal */}
       {showModal && transactionData?.status && (
         <TransactionModal {...transactionData} onClose={closeModal} />
       )}
