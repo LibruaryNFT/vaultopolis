@@ -35,12 +35,12 @@ const Transfer = () => {
   // Destination type: "flow" or "evm"
   const [destinationType, setDestinationType] = useState("flow");
 
-  // Only needed if Flow→Flow
+  // Recipient is only relevant for Flow -> Flow
   const [recipient, setRecipient] = useState("0x");
 
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
-  // Track any NFT IDs we've already transferred so we can exclude them
+  // Track any NFT IDs we've already transferred so we can exclude them from selection
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
   // Basic checks
@@ -119,6 +119,7 @@ const Transfer = () => {
 
     let cadenceScript;
     let argsFn;
+    let swapType = "BATCH_TRANSFER"; // default for flow->flow
 
     if (destinationType === "flow") {
       // Flow -> Flow
@@ -133,6 +134,7 @@ const Transfer = () => {
             arg(recipient, t.Address),
             arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
           ];
+      // swapType can remain "BATCH_TRANSFER"
     } else {
       // EVM bridging (parent-only)
       // transaction(nftIdentifier: String, ids: [UInt64]) { ... }
@@ -146,6 +148,7 @@ const Transfer = () => {
         arg(typeIdentifier, t.String),
         arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
       ];
+      swapType = "BRIDGE_TO_EVM";
     }
 
     // Show transaction modal
@@ -155,7 +158,7 @@ const Transfer = () => {
       txId: null,
       error: null,
       nftCount: selectedNftsInAccount.length,
-      swapType: destinationType.toUpperCase(),
+      swapType,
       transactionAction: "BATCH_TRANSFER",
     });
 
@@ -221,7 +224,7 @@ const Transfer = () => {
           await loadAllUserData(parentAddr, { skipChildLoad: true });
         } else {
           // Child -> random Flow address (not the parent)
-          // Parent doesn't change
+          // Only refresh the child's data
           await loadChildData(selectedAccount);
         }
       } else {
@@ -229,7 +232,6 @@ const Transfer = () => {
         // Typically we do a full refresh on the parent
         await loadAllUserData(parentAddr);
       }
-      // ==========================================
     } catch (err) {
       console.error("Failed to submit transfer tx:", err);
       setTransactionData((prev) => ({

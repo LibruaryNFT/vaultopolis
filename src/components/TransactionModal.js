@@ -24,8 +24,6 @@ function HiddenCard({ nftId, onReveal }) {
         bg-black
         text-white
         rounded
-        relative
-        overflow-hidden
         flex flex-col items-center justify-center
         cursor-pointer
         transition-colors
@@ -97,8 +95,10 @@ const TransactionModal = ({
   const statusMessage =
     flowStatusMessages[status] || "Processing transaction...";
 
-  // Transaction message
+  // --- Construct the main transaction message ---
   let transactionMessage = "Processing transaction...";
+  const label = pluralize(nftCount || 0, "Moment", "Moments");
+
   if (transactionAction === "COMMIT_SWAP") {
     const tshotInt = parseInt(tshotAmount || "0", 10);
     transactionMessage = `(Step 1 of 2) Depositing ${tshotInt} TSHOT.`;
@@ -109,17 +109,18 @@ const TransactionModal = ({
         : nftCount
         ? parseInt(nftCount, 10)
         : 0;
-    const label = pluralize(count, "Moment", "Moments");
-    transactionMessage = `Receiving ${count} Random TopShot ${label}`;
+    const revealLabel = pluralize(count, "Moment", "Moments");
+    transactionMessage = `Receiving ${count} Random TopShot ${revealLabel}`;
   } else if (swapType === "NFT_TO_TSHOT") {
     const tshotInt = parseInt(tshotAmount || "0", 10);
-    const label = pluralize(nftCount, "Moment", "Moments");
     transactionMessage = `Swapping ${nftCount} ${label} for ${tshotInt} TSHOT`;
   } else if (swapType === "TSHOT_TO_NFT") {
-    const label = pluralize(nftCount, "Moment", "Moments");
     transactionMessage = `Swapping ${tshotAmount} TSHOT for ${nftCount} ${label}`;
+  } else if (swapType === "BRIDGE_TO_EVM") {
+    // Bridging to EVM
+    transactionMessage = `Bridging ${nftCount} ${label} to your EVM COA`;
   } else if (swapType === "BATCH_TRANSFER") {
-    const label = pluralize(nftCount, "Moment", "Moments");
+    // Flow -> Flow
     transactionMessage = `Transferring ${nftCount} ${label} to recipient`;
   }
 
@@ -213,7 +214,7 @@ const TransactionModal = ({
           </div>
         </div>
 
-        {/* Revealed NFTs */}
+        {/* Revealed NFTs (optional, for random swap scenarios) */}
         {revealedCount > 0 && (
           <div className="mt-4 p-2 border border-brand-border rounded">
             <div className="flex items-center justify-between mb-2">
