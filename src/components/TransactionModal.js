@@ -1,4 +1,5 @@
 // src/components/TransactionModal.jsx
+
 import React, { useState, useEffect } from "react";
 import { AiOutlineLoading3Quarters } from "react-icons/ai";
 import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
@@ -48,6 +49,7 @@ const TransactionModal = ({
   transactionAction,
   onClose,
   revealedNFTDetails,
+  recipient,
 }) => {
   const [hiddenStates, setHiddenStates] = useState({});
 
@@ -118,10 +120,15 @@ const TransactionModal = ({
     transactionMessage = `Swapping ${tshotAmount} TSHOT for ${nftCount} ${label}`;
   } else if (swapType === "BRIDGE_TO_EVM") {
     // Bridging to EVM
-    transactionMessage = `Bridging ${nftCount} ${label} to your EVM COA`;
+    transactionMessage = `Bridging ${nftCount} ${label} to your Flow EVM COA`;
   } else if (swapType === "BATCH_TRANSFER") {
     // Flow -> Flow
-    transactionMessage = `Transferring ${nftCount} ${label} to recipient`;
+    if (recipient && recipient !== "0x") {
+      transactionMessage = `Transferring ${nftCount} ${label} to ${recipient}`;
+    } else {
+      // Fallback (shouldn't usually happen due to validation)
+      transactionMessage = `Transferring ${nftCount} ${label} to recipient`;
+    }
   }
 
   // Icon based on status

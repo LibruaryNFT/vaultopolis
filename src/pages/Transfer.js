@@ -35,7 +35,7 @@ const Transfer = () => {
   // Destination type: "flow" or "evm"
   const [destinationType, setDestinationType] = useState("flow");
 
-  // Recipient is only relevant for Flow -> Flow
+  // Recipient is only relevant for Flow->Flow
   const [recipient, setRecipient] = useState("0x");
 
   const [showModal, setShowModal] = useState(false);
@@ -83,11 +83,25 @@ const Transfer = () => {
   );
 
   // ===== Decide the button label & disabled logic =====
-  let transferButtonLabel = "Transfer Moments";
+  let transferButtonLabel = "";
+  const nftCount = selectedNftsInAccount.length;
+
+  if (destinationType === "evm") {
+    // Bridging
+    transferButtonLabel = `Bridge ${nftCount} Moment${
+      nftCount === 1 ? "" : "s"
+    }`;
+  } else {
+    // Flow->Flow
+    transferButtonLabel = `Transfer ${nftCount} Moment${
+      nftCount === 1 ? "" : "s"
+    }`;
+  }
+
   let transferDisabled = false;
 
   // If no NFTs selected
-  if (selectedNftsInAccount.length === 0) {
+  if (nftCount === 0) {
     transferButtonLabel = "Select Moments";
     transferDisabled = true;
   }
@@ -97,7 +111,7 @@ const Transfer = () => {
     transferDisabled = true;
   }
   // If over limit
-  else if (selectedNftsInAccount.length > MAX_TRANSFER_COUNT) {
+  else if (nftCount > MAX_TRANSFER_COUNT) {
     transferButtonLabel = `Max ${MAX_TRANSFER_COUNT} allowed`;
     transferDisabled = true;
   }
@@ -160,6 +174,7 @@ const Transfer = () => {
       nftCount: selectedNftsInAccount.length,
       swapType,
       transactionAction: "BATCH_TRANSFER",
+      recipient: destinationType === "flow" ? recipient : null,
     });
 
     try {
@@ -183,7 +198,7 @@ const Transfer = () => {
       // 3) Update modal to "Pending"
       setTransactionData((prev) => ({ ...prev, status: "Pending", txId }));
 
-      // 4) Subscribe to transaction status (optional, you already do this)
+      // 4) Subscribe to transaction status
       const unsub = fcl.tx(txId).subscribe((txStatus) => {
         let newStatus = "Processing...";
         switch (txStatus.statusString) {
@@ -296,7 +311,7 @@ const Transfer = () => {
                 checked={destinationType === "flow"}
                 onChange={() => setDestinationType("flow")}
               />
-              <span className="ml-2">Flow (External Address)</span>
+              <span className="ml-2">Flow Cadence</span>
             </label>
 
             {/* EVM RADIO (only parent) */}
@@ -311,14 +326,14 @@ const Transfer = () => {
                 onChange={() => setDestinationType("evm")}
                 disabled={childSelected}
               />
-              <span className="ml-2">EVM (Signer's COA)</span>
+              <span className="ml-2">Flow EVM</span>
             </label>
           </div>
-          {childSelected && (
-            <p className="text-xs mt-1 text-gray-400">
-              Bridging is only supported on the parent account.
-            </p>
-          )}
+
+          {/* Max transfer limit note */}
+          <p className="text-xs mt-1 text-gray-400">
+            You can transfer up to {MAX_TRANSFER_COUNT} Moments per transaction.
+          </p>
         </div>
 
         {/* If flow->flow, show recipient; else bridging explanation */}
@@ -336,10 +351,11 @@ const Transfer = () => {
             />
           </div>
         ) : (
-          <div className="border border-gray-300 rounded p-2 text-sm bg-gray-50 text-gray-800">
+          <div className="bg-brand-secondary p-2 text-sm text-brand-text rounded">
             <p>
-              Bridging these NFTs will deposit them into <strong>your</strong>{" "}
-              EVM COA on Ethereum. No separate recipient address is required.
+              Bridging these NFTs will deposit them into your{" "}
+              <strong>Flow EVM COA on Flow</strong>. No separate recipient
+              address is required.
             </p>
           </div>
         )}
@@ -348,12 +364,20 @@ const Transfer = () => {
           onClick={handleTransfer}
           disabled={transferDisabled}
           className={`
-            w-full p-4 text-lg rounded-lg font-bold
-            mt-2 transition-colors
+            w-full
+            p-4
+            text-lg
+            rounded-lg
+            font-bold
+            transition-colors
+            shadow-md
+            shadow-black/40
             ${
               transferDisabled
-                ? "bg-brand-secondary cursor-not-allowed opacity-60"
-                : "bg-flow-light hover:bg-flow-dark"
+                ? /* Disabled style */
+                  "cursor-not-allowed bg-brand-primary text-brand-text/50"
+                : /* Normal style (like NFTToTSHOTPanel) */
+                  "bg-flow-light text-white hover:bg-flow-dark"
             }
           `}
         >

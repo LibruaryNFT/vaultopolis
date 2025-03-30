@@ -89,7 +89,7 @@ const AccountSelection = ({
         <div
           key="loading"
           className="
-            bg-brand-primary
+            bg-brand-secondary
             p-2
             rounded
             flex
@@ -110,7 +110,7 @@ const AccountSelection = ({
         <div
           key="dapper-card"
           className="
-            bg-brand-primary
+            bg-brand-secondary
             p-2
             rounded
             flex

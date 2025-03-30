@@ -520,6 +520,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setCurrentPage(1);
               }}
               className="
+                w-32
                 bg-brand-primary
                 text-brand-text
                 rounded
@@ -553,6 +554,7 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
                 setCurrentPage(1);
               }}
               className="
+                w-32
                 bg-brand-primary
                 text-brand-text
                 rounded
