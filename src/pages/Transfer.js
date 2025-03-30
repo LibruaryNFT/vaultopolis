@@ -34,7 +34,6 @@ const Transfer = () => {
 
   // Destination type: "flow" or "evm"
   const [destinationType, setDestinationType] = useState("flow");
-
   // Recipient is only relevant for Flow->Flow
   const [recipient, setRecipient] = useState("0x");
 
@@ -148,12 +147,9 @@ const Transfer = () => {
             arg(recipient, t.Address),
             arg(selectedNftsInAccount.map(String), t.Array(t.UInt64)),
           ];
-      // swapType can remain "BATCH_TRANSFER"
     } else {
       // EVM bridging (parent-only)
-      // transaction(nftIdentifier: String, ids: [UInt64]) { ... }
       cadenceScript = bridgeEVM;
-
       // Hardcode the known type for TopShot:
       // A.0b2a3299cc857e29.TopShot.NFT
       const typeIdentifier = "A.0b2a3299cc857e29.TopShot.NFT";
@@ -171,7 +167,7 @@ const Transfer = () => {
       status: "Awaiting Approval",
       txId: null,
       error: null,
-      nftCount: selectedNftsInAccount.length,
+      nftCount,
       swapType,
       transactionAction: "BATCH_TRANSFER",
       recipient: destinationType === "flow" ? recipient : null,
@@ -230,21 +226,18 @@ const Transfer = () => {
       await fcl.tx(txId).onceSealed();
 
       // ======== REFRESH LOGIC AFTER SEAL ========
-      // If child is sending
       if (childSelected && selectedAccount) {
         // If child -> parent address
         if (recipient?.toLowerCase() === parentAddr?.toLowerCase()) {
-          // Refresh child data (NFT gone) + parent data (NFT received)
+          // Child sent to parent => refresh both
           await loadChildData(selectedAccount);
           await loadAllUserData(parentAddr, { skipChildLoad: true });
         } else {
-          // Child -> random Flow address (not the parent)
-          // Only refresh the child's data
+          // Child -> random => refresh just child
           await loadChildData(selectedAccount);
         }
       } else {
-        // Parent is sending (Flow->Flow or bridging to EVM)
-        // Typically we do a full refresh on the parent
+        // Parent is sending => refresh parent
         await loadAllUserData(parentAddr);
       }
     } catch (err) {
@@ -259,7 +252,7 @@ const Transfer = () => {
 
   // Render the currently selected Moments
   const renderSelectedMoments = () => (
-    <div className="bg-brand-primary p-2 rounded">
+    <div>
       <h4 className="text-sm mb-2 text-brand">Selected Moments:</h4>
       {selectedNftsInAccount.length > 0 ? (
         <div className="flex flex-wrap gap-2">
@@ -278,7 +271,7 @@ const Transfer = () => {
                     payload: momentId,
                   })
                 }
-                isSelected={true}
+                isSelected
               />
             );
           })}
@@ -291,14 +284,10 @@ const Transfer = () => {
 
   return (
     <>
-      {/* 1) Selected Moments */}
-      <div className="w-full p-4">
-        <div className="max-w-screen-lg mx-auto">{renderSelectedMoments()}</div>
-      </div>
-
-      {/* 2) Destination Toggle + (possibly) Recipient + Transfer Button */}
-      <div className="max-w-md mx-auto space-y-4 p-4 rounded bg-brand-primary">
-        <div>
+      {/* 1) TOP PANEL (like Swap: max-w-md) */}
+      <div className="max-w-md mx-auto mt-8 space-y-4">
+        {/* (A) Transfer Destination Panel */}
+        <div className="bg-brand-primary shadow-md shadow-black/30 rounded-lg p-4">
           <label className="block mb-2 text-brand font-semibold">
             Transfer Destination:
           </label>
@@ -329,95 +318,103 @@ const Transfer = () => {
               <span className="ml-2">Flow EVM</span>
             </label>
           </div>
-
-          {/* Max transfer limit note */}
           <p className="text-xs mt-1 text-gray-400">
             You can transfer up to {MAX_TRANSFER_COUNT} Moments per transaction.
           </p>
+
+          {/* If flow->flow => show recipient; else bridging explanation */}
+          {destinationType === "flow" ? (
+            <div className="mt-4">
+              <label className="block mb-1 text-brand">
+                Recipient Address (Flow)
+              </label>
+              <input
+                type="text"
+                placeholder="0xRecipient"
+                className="w-full p-2 rounded text-black"
+                value={recipient}
+                onChange={(e) => setRecipient(e.target.value)}
+              />
+            </div>
+          ) : (
+            <div className="mt-4 bg-brand-secondary p-2 text-sm text-brand-text rounded">
+              <p>
+                Bridging these NFTs will deposit them into your{" "}
+                <strong>Flow EVM COA on Flow</strong>. No separate recipient
+                address is required.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* If flow->flow, show recipient; else bridging explanation */}
-        {destinationType === "flow" ? (
-          <div>
-            <label className="block mb-1 text-brand">
-              Recipient Address (Flow)
-            </label>
-            <input
-              type="text"
-              placeholder="0xRecipient"
-              className="w-full p-2 rounded text-black"
-              value={recipient}
-              onChange={(e) => setRecipient(e.target.value)}
-            />
-          </div>
-        ) : (
-          <div className="bg-brand-secondary p-2 text-sm text-brand-text rounded">
-            <p>
-              Bridging these NFTs will deposit them into your{" "}
-              <strong>Flow EVM COA on Flow</strong>. No separate recipient
-              address is required.
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={handleTransfer}
-          disabled={transferDisabled}
-          className={`
-            w-full
-            p-4
-            text-lg
-            rounded-lg
-            font-bold
-            transition-colors
-            shadow-md
-            shadow-black/40
-            ${
-              transferDisabled
-                ? /* Disabled style */
-                  "cursor-not-allowed bg-brand-primary text-brand-text/50"
-                : /* Normal style (like NFTToTSHOTPanel) */
-                  "bg-flow-light text-white hover:bg-flow-dark"
-            }
-          `}
-        >
-          {transferButtonLabel}
-        </button>
+        {/* (B) Transfer Button => remove BG behind it, so it fills that container */}
+        <div className="shadow-md shadow-black/30 rounded-lg p-0">
+          <button
+            onClick={handleTransfer}
+            disabled={transferDisabled}
+            className={`
+              w-full
+              p-4
+              text-lg
+              rounded-lg
+              font-bold
+              transition-colors
+              shadow-md
+              shadow-black/40
+              ${
+                transferDisabled
+                  ? /* Disabled style */
+                    "cursor-not-allowed bg-brand-primary text-brand-text/50"
+                  : /* Normal style */
+                    "bg-flow-light text-white hover:bg-flow-dark"
+              }
+            `}
+          >
+            {transferButtonLabel}
+          </button>
+        </div>
       </div>
 
-      {/* 3) Account Selection + Moment Selection */}
-      <div className="w-full p-4">
-        <div className="max-w-screen-lg mx-auto space-y-4">
-          <div className="bg-brand-primary p-2 rounded">
-            <AccountSelection
-              parentAccount={{
-                addr: parentAddr,
-                ...accountData,
-              }}
-              childrenAddresses={accountData.childrenAddresses}
-              childrenAccounts={accountData.childrenData}
-              selectedAccount={selectedAccount}
-              onSelectAccount={(addr) => {
-                const isChild = accountData.childrenAddresses.includes(addr);
-                dispatch({
-                  type: "SET_SELECTED_ACCOUNT",
-                  payload: {
-                    address: addr,
-                    type: isChild ? "child" : "parent",
-                  },
-                });
-              }}
-              onRefresh={() => parentAddr && loadAllUserData(parentAddr)}
-              isRefreshing={isRefreshing}
-              isLoadingChildren={isLoadingChildren}
-            />
-          </div>
+      {/* 2) MAIN AREA => w-full, same as swap => "p-4 space-y-4" */}
+      <div className="w-full p-4 space-y-4">
+        {/* (A) Selected Moments */}
+        <div className="bg-brand-primary shadow-md p-2 rounded w-full">
+          {renderSelectedMoments()}
+        </div>
 
+        {/* (B) Account Selection => inline-flex, narrower, left-aligned */}
+        <div className="bg-brand-primary shadow-md p-2 rounded inline-flex flex-wrap gap-2">
+          <AccountSelection
+            parentAccount={{
+              addr: parentAddr,
+              ...accountData,
+            }}
+            childrenAddresses={accountData.childrenAddresses}
+            childrenAccounts={accountData.childrenData}
+            selectedAccount={selectedAccount}
+            onSelectAccount={(addr) => {
+              const isChild = accountData.childrenAddresses.includes(addr);
+              dispatch({
+                type: "SET_SELECTED_ACCOUNT",
+                payload: {
+                  address: addr,
+                  type: isChild ? "child" : "parent",
+                },
+              });
+            }}
+            onRefresh={() => parentAddr && loadAllUserData(parentAddr)}
+            isRefreshing={isRefreshing}
+            isLoadingChildren={isLoadingChildren}
+          />
+        </div>
+
+        {/* (C) Moment Selection */}
+        <div className="bg-brand-primary shadow-md p-2 rounded-lg w-full">
           <MomentSelection allowAllTiers excludeIds={excludedNftIds} />
         </div>
       </div>
 
-      {/* 4) Transaction Modal */}
+      {/* Transaction Modal */}
       {showModal && transactionData?.status && (
         <TransactionModal {...transactionData} onClose={closeModal} />
       )}
