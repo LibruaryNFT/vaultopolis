@@ -150,8 +150,7 @@ const Transfer = () => {
     } else {
       // EVM bridging (parent-only)
       cadenceScript = bridgeEVM;
-      // Hardcode the known type for TopShot:
-      // A.0b2a3299cc857e29.TopShot.NFT
+      // Hardcode the known type for TopShot
       const typeIdentifier = "A.0b2a3299cc857e29.TopShot.NFT";
 
       argsFn = (arg, t) => [
@@ -363,10 +362,8 @@ const Transfer = () => {
               shadow-black/40
               ${
                 transferDisabled
-                  ? /* Disabled style */
-                    "cursor-not-allowed bg-brand-primary text-brand-text/50"
-                  : /* Normal style */
-                    "bg-flow-light text-white hover:bg-flow-dark"
+                  ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
+                  : "bg-flow-light text-white hover:bg-flow-dark"
               }
             `}
           >
@@ -377,8 +374,11 @@ const Transfer = () => {
 
       {/* 2) MAIN AREA => w-full, same as swap => "p-4 space-y-4" */}
       <div className="w-full p-4 space-y-4">
-        {/* (A) Selected Moments */}
-        <div className="bg-brand-primary shadow-md p-2 rounded w-full">
+        {/* (A) Selected Moments (fixed height) */}
+        <div
+          className="bg-brand-primary shadow-md p-2 rounded w-full
+             h-64 overflow-y-auto"
+        >
           {renderSelectedMoments()}
         </div>
 

@@ -4,7 +4,6 @@ import {
   RouterProvider,
   Navigate,
 } from "react-router-dom";
-// IMPORTANT: import the *default* provider from "./context/UserContext"
 import UserContext from "./context/UserContext";
 
 import TSHOT from "./pages/TSHOT";
@@ -12,6 +11,10 @@ import TermsAndPrivacy from "./pages/TermsAndPrivacy";
 import Layout from "./layout/Layout";
 import Swap from "./pages/Swap";
 import Transfer from "./pages/Transfer";
+
+// Import our special mode components
+import ComingSoon from "./pages/ComingSoon";
+import MaintenancePage from "./pages/Maintenance";
 
 function enforceHTTPS() {
   if (
@@ -22,12 +25,9 @@ function enforceHTTPS() {
   }
 }
 
-// Create the router
+// Create the router for normal operation
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Navigate to="/swap" replace />,
-  },
+  { path: "/", element: <Navigate to="/swap" replace /> },
   {
     path: "/transfer",
     element: (
@@ -67,10 +67,18 @@ function App() {
     enforceHTTPS();
   }, []);
 
+  // Read the environment variables
+  const maintenanceMode = process.env.REACT_APP_MAINTENANCE_MODE === "true";
+  const comingSoonMode = process.env.REACT_APP_COMING_SOON_MODE === "true";
+
+  // Priority: Maintenance Mode first, then Coming Soon Mode
+  if (maintenanceMode) {
+    return <MaintenancePage />;
+  } else if (comingSoonMode) {
+    return <ComingSoon />;
+  }
+
   return (
-    // We wrap our entire app in <UserContext>
-    // (the default export from "UserContext.js"),
-    // which provides the context to all child routes/components.
     <UserContext>
       <div className="w-full min-h-screen bg-brand-secondary text-brand-text">
         <div className="relative min-h-screen">
