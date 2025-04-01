@@ -1,38 +1,6 @@
-// ComingSoon.js
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 const ComingSoon = () => {
-  const [timeLeft, setTimeLeft] = useState("");
-
-  useEffect(() => {
-    /**
-     * For April 10, 2025 at 12:00 PM ET (which is UTC-4 in April),
-     * we use Date.UTC with the corresponding UTC time (16:00).
-     * Month index is zero-based, so April = 3.
-     */
-    const launchDate = new Date(Date.UTC(2025, 3, 10, 16, 0, 0)).getTime();
-
-    const timer = setInterval(() => {
-      const now = new Date().getTime();
-      const distance = launchDate - now;
-
-      if (distance < 0) {
-        clearInterval(timer);
-        setTimeLeft("We're live!");
-      } else {
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor(
-          (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-        );
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-        setTimeLeft(`${days}d ${hours}h ${minutes}m ${seconds}s`);
-      }
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
   return (
     <div
       className="
@@ -53,15 +21,10 @@ const ComingSoon = () => {
         <span>coming soon!</span>
       </h1>
 
-      {/* Subtext with launch time */}
-      <p className="mb-2 text-lg text-center">
-        Launching April 10, 2025 @ 12:00 PM ET
-      </p>
-      <p className="mb-8 text-sm text-brand-text/70">
-        Stay tuned for an epic launch.
-      </p>
+      {/* Simple subtext */}
+      <p className="mb-8 text-lg text-center">Stay tuned for an epic launch.</p>
 
-      {/* Countdown Timer */}
+      {/* Static "Coming Soon" Message */}
       <div
         className="
           text-2xl
@@ -74,7 +37,7 @@ const ComingSoon = () => {
           mb-8
         "
       >
-        {timeLeft}
+        Coming Soon
       </div>
 
       {/* "Follow on X" Link */}
