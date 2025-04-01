@@ -12,7 +12,7 @@ import Layout from "./layout/Layout";
 import Swap from "./pages/Swap";
 import Transfer from "./pages/Transfer";
 
-// Import our special mode components
+// Special pages
 import ComingSoon from "./pages/ComingSoon";
 import MaintenancePage from "./pages/Maintenance";
 
@@ -28,14 +28,6 @@ function enforceHTTPS() {
 // Create the router for normal operation
 const router = createBrowserRouter([
   { path: "/", element: <Navigate to="/swap" replace /> },
-  {
-    path: "/transfer",
-    element: (
-      <Layout>
-        <Transfer />
-      </Layout>
-    ),
-  },
   {
     path: "/swap",
     element: (
@@ -53,12 +45,25 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: "/transfer",
+    element: (
+      <Layout>
+        <Transfer />
+      </Layout>
+    ),
+  },
+  {
     path: "/terms",
     element: (
       <Layout>
         <TermsAndPrivacy />
       </Layout>
     ),
+  },
+  // NEW: ComingSoon route
+  {
+    path: "/comingsoon",
+    element: <ComingSoon />,
   },
 ]);
 
