@@ -38,12 +38,33 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   } = useContext(UserDataContext);
 
   // Identify the active account
-  const activeAccount =
-    accountData?.childrenData?.find(
-      (child) => child.addr === selectedAccount
-    ) || accountData;
+  const activeAccount = useMemo(() => {
+    if (!selectedAccount || !accountData) return null;
 
-  const { nftDetails = [], hasCollection } = activeAccount || {};
+    // If selectedAccount is a child
+    const maybeChild = (accountData.childrenData || []).find(
+      (c) => c.addr === selectedAccount
+    );
+    if (maybeChild) return maybeChild;
+
+    // Else fallback to parent
+    if (
+      selectedAccount === accountData.parentAddress ||
+      selectedAccount === user?.addr
+    ) {
+      return accountData;
+    }
+
+    return null;
+  }, [selectedAccount, accountData, user]);
+
+  const nftDetails = useMemo(() => {
+    return activeAccount?.nftDetails || [];
+  }, [activeAccount?.nftDetails]);
+
+  const hasCollection = useMemo(() => {
+    return activeAccount?.hasCollection ?? false;
+  }, [activeAccount?.hasCollection]);
 
   // 1) Tiers: always show common/fandom; if allowAllTiers => add rare/legendary/ultimate
   const tierOptions = useMemo(
