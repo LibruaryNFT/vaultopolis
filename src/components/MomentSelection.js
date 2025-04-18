@@ -38,24 +38,25 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
   } = useContext(UserDataContext);
 
   // Identify the active account
+  // Identify the active account (case‑insensitive match)
   const activeAccount = useMemo(() => {
     if (!selectedAccount || !accountData) return null;
 
-    // If selectedAccount is a child
-    const maybeChild = (accountData.childrenData || []).find(
-      (c) => c.addr === selectedAccount
+    const selAddr = selectedAccount.toLowerCase();
+
+    // 1) Look for a matching child
+    const childHit = (accountData.childrenData || []).find(
+      (c) => (c.addr || "").toLowerCase() === selAddr
     );
-    if (maybeChild) return maybeChild;
+    if (childHit) return childHit;
 
-    // Else fallback to parent
-    if (
-      selectedAccount === accountData.parentAddress ||
-      selectedAccount === user?.addr
-    ) {
-      return accountData;
-    }
-
-    return null;
+    // 2) Otherwise compare to the parent address
+    const parentAddr = (
+      accountData.parentAddress ||
+      user?.addr ||
+      ""
+    ).toLowerCase();
+    return selAddr === parentAddr ? accountData : null;
   }, [selectedAccount, accountData, user]);
 
   const nftDetails = useMemo(() => {
