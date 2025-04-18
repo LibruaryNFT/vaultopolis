@@ -121,6 +121,7 @@ const MomentCard = ({
           <img
             src={imageUrl}
             alt={`${playerName} moment`}
+            loading="eager" // <== force load immediately
             className="object-cover w-full h-full transform scale-150"
             style={{ objectPosition: "center 20%" }}
           />

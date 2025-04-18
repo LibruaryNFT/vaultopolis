@@ -1,3 +1,5 @@
+// get_nft_metadata2.cdc
+
 import "TopShot"
 
 // This script gets the metadata associated with a moment

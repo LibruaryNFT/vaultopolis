@@ -1,8 +1,6 @@
 
 # flow
 *.pkey
-emulator-account.pkey
-mainnet-account.pkey
 imports
 /venv
 *.log

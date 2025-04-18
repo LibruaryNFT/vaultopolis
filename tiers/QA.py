@@ -3,9 +3,9 @@ import requests
 import csv
 from collections import defaultdict
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # CONFIGURABLE PATHS & ENDPOINTS
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 CADENCE_FILE_PATH = r"C:\Code\vaultopolis\tiers\transactions\bulk_add_playIDs.cdc"
 
 # Endpoint returning JSON like:
@@ -47,9 +47,9 @@ TOPSHOT_DATA_ENDPOINT = "https://api.vaultopolis.com/topshot-data"
 OUTPUT_CSV = "tier_checks_report.csv"
 
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # STEP A: PARSE THE CADENCE TRANSACTION FILE
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 def parse_cadence_file(file_path):
     """
     Parses the Cadence .cdc file to find lines calling:
@@ -79,9 +79,9 @@ def parse_cadence_file(file_path):
     return results
 
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # STEP B: FETCH AND MERGE DATA FROM BOTH ENDPOINTS
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 def fetch_and_merge_data():
     """
     1) Fetch from /topshot-tiers:
@@ -180,9 +180,9 @@ def fetch_and_merge_data():
     return api_lookup, unique_tiers_from_API
 
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # TIER LOGIC: DETERMINE ALL "QA_possible_tiers" FROM momentCount
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 def get_qa_possible_tiers(moment_count):
     """
     Return all possible tiers (as a sorted list) based on your numeric thresholds:
@@ -193,12 +193,12 @@ def get_qa_possible_tiers(moment_count):
       - If >= 2500, add "common".
 
     That leaves a gap from 1000..2499 => only "fandom".
+    If momentCount is None, we can't do numeric-based checks, so just "fandom".
     """
-    # If no momentCount, we can't do numeric-based checks
     if moment_count is None:
         return ["fandom"]
 
-    results = set(["fandom"])  # always fandom
+    results = {"fandom"}  # always fandom
     if moment_count <= 20:
         results.update(["ultimate", "legendary", "rare"])
     elif moment_count < 100:
@@ -212,9 +212,9 @@ def get_qa_possible_tiers(moment_count):
     return sorted(results)
 
 
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # STEP C & D: RUN CHECKS AND GENERATE REPORT ENTRIES
-# ------------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 def run_checks(parsed_data, api_lookup, unique_tiers_dict):
     """
     For each (setID, playID, script_tier) from the .cdc file:
@@ -224,6 +224,7 @@ def run_checks(parsed_data, api_lookup, unique_tiers_dict):
           api_tier
           momentCount
         Build QA_possible_tiers from momentCount.
+      - If momentCount == 0, add a warning that we shouldn't assign a tier.
       - Check if script_tier is in QA_possible_tiers. If not, warn.
       - If duplicates in the .cdc, warn.
       - Gather unique_tiers_from_API for that setID.
@@ -262,9 +263,13 @@ def run_checks(parsed_data, api_lookup, unique_tiers_dict):
             results.append(row)
             continue
 
-        default_tier = record.get("defaultTier", "None")      # could be "None"
+        default_tier = record.get("defaultTier", "None")
         api_tier = record.get("api_tier", "None")
         moment_count = record.get("momentCount", None)
+
+        # If momentCount == 0, warn that we shouldn't assign a tier to this play
+        if moment_count == 0:
+            warnings.append("momentCount=0 => NO tier assignment permitted!")
 
         # Build QA_possible_tiers
         possible_list = get_qa_possible_tiers(moment_count)
@@ -273,7 +278,8 @@ def run_checks(parsed_data, api_lookup, unique_tiers_dict):
         set_unique_list = sorted(unique_tiers_dict.get(set_id, set()))
 
         # Check if script_tier is in QA_possible_tiers
-        if script_tier not in possible_list:
+        # (only if moment_count != 0; if moment_count==0, this is automatically a warning.)
+        if moment_count != 0 and script_tier not in possible_list:
             warnings.append(
                 f"script_tier={script_tier} not in QA_possible_tiers={possible_list} (mCount={moment_count})"
             )
