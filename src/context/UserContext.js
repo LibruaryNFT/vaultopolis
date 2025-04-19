@@ -207,23 +207,48 @@ async function loadTopShotMetadataFromServerOrCache(dispatch) {
   }
 }
 
+/*************************************************************
+ * Download Top Shot metadata, trim unused fields,
+ * dispatch immediately, then attempt to cache.
+ *************************************************************/
 async function fetchRemoteTopShotMetadata(dispatch) {
   const now = Date.now();
+
   try {
-    const baseUrl = "https://api.vaultopolis.com";
-    const resp = await fetch(`${baseUrl}/topshot-data`);
-    if (!resp.ok) throw new Error(`HTTP error: ${resp.status}`);
+    /* ---------- 1. fetch the JSON dump ---------- */
+    const resp = await fetch("https://api.vaultopolis.com/topshot-data");
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
 
+    /* ---------- 2. keep only the fields we use ---------- */
     const metadataMap = data.reduce((acc, item) => {
-      const key = `${item.setID}-${item.playID}`;
-      acc[key] = item;
+      acc[`${item.setID}-${item.playID}`] = {
+        tier: item.tier,
+        FullName: item.FullName,
+        JerseyNumber: item.JerseyNumber,
+        momentCount: item.momentCount,
+        TeamAtMoment: item.TeamAtMoment,
+        name: item.name,
+        series: item.series,
+        ...(item.subeditions?.length ? { subeditions: item.subeditions } : {}),
+      };
       return acc;
     }, {});
 
-    const toStore = { timestamp: now, data: metadataMap };
-    localStorage.setItem("topshotMetadata", JSON.stringify(toStore));
+    /* ---------- 3. give React the data right away ---------- */
     dispatch({ type: "SET_METADATA_CACHE", payload: metadataMap });
+
+    /* ---------- 4. try to persist; swallow quota errors ---------- */
+    try {
+      const toStore = { timestamp: now, data: metadataMap };
+      localStorage.setItem("topshotMetadata", JSON.stringify(toStore));
+    } catch (storageErr) {
+      console.warn(
+        "LocalStorage quota exceeded – using in‑memory cache only",
+        storageErr
+      );
+    }
+
     return metadataMap;
   } catch (err) {
     console.error("fetchRemoteTopShotMetadata error:", err);
