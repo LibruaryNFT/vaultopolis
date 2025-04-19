@@ -182,24 +182,24 @@ async function enrichWithMetadata(details, metadataCache) {
 async function loadTopShotMetadataFromServerOrCache(dispatch) {
   try {
     const now = Date.now();
-    const ONE_HOUR = 3600000;
+    const ONE_HOUR = 3600_000;
 
     const raw = localStorage.getItem("topshotMetadata");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.timestamp && parsed.data) {
+
+      /* ── use only if the cache is our current schema ───────── */
+      if (parsed.version === 1 && parsed.timestamp && parsed.data) {
         const age = now - parsed.timestamp;
         if (age < ONE_HOUR) {
           dispatch({ type: "SET_METADATA_CACHE", payload: parsed.data });
-          return parsed.data;
+          return parsed.data; // ← fresh enough, stop here
         }
-      } else {
-        // old style
-        dispatch({ type: "SET_METADATA_CACHE", payload: parsed });
-        return parsed;
       }
+      /* else: fall through and fetch a new copy */
     }
-    // else fetch
+
+    /* ── no usable cache → download ─────────────────────────── */
     return await fetchRemoteTopShotMetadata(dispatch);
   } catch (err) {
     console.error("Error loading TopShot metadata:", err);
@@ -208,19 +208,19 @@ async function loadTopShotMetadataFromServerOrCache(dispatch) {
 }
 
 /*************************************************************
- * Download Top Shot metadata, trim unused fields,
- * dispatch immediately, then attempt to cache.
+ * Download Top Shot metadata, trim fields, put in memory,
+ * then try to persist with {version:1, timestamp}.
  *************************************************************/
 async function fetchRemoteTopShotMetadata(dispatch) {
   const now = Date.now();
 
   try {
-    /* ---------- 1. fetch the JSON dump ---------- */
+    /* -------- 1. fetch -------- */
     const resp = await fetch("https://api.vaultopolis.com/topshot-data");
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
 
-    /* ---------- 2. keep only the fields we use ---------- */
+    /* -------- 2. trim -------- */
     const metadataMap = data.reduce((acc, item) => {
       acc[`${item.setID}-${item.playID}`] = {
         tier: item.tier,
@@ -235,12 +235,12 @@ async function fetchRemoteTopShotMetadata(dispatch) {
       return acc;
     }, {});
 
-    /* ---------- 3. give React the data right away ---------- */
+    /* -------- 3. give to React immediately -------- */
     dispatch({ type: "SET_METADATA_CACHE", payload: metadataMap });
 
-    /* ---------- 4. try to persist; swallow quota errors ---------- */
+    /* -------- 4. persist if possible -------- */
     try {
-      const toStore = { timestamp: now, data: metadataMap };
+      const toStore = { version: 1, timestamp: now, data: metadataMap };
       localStorage.setItem("topshotMetadata", JSON.stringify(toStore));
     } catch (storageErr) {
       console.warn(
