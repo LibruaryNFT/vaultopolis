@@ -1,6 +1,6 @@
 // src/components/MomentCard.jsx
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 
 // Export tierStyles so other components can use them if needed.
 export const tierStyles = {
@@ -53,15 +53,37 @@ const MomentCard = ({
   disableHover = false,
 }) => {
   const [imageUrl, setImageUrl] = useState("");
+  const [triedFallback, setTriedFallback] = useState(false); // State to prevent infinite loops
+
+  const transparentBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/transparent/image?width=250&quality=80`;
+  const fallbackBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/image?width=250&quality=80`;
 
   useEffect(() => {
     if (nft?.id) {
-      // Use the new Top Shot media endpoint
-      setImageUrl(
-        `https://assets.nbatopshot.com/media/${nft.id}/transparent/image?width=250&quality=80`
-      );
+      // Always try the transparent URL first when NFT changes
+      setImageUrl(transparentBaseUrl);
+      setTriedFallback(false); // Reset fallback flag for the new NFT
+    } else {
+      // Clear image if no nft or id
+      setImageUrl("");
+      setTriedFallback(false);
     }
-  }, [nft?.id]);
+    // Depend on the base URLs to reset when nft.id changes
+  }, [nft?.id, transparentBaseUrl]); // Include base URLs in dependency array
+
+  // Use useCallback to memoize the error handler function
+  const handleImageError = useCallback(() => {
+    // Only try the fallback if we haven't already tried it for this NFT
+    // and the current URL is the transparent one that failed
+    if (!triedFallback && imageUrl === transparentBaseUrl) {
+      console.warn(`Transparent image failed for ${nft?.id}, trying fallback.`);
+      setImageUrl(fallbackBaseUrl);
+      setTriedFallback(true); // Mark that we've attempted the fallback
+    }
+    // If the fallback also fails, the onError will trigger again, but
+    // triedFallback will be true, so we won't set state again, preventing loops.
+    // A broken image icon will be shown, which is the expected behavior if both fail.
+  }, [imageUrl, triedFallback, fallbackBaseUrl, transparentBaseUrl, nft?.id]); // Add dependencies
 
   const playerName = getDisplayedName(nft);
   const seriesText = nft?.series !== undefined ? String(nft.series) : "?";
@@ -106,13 +128,15 @@ const MomentCard = ({
   const cardClasses = `${baseCardClasses} ${hoverClasses}`;
 
   const handleClick = () => {
-    if (!disableHover && handleNFTSelection) {
+    if (!disableHover && handleNFTSelection && nft?.id) {
+      // Check nft?.id before calling
       handleNFTSelection(nft.id);
     }
   };
 
   return (
     <div onClick={handleClick} className={cardClasses}>
+      {/* Only render div/img if imageUrl is set */}
       {imageUrl && (
         <div
           className="relative overflow-hidden rounded mx-auto"
@@ -121,10 +145,20 @@ const MomentCard = ({
           <img
             src={imageUrl}
             alt={`${playerName} moment`}
-            loading="eager" // <== force load immediately
+            loading="eager" // Keep eager loading
             className="object-cover w-full h-full transform scale-150"
             style={{ objectPosition: "center 20%" }}
+            onError={handleImageError} // Add the onError handler here
           />
+        </div>
+      )}
+      {/* Placeholder if no image URL (e.g., missing nft.id) */}
+      {!imageUrl && (
+        <div
+          className="relative overflow-hidden rounded mx-auto bg-gray-700" // Placeholder style
+          style={{ width: 80, height: 80 }}
+        >
+          {/* Optional: Add an icon or text here */}
         </div>
       )}
 
