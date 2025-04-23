@@ -614,6 +614,19 @@ const Swap = () => {
               .
             </li>
           </ul>
+
+          <p className="mt-2 text-xs text-brand-text/70">
+            For more info, see the&nbsp;
+            <a
+              href="/tshot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-flow-light"
+            >
+              TSHOT info page
+            </a>
+            .
+          </p>
         </details>
       </div>
 
