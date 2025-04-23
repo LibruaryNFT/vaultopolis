@@ -6,14 +6,7 @@ const Footer = () => {
   const navigate = useNavigate();
 
   return (
-    <footer
-      className="
-        w-full
-        z-40
-        bg-brand-primary
-        text-brand-text
-      "
-    >
+    <footer className="w-full z-40 bg-brand-primary text-brand-text">
       {/* Horizontal line at the top */}
       <hr className="border-brand-border" />
 
@@ -44,49 +37,36 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div
-          className="
-            border-t
-            border-brand-border
-            pt-8
-            flex flex-col md:flex-row
-            justify-between
-            items-center
-          "
-        >
+        <div className="border-t border-brand-border pt-8 flex flex-col md:flex-row justify-between items-center">
           <div className="text-sm text-brand-text/70 mb-4 md:mb-0">
             © {new Date().getFullYear()} Vaultopolis
           </div>
 
           <div className="flex items-center">
+            {/* TSHOT Info Link */}
+            <button
+              onClick={() => navigate("/tshot")}
+              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors mr-6"
+            >
+              TSHOT – Tokenized Top Shot Liquidity
+            </button>
+
             {/* Terms of Service Button */}
             <button
               onClick={() => navigate("/terms")}
-              className="
-                text-brand-text/70
-                hover:text-brand-text
-                transition-colors
-              "
+              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors mr-6"
             >
               Terms of Service
             </button>
 
-            {/* Link to X Account (text is "Follow on", then white X logo) */}
+            {/* Link to X Account */}
             <a
               href="https://x.com/vaultopolis"
               target="_blank"
               rel="noopener noreferrer"
-              className="
-                inline-flex
-                items-center
-                text-brand-text/70
-                hover:text-brand-text
-                transition-colors
-                ml-6
-              "
+              className="inline-flex items-center text-brand-text/70 hover:text-brand-text transition-colors"
             >
               <span className="mr-1">Follow on</span>
-              {/* Inline white X Logo */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 300 300.251"
