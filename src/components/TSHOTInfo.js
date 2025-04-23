@@ -26,13 +26,17 @@ function TSHOTInfo() {
           {/* Left column: Text content */}
           <div className="order-2 md:order-1">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              What is TSHOT?
+              TSHOT
+              <br />
+              Tokenized Top Shot Liquidity on Flow
             </h1>
+
             <p className="text-sm sm:text-base text-brand-text/80 mb-6 max-w-xl">
-              TSHOT is a fungible token backed by Top Shot Common/Fandom
-              Moments. Deposit Moments at a 1:1 ratio to receive TSHOT—or redeem
-              TSHOT for random Moments from the TSHOT Vault. Instantly buy or
-              sell Moments in bulk, earn passive yield, and more.
+              <strong>TSHOT</strong> is a fungible token backed by Top Shot
+              Common/Fandom Moments. Deposit Moments at a 1:1 ratio to receive
+              TSHOT—or redeem TSHOT for random Moments from the TSHOT Vault.
+              Instantly buy or sell Moments in bulk, earn passive yield, and
+              more.
             </p>
             <a
               href="/swap"

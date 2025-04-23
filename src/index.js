@@ -2,14 +2,16 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "react-query";
+import { HelmetProvider } from "react-helmet-async"; // ← NEW
 import App from "./App";
 import * as fcl from "@onflow/fcl";
 import "./index.css";
 
-// 1) Immediately set .dark if needed, to avoid flicker
+/* ────────────────────────────────────────────────────────── */
+/*  1)  Dark-mode shim – unchanged                            */
+/* ────────────────────────────────────────────────────────── */
 (function applyThemeImmediately() {
   let storedMode = localStorage.getItem("themeMode");
-  // default to "dark" if no preference
   if (!storedMode) {
     storedMode = "dark";
     localStorage.setItem("themeMode", "dark");
@@ -19,20 +21,15 @@ import "./index.css";
     const systemPrefersDark = window.matchMedia(
       "(prefers-color-scheme: dark)"
     ).matches;
-    if (systemPrefersDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  } else if (storedMode === "dark") {
-    document.documentElement.classList.add("dark");
+    document.documentElement.classList.toggle("dark", systemPrefersDark);
   } else {
-    // "light"
-    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.toggle("dark", storedMode === "dark");
   }
 })();
 
-// 2) Flow config (unchanged from your snippet)
+/* ────────────────────────────────────────────────────────── */
+/*  2)  Flow SDK config – unchanged                           */
+/* ────────────────────────────────────────────────────────── */
 fcl
   .config()
   .put("flow.network", "mainnet")
@@ -54,13 +51,18 @@ fcl
     "0x55ad22f01ef568a1",
   ]);
 
-// 3) Create React root
+/* ────────────────────────────────────────────────────────── */
+/*  3)  React root                                            */
+/* ────────────────────────────────────────────────────────── */
 const queryClient = new QueryClient();
-const container = document.getElementById("root");
-const root = createRoot(container);
+const root = createRoot(document.getElementById("root"));
 
 root.render(
-  <QueryClientProvider client={queryClient}>
-    <App />
-  </QueryClientProvider>
+  <HelmetProvider>
+    {" "}
+    {/* NEW */}
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </HelmetProvider>
 );

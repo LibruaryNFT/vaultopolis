@@ -1,9 +1,5 @@
 import React, { useEffect } from "react";
-import {
-  createBrowserRouter,
-  RouterProvider,
-  Navigate,
-} from "react-router-dom";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import UserContext from "./context/UserContext";
 
 import TSHOT from "./pages/TSHOT";
@@ -27,7 +23,14 @@ function enforceHTTPS() {
 
 // Create the router for normal operation
 const router = createBrowserRouter([
-  { path: "/", element: <Navigate to="/swap" replace /> },
+  {
+    path: "/",
+    element: (
+      <Layout>
+        <Swap />
+      </Layout>
+    ),
+  },
   {
     path: "/swap",
     element: (

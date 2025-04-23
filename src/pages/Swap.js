@@ -9,6 +9,8 @@ import AccountSelection from "../components/AccountSelection";
 import TransactionModal from "../components/TransactionModal";
 import { AnimatePresence } from "framer-motion";
 import MomentCard from "../components/MomentCard";
+import { Helmet } from "react-helmet-async";
+import { ChevronDown } from "lucide-react";
 
 /** Utility to get total TSHOT balance across parent + child. */
 function getTotalTSHOTBalance(accountData) {
@@ -80,6 +82,8 @@ const Swap = () => {
 
   // Excluded NFT IDs (committed for TSHOT, so we don’t see them again)
   const [excludedNftIds, setExcludedNftIds] = useState([]);
+
+  const [benefitsOpen, setBenefitsOpen] = useState(false);
 
   // Whenever fromAsset changes, auto-switch toAsset
   useEffect(() => {
@@ -368,6 +372,16 @@ const Swap = () => {
 
   return (
     <>
+      {/* ────────────── SEO HEAD (new) ────────────── */}
+      <Helmet>
+        <title>Vaultopolis | Swap TSHOT Tokens</title>
+        <meta
+          name="description"
+          content="Swap Top Shot Moments for TSHOT or redeem TSHOT for new Moments instantly on the Flow blockchain."
+        />
+        <link rel="canonical" href="https://vaultopolis.com/swap" />
+      </Helmet>
+
       {/* Transaction Modal */}
       <AnimatePresence>
         {showModal && transactionData.status && (
@@ -523,6 +537,84 @@ const Swap = () => {
 
         {/* ========== SWAP ACTION PANEL ========== */}
         <div>{renderSwapPanel()}</div>
+
+        {/* ─────────────  QUICK BENEFITS  ───────────── */}
+        <details
+          onToggle={(e) => setBenefitsOpen(e.target.open)}
+          className="
+    max-w-md mx-auto mt-2
+    bg-brand-primary
+    rounded-lg p-2
+    shadow-md shadow-black/30
+  "
+        >
+          <summary
+            className="
+    flex items-center justify-center
+    cursor-pointer
+    text-sm font-semibold text-brand
+    mb-2
+  "
+          >
+            <ChevronDown
+              className={`
+      w-4 h-4
+      transform transition-transform duration-200
+      ${benefitsOpen ? "rotate-180" : ""}
+    `}
+            />
+            <span className="mx-2">TSHOT Benefits</span>
+            <ChevronDown
+              className={`
+      w-4 h-4
+      transform transition-transform duration-200
+      ${benefitsOpen ? "rotate-180" : ""}
+    `}
+            />
+          </summary>
+
+          <ul className="list-disc list-inside space-y-1 text-xs text-brand-text/90 leading-snug">
+            <li>
+              <strong>Instant liquidity</strong> — Swap TSHOT ↔ FLOW anytime
+              on&nbsp;
+              <a
+                href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-flow-light"
+              >
+                Increment.fi
+              </a>
+              &nbsp;or&nbsp;
+              <a
+                href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-flow-light"
+              >
+                PunchSwap
+              </a>
+              .
+            </li>
+            <li>
+              <strong>Bulk buying</strong> — Burn TSHOT for fresh Common /
+              Fandom Moments.
+            </li>
+            <li>
+              <strong>Passive yield</strong> — Provide liquidity and earn
+              fees&nbsp;
+              <a
+                href="https://app.increment.fi/liquidity/add"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-flow-light"
+              >
+                on Increment.fi
+              </a>
+              .
+            </li>
+          </ul>
+        </details>
       </div>
 
       {fromAsset === "TopShot Common / Fandom" &&

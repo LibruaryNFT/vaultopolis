@@ -16,6 +16,8 @@ import MomentSelection from "../components/MomentSelection";
 import MomentCard from "../components/MomentCard";
 import TransactionModal from "../components/TransactionModal";
 
+import { Helmet } from "react-helmet-async";
+
 const MAX_TRANSFER_COUNT = 500;
 
 const Transfer = () => {
@@ -283,6 +285,20 @@ const Transfer = () => {
 
   return (
     <>
+      {/* ───── SEO HEAD ───── */}
+      <Helmet>
+        <title>Bulk NFT Transfer & Bridge | Vaultopolis</title>
+        <meta
+          name="description"
+          content="Bulk-transfer up to 500 NBA Top Shot Moments between Flow wallets or bridge them to Flow EVM in a single, secure transaction."
+        />
+        <link rel="canonical" href="https://vaultopolis.com/transfer" />
+      </Helmet>
+
+      <h1 className="sr-only">
+        Bulk NFT Transfer and Flow EVM Bridge for Top Shot Moments
+      </h1>
+
       {/* 1) TOP PANEL (like Swap: max-w-md) */}
       <div className="max-w-md mx-auto mt-8 space-y-4">
         {/* (A) Transfer Destination Panel */}
