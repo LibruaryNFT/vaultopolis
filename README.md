@@ -1,113 +1,79 @@
-# Vaultopolis
+# Vaultopolis Frontend
 
-**Vaultopolis** is a decentralized protocol on the Flow Blockchain that enables users to seamlessly swap NBA Top Shot Moments for the fungible token **TSHOT**, and vice versa. Built on Cadence 1.0 (Crescendo update), it leverages on-chain randomness and sharded storage to ensure trustless, efficient, and secure swaps.
+This repository contains the React frontend application for Vaultopolis, a decentralized protocol on the Flow Blockchain for swapping NBA Top Shot Moments and TSHOT tokens.
+
+This application provides the user interface for interacting with the Vaultopolis smart contracts.
 
 ---
 
 ## Features
 
-### Core Features
-
-- **One-to-One Swaps**  
-  Exchange Top Shot Moments for TSHOT tokens, or TSHOT tokens for Top Shot Moments, with a 1:1 conversion ratio.
-
-- **Batch Swaps**  
-  Swap multiple moments for tokens, or tokens for moments, in a single transaction.
-
-- **On-Chain Randomness**  
-  Randomly select moments from a secure NFT vault, ensuring fairness in token-to-moment swaps.
-
-- **Sharded NFT Storage**  
-  Efficient management of large collections of Top Shot Moments through sharded storage.
+- **Connect Wallet:** Connects to various Flow wallets (Dapper, Blocto, Flow Core, etc.).
+- **Swap Interface:** Allows users to initiate swaps between NBA Top Shot Moments and TSHOT tokens.
+- **Moment Selection:** Browse and select eligible Top Shot moments from the user's collection.
+- **TSHOT Balance:** View user's TSHOT token balance.
+- **Transaction Tracking:** Provides feedback on pending and completed transactions.
+- **Hybrid Custody Interaction:** (If applicable via UI) Interface for managing child accounts or related features.
+- **Stats/Info Pages:** Displays relevant protocol information or user stats.
 
 ---
 
-## Contracts Overview
+## Tech Stack
 
-Vaultopolis is powered by the following core contracts:
-
-1. **TSHOTExchange**  
-   Facilitates the trustless exchange of Top Shot Moments for TSHOT tokens, supporting both single and batch swaps.
-
-2. **TSHOT**  
-   Implements the TSHOT fungible token, adhering to Flow's Fungible Token standards. Supports minting, transferring, and burning.
-
-3. **TopShotTiers**  
-   Classifies Top Shot Moments into tiers (e.g., common, rare, legendary) for swap validation.
-
-4. **TopShotShardedCollectionV2**  
-   Provides efficient storage and retrieval of large collections of NFTs using a sharded structure.
+- React
+- Tailwind CSS
+- Flow Client Library (FCL JS)
+- Additional Javascript libraries (as defined in `package.json`)
 
 ---
 
-## Commands
+## Getting Started
 
-Refer to the following sections for detailed commands and their usage:
+### Prerequisites
 
-- [Exchange Commands](./SWAP.md)  
-  Commands related to swapping moments and tokens.
+- Node.js (LTS version recommended)
+- npm or yarn
 
-- [Sharding Commands](./SHARDING.md)  
-  Commands for interacting with the sharded collection.
+### Installation & Setup
 
-- [Tiers Commands](./TIERS.md)  
-  Commands for managing and querying NFT tiers.
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd vaultopolis-web
+    ```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    # or
+    yarn install
+    ```
+3.  **Environment Variables:**
+    - Create a `.env` file in the root directory by copying `.env.example` (if one exists) or creating it manually.
+    - Populate it with the necessary environment variables for the frontend. These typically start with `REACT_APP_` and might include:
+      - `REACT_APP_FLOW_ACCESS_NODE`: URL for the Flow Access Node (e.g., Emulator: `http://127.0.0.1:8888`, Testnet: `https://rest-testnet.onflow.org`)
+      - `REACT_APP_WALLET_DISCOVERY`: URL for FCL Wallet Discovery (e.g., Emulator: `http://localhost:8701/fcl/authn`, Testnet: `https://fcl-discovery.onflow.org/testnet/authn`)
+      - `REACT_APP_CONTRACT_ADDRESS_...`: Addresses of the _deployed_ Vaultopolis contracts (TSHOT, TSHOTExchange, etc.) on the target network. **Get these after deploying from the `vaultopolis-contracts` repo.**
+      - `REACT_APP_MAINTENANCE_MODE`: Set to `true` or `false` (requires rebuild/deploy on Heroku, see `App.js`).
+      - `REACT_APP_COMING_SOON_MODE`: Set to `true` or `false` (requires rebuild/deploy on Heroku, see `App.js`).
+    - **Never commit sensitive keys to `.env` or the repository.**
 
-- [Utilities Commands](./UTILITIES.md)  
-  Helper functions for vaults, randomness, and other protocol interactions.
+### Running Locally
 
-- [Liquidity Pool Commands](./LIQUIDITY.md)  
-  Managing liquidity for TSHOT trading.
-
-- [Deployment Commands](./DEPLOYMENT.md)  
-  Instructions for deploying the contracts.
-
----
-
-## Core Contracts
-
-The following contracts power the Vaultopolis ecosystem:
-
-1. **TSHOTExchange**  
-   [View Full Contract](./contracts/TSHOTExchange.cdc)
-
-2. **TSHOT**  
-   [View Full Contract](./contracts/TSHOT.cdc)
-
-3. **TopShotTiers**  
-   [View Full Contract](./contracts/TopShotTiers.cdc)
-
-4. **TopShotShardedCollectionV2**  
-   [View Full Contract](./contracts/TopShotShardedCollectionV2.cdc)
-
-For more details on Flow's NFT and token standards, visit the [Flow Documentation](https://developers.flow.com/).
-
----
-
-## References
-
-- **TopShot Contracts**:  
-  [FastBreakV1, PackNFT, and more](https://contractbrowser.com/account/0x0b2a3299cc857e29/contracts)
-
-- **Marketplace Contracts**:  
-  [TopShotMarketV2, TopShotMarketV3](https://contractbrowser.com/account/0xc1e4f4f4c4257510/contracts)
+1.  **Start the development server:**
+    ```bash
+    npm start
+    # or
+    yarn start
+    ```
+2.  Open your browser to `http://localhost:3000` (or the port specified).
+3.  Ensure your `.env` file points to the desired Flow network (Emulator, Testnet) where the corresponding Vaultopolis contracts are deployed. Make sure the Flow Emulator is running if targeting it.
 
 ---
 
-## License
+## Building for Production
 
-This project is licensed under the [MIT License](./LICENSE).
-
-Testnet Addresses
-https://testnet.flowscan.io/account/0x332ffc0ae9bba9c1
-
-## Flow Connect Endpoints
-
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-sets
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-sets?setID=56
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-editions
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-editions?setID=1&playID=1
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-plays
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-plays?playID=2
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-tiers
-- https://flowconnectbackend-864654c6a577.herokuapp.com/topshot-tiers?setID=2&playID=95
+```bash
+npm run build
+# or
+yarn build
+```
