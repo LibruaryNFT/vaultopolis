@@ -2,7 +2,7 @@ export const getReceiptDetails = `
 
 import TSHOTExchange from 0x05b67ba314000b2d
 
-// Script that retrieves specific fields from the Receipt associated with MomentSwapTSHOT
+// Script that retrieves specific fields from the Receipt associated with TSHOTExchange
 access(all) fun main(userAddress: Address): {String: AnyStruct} {
     // Get the account of the user
     let userAccount = getAccount(userAddress)
