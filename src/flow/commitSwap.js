@@ -6,42 +6,43 @@ import TSHOTExchange from 0x05b67ba314000b2d
 
 transaction(betAmount: UFix64) {
 
-    prepare(signer: auth(BorrowValue, SaveValue, Capabilities) &Account) {
+    prepare(signer: auth(Storage, BorrowValue, Capabilities) &Account) {
 
-        // -------------------------------------------------
-        // Enforce a maximum bet of 50 TSHOT
-        // -------------------------------------------------
+        // enforce 50-TSHOT limit (unchanged)
         if betAmount > 50.0 {
             panic("Cannot commit more than 50 TSHOT.")
         }
 
-        // Withdraw the bet amount from the TSHOT token vault
-        let tshotVault = signer.storage.borrow<auth(FungibleToken.Withdraw) &TSHOT.Vault>(from: /storage/TSHOTTokenVault)!
-        let bet <- tshotVault.withdraw(amount: betAmount)
-        
-        // Commit the bet and get a receipt
-        let receipt <- TSHOTExchange.commitSwap(bet: <-bet)
-        
-        // Check if there’s already a receipt stored
-        if signer.storage.type(at: TSHOTExchange.ReceiptStoragePath) != nil {
-            panic("Storage collision at path=".concat(TSHOTExchange.ReceiptStoragePath.toString()).concat(" a Receipt is already stored!"))
-        }
+        // withdraw bet from the user's vault
+        let vaultRef = signer.storage
+            .borrow<auth(FungibleToken.Withdraw) & TSHOT.Vault>(from: /storage/TSHOTTokenVault)
+            ?? panic("Cannot borrow TSHOT vault")
+        let bet <- vaultRef.withdraw(amount: betAmount)
 
-        // Save the receipt to storage
-        signer.storage.save(<-receipt, to: TSHOTExchange.ReceiptStoragePath)
-        
-        // Check if a public capability already exists
+        let receipt <- TSHOTExchange.commitSwap(
+            payer: signer.address,
+            bet:   <- bet
+        )
+
+        // save receipt and (optionally) publish capability
+        if signer.storage.type(at: TSHOTExchange.ReceiptStoragePath) != nil {
+            panic("Receipt already stored at ".concat(TSHOTExchange.ReceiptStoragePath.toString()))
+        }
+        signer.storage.save(<- receipt, to: TSHOTExchange.ReceiptStoragePath)
+
         if signer.capabilities.borrow<&TSHOTExchange.Receipt>(/public/TSHOTReceipt) == nil {
-            // Issue a new capability only if it doesn't exist
-            let receiptCap = signer.capabilities.storage.issue<&TSHOTExchange.Receipt>(TSHOTExchange.ReceiptStoragePath)
-            signer.capabilities.publish(receiptCap, at: /public/TSHOTReceipt)
+            let cap = signer.capabilities.storage.issue<&TSHOTExchange.Receipt>(
+                TSHOTExchange.ReceiptStoragePath
+            )
+            signer.capabilities.publish(cap, at: /public/TSHOTReceipt)
         }
     }
 
     execute {
-        log("Receipt stored and public capability issued if it didn't already exist.")
+        log("Commit successful: receipt saved and capability published.")
     }
 }
+
 
 
 `;

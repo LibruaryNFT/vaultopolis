@@ -3,18 +3,32 @@ export const revealSwap = `
 import TSHOT from 0x05b67ba314000b2d
 import TSHOTExchange from 0x05b67ba314000b2d
 
-/// Retrieves the saved Receipt and redeems it to reveal the coin toss result, depositing winnings with any luck
+/// Redeem a stored Receipt to get NFTs back
+/// recipient the account that should receive the Moments
 ///
-transaction(address: Address) {
+transaction(recipient: Address) {
 
-    prepare(signer: auth(BorrowValue, LoadValue) &Account) {
-        // Load my receipt from storage
-        let receipt <- signer.storage.load<@TSHOTExchange.Receipt>(from: TSHOTExchange.ReceiptStoragePath)
-            ?? panic("No Receipt found in storage at path=".concat(TSHOTExchange.ReceiptStoragePath.toString()))
+    prepare(signer: auth(Storage, BorrowValue, LoadValue) &Account) {
 
-        // Use the provided address to redeem the receipt
-        TSHOTExchange.swapTSHOTForNFTs(address: address, receipt: <-receipt)
+        // Load the stored Receipt resource
+        let receipt <- signer.storage.load<@TSHOTExchange.Receipt>(
+            from: TSHOTExchange.ReceiptStoragePath
+        ) ?? panic(
+            "No Receipt found at ".concat(TSHOTExchange.ReceiptStoragePath.toString())
+        )
+
+        // Call the updated withdraw function (payer = signer)
+        TSHOTExchange.swapTSHOTForNFTs(
+            payer:      signer.address,
+            recipient:  recipient,
+            receipt:    <-receipt
+        )
+    }
+
+    execute {
+        log("Receipt redeemed; NFTs deposited to recipient.")
     }
 }
+
 
 `;

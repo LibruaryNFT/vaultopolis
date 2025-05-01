@@ -8,46 +8,43 @@ transaction(childAddress: Address, betAmount: UFix64) {
 
     prepare(signer: auth(BorrowValue, SaveValue, Capabilities) &Account) {
 
-        // -------------------------------------------------
-        // Enforce a maximum bet of 50 TSHOT
-        // -------------------------------------------------
+        // ── 50-token limit ────────────────────────────────────────────────
         if betAmount > 50.0 {
             panic("Cannot commit more than 50 TSHOT.")
         }
-            
-        // Borrow the HybridCustody manager from the parent's storage.
+
+        // ── borrow child’s vault via HybridCustody ────────────────────────
         let managerRef = signer
             .storage
             .borrow<&HybridCustody.Manager>(from: HybridCustody.ManagerStoragePath)
-            ?? panic("Could not borrow HybridCustody.Manager from signer's storage")
-        
-        // Borrow a reference to the specified child account.
-        let childAccount = managerRef.borrowAccount(addr: childAddress)
-            ?? panic("Signer does not have access to the specified child account")
-        
-        // Borrow the child's TSHOT token vault.
-        let childVaultRef = childAccount
+            ?? panic("HybridCustody.Manager not found")
+
+        let childAcct   = managerRef.borrowAccount(addr: childAddress)
+            ?? panic("Parent lacks access to child account")
+
+        let childVault  = childAcct
             .borrow<&TSHOT.Vault>(from: /storage/TSHOTTokenVault)
-            ?? panic("Could not borrow child's TSHOT vault from storage")
-        
-        // Withdraw the bet amount from the child's TSHOT vault.
-        let bet <- childVaultRef.withdraw(amount: betAmount)
-        
-        // Commit the bet and receive a Receipt.
-        let receipt <- TSHOTExchange.commitSwap(bet: <-bet)
-        
-        // Deposit the receipt into the child's storage.
-        // This helper function is assumed to be provided by your HybridCustody.Manager.
+            ?? panic("Child TSHOT vault not found")
+
+        let bet <- childVault.withdraw(amount: betAmount)
+
+        let receipt <- TSHOTExchange.commitSwap(
+            payer: signer.address,
+            bet:   <- bet
+        )
+
+        // ── store receipt for the child ──────────────────────────────────
         managerRef.depositReceipt(
-            child: childAddress,
-            receipt: <-receipt,
+            child:              childAddress,
+            receipt:            <- receipt,
             receiptStoragePath: TSHOTExchange.ReceiptStoragePath,
-            receiptPublicPath: /public/TSHOTReceipt
+            receiptPublicPath:  /public/TSHOTReceipt
         )
     }
 
     execute {
-        log("Child commit complete: Receipt deposited in child storage and public capability issued if needed.")
+        log("Child commit complete; receipt saved in child storage.")
     }
 }
+
 `;

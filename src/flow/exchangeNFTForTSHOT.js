@@ -8,69 +8,56 @@ import FungibleToken from 0xf233dcee88fe0abe
 
 transaction(nftIDs: [UInt64]) {
 
+    // resource array that will hold the withdrawn Moments
     let nfts: @[TopShot.NFT]
     let signerAddress: Address
 
-    prepare(signer: auth(Capabilities, Storage) &Account) {
-
-        // --------------------------------------------------
-        // Enforce maximum of 200 NFTs
-        // --------------------------------------------------
+    prepare(signer: auth(Storage, Capabilities) &Account) {
         pre {
-            nftIDs.length <= 200: "Cannot swap more than 200 NFTs at once."
+            nftIDs.length > 0      : "No NFT IDs supplied."
+            nftIDs.length <= 200   : "Cannot swap more than 200 NFTs at once."
         }
-            
-        // Store the signer's address for use in the execute phase
+
         self.signerAddress = signer.address
+        self.nfts <- [] as @[TopShot.NFT]
 
-        // Check if the user already has a TSHOT Vault set up in their storage
-        let tokenVaultPath = /storage/TSHOTTokenVault
-        let tokenReceiverPath = /public/TSHOTTokenReceiver
-        let tokenBalancePath = /public/TSHOTTokenBalance
+        /* ── Ensure the signer has a TSHOT vault set up ── */
+        let vaultPath      = /storage/TSHOTTokenVault
+        let receiverPub    = /public/TSHOTTokenReceiver
+        let balancePub     = /public/TSHOTTokenBalance
 
-        if signer.storage.borrow<&TSHOT.Vault>(from: tokenVaultPath) == nil {
-            // If the Vault does not exist, create a new Vault and set up the public capabilities
-            let vault <- TSHOT.createEmptyVault(vaultType: Type<@TSHOT.Vault>())
-
-            // Save the Vault in the user's storage
-            signer.storage.save(<-vault, to: tokenVaultPath)
-
-            // Create a public capability for the stored Vault exposing the deposit method
-            let receiverCap = signer.capabilities.storage.issue<&{FungibleToken.Receiver}>(tokenVaultPath)
-            signer.capabilities.publish(receiverCap, at: tokenReceiverPath)
-
-            // Create a public capability for the stored Vault exposing the balance field
-            let balanceCap = signer.capabilities.storage.issue<&{FungibleToken.Balance}>(tokenVaultPath)
-            signer.capabilities.publish(balanceCap, at: tokenBalancePath)
-
-            log("Vault setup complete for the user.")
-        } else {
-            log("Vault already exists for the user.")
+        if signer.storage.borrow<&TSHOT.Vault>(from: vaultPath) == nil {
+            let empty <- TSHOT.createEmptyVault(vaultType: Type<@TSHOT.Vault>())
+            signer.storage.save(<-empty, to: vaultPath)
+            signer.capabilities.publish(
+                signer.capabilities.storage.issue<&{FungibleToken.Receiver}>(vaultPath),
+                at: receiverPub
+            )
+            signer.capabilities.publish(
+                signer.capabilities.storage.issue<&{FungibleToken.Balance}>(vaultPath),
+                at: balancePub
+            )
         }
 
-        // Borrow the user's TopShot collection from their storage using the new Cadence 1.0 syntax
-        let collectionRef = signer.storage
-            .borrow<auth(NonFungibleToken.Withdraw) &TopShot.Collection>(from: /storage/MomentCollection)
-            ?? panic("Could not borrow the user's TopShot collection")
+        /* ── Withdraw the requested NFTs ── */
+        let collection = signer.storage
+            .borrow<auth(NonFungibleToken.Withdraw) &TopShot.Collection>(
+                from: /storage/MomentCollection
+            ) ?? panic("Signer has no MomentCollection")
 
-        // Initialize an empty array to store the NFTs
-        self.nfts <- []
-
-        // For each ID, withdraw the NFT and append it to the array
-        for nftID in nftIDs {
-            let nft <- collectionRef.withdraw(withdrawID: nftID) as! @TopShot.NFT
+        for id in nftIDs {
+            let nft <- collection.withdraw(withdrawID: id) as! @TopShot.NFT
             self.nfts.append(<-nft)
         }
     }
 
     execute {
-        // Call the swapNFTsForTSHOT function in the MomentSwap contract
         TSHOTExchange.swapNFTsForTSHOT(
-            nftIDs: <-self.nfts,
-            address: self.signerAddress
+            payer:     self.signerAddress,
+            nftIDs:    <- self.nfts,
+            recipient: self.signerAddress
         )
     }
-
 }
 
 `;
