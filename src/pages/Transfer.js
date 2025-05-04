@@ -166,7 +166,12 @@ const Transfer = () => {
           case "SEALED":
             newStatus = "Sealed";
             break;
+          /* ---------- added to satisfy ESLint default-case ---------- */
+          default:
+            newStatus = txStatus.statusString || "Processing...";
+            break;
         }
+
         const error = txStatus.errorMessage?.length
           ? txStatus.errorMessage
           : null;

@@ -12,31 +12,31 @@ const TIER_OPTIONS = [
 const ALL_SERIES_OPTIONS = [0, 2, 3, 4, 5, 6, 7];
 
 function TSHOTVault() {
-  // ---------- Data from server ----------
+  /* ---------- Data from server ---------- */
   const [vaultData, setVaultData] = useState([]); // items for the current page
   const [totalCount, setTotalCount] = useState(0); // total matching docs
   const [summary, setSummary] = useState(null); // entire vault summary
 
-  // ---------- Loading & error ----------
+  /* ---------- Loading & error ---------- */
   const [loadingVault, setLoadingVault] = useState(false);
   const [vaultError, setVaultError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
-  // ---------- Filter states ----------
+  /* ---------- Filter states ---------- */
   const [selectedTiers, setSelectedTiers] = useState(
     TIER_OPTIONS.map((t) => t.value)
   );
   const [selectedSeries, setSelectedSeries] = useState(ALL_SERIES_OPTIONS);
   const [onlySpecialSerials, setOnlySpecialSerials] = useState(false);
 
-  // ---------- Pagination ----------
+  /* ---------- Pagination ---------- */
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
   const [maxPages, setMaxPages] = useState(1);
 
-  // --------------------------------------------------
-  // 1) Fetch vault data whenever filters or page changes
-  // --------------------------------------------------
+  /* --------------------------------------------------
+     1) Fetch vault data whenever filters or page changes
+     -------------------------------------------------- */
   useEffect(() => {
     if (selectedSeries.length === 0) {
       // No series selected => no results
@@ -117,26 +117,26 @@ function TSHOTVault() {
     }
   }
 
-  // --------------------------------------------------
-  // 2) Prevent going past max pages
-  // --------------------------------------------------
+  /* --------------------------------------------------
+     2) Prevent going past max pages
+     -------------------------------------------------- */
   useEffect(() => {
     if (currentPage > maxPages && maxPages > 0) {
       setCurrentPage(maxPages);
     }
   }, [maxPages, currentPage]);
 
-  // --------------------------------------------------
-  // 3) Page navigation (just Prev/Next)
-  // --------------------------------------------------
+  /* --------------------------------------------------
+     3) Page navigation (Prev/Next)
+     -------------------------------------------------- */
   function goToPage(pageNum) {
     const page = Math.max(1, Math.min(pageNum, maxPages));
     setCurrentPage(page);
   }
 
-  // --------------------------------------------------
-  // 4) Render simpler pagination controls
-  // --------------------------------------------------
+  /* --------------------------------------------------
+     4) Render simpler pagination controls
+     -------------------------------------------------- */
   function renderPaginationControls() {
     if (maxPages <= 1) return null;
 
@@ -163,9 +163,9 @@ function TSHOTVault() {
     );
   }
 
-  // --------------------------------------------------
-  // 5) Filter toggle handlers
-  // --------------------------------------------------
+  /* --------------------------------------------------
+     5) Filter toggle handlers
+     -------------------------------------------------- */
   function toggleTier(tierVal) {
     setSelectedTiers((prev) =>
       prev.includes(tierVal)
@@ -195,12 +195,16 @@ function TSHOTVault() {
     setRetryCount((prev) => prev + 1);
   }
 
-  // --------------------------------------------------
-  // 6) Main render
-  // --------------------------------------------------
+  /* --------------------------------------------------
+     6) Main render
+     -------------------------------------------------- */
   return (
     <div className="bg-brand-primary text-brand-text p-3 rounded-lg">
       <h3 className="text-lg font-bold mb-2">TSHOT Vault</h3>
+      {/* ---- NEW NOTE ---- */}
+      <p className="text-xs text-brand-text/60 italic mb-3">
+        Vault data refreshes every&nbsp;4&nbsp;hours.
+      </p>
 
       {/* Optional: Display a vault-level summary if available */}
       {summary && (
