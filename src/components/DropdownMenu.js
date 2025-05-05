@@ -1,312 +1,206 @@
-// src/components/DropdownMenu.jsx
-
+/*  src/components/DropdownMenu.jsx
+    ------------------------------------------------------------
+    Lightweight wallet pop-over (no full UserContext refresh)
+    ------------------------------------------------------------
+*/
 import React, { useContext, useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { UserDataContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
-import {
-  FaClipboard,
-  FaSignOutAlt,
-  FaSpinner,
-  FaSun,
-  FaMoon,
-} from "react-icons/fa";
 
-/** Helper for skeleton placeholders */
+/* Cadence scripts (tiny reads) */
+import { getFLOWBalance } from "../flow/getFLOWBalance";
+import { getTSHOTBalance } from "../flow/getTSHOTBalance";
+import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionLength";
+import { getChildren } from "../flow/getChildren";
+
+import { FaSignOutAlt, FaSpinner, FaSun, FaMoon } from "react-icons/fa";
+
+/* ---------- skeleton helper ---------- */
 const ValueOrSkeleton = ({
   value,
   className = "",
   skeletonWidth = "w-20",
   skeletonHeight = "h-6",
-}) => {
-  if (value !== undefined && value !== null) {
-    return <span className={className}>{value}</span>;
-  }
-  return (
+}) =>
+  value !== undefined && value !== null ? (
+    <span className={className}>{value}</span>
+  ) : (
     <div
       className={`${skeletonWidth} ${skeletonHeight} bg-brand-secondary animate-pulse rounded`}
     />
   );
-};
 
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
-  const {
-    accountData,
-    isRefreshing,
-    isLoadingChildren,
-    dispatch,
-    user,
-    refreshUserData,
-  } = useContext(UserDataContext);
+  const navigate = useNavigate();
+  const { user, dispatch, accountData } = useContext(UserDataContext);
 
-  const {
-    parentAddress,
-    flowBalance,
-    nftDetails,
-    tshotBalance,
-    childrenData,
-    hasCollection,
-  } = accountData;
+  /* ---------- parent address ---------- */
+  const parentAddr = accountData.parentAddress || user?.addr;
+  const loggedIn = !!parentAddr;
 
+  /* ---------- quick stats state ---------- */
+  const [stats, setStats] = useState({
+    loading: true,
+    flow: 0,
+    tshot: 0,
+    moments: 0,
+  });
+
+  /* ---------- fetch quick stats ---------- */
+  useEffect(() => {
+    if (!loggedIn) return;
+
+    let mounted = true;
+
+    const fetchTotals = async () => {
+      try {
+        /* 1️⃣ get child addresses (may throw if no custody set up) */
+        let childAddrs = [];
+        try {
+          childAddrs = await fcl.query({
+            cadence: getChildren,
+            args: (arg, t) => [arg(parentAddr, t.Address)],
+          });
+        } catch (_) {
+          childAddrs = [];
+        }
+
+        const addresses = [parentAddr, ...childAddrs];
+
+        /* 2️⃣ run three tiny scripts for every address in parallel */
+        const perAddr = await Promise.all(
+          addresses.map(async (addr) => {
+            const [flow, tshot, moments] = await Promise.all([
+              fcl.query({
+                cadence: getFLOWBalance,
+                args: (arg, t) => [arg(addr, t.Address)],
+              }),
+              fcl.query({
+                cadence: getTSHOTBalance,
+                args: (arg, t) => [arg(addr, t.Address)],
+              }),
+              fcl.query({
+                cadence: getTopShotCollectionIDs,
+                args: (arg, t) => [arg(addr, t.Address)],
+              }),
+            ]);
+            return {
+              flow: Number(flow),
+              tshot: Number(tshot),
+              moments: Number(moments),
+            };
+          })
+        );
+
+        /* 3️⃣ aggregate totals */
+        const totals = perAddr.reduce(
+          (acc, cur) => ({
+            flow: acc.flow + cur.flow,
+            tshot: acc.tshot + cur.tshot,
+            moments: acc.moments + cur.moments,
+          }),
+          { flow: 0, tshot: 0, moments: 0 }
+        );
+
+        if (mounted) setStats({ loading: false, ...totals });
+      } catch (err) {
+        console.error("Dropdown quick-stats error:", err);
+        if (mounted)
+          setStats({ loading: false, flow: 0, tshot: 0, moments: 0 });
+      }
+    };
+
+    fetchTotals();
+    return () => {
+      mounted = false;
+    };
+  }, [parentAddr, loggedIn]);
+
+  /* ---------- theme (local) ---------- */
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("themeMode") || "dark"
+  );
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    localStorage.setItem("themeMode", theme);
+  }, [theme]);
+
+  /* ---------- click-outside ---------- */
   const popoutRef = useRef(null);
-
-  // THEME
-  const [themeMode, setThemeMode] = useState(null);
-
   useEffect(() => {
-    let storedMode = localStorage.getItem("themeMode");
-    if (!storedMode) {
-      storedMode = "dark";
-      localStorage.setItem("themeMode", "dark");
-    }
-    setThemeMode(storedMode);
-  }, []);
-
-  useEffect(() => {
-    if (themeMode === null) return;
-    applyTheme(themeMode);
-  }, [themeMode]);
-
-  const applyTheme = (mode) => {
-    if (mode === "dark") {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("themeMode", "dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("themeMode", "light");
-    }
-  };
-  const setTheme = (mode) => setThemeMode(mode);
-
-  // click outside => close
-  useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClick = (e) => {
       if (
         popoutRef.current &&
-        !popoutRef.current.contains(event.target) &&
+        !popoutRef.current.contains(e.target) &&
         buttonRef.current &&
-        !buttonRef.current.contains(event.target)
+        !buttonRef.current.contains(e.target)
       ) {
         closeMenu();
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [closeMenu, buttonRef]);
 
-  // Logout
-  const handleLogout = () => {
+  /* ---------- actions ---------- */
+  const logout = () => {
     fcl.unauthenticate();
     dispatch({ type: "RESET_STATE" });
     closeMenu();
   };
-
-  // Summaries
-  const calculateTotalTopShotCounts = (nfts) => (nfts ? nfts.length : 0);
-
-  const calculateAllAccountTotals = () => {
-    const totalFlow =
-      parseFloat(flowBalance || 0) +
-      childrenData.reduce((sum, c) => sum + parseFloat(c.flowBalance || 0), 0);
-
-    const totalTopShotCounts =
-      calculateTotalTopShotCounts(nftDetails) +
-      childrenData.reduce(
-        (sum, c) => sum + calculateTotalTopShotCounts(c.nftDetails),
-        0
-      );
-
-    const totalTSHOT =
-      parseFloat(tshotBalance || 0) +
-      childrenData.reduce((sum, c) => sum + parseFloat(c.tshotBalance || 0), 0);
-
-    return { totalFlow, totalTopShotCounts, totalTSHOT };
+  const openProfile = () => {
+    closeMenu();
+    navigate("/profile");
   };
 
-  const { totalFlow, totalTopShotCounts, totalTSHOT } =
-    calculateAllAccountTotals();
-
-  // Tier text colors
-  const tierTextColors = {
-    common: "text-gray-400",
-    fandom: "text-lime-400",
-    rare: "text-blue-500",
-    legendary: "text-orange-500",
-    ultimate: "text-pink-500",
-  };
-
-  const calculateTierBreakdown = (nfts) =>
-    (nfts || []).reduce((acc, nft) => {
-      const tier = nft.tier?.toLowerCase() || "unknown";
-      acc[tier] = (acc[tier] || 0) + 1;
-      return acc;
-    }, {});
-
-  const renderBreakdownVertical = (breakdown) => {
-    const tiers = ["common", "fandom", "rare", "legendary", "ultimate"];
-    return tiers
-      .filter((t) => breakdown[t])
-      .map((t) => (
-        <div
-          key={t}
-          className="grid grid-cols-[3rem,auto] items-center gap-x-2 mb-1"
-        >
-          <div className="text-right">{breakdown[t]}</div>
-          <div className={tierTextColors[t]}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </div>
-        </div>
-      ));
-  };
-
-  // aggregated breakdown
-  const aggregatedBreakdown = { ...calculateTierBreakdown(nftDetails) };
-  childrenData.forEach((child) => {
-    const childBreakdown = calculateTierBreakdown(child.nftDetails);
-    Object.keys(childBreakdown).forEach((tier) => {
-      aggregatedBreakdown[tier] =
-        (aggregatedBreakdown[tier] || 0) + childBreakdown[tier];
-    });
-  });
-
-  // Determine label for child accounts
-  const childLabel = (index, totalChildren) => {
-    if (totalChildren === 1) {
-      return "Child Account";
-    }
-    return `Child Account ${index + 1}`;
-  };
-
-  // Build array for rendering
-  const totalChildren = childrenData.length;
-  const allAccounts = [
-    {
-      label: "Parent Account",
-      address: parentAddress,
-      flowBalance,
-      tshotBalance,
-      nftDetails,
-      hasCollection,
-    },
-    ...childrenData.map((child, index) => ({
-      label: childLabel(index, totalChildren),
-      address: child.addr,
-      flowBalance: child.flowBalance,
-      tshotBalance: child.tshotBalance,
-      nftDetails: child.nftDetails,
-      hasCollection: child.hasCollection,
-    })),
-  ];
-
-  // Manual "Refresh Data" button
-  const handleRefresh = async () => {
-    if (user?.addr?.startsWith("0x")) {
-      await refreshUserData();
-    }
-  };
-
+  /* ---------- render ---------- */
   return (
     <div
       ref={popoutRef}
       className="
-        absolute
-        top-12
-        right-0
-        mt-2
-        w-[calc(100vw-32px)]
-        md:w-96
-        z-50
-        rounded-lg
-        shadow-xl
-        border-2
-        border-brand-primary
-        bg-brand-primary
-        text-brand-text
+        absolute top-12 right-0 mt-2
+        w-[calc(100vw-32px)] md:w-80
+        z-50 rounded-lg shadow-xl
+        border-2 border-brand-primary
+        bg-brand-primary text-brand-text
       "
     >
-      {/* HEADER: THEME + REFRESH + LOGOUT */}
-      <div
-        className="
-          flex
-          items-center
-          justify-between
-          px-4
-          py-2
-          border-b
-          border-brand-border
-          bg-brand-secondary
-        "
-      >
-        {/* Left: Theme */}
+      {/* header: theme + spinner + logout */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-brand-border bg-brand-secondary">
+        {/* theme toggle */}
         <div className="flex items-center space-x-2">
           <span className="font-medium">Theme:</span>
-          {/* Light */}
           <button
             onClick={() => setTheme("light")}
-            className={`
-              text-sm px-2 py-1 rounded transition-colors
-              ${
-                themeMode === "light"
-                  ? "bg-brand-accent text-white"
-                  : "bg-brand-primary text-brand-text hover:opacity-80"
-              }
-            `}
-            title="Light Mode"
-            disabled={themeMode === null}
+            className={`text-sm p-1 rounded ${
+              theme === "light"
+                ? "bg-brand-accent text-white"
+                : "hover:opacity-80"
+            }`}
+            title="Light mode"
           >
             <FaSun />
           </button>
-          {/* Dark */}
           <button
             onClick={() => setTheme("dark")}
-            className={`
-              text-sm px-2 py-1 rounded transition-colors
-              ${
-                themeMode === "dark"
-                  ? "bg-brand-accent text-white"
-                  : "bg-brand-primary text-brand-text hover:opacity-80"
-              }
-            `}
-            title="Dark Mode"
-            disabled={themeMode === null}
+            className={`text-sm p-1 rounded ${
+              theme === "dark"
+                ? "bg-brand-accent text-white"
+                : "hover:opacity-80"
+            }`}
+            title="Dark mode"
           >
             <FaMoon />
           </button>
         </div>
 
-        {/* Right: Loading + Refresh + Logout */}
-        <div className="flex items-center space-x-2">
-          {(isRefreshing || isLoadingChildren) && (
-            <>
-              <FaSpinner className="animate-spin" size={16} />
-              <span className="text-sm">
-                {isRefreshing && isLoadingChildren
-                  ? "Loading parent & children..."
-                  : isRefreshing
-                  ? "Loading parent..."
-                  : "Loading children..."}
-              </span>
-            </>
-          )}
-
+        {/* spinner + logout */}
+        <div className="flex items-center space-x-3">
+          {stats.loading && <FaSpinner className="animate-spin" size={16} />}
           <button
-            onClick={handleRefresh}
-            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
-          >
-            Refresh Data
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="
-              text-red-500
-              hover:text-white
-              hover:bg-red-600
-              transition-colors
-              p-1
-              rounded
-            "
+            onClick={logout}
+            className="text-red-500 hover:text-white hover:bg-red-600 p-1 rounded"
             title="Disconnect"
           >
             <FaSignOutAlt size={16} />
@@ -314,163 +208,43 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         </div>
       </div>
 
-      {/* PORTFOLIO SUMMARY */}
-      <div className="px-4 py-3 border-b border-brand-border">
-        {/* Clear heading */}
-        <h4 className="text-lg font-semibold mb-2">Portfolio Summary</h4>
-
-        {/* Row for Flow, TopShot, TSHOT */}
+      {/* headline totals */}
+      <div className="px-4 py-4">
+        <h4 className="text-lg font-semibold mb-3">Portfolio</h4>
         <div className="flex items-center justify-around">
           {/* Flow */}
           <div className="text-center">
             <p className="text-sm m-0">Flow</p>
             <ValueOrSkeleton
-              value={
-                isRefreshing || isLoadingChildren
-                  ? undefined
-                  : parseFloat(totalFlow).toFixed(2)
-              }
+              value={stats.loading ? undefined : stats.flow.toFixed(2)}
               className="text-xl font-semibold"
-              skeletonWidth="w-16"
-              skeletonHeight="h-7"
             />
           </div>
-          {/* TopShot */}
+          {/* Moments */}
           <div className="text-center">
-            <p className="text-sm m-0">TopShot</p>
+            <p className="text-sm m-0">Moments</p>
             <ValueOrSkeleton
-              // If loading, skeleton => undefined
-              // Otherwise, show total (can be 0)
-              value={
-                isRefreshing || isLoadingChildren
-                  ? undefined
-                  : totalTopShotCounts
-              }
+              value={stats.loading ? undefined : stats.moments}
               className="text-xl font-semibold"
-              skeletonWidth="w-16"
-              skeletonHeight="h-7"
             />
           </div>
           {/* TSHOT */}
           <div className="text-center">
             <p className="text-sm m-0">TSHOT</p>
             <ValueOrSkeleton
-              value={
-                isRefreshing || isLoadingChildren
-                  ? undefined
-                  : parseFloat(totalTSHOT).toFixed(1)
-              }
+              value={stats.loading ? undefined : stats.tshot.toFixed(1)}
               className="text-xl font-semibold"
-              skeletonWidth="w-16"
-              skeletonHeight="h-7"
             />
           </div>
         </div>
 
-        {/* Tier breakdown or "No TopShot Collection" */}
-        <div className="mt-3">
-          {totalTopShotCounts > 0 ? (
-            renderBreakdownVertical(aggregatedBreakdown)
-          ) : (
-            <div className="italic">No TopShot Collection</div>
-          )}
-        </div>
-      </div>
-
-      {/* INDIVIDUAL ACCOUNTS */}
-      <div className="py-3 pb-0">
-        <h4 className="text-lg font-semibold px-4 mb-2">Accounts Breakdown</h4>
-        {allAccounts.map((account, index) => {
-          // Basic count, or 0 if empty
-          const topShotCount = account.nftDetails?.length ?? 0;
-          // Breakdown of tiers
-          const breakdown = calculateTierBreakdown(account.nftDetails);
-          // Determine if this is the last account
-          const isLastAccount = index === allAccounts.length - 1;
-
-          return (
-            <div
-              key={account.address}
-              className={`w-full shadow-md ${!isLastAccount ? "mb-3" : ""}`}
-            >
-              <div className="bg-brand-secondary px-2 py-1 flex justify-between items-center">
-                <h5 className="text-base md:text-lg font-medium m-0">
-                  {account.label}
-                </h5>
-                <button
-                  onClick={() => navigator.clipboard.writeText(account.address)}
-                  className="text-xs hover:opacity-80 flex items-center"
-                >
-                  <span className="truncate max-w-[140px]">
-                    {account.address}
-                  </span>
-                  <FaClipboard className="ml-2" />
-                </button>
-              </div>
-
-              <div className="bg-brand-primary px-2 py-2">
-                {/* Row for Flow, TopShot, TSHOT */}
-                <div className="flex items-center justify-around">
-                  {/* Flow */}
-                  <div className="text-center">
-                    <p className="text-sm m-0">Flow</p>
-                    <ValueOrSkeleton
-                      value={
-                        isRefreshing || isLoadingChildren
-                          ? undefined
-                          : parseFloat(account.flowBalance).toFixed(2)
-                      }
-                      className="text-xl font-semibold"
-                      skeletonWidth="w-16"
-                      skeletonHeight="h-7"
-                    />
-                  </div>
-                  {/* TopShot */}
-                  <div className="text-center">
-                    <p className="text-sm m-0">TopShot</p>
-                    <ValueOrSkeleton
-                      value={
-                        isRefreshing || isLoadingChildren
-                          ? undefined
-                          : topShotCount
-                      }
-                      className="text-xl font-semibold"
-                      skeletonWidth="w-16"
-                      skeletonHeight="h-7"
-                    />
-                  </div>
-                  {/* TSHOT */}
-                  <div className="text-center">
-                    <p className="text-sm m-0">TSHOT</p>
-                    <ValueOrSkeleton
-                      value={
-                        isRefreshing || isLoadingChildren
-                          ? undefined
-                          : parseFloat(account.tshotBalance || 0).toFixed(1)
-                      }
-                      className="text-xl font-semibold"
-                      skeletonWidth="w-16"
-                      skeletonHeight="h-7"
-                    />
-                  </div>
-                </div>
-
-                {/* Tier breakdown or "No TopShot Collection" */}
-                <div className="mt-3">
-                  {account.hasCollection ? (
-                    Object.keys(breakdown).length > 0 ? (
-                      renderBreakdownVertical(breakdown)
-                    ) : (
-                      <div className="italic">No tier data</div>
-                    )
-                  ) : (
-                    <div className="italic">No TopShot Collection</div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        {/* CTA → full profile */}
+        <button
+          onClick={openProfile}
+          className="w-full mt-5 bg-brand-accent hover:opacity-90 text-white py-2 rounded text-sm font-medium"
+        >
+          View full profile →
+        </button>
       </div>
     </div>
   );

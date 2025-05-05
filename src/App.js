@@ -7,6 +7,7 @@ import TermsAndPrivacy from "./pages/TermsAndPrivacy";
 import Layout from "./layout/Layout";
 import Swap from "./pages/Swap";
 import Transfer from "./pages/Transfer";
+import Profile from "./pages/Profile";
 
 // Special pages
 import ComingSoon from "./pages/ComingSoon";
@@ -52,6 +53,22 @@ const router = createBrowserRouter([
     element: (
       <Layout>
         <Transfer />
+      </Layout>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <Layout>
+        <Profile />
+      </Layout>
+    ),
+  },
+  {
+    path: "/profile/:address?",
+    element: (
+      <Layout>
+        <Profile />
       </Layout>
     ),
   },

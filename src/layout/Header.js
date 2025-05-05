@@ -1,5 +1,4 @@
 // src/components/Header.jsx
-
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { UserDataContext } from "../context/UserContext";
 import { Link, useLocation } from "react-router-dom";
@@ -40,6 +39,11 @@ const Header = () => {
     };
   }, [isMobileMenuOpen]);
 
+  /* simple helper for profile-active check */
+  const profileActive =
+    location.pathname === "/profile" ||
+    location.pathname.startsWith("/profile/");
+
   return (
     <header
       className="
@@ -48,20 +52,15 @@ const Header = () => {
         z-50
         shadow-md
         shadow-black/30
-
         bg-brand-primary
         text-brand-text
       "
     >
       <div
         className="
-          border-b
-          border-brand-border
-          px-4
-          py-4
-          flex
-          items-center
-          justify-between
+          border-b border-brand-border
+          px-4 py-4
+          flex items-center justify-between
           w-full
         "
       >
@@ -96,6 +95,10 @@ const Header = () => {
           <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
             Bulk Transfer
           </NavLink>
+          {/* ★ added */}
+          <NavLink to="/profile" isActive={profileActive}>
+            Profile
+          </NavLink>
         </nav>
 
         {/* Right container: connect or user menu */}
@@ -118,12 +121,9 @@ const Header = () => {
             <button
               onClick={connectWallet}
               className="
-                px-4
-                py-2
-                rounded
+                px-4 py-2 rounded
                 transition-colors
-                bg-brand-accent
-                text-white
+                bg-brand-accent text-white
                 hover:opacity-80
               "
             >
@@ -133,36 +133,18 @@ const Header = () => {
         </div>
       </div>
 
-      {/* 
-        Mobile Navigation + Overlay 
-        (Only visible if isMobileMenuOpen=true) 
-      */}
+      {/* Mobile Navigation + Overlay */}
       {isMobileMenuOpen && (
         <>
-          {/* Overlay: click anywhere to close */}
-          <div
-            className="
-              fixed
-              inset-0
-              bg-black
-              bg-opacity-40
-              z-40
-            "
-          />
-          {/* Actual mobile menu content */}
+          {/* Overlay */}
+          <div className="fixed inset-0 bg-black bg-opacity-40 z-40" />
+          {/* Drawer */}
           <div
             ref={mobileMenuRef}
             className="
-              absolute
-              top-[68px]
-              left-0
-              w-full
-              shadow-md
-              shadow-black/50
-              md:hidden
-              bg-brand-secondary
-              text-brand-text
-              z-50
+              absolute top-[68px] left-0 w-full md:hidden
+              shadow-md shadow-black/50
+              bg-brand-secondary text-brand-text z-50
             "
           >
             <div className="flex flex-col items-center divide-y divide-brand-border">
@@ -187,6 +169,14 @@ const Header = () => {
               >
                 Bulk Transfer
               </MobileNavLink>
+              {/* ★ added */}
+              <MobileNavLink
+                to="/profile"
+                isActive={profileActive}
+                onClick={toggleMobileMenu}
+              >
+                Profile
+              </MobileNavLink>
             </div>
           </div>
         </>
@@ -204,12 +194,8 @@ const NavLink = ({ to, isActive, children, onClick, external }) =>
       target="_blank"
       rel="noopener noreferrer"
       className="
-        block
-        px-4
-        py-2
-        transition-colors
-        hover:opacity-80
-        text-brand-text
+        block px-4 py-2 transition-colors
+        hover:opacity-80 text-brand-text
       "
     >
       {children}
@@ -219,14 +205,9 @@ const NavLink = ({ to, isActive, children, onClick, external }) =>
       to={to}
       onClick={onClick}
       className={`
-        py-2
-        px-4
-        rounded-md
-        whitespace-nowrap
-        transition-colors
-        text-brand-text
-        hover:opacity-80
-        ${isActive ? "font-bold" : ""}
+        py-2 px-4 rounded-md whitespace-nowrap
+        transition-colors hover:opacity-80
+        text-brand-text ${isActive ? "font-bold" : ""}
       `}
     >
       {children}
@@ -242,12 +223,8 @@ const MobileNavLink = ({ to, isActive, children, onClick, external }) =>
       target="_blank"
       rel="noopener noreferrer"
       className="
-        w-full
-        text-center
-        py-4
-        transition-colors
-        hover:opacity-80
-        text-brand-text
+        w-full text-center py-4 transition-colors
+        hover:opacity-80 text-brand-text
       "
     >
       {children}
@@ -257,41 +234,25 @@ const MobileNavLink = ({ to, isActive, children, onClick, external }) =>
       to={to}
       onClick={onClick}
       className={`
-        w-full
-        text-center
-        py-4
-        transition-colors
-        hover:opacity-80
-        text-brand-text
-        ${isActive ? "font-bold" : ""}
+        w-full text-center py-4
+        transition-colors hover:opacity-80
+        text-brand-text ${isActive ? "font-bold" : ""}
       `}
     >
       {children}
     </Link>
   );
 
-/**
- * Updated:
- * UserButton for a logged-in user (address at top-right)
- * with a stronger shadow effect on the button
- */
+/* Wallet button */
 const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button
     ref={ref}
     onClick={onClick}
     className="
-      flex
-      items-center
-      px-4
-      py-2
-      rounded
-      transition-all
-      bg-brand-secondary
-      text-brand-text
-      shadow-md
-      shadow-black/30
-      hover:shadow-lg
-      hover:shadow-black/50
+      flex items-center px-4 py-2 rounded transition-all
+      bg-brand-secondary text-brand-text
+      shadow-md shadow-black/30
+      hover:shadow-lg hover:shadow-black/50
       focus:outline-none
     "
   >

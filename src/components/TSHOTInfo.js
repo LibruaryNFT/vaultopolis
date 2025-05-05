@@ -213,122 +213,110 @@ function TSHOTInfo() {
             Instant Market Access &amp; Utility
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Buy Moments Instantly */}
+            {/* Buy Moments Fast */}
             <div
               className="
-                bg-brand-primary
-                p-6
-                rounded-lg
-                flex
-                flex-col
-                transition-transform
-                duration-300
-                hover:scale-105
-                hover:opacity-90
-              "
+    bg-brand-primary p-6 rounded-lg flex flex-col
+    transition-transform duration-300 hover:scale-105 hover:opacity-90
+  "
             >
-              <div className="flex items-center text-base font-bold mb-2">
+              <div className="flex items-center text-base font-bold mb-3">
                 <Globe2 className="w-5 h-5 text-pink-400 mr-2" />
-                Buy Moments Instantly
+                Buy Moments Fast
               </div>
+
               <p className="text-xs text-brand-text/80 mb-4 flex-grow">
-                Need Moments fast? Purchase TSHOT on-chain, then convert to
-                random Moments.
+                Pick up TSHOT on your favourite DEX, then convert it to random
+                Moments inside Vaultopolis.
               </p>
+
               <div className="flex flex-col gap-2 mt-auto">
                 <a
                   href="https://app.increment.fi/swap?in=A.1654653399040a61.FlowToken&out=A.05b67ba314000b2d.TSHOT"
                   target="_blank"
                   rel="noreferrer"
                   className="
-                    bg-pink-600
-                    hover:bg-pink-700
-                    text-xs
-                    text-white
-                    font-bold
-                    py-2
-                    px-3
-                    rounded
-                  "
+        bg-pink-600 hover:bg-pink-700
+        text-xs text-white font-bold py-2 px-3 rounded
+      "
                 >
-                  Buy Now (Cadence) - Increment.fi
+                  FLOW → TSHOT&nbsp;• Increment.fi
                 </a>
+
                 <a
                   href="https://swap.kittypunch.xyz/?tokens=0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e-0xc618a7356fcf601f694c51578cd94144deaee690"
                   target="_blank"
                   rel="noreferrer"
                   className="
-                    bg-pink-600
-                    hover:bg-pink-700
-                    text-xs
-                    text-white
-                    font-bold
-                    py-2
-                    px-3
-                    rounded
-                  "
+        bg-pink-600 hover:bg-pink-700
+        text-xs text-white font-bold py-2 px-3 rounded
+      "
                 >
-                  Buy Now (FEVM) - PunchSwap
+                  FLOW → TSHOT&nbsp;• PunchSwap
+                </a>
+
+                <a
+                  href="/swap"
+                  className="
+        bg-flow-light hover:bg-flow-dark
+        text-xs text-white font-bold py-2 px-3 rounded
+      "
+                >
+                  TSHOT → Moments&nbsp;• Vaultopolis
                 </a>
               </div>
             </div>
 
-            {/* Sell Moments Instantly */}
+            {/* Sell Moments Fast */}
             <div
               className="
-                bg-brand-primary
-                p-6
-                rounded-lg
-                flex
-                flex-col
-                transition-transform
-                duration-300
-                hover:scale-105
-                hover:opacity-90
-              "
+    bg-brand-primary p-6 rounded-lg flex flex-col
+    transition-transform duration-300 hover:scale-105 hover:opacity-90
+  "
             >
-              <div className="flex items-center text-base font-bold mb-2">
+              <div className="flex items-center text-base font-bold mb-3">
                 <Globe2 className="w-5 h-5 text-pink-400 mr-2" />
-                Sell Moments Instantly
+                Sell Moments Fast
               </div>
+
               <p className="text-xs text-brand-text/80 mb-4 flex-grow">
-                Turn Moments into TSHOT, then swap TSHOT for FLOW or other
-                tokens quickly.
+                Swap your Moments for TSHOT, then trade TSHOT for FLOW or any
+                token.
               </p>
+
               <div className="flex flex-col gap-2 mt-auto">
+                <a
+                  href="/swap"
+                  className="
+        bg-flow-light hover:bg-flow-dark
+        text-xs text-white font-bold py-2 px-3 rounded
+      "
+                >
+                  Moments → TSHOT&nbsp;• Vaultopolis
+                </a>
+
                 <a
                   href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
                   target="_blank"
                   rel="noreferrer"
                   className="
-                    bg-pink-600
-                    hover:bg-pink-700
-                    text-xs
-                    text-white
-                    font-bold
-                    py-2
-                    px-3
-                    rounded
-                  "
+        bg-pink-600 hover:bg-pink-700
+        text-xs text-white font-bold py-2 px-3 rounded
+      "
                 >
-                  Sell Now (Cadence) - Increment.fi
+                  TSHOT → FLOW&nbsp;• Increment.fi
                 </a>
+
                 <a
                   href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
                   target="_blank"
                   rel="noreferrer"
                   className="
-                    bg-pink-600
-                    hover:bg-pink-700
-                    text-xs
-                    text-white
-                    font-bold
-                    py-2
-                    px-3
-                    rounded
-                  "
+        bg-pink-600 hover:bg-pink-700
+        text-xs text-white font-bold py-2 px-3 rounded
+      "
                 >
-                  Sell Now (FEVM) - PunchSwap
+                  TSHOT → FLOW&nbsp;• PunchSwap
                 </a>
               </div>
             </div>
