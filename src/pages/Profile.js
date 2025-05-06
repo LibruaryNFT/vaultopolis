@@ -1,8 +1,8 @@
-/* src/pages/Profile.jsx
-   ---------------------------------------
-   /profile            – private dashboard
-   /profile/:address   – public read-only
-   ---------------------------------------
+/*  src/pages/Profile.jsx
+    ------------------------------------------------------------
+    /profile            – private dashboard
+    /profile/:address   – public read-only
+    ------------------------------------------------------------
 */
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -18,7 +18,6 @@ import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionLength";
 const Skeleton = ({ w = "w-16", h = "h-7" }) => (
   <div className={`${w} ${h} rounded bg-brand-secondary animate-pulse`} />
 );
-
 const Tile = ({ title, value, loading, tooltip }) => (
   <div
     className="
@@ -37,6 +36,7 @@ const Tile = ({ title, value, loading, tooltip }) => (
   </div>
 );
 
+/* styles / tier helpers */
 const tierColour = {
   common: "text-gray-400",
   fandom: "text-lime-400",
@@ -44,16 +44,13 @@ const tierColour = {
   legendary: "text-orange-500",
   ultimate: "text-pink-500",
 };
-
 const validTiers = ["common", "fandom", "rare", "legendary", "ultimate"];
-
 const calcTierBreakdown = (nfts = []) =>
   nfts.reduce((acc, n) => {
     const t = n.tier?.toLowerCase();
     if (validTiers.includes(t)) acc[t] = (acc[t] || 0) + 1;
     return acc;
   }, {});
-
 const StatBox = ({ label, value, loading }) => (
   <div className="text-center">
     <p className="text-sm opacity-80 m-0">{label}</p>
@@ -81,7 +78,7 @@ function Profile() {
     !!paramAddr && paramAddr.toLowerCase() !== (ownAddr || "").toLowerCase();
   const wallet = isPublic ? paramAddr : ownAddr;
 
-  /* 1 ─ quick on-chain balances */
+  /* 1 ─ quick balances ------------------------------------------------ */
   const [quick, setQuick] = useState({
     loading: true,
     flow: 0,
@@ -124,7 +121,7 @@ function Profile() {
     };
   }, [wallet]);
 
-  /* 2 ─ vault-activity stats */
+  /* 2 ─ vault-activity summary --------------------------------------- */
   const [swapStats, setSwapStats] = useState(null);
   const [swapLoading, setSwapLoading] = useState(true);
   useEffect(() => {
@@ -137,7 +134,33 @@ function Profile() {
       .finally(() => setSwapLoading(false));
   }, [wallet]);
 
-  /* 3 ─ private balances / children */
+  /* 3 ─ raw swap events w/ pagination -------------------------------- */
+  const PAGE_LIMIT = 20;
+  const [page, setPage] = useState(1);
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [wallet]); // reset when wallet changes
+
+  useEffect(() => {
+    if (!wallet) return;
+    setEventsLoading(true);
+    axios
+      .get(`https://api.vaultopolis.com/wallet-events/${wallet}`, {
+        params: { page, limit: PAGE_LIMIT, sort: "desc" },
+      })
+      .then((r) => {
+        setEvents(r.data.items || []);
+        setTotalPages(r.data.totalPages || 1);
+      })
+      .catch(console.error)
+      .finally(() => setEventsLoading(false));
+  }, [wallet, page]);
+
+  /* 4 ─ private balances / children ---------------------------------- */
   const {
     flowBalance = 0,
     tshotBalance = 0,
@@ -204,7 +227,7 @@ function Profile() {
   const deposits = swapStats?.NFTToTSHOTSwapCompleted ?? 0;
   const withdrawals = swapStats?.TSHOTToNFTSwapCompleted ?? 0;
 
-  /* -------- render -------- */
+  /* ------------------------------------------------------------------ */
   return (
     <div className="p-6 sm:p-10 max-w-7xl mx-auto text-brand-text">
       <h1 className="text-2xl font-bold mb-6">
@@ -239,19 +262,17 @@ function Profile() {
             />
           </div>
 
-          {/* vault activity */}
+          {/* vault activity summary */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Tile
               title="Deposits (NFT → TSHOT)"
               value={deposits}
               loading={swapLoading}
-              tooltip="NFTToTSHOTSwapCompleted events"
             />
             <Tile
               title="Withdrawals (TSHOT → NFT)"
               value={withdrawals}
               loading={swapLoading}
-              tooltip="TSHOTToNFTSwapCompleted events"
             />
             <Tile
               title="Net (Deposits – Withdrawals)"
@@ -259,11 +280,113 @@ function Profile() {
               loading={swapLoading}
             />
           </div>
-
-          {/* note on data window */}
           <p className="text-xs text-brand-text/60 mt-2 mb-10">
-            Vault-activity data is counted starting <strong>May 1 2025</strong>.
+            Vault-activity data counted from <strong>May&nbsp;1 2025</strong>.
           </p>
+
+          {/* recent events with pagination */}
+          <div className="mb-12">
+            <h2 className="text-lg font-semibold mb-3">Swap History</h2>
+            {eventsLoading ? (
+              <p className="text-brand-text/70">Loading events…</p>
+            ) : !events.length ? (
+              <p className="italic text-sm">No swap events.</p>
+            ) : (
+              <>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left border-b border-brand-border">
+                      <th className="py-1 pr-2">When</th>
+                      <th className="py-1 pr-2">Type</th>
+                      <th className="py-1 pr-2"># NFTs</th>
+                      <th className="py-1">Tx&nbsp;↗</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {events.map((ev) => {
+                      const isDep = ev.type.includes("NFTToTSHOT");
+                      return (
+                        <tr
+                          key={ev.transactionId}
+                          className="border-b border-brand-border/30"
+                        >
+                          <td className="py-1 pr-2">
+                            {new Date(ev.blockTimestamp).toLocaleString()}
+                          </td>
+                          <td className="py-1 pr-2">
+                            {isDep
+                              ? "Deposits (NFT → TSHOT)"
+                              : "Withdrawals (TSHOT → NFT)"}
+                          </td>
+                          <td className="py-1 pr-2">{ev.data?.numNFTs}</td>
+                          <td className="py-1">
+                            <a
+                              href={`https://flowscan.io/transaction/${ev.transactionId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-accent hover:underline"
+                            >
+                              view
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* pagination buttons */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-4 gap-1">
+                    {(() => {
+                      const pages = [];
+                      if (totalPages <= 7) {
+                        for (let i = 1; i <= totalPages; i++) pages.push(i);
+                      } else if (page <= 4) {
+                        pages.push(1, 2, 3, 4, 5, "...", totalPages);
+                      } else if (page > totalPages - 4) {
+                        pages.push(
+                          1,
+                          "...",
+                          totalPages - 4,
+                          totalPages - 3,
+                          totalPages - 2,
+                          totalPages - 1,
+                          totalPages
+                        );
+                      } else {
+                        pages.push(
+                          1,
+                          "...",
+                          page - 1,
+                          page,
+                          page + 1,
+                          "...",
+                          totalPages
+                        );
+                      }
+                      return pages.map((p, idx) => (
+                        <button
+                          key={idx}
+                          disabled={p === "..." || p === page}
+                          onClick={() => typeof p === "number" && setPage(p)}
+                          className={`px-3 py-1 rounded ${
+                            p === page
+                              ? "bg-flow-dark text-white"
+                              : p === "..."
+                              ? "cursor-default bg-brand-secondary text-brand-text/50"
+                              : "bg-brand-secondary hover:opacity-80"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
           {/* first / last swap */}
           <div className="grid sm:grid-cols-2 gap-4 mb-10 max-w-lg">
@@ -287,10 +410,9 @@ function Profile() {
             />
           </div>
 
-          {/* private-only sections */}
+          {/* private-only content (tiers + children) */}
           {!isPublic && (
             <>
-              {/* tiers */}
               <div className="bg-brand-primary rounded-lg shadow max-w-xs mb-12 p-4">
                 <h2 className="text-lg font-semibold mb-3">
                   All-Accounts Tier Breakdown
@@ -314,7 +436,6 @@ function Profile() {
                 )}
               </div>
 
-              {/* account cards */}
               <h2 className="text-xl font-bold mb-4">Accounts Breakdown</h2>
               <div className="space-y-6 mb-12">
                 {accounts.map((acc) => {
