@@ -1,11 +1,11 @@
 /*  src/pages/Profile.jsx
     ------------------------------------------------------------
-    /profile            – private dashboard
-    /profile/:address   – public read-only
+    /profile            – owner dashboard
+    /profile/:address   – public read-only view
     ------------------------------------------------------------
 */
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // ← added navigate/location
 import * as fcl from "@onflow/fcl";
 import axios from "axios";
 
@@ -13,8 +13,9 @@ import { UserDataContext } from "../context/UserContext";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionLength";
+import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
 
-/* ---------- helpers ---------- */
+/* ───────── misc UI helpers ───────── */
 const Skeleton = ({ w = "w-16", h = "h-7" }) => (
   <div className={`${w} ${h} rounded bg-brand-secondary animate-pulse`} />
 );
@@ -36,7 +37,7 @@ const Tile = ({ title, value, loading, tooltip }) => (
   </div>
 );
 
-/* styles / tier helpers */
+/* ───────── tiers ───────── */
 const tierColour = {
   common: "text-gray-400",
   fandom: "text-lime-400",
@@ -45,26 +46,73 @@ const tierColour = {
   ultimate: "text-pink-500",
 };
 const validTiers = ["common", "fandom", "rare", "legendary", "ultimate"];
+const bump = (o, k, n = 1) => ((o[k] = (o[k] || 0) + n), o);
+
 const calcTierBreakdown = (nfts = []) =>
   nfts.reduce((acc, n) => {
     const t = n.tier?.toLowerCase();
-    if (validTiers.includes(t)) acc[t] = (acc[t] || 0) + 1;
+    if (validTiers.includes(t)) bump(acc, t);
     return acc;
   }, {});
-const StatBox = ({ label, value, loading }) => (
-  <div className="text-center">
-    <p className="text-sm opacity-80 m-0">{label}</p>
-    {loading ? (
-      <Skeleton w="w-14" h="h-6" />
-    ) : (
-      <p className="text-xl font-semibold m-0">{value}</p>
-    )}
+
+/* ───────── helpers ───────── */
+const safeFixed = (num, d = 2) =>
+  isFinite(num) ? Number(num).toFixed(d) : "0";
+
+/* ───────── compact account card ───────── */
+const MiniStat = ({ label, value }) => (
+  <div className="py-2 border-r border-brand-border last:border-none">
+    <p className="opacity-70 m-0">{label}</p>
+    <p className="font-semibold m-0">{value}</p>
   </div>
 );
 
-/* ---------- component ---------- */
+const AccountCard = ({ acc }) => (
+  <div className="rounded-lg shadow border border-brand-primary">
+    {/* header */}
+    <div className="flex justify-between bg-brand-secondary px-3 py-1.5 rounded-t-lg">
+      <h3 className="text-base font-semibold m-0">{acc.label}</h3>
+      <button
+        onClick={() => navigator.clipboard.writeText(acc.addr)}
+        className="truncate max-w-[220px] text-xs hover:opacity-80"
+      >
+        {acc.addr}
+      </button>
+    </div>
+
+    {/* compact stats row */}
+    <div className="grid grid-cols-3 bg-brand-primary text-center text-xs">
+      <MiniStat label="Flow" value={safeFixed(acc.flow)} />
+      <MiniStat label="Moments" value={acc.moments} />
+      <MiniStat label="TSHOT" value={safeFixed(acc.tshot, 1)} />
+    </div>
+
+    {/* tier breakdown */}
+    <div className="bg-brand-primary px-3 py-2 rounded-b-lg">
+      {Object.keys(acc.tiers).length ? (
+        Object.entries(acc.tiers)
+          .sort()
+          .map(([t, c]) => (
+            <div key={t} className="flex justify-between text-xs py-0.5">
+              <span className={tierColour[t]}>
+                {t[0].toUpperCase() + t.slice(1)}
+              </span>
+              <span>{c}</span>
+            </div>
+          ))
+      ) : (
+        <p className="italic text-xs">No TopShot collection.</p>
+      )}
+    </div>
+  </div>
+);
+
+/* ───────── main component ───────── */
 function Profile() {
   const { address: paramAddr } = useParams();
+  const navigate = useNavigate(); // ← for redirect
+  const location = useLocation();
+
   const {
     user,
     selectedAccount,
@@ -78,7 +126,18 @@ function Profile() {
     !!paramAddr && paramAddr.toLowerCase() !== (ownAddr || "").toLowerCase();
   const wallet = isPublic ? paramAddr : ownAddr;
 
-  /* 1 ─ quick balances ------------------------------------------------ */
+  /* ───────── redirect bare /profile → /profile/:addr after login ───────── */
+  useEffect(() => {
+    if (
+      ownAddr && // we now know the wallet
+      !paramAddr && // URL has no :address
+      location.pathname === "/profile" // still on bare page
+    ) {
+      navigate(`/profile/${ownAddr}`, { replace: true });
+    }
+  }, [ownAddr, paramAddr, location.pathname, navigate]);
+
+  /* ---------- 1. quick balances ---------- */
   const [quick, setQuick] = useState({
     loading: true,
     flow: 0,
@@ -104,7 +163,7 @@ function Profile() {
             args: (arg, t) => [arg(wallet, t.Address)],
           }),
         ]);
-        if (mounted)
+        mounted &&
           setQuick({
             loading: false,
             flow: +flow,
@@ -112,16 +171,13 @@ function Profile() {
             moments: +moments,
           });
       } catch {
-        if (mounted)
-          setQuick({ loading: false, flow: 0, tshot: 0, moments: 0 });
+        mounted && setQuick({ loading: false, flow: 0, tshot: 0, moments: 0 });
       }
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => (mounted = false);
   }, [wallet]);
 
-  /* 2 ─ vault-activity summary --------------------------------------- */
+  /* ---------- 2. vault summary ---------- */
   const [swapStats, setSwapStats] = useState(null);
   const [swapLoading, setSwapLoading] = useState(true);
   useEffect(() => {
@@ -134,17 +190,58 @@ function Profile() {
       .finally(() => setSwapLoading(false));
   }, [wallet]);
 
-  /* 3 ─ raw swap events w/ pagination -------------------------------- */
+  /* ---------- 3. lightweight public tier load ---------- */
+  const [publicTiers, setPublicTiers] = useState({});
+  const [publicTierLoading, setPublicTierLoading] = useState(true);
+  useEffect(() => {
+    if (!isPublic || !wallet) return;
+    let mounted = true;
+    (async () => {
+      setPublicTierLoading(true);
+      try {
+        const ids = await fcl.query({
+          cadence: getTopShotCollectionIDs,
+          args: (arg, t) => [arg(wallet, t.Address)],
+        });
+        if (!ids?.length) {
+          mounted && setPublicTiers({});
+          return;
+        }
+        const tiers = {};
+        const BATCH = 2500;
+        for (let i = 0; i < ids.length; i += BATCH) {
+          const slice = ids.slice(i, i + BATCH);
+          const batch = await fcl.query({
+            cadence: getTopShotCollectionBatched,
+            args: (arg, t) => [
+              arg(wallet, t.Address),
+              arg(slice, t.Array(t.UInt64)),
+            ],
+          });
+          batch.forEach((n) => {
+            const t = n.tier?.toLowerCase();
+            if (validTiers.includes(t)) bump(tiers, t);
+          });
+        }
+        mounted && setPublicTiers(tiers);
+      } catch (e) {
+        console.error("public tier load:", e);
+        mounted && setPublicTiers({});
+      } finally {
+        mounted && setPublicTierLoading(false);
+      }
+    })();
+    return () => (mounted = false);
+  }, [wallet, isPublic]);
+
+  /* ---------- 4. swap events (paginated) ---------- */
   const PAGE_LIMIT = 20;
   const [page, setPage] = useState(1);
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    setPage(1);
-  }, [wallet]); // reset when wallet changes
-
+  useEffect(() => setPage(1), [wallet]);
   useEffect(() => {
     if (!wallet) return;
     setEventsLoading(true);
@@ -160,7 +257,7 @@ function Profile() {
       .finally(() => setEventsLoading(false));
   }, [wallet, page]);
 
-  /* 4 ─ private balances / children ---------------------------------- */
+  /* ---------- 5. owner-only data ---------- */
   const {
     flowBalance = 0,
     tshotBalance = 0,
@@ -171,18 +268,18 @@ function Profile() {
   const aggregate = useMemo(() => {
     if (isPublic) return null;
     const out = { flow: 0, tshot: 0, nfts: 0, tiers: {} };
-    const add = (fl, ts, nfts) => {
+    const bumpAll = (fl, ts, nfts) => {
       out.flow += +fl || 0;
       out.tshot += +ts || 0;
       out.nfts += nfts.length;
       nfts.forEach((n) => {
         const t = n.tier?.toLowerCase();
-        if (validTiers.includes(t)) out.tiers[t] = (out.tiers[t] || 0) + 1;
+        if (validTiers.includes(t)) bump(out.tiers, t);
       });
     };
-    add(flowBalance, tshotBalance, nftDetails);
+    bumpAll(flowBalance, tshotBalance, nftDetails);
     childrenData.forEach((c) =>
-      add(c.flowBalance, c.tshotBalance, c.nftDetails)
+      bumpAll(c.flowBalance, c.tshotBalance, c.nftDetails)
     );
     return out;
   }, [isPublic, flowBalance, tshotBalance, nftDetails, childrenData]);
@@ -196,7 +293,7 @@ function Profile() {
         flow: flowBalance,
         moments: nftDetails.length,
         tshot: tshotBalance,
-        nftDetails,
+        tiers: calcTierBreakdown(nftDetails),
       },
       ...childrenData.map((c, i) => ({
         label: childrenData.length === 1 ? "Child" : `Child ${i + 1}`,
@@ -204,30 +301,23 @@ function Profile() {
         flow: c.flowBalance,
         moments: c.nftDetails.length,
         tshot: c.tshotBalance,
-        nftDetails: c.nftDetails,
+        tiers: calcTierBreakdown(c.nftDetails),
       })),
     ];
   }, [isPublic, wallet, flowBalance, nftDetails, tshotBalance, childrenData]);
 
-  /* headline */
-  const headline = isPublic
-    ? {
-        loading: quick.loading,
-        flow: quick.flow,
-        moments: quick.moments,
-        tshot: quick.tshot,
-      }
-    : {
-        loading: isRefreshing || isLoadingChildren,
-        flow: aggregate.flow,
-        moments: aggregate.nfts,
-        tshot: aggregate.tshot,
-      };
+  /* ---------- headline ---------- */
+  const headline = {
+    loading: isPublic ? quick.loading : isRefreshing || isLoadingChildren,
+    flow: isPublic ? quick.flow : aggregate.flow,
+    moments: isPublic ? quick.moments : aggregate.nfts,
+    tshot: isPublic ? quick.tshot : aggregate.tshot,
+  };
 
   const deposits = swapStats?.NFTToTSHOTSwapCompleted ?? 0;
   const withdrawals = swapStats?.TSHOTToNFTSwapCompleted ?? 0;
 
-  /* ------------------------------------------------------------------ */
+  /* ---------- render ---------- */
   return (
     <div className="p-6 sm:p-10 max-w-7xl mx-auto text-brand-text">
       <h1 className="text-2xl font-bold mb-6">
@@ -247,7 +337,7 @@ function Profile() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
             <Tile
               title="Flow"
-              value={headline.flow.toFixed(2)}
+              value={safeFixed(headline.flow)}
               loading={headline.loading}
             />
             <Tile
@@ -257,12 +347,12 @@ function Profile() {
             />
             <Tile
               title="TSHOT"
-              value={headline.tshot.toFixed(1)}
+              value={safeFixed(headline.tshot, 1)}
               loading={headline.loading}
             />
           </div>
 
-          {/* vault activity summary */}
+          {/* vault summary */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Tile
               title="Deposits (NFT → TSHOT)"
@@ -280,11 +370,64 @@ function Profile() {
               loading={swapLoading}
             />
           </div>
-          <p className="text-xs text-brand-text/60 mt-2 mb-10">
-            Vault-activity data counted from <strong>May&nbsp;1 2025</strong>.
+          <p className="text-xs text-brand-text/60 mt-2 mb-8">
+            Vault-activity data counted from&nbsp;
+            <strong>May&nbsp;1&nbsp;2025</strong>.
           </p>
 
-          {/* recent events with pagination */}
+          {/* tier breakdown – always */}
+          <div className="bg-brand-primary rounded-lg shadow max-w-xs mb-12 p-4">
+            <h2 className="text-lg font-semibold mb-3">Tier Breakdown</h2>
+
+            {isPublic ? (
+              publicTierLoading ? (
+                <p className="text-brand-text/70">Loading…</p>
+              ) : Object.keys(publicTiers).length ? (
+                Object.entries(publicTiers)
+                  .sort()
+                  .map(([t, c]) => (
+                    <div
+                      key={t}
+                      className="flex justify-between text-sm py-0.5"
+                    >
+                      <span className={tierColour[t]}>
+                        {t[0].toUpperCase() + t.slice(1)}
+                      </span>
+                      <span>{c}</span>
+                    </div>
+                  ))
+              ) : (
+                <p className="italic text-sm">No moments yet.</p>
+              )
+            ) : Object.keys(aggregate.tiers).length ? (
+              Object.entries(aggregate.tiers)
+                .sort()
+                .map(([t, c]) => (
+                  <div key={t} className="flex justify-between text-sm py-0.5">
+                    <span className={tierColour[t]}>
+                      {t[0].toUpperCase() + t.slice(1)}
+                    </span>
+                    <span>{c}</span>
+                  </div>
+                ))
+            ) : (
+              <p className="italic text-sm">No moments yet.</p>
+            )}
+          </div>
+
+          {/* owner-only account breakdown */}
+          {!isPublic && accounts.length > 0 && (
+            <>
+              <h2 className="text-xl font-bold mb-4">Accounts Breakdown</h2>
+              <div className="space-y-6 mb-12">
+                {accounts.map((acc) => (
+                  <AccountCard key={acc.addr} acc={acc} />
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* swap history (after accounts) */}
           <div className="mb-12">
             <h2 className="text-lg font-semibold mb-3">Swap History</h2>
             {eventsLoading ? (
@@ -315,8 +458,8 @@ function Profile() {
                           </td>
                           <td className="py-1 pr-2">
                             {isDep
-                              ? "Deposits (NFT → TSHOT)"
-                              : "Withdrawals (TSHOT → NFT)"}
+                              ? "Deposit (NFT → TSHOT)"
+                              : "Withdrawal (TSHOT → NFT)"}
                           </td>
                           <td className="py-1 pr-2">{ev.data?.numNFTs}</td>
                           <td className="py-1">
@@ -335,17 +478,17 @@ function Profile() {
                   </tbody>
                 </table>
 
-                {/* pagination buttons */}
+                {/* pagination */}
                 {totalPages > 1 && (
                   <div className="flex justify-center mt-4 gap-1">
                     {(() => {
-                      const pages = [];
+                      const btns = [];
                       if (totalPages <= 7) {
-                        for (let i = 1; i <= totalPages; i++) pages.push(i);
+                        for (let i = 1; i <= totalPages; i++) btns.push(i);
                       } else if (page <= 4) {
-                        pages.push(1, 2, 3, 4, 5, "...", totalPages);
+                        btns.push(1, 2, 3, 4, 5, "...", totalPages);
                       } else if (page > totalPages - 4) {
-                        pages.push(
+                        btns.push(
                           1,
                           "...",
                           totalPages - 4,
@@ -355,7 +498,7 @@ function Profile() {
                           totalPages
                         );
                       } else {
-                        pages.push(
+                        btns.push(
                           1,
                           "...",
                           page - 1,
@@ -365,7 +508,7 @@ function Profile() {
                           totalPages
                         );
                       }
-                      return pages.map((p, idx) => (
+                      return btns.map((p, idx) => (
                         <button
                           key={idx}
                           disabled={p === "..." || p === page}
@@ -388,132 +531,10 @@ function Profile() {
             )}
           </div>
 
-          {/* first / last swap */}
-          <div className="grid sm:grid-cols-2 gap-4 mb-10 max-w-lg">
-            <Tile
-              title="First Swap"
-              value={
-                swapStats
-                  ? new Date(swapStats.firstEvent).toLocaleString()
-                  : "--"
-              }
-              loading={swapLoading}
-            />
-            <Tile
-              title="Last Swap"
-              value={
-                swapStats
-                  ? new Date(swapStats.lastEvent).toLocaleString()
-                  : "--"
-              }
-              loading={swapLoading}
-            />
-          </div>
-
-          {/* private-only content (tiers + children) */}
-          {!isPublic && (
-            <>
-              <div className="bg-brand-primary rounded-lg shadow max-w-xs mb-12 p-4">
-                <h2 className="text-lg font-semibold mb-3">
-                  All-Accounts Tier Breakdown
-                </h2>
-                {Object.keys(aggregate.tiers).length ? (
-                  Object.entries(aggregate.tiers)
-                    .sort()
-                    .map(([t, c]) => (
-                      <div
-                        key={t}
-                        className="flex justify-between text-sm py-0.5"
-                      >
-                        <span className={tierColour[t]}>
-                          {t[0].toUpperCase() + t.slice(1)}
-                        </span>
-                        <span>{c}</span>
-                      </div>
-                    ))
-                ) : (
-                  <p className="italic text-sm">No moments yet.</p>
-                )}
-              </div>
-
-              <h2 className="text-xl font-bold mb-4">Accounts Breakdown</h2>
-              <div className="space-y-6 mb-12">
-                {accounts.map((acc) => {
-                  const tiers = calcTierBreakdown(acc.nftDetails);
-                  return (
-                    <div
-                      key={acc.addr}
-                      className="rounded-lg shadow border-2 border-brand-primary"
-                    >
-                      <div className="flex justify-between bg-brand-secondary px-4 py-2 rounded-t-lg">
-                        <h3 className="text-lg font-semibold m-0">
-                          {acc.label}
-                        </h3>
-                        <button
-                          onClick={() =>
-                            navigator.clipboard.writeText(acc.addr)
-                          }
-                          className="truncate max-w-[260px] text-xs hover:opacity-80"
-                          title="Copy address"
-                        >
-                          {acc.addr}
-                        </button>
-                      </div>
-
-                      <div className="flex justify-around bg-brand-primary px-4 py-3 flex-wrap gap-4">
-                        <StatBox
-                          label="Flow"
-                          value={(+acc.flow).toFixed(2)}
-                          loading={headline.loading}
-                        />
-                        <StatBox
-                          label="Moments"
-                          value={acc.moments}
-                          loading={headline.loading}
-                        />
-                        <StatBox
-                          label="TSHOT"
-                          value={(+acc.tshot).toFixed(1)}
-                          loading={headline.loading}
-                        />
-                      </div>
-
-                      <div className="bg-brand-primary px-4 py-3 rounded-b-lg">
-                        {acc.moments ? (
-                          Object.keys(tiers).length ? (
-                            Object.entries(tiers)
-                              .sort()
-                              .map(([t, c]) => (
-                                <div
-                                  key={t}
-                                  className="flex justify-between text-sm py-0.5"
-                                >
-                                  <span className={tierColour[t]}>
-                                    {t[0].toUpperCase() + t.slice(1)}
-                                  </span>
-                                  <span>{c}</span>
-                                </div>
-                              ))
-                          ) : (
-                            <p className="italic text-sm">No tier data.</p>
-                          )
-                        ) : (
-                          <p className="italic text-sm">
-                            No TopShot collection.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
           {isPublic && (
             <p className="italic text-sm">
-              Read-only overview. Child accounts and detailed tiers are visible
-              only to the owner.
+              Read-only overview. Child accounts and detailed collection data
+              are only visible to the owner.
             </p>
           )}
         </>

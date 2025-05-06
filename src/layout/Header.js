@@ -1,72 +1,50 @@
-// src/components/Header.jsx
 import React, { useContext, useState, useRef, useEffect } from "react";
-import { UserDataContext } from "../context/UserContext";
 import { Link, useLocation } from "react-router-dom";
-import DropdownMenu from "../components/DropdownMenu";
 import { FaUserCircle, FaBars } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
+import { UserDataContext } from "../context/UserContext";
+import DropdownMenu from "../components/DropdownMenu"; /* ← fixed path */
+
+/* ────────────────────────────────────────────────────────── */
+
 const Header = () => {
   const { user, selectedAccount } = useContext(UserDataContext);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  const location = useLocation();
   const buttonRef = useRef(null);
   const mobileMenuRef = useRef(null);
+  const location = useLocation();
 
   const activeAddress = selectedAccount || user?.addr;
+  const profilePath = user.loggedIn ? `/profile/${activeAddress}` : "/profile";
+  const profileActive =
+    location.pathname === "/profile" ||
+    location.pathname.startsWith("/profile/");
 
-  const toggleMenu = () => setIsMenuOpen((prev) => !prev);
-  const toggleMobileMenu = () => setIsMobileMenuOpen((prev) => !prev);
+  const toggleMenu = () => setIsMenuOpen((p) => !p);
+  const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
+  const connectWallet = () => fcl.authenticate();
 
-  const connectWallet = () => {
-    fcl.authenticate();
-  };
-
-  // Close mobile menu if user clicks outside of it
+  /* close drawer on outside click */
   useEffect(() => {
     function handleClickOutside(e) {
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
         setIsMobileMenuOpen(false);
       }
     }
-    if (isMobileMenuOpen) {
+    if (isMobileMenuOpen)
       document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isMobileMenuOpen]);
 
-  /* simple helper for profile-active check */
-  const profileActive =
-    location.pathname === "/profile" ||
-    location.pathname.startsWith("/profile/");
-
+  /* ───────── render ───────── */
   return (
-    <header
-      className="
-        w-full
-        relative
-        z-50
-        shadow-md
-        shadow-black/30
-        bg-brand-primary
-        text-brand-text
-      "
-    >
-      <div
-        className="
-          border-b border-brand-border
-          px-4 py-4
-          flex items-center justify-between
-          w-full
-        "
-      >
-        {/* Left container: Hamburger + Logo */}
+    <header className="w-full relative z-50 shadow-md shadow-black/30 bg-brand-primary text-brand-text">
+      <div className="border-b border-brand-border px-4 py-4 flex items-center justify-between">
+        {/* ── Left: logo + hamburger ── */}
         <div className="flex items-center">
-          {/* Mobile Menu Toggle */}
           <button
             onClick={toggleMobileMenu}
             className="md:hidden focus:outline-none"
@@ -74,7 +52,6 @@ const Header = () => {
             <FaBars size={20} />
           </button>
 
-          {/* Logo */}
           <Link to="/" className="ml-2 flex items-center">
             <img
               src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
@@ -84,7 +61,7 @@ const Header = () => {
           </Link>
         </div>
 
-        {/* Desktop Nav */}
+        {/* ── Desktop nav ── */}
         <nav className="hidden md:flex items-center space-x-4 flex-grow justify-center">
           <NavLink to="/swap" isActive={location.pathname === "/swap"}>
             Swap
@@ -95,13 +72,12 @@ const Header = () => {
           <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
             Bulk Transfer
           </NavLink>
-          {/* ★ added */}
-          <NavLink to="/profile" isActive={profileActive}>
+          <NavLink to={profilePath} isActive={profileActive}>
             Profile
           </NavLink>
         </nav>
 
-        {/* Right container: connect or user menu */}
+        {/* ── Right: connect / account ── */}
         <div className="flex items-center space-x-4">
           {user.loggedIn ? (
             <div className="relative">
@@ -120,12 +96,7 @@ const Header = () => {
           ) : (
             <button
               onClick={connectWallet}
-              className="
-                px-4 py-2 rounded
-                transition-colors
-                bg-brand-accent text-white
-                hover:opacity-80
-              "
+              className="px-4 py-2 rounded bg-brand-accent text-white transition-colors hover:opacity-80"
             >
               Connect
             </button>
@@ -133,21 +104,19 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Mobile Navigation + Overlay */}
+      {/* ── Mobile drawer ── */}
       {isMobileMenuOpen && (
         <>
-          {/* Overlay */}
-          <div className="fixed inset-0 bg-black bg-opacity-40 z-40" />
-          {/* Drawer */}
+          <div className="fixed inset-0 bg-black/40 z-40" />
           <div
             ref={mobileMenuRef}
             className="
-              absolute top-[68px] left-0 w-full md:hidden
+              absolute top-[68px] left-0 w-full md:hidden z-50
+              bg-brand-secondary text-brand-text
               shadow-md shadow-black/50
-              bg-brand-secondary text-brand-text z-50
             "
           >
-            <div className="flex flex-col items-center divide-y divide-brand-border">
+            <div className="flex flex-col divide-y divide-brand-border">
               <MobileNavLink
                 to="/swap"
                 isActive={location.pathname === "/swap"}
@@ -169,9 +138,8 @@ const Header = () => {
               >
                 Bulk Transfer
               </MobileNavLink>
-              {/* ★ added */}
               <MobileNavLink
-                to="/profile"
+                to={profilePath}
                 isActive={profileActive}
                 onClick={toggleMobileMenu}
               >
@@ -185,75 +153,44 @@ const Header = () => {
   );
 };
 
-/** NavLink for desktop menu */
-const NavLink = ({ to, isActive, children, onClick, external }) =>
-  external ? (
-    <a
-      href={to}
-      onClick={onClick}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="
-        block px-4 py-2 transition-colors
-        hover:opacity-80 text-brand-text
-      "
-    >
-      {children}
-    </a>
-  ) : (
-    <Link
-      to={to}
-      onClick={onClick}
-      className={`
-        py-2 px-4 rounded-md whitespace-nowrap
-        transition-colors hover:opacity-80
-        text-brand-text ${isActive ? "font-bold" : ""}
-      `}
-    >
-      {children}
-    </Link>
-  );
+/* ---------- helpers ---------- */
 
-/** MobileNavLink for mobile menu */
-const MobileNavLink = ({ to, isActive, children, onClick, external }) =>
-  external ? (
-    <a
-      href={to}
-      onClick={onClick}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="
-        w-full text-center py-4 transition-colors
-        hover:opacity-80 text-brand-text
-      "
-    >
-      {children}
-    </a>
-  ) : (
-    <Link
-      to={to}
-      onClick={onClick}
-      className={`
-        w-full text-center py-4
-        transition-colors hover:opacity-80
-        text-brand-text ${isActive ? "font-bold" : ""}
-      `}
-    >
-      {children}
-    </Link>
-  );
+const NavLink = ({ to, isActive, children }) => (
+  <Link
+    to={to}
+    className={`
+      py-2 px-4 rounded-md whitespace-nowrap
+      transition-colors hover:opacity-80
+      text-brand-text ${isActive ? "font-bold" : ""}
+    `}
+  >
+    {children}
+  </Link>
+);
 
-/* Wallet button */
+const MobileNavLink = ({ to, isActive, children, onClick }) => (
+  <Link
+    to={to}
+    onClick={onClick}
+    className={`
+      w-full text-center py-4
+      transition-colors hover:opacity-80
+      text-brand-text ${isActive ? "font-bold" : ""}
+    `}
+  >
+    {children}
+  </Link>
+);
+
 const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button
     ref={ref}
     onClick={onClick}
     className="
-      flex items-center px-4 py-2 rounded transition-all
+      flex items-center px-4 py-2 rounded
       bg-brand-secondary text-brand-text
       shadow-md shadow-black/30
-      hover:shadow-lg hover:shadow-black/50
-      focus:outline-none
+      transition-all hover:shadow-lg hover:shadow-black/50
     "
   >
     <FaUserCircle className="mr-2" size={20} />
