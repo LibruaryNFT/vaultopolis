@@ -1,10 +1,10 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaUserCircle, FaBars } from "react-icons/fa";
+import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
-import DropdownMenu from "../components/DropdownMenu"; /* ← fixed path */
+import DropdownMenu from "../components/DropdownMenu";
 
 /* ────────────────────────────────────────────────────────── */
 
@@ -27,29 +27,28 @@ const Header = () => {
   const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
   const connectWallet = () => fcl.authenticate();
 
-  /* close drawer on outside click */
+  /* close mobile drawer on outside click */
   useEffect(() => {
-    function handleClickOutside(e) {
+    const handler = (e) => {
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target)) {
         setIsMobileMenuOpen(false);
       }
-    }
-    if (isMobileMenuOpen)
-      document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    };
+    if (isMobileMenuOpen) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [isMobileMenuOpen]);
 
   /* ───────── render ───────── */
   return (
     <header className="w-full relative z-50 shadow-md shadow-black/30 bg-brand-primary text-brand-text">
-      <div className="border-b border-brand-border px-4 py-4 flex items-center justify-between">
+      <div className="border-b border-brand-border px-3 py-4 flex items-center justify-between">
         {/* ── Left: logo + hamburger ── */}
         <div className="flex items-center">
           <button
             onClick={toggleMobileMenu}
             className="md:hidden focus:outline-none"
           >
-            <FaBars size={20} />
+            {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
           </button>
 
           <Link to="/" className="ml-2 flex items-center">
@@ -78,7 +77,7 @@ const Header = () => {
         </nav>
 
         {/* ── Right: connect / account ── */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2">
           {user.loggedIn ? (
             <div className="relative">
               <UserButton
@@ -107,7 +106,7 @@ const Header = () => {
       {/* ── Mobile drawer ── */}
       {isMobileMenuOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-40" />
+          <div className="fixed top-[68px] inset-x-0 bottom-0 bg-black/40 z-40" />
           <div
             ref={mobileMenuRef}
             className="
@@ -116,7 +115,7 @@ const Header = () => {
               shadow-md shadow-black/50
             "
           >
-            <div className="flex flex-col divide-y divide-brand-border">
+            <div className="flex flex-col divide-y divide-brand-border dark:divide-gray-700">
               <MobileNavLink
                 to="/swap"
                 isActive={location.pathname === "/swap"}
@@ -187,14 +186,14 @@ const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
     ref={ref}
     onClick={onClick}
     className="
-      flex items-center px-4 py-2 rounded
-      bg-brand-secondary text-brand-text
+      flex items-center px-3 py-2 rounded
+      bg-brand-secondary text-brand-text text-sm
       shadow-md shadow-black/30
       transition-all hover:shadow-lg hover:shadow-black/50
     "
   >
-    <FaUserCircle className="mr-2" size={20} />
-    <span className="truncate max-w-[120px]">{activeAddress}</span>
+    <FaUserCircle className="mr-2" size={18} />
+    <span className="truncate max-w-[80px]">{activeAddress}</span>
   </button>
 ));
 

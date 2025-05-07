@@ -26,7 +26,7 @@ const AccountBox = ({
       onClick={handleClick}
       title={isDisabled ? "This account has no TopShot collection." : ""}
       className={`
-        p-2 w-48 rounded-lg border-2 transition-all
+        p-2 w-36 sm:w-48 rounded-lg border-2 transition-all
         ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
 
         /* Border color: opolis if selected, brand-border if not */
@@ -48,7 +48,9 @@ const AccountBox = ({
       >
         {label}
       </h4>
-      <p className="text-xs text-brand-text/70 truncate">{address}</p>
+      <p className="text-[11px] leading-snug text-brand-text/70 break-all">
+        {address}
+      </p>
     </div>
   );
 };
@@ -96,7 +98,7 @@ const AccountSelection = ({
             flex-col
             items-center
             text-center
-            w-48
+            w-36 sm:w-48
           "
         >
           <p className="text-sm text-brand-text">Loading child data...</p>
@@ -117,7 +119,7 @@ const AccountSelection = ({
             flex-col
             items-center
             text-center
-            w-48
+            w-36 sm:w-48
           "
         >
           <div className="flex items-center justify-center text-base font-bold text-brand-text mb-1">
@@ -181,9 +183,7 @@ const AccountSelection = ({
       <h3 className="text-brand-text text-sm font-bold mb-2">
         Account Selection
       </h3>
-      <div className="grid grid-cols-2 gap-3 justify-items-center">
-        {allBoxes}
-      </div>
+      <div className="flex flex-wrap gap-3">{allBoxes}</div>
     </div>
   );
 };

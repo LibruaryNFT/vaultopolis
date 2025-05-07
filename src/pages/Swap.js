@@ -480,7 +480,7 @@ const Swap = () => {
                   py-2
                   rounded-lg
                   text-base
-                  w-72
+                  w-60 sm:w-72
                   h-14
                   flex
                   items-center
@@ -546,6 +546,7 @@ const Swap = () => {
     bg-brand-primary
     rounded-lg p-2
     shadow-md shadow-black/30
+    mb-2
   "
         >
           <summary
@@ -633,7 +634,7 @@ const Swap = () => {
       {fromAsset === "TopShot Common / Fandom" &&
         isLoggedIn &&
         accountData?.parentAddress && (
-          <div className="w-full p-4 space-y-4">
+          <div className="w-full p-0 space-y-2 mb-2 mt-2">
             {/* Selected Moments (full width) */}
             <div className="bg-brand-primary shadow-md p-2 rounded w-full">
               <h4 className="text-brand-text text-sm mb-2">
@@ -672,7 +673,7 @@ const Swap = () => {
             </div>
 
             {/* Account Selection (left-aligned, not full width) */}
-            <div className="bg-brand-primary shadow-md p-2 rounded inline-flex flex-wrap gap-2">
+            <div className="bg-brand-primary shadow-md px-1 py-2 rounded flex flex-wrap gap-2 w-full">
               <AccountSelection
                 parentAccount={{
                   addr: accountData.parentAddress || user?.addr,

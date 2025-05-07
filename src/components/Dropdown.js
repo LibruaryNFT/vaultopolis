@@ -77,7 +77,7 @@ export default function Dropdown({
           py-2
           rounded-lg
           text-base
-          w-72
+          w-60 sm:w-72
           h-14
           transition-colors
           hover:opacity-90
@@ -116,7 +116,7 @@ export default function Dropdown({
             border-brand-border
             rounded
             shadow-lg
-            w-72
+            w-60 sm:w-72
           "
         >
           {filtered.map((opt) => (

@@ -4,14 +4,12 @@ import { FaSignOutAlt, FaSpinner, FaSun, FaMoon } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
-
-/* tiny Cadence scripts */
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionLength";
 import { getChildren } from "../flow/getChildren";
 
-/* ─── small helper ─── */
+/* ------------ helper ------------ */
 const ValueOrSkeleton = ({
   value,
   className = "",
@@ -26,7 +24,7 @@ const ValueOrSkeleton = ({
     />
   );
 
-/* ─── component ─── */
+/* ------------ component ------------ */
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const navigate = useNavigate();
   const { user, dispatch, accountData } = useContext(UserDataContext);
@@ -48,7 +46,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
 
     (async () => {
       try {
-        /* child addresses (if any) */
         let childAddrs = [];
         try {
           childAddrs = await fcl.query({
@@ -61,7 +58,6 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
 
         const addresses = [parentAddr, ...childAddrs];
 
-        /* run 3 tiny scripts per address in parallel */
         const per = await Promise.all(
           addresses.map(async (addr) => {
             const [flow, tshot, moms] = await Promise.all([
@@ -136,8 +132,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
 
   const openProfile = () => {
     closeMenu();
-    const path = loggedIn ? `/profile/${parentAddr}` : "/profile";
-    navigate(path);
+    navigate(loggedIn ? `/profile/${parentAddr}` : "/profile");
   };
 
   /* render --------------------------------------------------------- */
@@ -145,14 +140,16 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     <div
       ref={popRef}
       className="
-        absolute top-12 right-0 mt-2
-        w-[calc(100vw-32px)] md:w-80
-        rounded-lg border-2 border-brand-primary
-        shadow-xl bg-brand-primary text-brand-text z-50
+        fixed top-[68px] left-0 w-screen
+        md:absolute md:top-12 md:right-0 md:left-auto md:w-80
+        mt-0
+        rounded-lg border border-brand-border
+        shadow-xl shadow-black/70
+        bg-brand-secondary text-brand-text z-60
       "
     >
       {/* header row */}
-      <div className="flex justify-between items-center px-4 py-2 bg-brand-secondary border-b border-brand-border">
+      <div className="flex justify-between items-center px-4 py-2 bg-brand-primary border-b border-brand-border">
         {/* theme toggle */}
         <div className="flex items-center space-x-2">
           <span className="font-medium">Theme:</span>
