@@ -1,48 +1,38 @@
 // src/components/TransactionModal.jsx
-
 import React, { useState, useEffect } from "react";
-import { AiOutlineLoading3Quarters } from "react-icons/ai";
-import { FaCheckCircle, FaTimesCircle, FaWallet } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { AiOutlineLoading3Quarters as Spinner } from "react-icons/ai";
+import {
+  FaCheckCircle,
+  FaTimesCircle,
+  FaWallet,
+  FaTimes,
+} from "react-icons/fa";
 import MomentCard from "./MomentCard";
 
-/** Helper for singular vs plural */
-function pluralize(count, singular, plural) {
-  return count === 1 ? singular : plural;
-}
+/* ---------- helpers ---------- */
+const plural = (n, s, p) => (n === 1 ? s : p);
 
-/**
- * A simple "Hidden" card that uses the same size as MomentCard
- * but is styled as a black card with "Reveal" text.
- */
-function HiddenCard({ nftId, onReveal }) {
-  return (
-    <div
-      className="
-        w-28 h-48
-        border
-        border-brand-border
-        bg-black
-        text-white
-        rounded
-        flex flex-col items-center justify-center
-        cursor-pointer
-        transition-colors
-        duration-200
-        hover:border-2
-        hover:border-opolis
-      "
-      onClick={() => onReveal(nftId)}
-    >
-      <p className="text-center font-semibold text-sm">Reveal</p>
-    </div>
-  );
-}
+/* Hidden placeholder (matches MomentCard shell) */
+const HiddenCard = ({ nftId, onReveal }) => (
+  <div
+    onClick={() => onReveal(nftId)}
+    className="
+      w-28 h-44 pt-1 px-1 pb-0
+      flex flex-col items-center justify-center
+      bg-black text-white border border-brand-border rounded
+      cursor-pointer transition-colors hover:border-2 hover:border-opolis
+      select-none
+    "
+  >
+    <p className="text-sm font-semibold text-center leading-tight">Reveal</p>
+  </div>
+);
 
+/* ---------- component ---------- */
 const TransactionModal = ({
   status,
   txId,
-  error,
   nftCount,
   tshotAmount,
   swapType,
@@ -51,191 +41,186 @@ const TransactionModal = ({
   revealedNFTDetails,
   recipient,
 }) => {
-  const [hiddenStates, setHiddenStates] = useState({});
+  /* collapse noisy statuses */
+  const effectiveStatus =
+    status === "Finalized" || status === "Executed" ? "Pending" : status;
 
+  /* reveal state */
+  const [hidden, setHidden] = useState({});
   useEffect(() => {
-    if (!revealedNFTDetails || revealedNFTDetails.length === 0) {
-      setHiddenStates({});
-      return;
-    }
-    const initState = {};
-    revealedNFTDetails.forEach((nft) => {
-      initState[nft.id] = false; // not revealed
-    });
-    setHiddenStates(initState);
+    if (!revealedNFTDetails?.length) return setHidden({});
+    setHidden(Object.fromEntries(revealedNFTDetails.map((n) => [n.id, false])));
   }, [revealedNFTDetails]);
 
-  // Single reveal
-  const handleRevealOne = (nftId) => {
-    setHiddenStates((prev) => ({ ...prev, [nftId]: true }));
-  };
-
-  // Reveal all
-  const handleRevealAll = () => {
-    if (!revealedNFTDetails) return;
-    const newState = {};
-    revealedNFTDetails.forEach((nft) => {
-      newState[nft.id] = true;
+  /* ---------- PRE-LOAD IMAGES BEFORE REVEAL ---------- */
+  useEffect(() => {
+    if (!revealedNFTDetails?.length) return;
+    const imgs = revealedNFTDetails.map((nft) => {
+      const url = `https://assets.nbatopshot.com/media/${nft.id}/transparent/image?width=250&quality=80`;
+      const img = new Image();
+      img.src = url; // browser starts downloading in background
+      return img;
     });
-    setHiddenStates(newState);
-  };
+    return () => imgs.forEach((img) => (img.src = "")); // abort if unmounts
+  }, [revealedNFTDetails]);
+  /* --------------------------------------------------- */
 
-  if (!status) {
-    return null;
-  }
+  const revealOne = (id) => setHidden((s) => ({ ...s, [id]: true }));
+  const revealAll = () =>
+    setHidden(Object.fromEntries(revealedNFTDetails.map((n) => [n.id, true])));
 
-  // Status messages
-  const flowStatusMessages = {
-    "Awaiting Approval": "Waiting for your approval in the wallet...",
-    Pending: "Transaction received by the network. Awaiting confirmation...",
-    Finalized: "Transaction is in a block. Awaiting execution...",
-    Executed: "Transaction executed successfully. Sealing in progress...",
-    Sealed: "Transaction completed and sealed successfully!",
-    Expired: "Transaction expired. Please try again.",
-    Error: `Transaction failed: ${error}`,
-  };
-  const statusMessage =
-    flowStatusMessages[status] || "Processing transaction...";
+  if (!effectiveStatus) return null;
 
-  // --- Construct the main transaction message ---
-  let transactionMessage = "Processing transaction...";
-  const label = pluralize(nftCount || 0, "Moment", "Moments");
+  /* ---------- copy helpers ---------- */
+  const isDone =
+    effectiveStatus === "Sealed" ||
+    effectiveStatus === "Expired" ||
+    effectiveStatus === "Error";
 
-  if (transactionAction === "COMMIT_SWAP") {
-    const tshotInt = parseInt(tshotAmount || "0", 10);
-    transactionMessage = `(Step 1 of 2) Depositing ${tshotInt} TSHOT.`;
-  } else if (transactionAction === "REVEAL_SWAP") {
-    const count =
-      tshotAmount && Number(tshotAmount) > 0
-        ? parseInt(tshotAmount, 10)
-        : nftCount
-        ? parseInt(nftCount, 10)
-        : 0;
-    const revealLabel = pluralize(count, "Moment", "Moments");
-    transactionMessage = `Receiving ${count} Random TopShot ${revealLabel}`;
-  } else if (swapType === "NFT_TO_TSHOT") {
-    const tshotInt = parseInt(tshotAmount || "0", 10);
-    transactionMessage = `Swapping ${nftCount} ${label} for ${tshotInt} TSHOT`;
-  } else if (swapType === "TSHOT_TO_NFT") {
-    transactionMessage = `Swapping ${tshotAmount} TSHOT for ${nftCount} ${label}`;
-  } else if (swapType === "BRIDGE_TO_EVM") {
-    // Bridging to EVM
-    transactionMessage = `Bridging ${nftCount} ${label} to your Flow EVM COA`;
-  } else if (swapType === "BATCH_TRANSFER") {
-    // Flow -> Flow
-    if (recipient && recipient !== "0x") {
-      transactionMessage = `Transferring ${nftCount} ${label} to ${recipient}`;
-    } else {
-      // Fallback (shouldn't usually happen due to validation)
-      transactionMessage = `Transferring ${nftCount} ${label} to recipient`;
+  const nounMoments = plural(nftCount || 0, "Moment", "Moments");
+  const past = (present, past) => (isDone ? past : present);
+
+  let txMsg = "";
+  switch (transactionAction) {
+    case "COMMIT_SWAP":
+      txMsg = past(
+        `Depositing ${parseInt(tshotAmount || 0, 10)} TSHOT`,
+        `Deposited ${parseInt(tshotAmount || 0, 10)} TSHOT`
+      );
+      break;
+    case "REVEAL_SWAP": {
+      const n =
+        tshotAmount && +tshotAmount > 0
+          ? parseInt(tshotAmount, 10)
+          : parseInt(nftCount ?? 0, 10);
+      txMsg = past(
+        `Receiving ${n} random ${plural(n, "Moment", "Moments")}`,
+        ""
+      );
+      break;
     }
+    default:
+      if (swapType === "NFT_TO_TSHOT") {
+        const ts = parseInt(tshotAmount || 0, 10);
+        txMsg = past(
+          `Swapping ${nftCount} ${nounMoments} ↔ ${ts} TSHOT`,
+          `Swapped ${nftCount} ${nounMoments} ↔ ${ts} TSHOT`
+        );
+      } else if (swapType === "TSHOT_TO_NFT") {
+        txMsg = past(
+          `Swapping ${tshotAmount} TSHOT ↔ ${nftCount} ${nounMoments}`,
+          `Swapped ${tshotAmount} TSHOT ↔ ${nftCount} ${nounMoments}`
+        );
+      } else if (swapType === "BRIDGE_TO_EVM") {
+        txMsg = past(
+          `Bridging ${nftCount} ${nounMoments}`,
+          `Bridged ${nftCount} ${nounMoments}`
+        );
+      } else if (swapType === "BATCH_TRANSFER") {
+        const base = `${nftCount} ${nounMoments}`;
+        txMsg =
+          recipient && recipient !== "0x"
+            ? past(`Sending ${base}`, `Sent ${base}`)
+            : past(`Transferring ${base}`, `Transferred ${base}`);
+      }
   }
 
-  // Icon based on status
-  const getStatusIcon = () => {
-    switch (status) {
+  const flowStatus =
+    {
+      "Awaiting Approval": "Awaiting approval",
+      Pending: "Pending",
+      Sealed: "Sealed",
+      Expired: "Expired",
+      Error: "Error",
+    }[effectiveStatus] || "Processing";
+
+  const Icon = (() => {
+    switch (effectiveStatus) {
       case "Awaiting Approval":
         return (
           <motion.div
-            className="flex items-center justify-center"
-            animate={{ scale: [1, 1.2, 1] }}
+            animate={{ scale: [1, 1.15, 1] }}
             transition={{ duration: 1, repeat: Infinity }}
           >
-            <FaWallet className="text-6xl text-yellow-400" />
+            <FaWallet className="text-4xl text-yellow-400" />
           </motion.div>
         );
       case "Pending":
-        return (
-          <AiOutlineLoading3Quarters className="text-6xl animate-spin text-blue-500" />
-        );
-      case "Finalized":
-        return (
-          <AiOutlineLoading3Quarters className="text-6xl animate-spin text-orange-500" />
-        );
-      case "Executed":
-        return <FaCheckCircle className="text-6xl text-blue-500" />;
+        return <Spinner className="text-4xl animate-spin text-blue-500" />;
       case "Sealed":
-        return <FaCheckCircle className="text-6xl text-green-500" />;
+        return <FaCheckCircle className="text-4xl text-green-500" />;
       case "Expired":
       case "Error":
-        return <FaTimesCircle className="text-6xl text-red-500" />;
+        return <FaTimesCircle className="text-4xl text-red-500" />;
       default:
-        return (
-          <AiOutlineLoading3Quarters className="text-6xl animate-spin text-blue-500" />
-        );
+        return <Spinner className="text-4xl animate-spin text-blue-500" />;
     }
-  };
+  })();
 
-  const revealedCount = revealedNFTDetails ? revealedNFTDetails.length : 0;
-  const revealedHeading = `You received ${
-    revealedCount === 1 ? "this Moment" : "these Moments"
-  }:`;
+  const revealedCount = revealedNFTDetails?.length ?? 0;
 
+  /* ---------- render ---------- */
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto flex items-start justify-center pt-10 pb-10">
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black bg-opacity-70"></div>
+    <div
+      className="
+        fixed inset-0 z-50 flex items-start justify-center
+        overflow-y-auto pt-4 pb-4 sm:pt-10 sm:pb-10
+      "
+    >
+      {/* overlay */}
+      <div
+        onClick={onClose}
+        className="absolute inset-0 bg-black/70 cursor-pointer"
+      />
 
       <motion.div
-        className="
-          relative
-          bg-brand-primary
-          text-brand-text
-          p-6
-          w-11/12
-          max-w-md
-          sm:max-w-xl
-          md:max-w-3xl
-          2xl:max-w-5xl
-          rounded-lg
-          shadow-lg
-          overflow-y-auto
-          max-h-[90vh]
-        "
+        onClick={(e) => e.stopPropagation()}
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className="
+          relative bg-brand-primary text-brand-text
+          w-full p-4 sm:w-11/12 sm:max-w-md sm:rounded-lg
+          rounded-none shadow-lg overflow-y-auto max-h-[90vh]
+        "
       >
-        {/* Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Transaction Status</h2>
-          <button onClick={onClose} className="text-2xl hover:opacity-80">
-            &times;
+        {/* sticky compact bar */}
+        <div className="flex items-center justify-between sticky top-0 bg-brand-primary z-10">
+          <div className="flex items-center gap-2">
+            {Icon}
+            <span className="text-sm font-medium">
+              {flowStatus}
+              {txMsg && " · "}
+              {txMsg}
+            </span>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="
+              w-11 h-11 flex items-center justify-center
+              bg-brand-secondary hover:bg-brand-blue
+              text-brand-text rounded-full transition-colors
+            "
+          >
+            <FaTimes size={26} />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex flex-col items-center my-6 space-y-3">
-          {getStatusIcon()}
-          <motion.p
-            className="text-center text-lg font-semibold"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            {statusMessage}
-          </motion.p>
-          <div className="text-lg text-brand-text/80 mt-4 text-center">
-            <p>{transactionMessage}</p>
-          </div>
-        </div>
-
-        {/* Revealed NFTs (optional, for random swap scenarios) */}
+        {/* reveal grid */}
         {revealedCount > 0 && (
-          <div className="mt-4 p-2 border border-brand-border rounded">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold">{revealedHeading}</h3>
+          <div className="-mx-4 px-4 mt-4 pb-2 border-t border-brand-border">
+            <div className="flex items-center justify-between my-2">
+              <h3 className="font-bold text-sm">
+                You received {revealedCount}{" "}
+                {plural(revealedCount, "Moment", "Moments")}:
+              </h3>
               {revealedCount > 1 && (
                 <button
-                  onClick={handleRevealAll}
+                  onClick={revealAll}
                   className="
-                    bg-brand-secondary
-                    text-brand-text
-                    text-sm
-                    px-3
-                    py-1
-                    rounded
+                    bg-brand-secondary text-brand-text text-xs px-3 py-1 rounded
                     hover:opacity-80
                   "
                 >
@@ -243,24 +228,24 @@ const TransactionModal = ({
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {revealedNFTDetails.map((nft) => {
-                const isRevealed = hiddenStates[nft.id];
-                return isRevealed ? (
-                  <MomentCard key={nft.id} nft={nft} disableHover />
+            <div
+              className="
+                grid grid-cols-3 gap-1 justify-items-center
+                sm:flex sm:flex-wrap sm:justify-center
+              "
+            >
+              {revealedNFTDetails.map((n) =>
+                hidden[n.id] ? (
+                  <MomentCard key={n.id} nft={n} disableHover />
                 ) : (
-                  <HiddenCard
-                    key={nft.id}
-                    nftId={nft.id}
-                    onReveal={handleRevealOne}
-                  />
-                );
-              })}
+                  <HiddenCard key={n.id} nftId={n.id} onReveal={revealOne} />
+                )
+              )}
             </div>
           </div>
         )}
 
-        {/* Flowscan Link */}
+        {/* flowscan link */}
         {txId && (
           <a
             href={`https://flowscan.io/transaction/${txId}`}
@@ -268,7 +253,7 @@ const TransactionModal = ({
             rel="noopener noreferrer"
             className="block mt-4 text-center text-flow-light underline hover:opacity-80"
           >
-            View Transaction Details
+            View on Flowscan
           </a>
         )}
       </motion.div>
