@@ -6,7 +6,7 @@ import * as fcl from "@onflow/fcl";
 import { UserDataContext } from "../context/UserContext";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
-import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionLength";
+import { getTopShotCollectionLength } from "../flow/getTopShotCollectionLength";
 import { getChildren } from "../flow/getChildren";
 
 /* ------------ helper ------------ */
@@ -70,7 +70,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                 args: (arg, t) => [arg(addr, t.Address)],
               }),
               fcl.query({
-                cadence: getTopShotCollectionIDs,
+                cadence: getTopShotCollectionLength,
                 args: (arg, t) => [arg(addr, t.Address)],
               }),
             ]);
