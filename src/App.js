@@ -1,18 +1,11 @@
 import React, { useEffect } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import UserContext from "./context/UserContext";
-
-import TSHOT from "./pages/TSHOT";
-import TermsAndPrivacy from "./pages/TermsAndPrivacy";
-import Layout from "./layout/Layout";
-import Swap from "./pages/Swap";
-import Transfer from "./pages/Transfer";
-import Profile from "./pages/Profile";
-
-// Special pages
-import ComingSoon from "./pages/ComingSoon";
+import routes from "./routes";
 import MaintenancePage from "./pages/Maintenance";
+import ComingSoon from "./pages/ComingSoon";
 
+/* ——— force HTTPS in prod ——— */
 function enforceHTTPS() {
   if (
     window.location.protocol !== "https:" &&
@@ -22,86 +15,17 @@ function enforceHTTPS() {
   }
 }
 
-// Create the router for normal operation
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: (
-      <Layout>
-        <Swap />
-      </Layout>
-    ),
-  },
-  {
-    path: "/swap",
-    element: (
-      <Layout>
-        <Swap />
-      </Layout>
-    ),
-  },
-  {
-    path: "/tshot",
-    element: (
-      <Layout>
-        <TSHOT />
-      </Layout>
-    ),
-  },
-  {
-    path: "/transfer",
-    element: (
-      <Layout>
-        <Transfer />
-      </Layout>
-    ),
-  },
-  {
-    path: "/profile",
-    element: (
-      <Layout>
-        <Profile />
-      </Layout>
-    ),
-  },
-  {
-    path: "/profile/:address?",
-    element: (
-      <Layout>
-        <Profile />
-      </Layout>
-    ),
-  },
-  {
-    path: "/terms",
-    element: (
-      <Layout>
-        <TermsAndPrivacy />
-      </Layout>
-    ),
-  },
-  // NEW: ComingSoon route
-  {
-    path: "/comingsoon",
-    element: <ComingSoon />,
-  },
-]);
+/* ——— create router from pure route config ——— */
+const router = createBrowserRouter(routes);
 
 function App() {
-  useEffect(() => {
-    enforceHTTPS();
-  }, []);
+  useEffect(() => enforceHTTPS(), []);
 
-  // Read the environment variables
   const maintenanceMode = process.env.REACT_APP_MAINTENANCE_MODE === "true";
   const comingSoonMode = process.env.REACT_APP_COMING_SOON_MODE === "true";
 
-  // Priority: Maintenance Mode first, then Coming Soon Mode
-  if (maintenanceMode) {
-    return <MaintenancePage />;
-  } else if (comingSoonMode) {
-    return <ComingSoon />;
-  }
+  if (maintenanceMode) return <MaintenancePage />;
+  if (comingSoonMode) return <ComingSoon />;
 
   return (
     <UserContext>
