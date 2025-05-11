@@ -1,11 +1,13 @@
 /*  src/pages/Profile.jsx
     ------------------------------------------------------------
-      /profile            – prompts to connect a wallet
-      /profile/:address   – read-only or owner view (identical)
-    ------------------------------------------------------------
-*/
+      /profile            – redirects:
+                             • wallet connected  → /profile/<addr>
+                             • not connected     → /
+      /profile/:address   – read-only or owner view
+    ------------------------------------------------------------ */
+
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import * as fcl from "@onflow/fcl";
 import axios from "axios";
 import pLimit from "p-limit";
@@ -27,16 +29,14 @@ const tierColour = {
   legendary: "text-orange-500",
   ultimate: "text-pink-500",
 };
-const LIMIT = pLimit(10); // max 10 concurrent cadence queries
-const BATCH = 4000; // ids per cadence call (was 2500)
+const LIMIT = pLimit(10);
+const BATCH = 4000;
 
-/* ───────── tiny helpers ───────── */
-const bump = (o, k, n = 1) => {
-  o[k] = (o[k] || 0) + n;
-  return o;
-};
+/* ───────── helpers ───────── */
+const bump = (o, k, n = 1) => ((o[k] = (o[k] || 0) + n), o);
 const fixed = (n, d = 2) => (Number.isFinite(+n) ? (+n).toFixed(d) : "0");
 
+/* ───────── minimal UI helpers ───────── */
 const Skeleton = ({ w = "w-16", h = "h-7" }) => (
   <div className={`${w} ${h} rounded bg-brand-secondary animate-pulse`} />
 );
@@ -55,7 +55,6 @@ const Tile = ({ title, value, loading }) => (
 let topshotMeta = null;
 async function loadTopShotMeta() {
   if (topshotMeta) return topshotMeta;
-
   const KEY = "topshotMeta_v1";
   try {
     const cached = localStorage.getItem(KEY);
@@ -64,12 +63,11 @@ async function loadTopShotMeta() {
       return topshotMeta;
     }
   } catch (_) {}
-
   const resp = await fetch("https://api.vaultopolis.com/topshot-data");
   const arr = await resp.json();
-  topshotMeta = arr.reduce((acc, r) => {
-    acc[`${r.setID}-${r.playID}`] = r.tier?.toLowerCase?.() || null;
-    return acc;
+  topshotMeta = arr.reduce((a, r) => {
+    a[`${r.setID}-${r.playID}`] = r.tier?.toLowerCase?.() || null;
+    return a;
   }, {});
   try {
     localStorage.setItem(KEY, JSON.stringify(topshotMeta));
@@ -77,10 +75,9 @@ async function loadTopShotMeta() {
   return topshotMeta;
 }
 
-/* ───────── account fetch ───────── */
+/* ───────── account fetch helpers ───────── */
 async function fetchAccount(addr) {
   const meta = await loadTopShotMeta();
-
   const [flow, tshot, ids] = await Promise.all([
     fcl.query({
       cadence: getFLOWBalance,
@@ -95,45 +92,36 @@ async function fetchAccount(addr) {
       args: (arg, t) => [arg(addr, t.Address)],
     }),
   ]);
-
   const tiers = {};
   const idArr = Array.from(ids || []).map(String);
-
-  /* fan out all batched calls concurrently (limit 10) */
   const batchCalls = [];
   for (let i = 0; i < idArr.length; i += BATCH) {
-    const slice = idArr.slice(i, i + BATCH);
     batchCalls.push(
       LIMIT(() =>
         fcl.query({
           cadence: getTopShotCollectionBatched,
           args: (arg, t) => [
             arg(addr, t.Address),
-            arg(slice, t.Array(t.UInt64)),
+            arg(idArr.slice(i, i + BATCH), t.Array(t.UInt64)),
           ],
         })
       )
     );
   }
-
   const chunks = await Promise.all(batchCalls);
   chunks.flat().forEach((nft) => {
     const tier = meta[`${nft.setID}-${nft.playID}`];
     if (tier) bump(tiers, tier);
   });
-
   return { addr, flow: +flow, tshot: +tshot, moments: idArr.length, tiers };
 }
-
 async function loadFamily(addr) {
   const parent = await fetchAccount(addr);
-
   const hasKids = await fcl.query({
     cadence: hasChildrenCadence,
     args: (arg, t) => [arg(addr, t.Address)],
   });
   if (!hasKids) return [parent];
-
   const kidAddrs = await fcl.query({
     cadence: getChildren,
     args: (arg, t) => [arg(addr, t.Address)],
@@ -142,14 +130,13 @@ async function loadFamily(addr) {
   return [parent, ...kids];
 }
 
-/* ───────── UI fragments ───────── */
+/* ───────── small UI components ───────── */
 const MiniStat = ({ label, value }) => (
   <div className="py-2 border-r border-brand-border last:border-none">
     <p className="opacity-70 m-0 text-xs">{label}</p>
     <p className="font-semibold m-0">{value}</p>
   </div>
 );
-
 const AccountCard = ({ acc, idx }) => (
   <div className="rounded-lg shadow border border-brand-primary">
     <div className="flex justify-between bg-brand-secondary px-3 py-1.5 rounded-t-lg">
@@ -191,20 +178,33 @@ const AccountCard = ({ acc, idx }) => (
 /* ───────── main component ───────── */
 function Profile() {
   const { address: paramAddr } = useParams();
+
+  /* wallet subscription */
   const [viewer, setViewer] = useState(null);
+  const [viewerReady, setViewerReady] = useState(false);
+  useEffect(
+    () =>
+      fcl.currentUser().subscribe((u) => {
+        setViewer(u);
+        setViewerReady(true);
+      }),
+    []
+  );
+
+  /* state that exists regardless of redirect */
+  const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
+
+  /* heavy data hooks (always declared) */
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => fcl.currentUser().subscribe(setViewer), []);
-  const wallet = paramAddr || viewer?.addr || null;
-
   useEffect(() => {
-    if (!wallet) return;
+    if (!walletAddr) return;
     let alive = true;
     (async () => {
       setLoading(true);
       try {
-        const fam = await loadFamily(wallet);
+        const fam = await loadFamily(walletAddr);
         if (alive) setAccounts(fam);
       } catch (e) {
         console.error("[profile-load]", e);
@@ -214,7 +214,7 @@ function Profile() {
       }
     })();
     return () => void (alive = false);
-  }, [wallet]);
+  }, [walletAddr]);
 
   const aggregate = useMemo(() => {
     const out = { flow: 0, tshot: 0, moments: 0, tiers: {} };
@@ -227,32 +227,30 @@ function Profile() {
     return out;
   }, [accounts]);
 
-  /* ── swap stats & history (unchanged) ───────────────────── */
+  /* swap stats & events hooks (declared unconditionally) */
   const [swapStats, setSwapStats] = useState(null);
   const [swapLoading, setSwapLoading] = useState(true);
   useEffect(() => {
-    if (!wallet) return;
+    if (!walletAddr) return;
     setSwapLoading(true);
     axios
-      .get(`https://api.vaultopolis.com/wallet-stats/${wallet}`)
+      .get(`https://api.vaultopolis.com/wallet-stats/${walletAddr}`)
       .then((r) => setSwapStats(r.data.items?.[0] || null))
       .catch(console.error)
       .finally(() => setSwapLoading(false));
-  }, [wallet]);
-  const deposits = swapStats?.NFTToTSHOTSwapCompleted ?? 0;
-  const withdrawals = swapStats?.TSHOTToNFTSwapCompleted ?? 0;
+  }, [walletAddr]);
 
   const PAGE = 20;
   const [page, setPage] = useState(1);
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
-  useEffect(() => setPage(1), [wallet]);
+  useEffect(() => setPage(1), [walletAddr]);
   useEffect(() => {
-    if (!wallet) return;
+    if (!walletAddr) return;
     setEventsLoading(true);
     axios
-      .get(`https://api.vaultopolis.com/wallet-events/${wallet}`, {
+      .get(`https://api.vaultopolis.com/wallet-events/${walletAddr}`, {
         params: { page, limit: PAGE, sort: "desc" },
       })
       .then((r) => {
@@ -261,25 +259,34 @@ function Profile() {
       })
       .catch(console.error)
       .finally(() => setEventsLoading(false));
-  }, [wallet, page]);
+  }, [walletAddr, page]);
+
+  /* -------- redirect logic (after hooks) -------- */
+  let redirectTarget = null;
+  if (!paramAddr && viewerReady) {
+    if (viewer?.addr) redirectTarget = `/profile/${viewer.addr}`;
+    else redirectTarget = "/";
+  }
 
   /* ───────── render ───────── */
-  return (
+  return redirectTarget ? (
+    <Navigate to={redirectTarget} replace />
+  ) : (
     <div className="p-6 sm:p-10 max-w-7xl mx-auto text-brand-text">
       <h1 className="text-2xl font-bold mb-6">
         Profile
-        {wallet && (
+        {walletAddr && (
           <span className="block text-sm mt-1 text-brand-accent break-all">
-            {wallet}
+            {walletAddr}
           </span>
         )}
       </h1>
 
-      {!wallet ? (
+      {!walletAddr ? (
         <p className="mt-4">Connect your Flow wallet to view any profile.</p>
       ) : (
         <>
-          {/* headline */}
+          {/* headline tiles */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
             <Tile
               title="Flow"
@@ -298,12 +305,12 @@ function Profile() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Tile
               title="Deposits (NFT → TSHOT)"
-              value={deposits}
+              value={swapStats?.NFTToTSHOTSwapCompleted ?? 0}
               loading={swapLoading}
             />
             <Tile
               title="Withdrawals (TSHOT → NFT)"
-              value={withdrawals}
+              value={swapStats?.TSHOTToNFTSwapCompleted ?? 0}
               loading={swapLoading}
             />
             <Tile
@@ -354,7 +361,7 @@ function Profile() {
             </>
           )}
 
-          {/* swap history (unchanged UI) */}
+          {/* swap history */}
           <div className="mb-12">
             <h2 className="text-lg font-semibold mb-3">Swap History</h2>
             {eventsLoading ? (

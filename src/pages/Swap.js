@@ -379,7 +379,7 @@ const Swap = () => {
           name="description"
           content="Swap Top Shot Moments for TSHOT or redeem TSHOT for new Moments instantly on the Flow blockchain."
         />
-        <link rel="canonical" href="https://vaultopolis.com/swap" />
+        <link rel="canonical" href="https://vaultopolis.com" />
       </Helmet>
 
       {/* Transaction Modal */}

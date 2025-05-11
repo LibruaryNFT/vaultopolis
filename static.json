@@ -1,0 +1,17 @@
+{
+  "root": "build/",
+  "https_only": true,
+
+  "routes": {
+    "/":          "/index.html",
+
+    "/swap":      { "status": 301, "url": "/" },
+    "/sell":      { "status": 301, "url": "/" },
+    "/exchange":  { "status": 301, "url": "/" },
+    "/vaults":    { "status": 301, "url": "/" },
+    "/parked":    { "status": 301, "url": "/" },
+    "/profile":   { "status": 301, "url": "/" },
+
+    "/profile/*": "/index.html"
+  }
+}

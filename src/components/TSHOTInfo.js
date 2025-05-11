@@ -113,7 +113,7 @@ function TSHOTInfo() {
               "https://swap.kittypunch.xyz/?tokens=0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e-0xc618a7356fcf601f694c51578cd94144deaee690",
               "FLOW → TSHOT • PunchSwap",
             ],
-            ["/swap", "TSHOT → Moments • Vaultopolis"],
+            ["/", "TSHOT → Moments • Vaultopolis"],
           ].map(([href, label]) => (
             <a
               key={label}
@@ -139,7 +139,7 @@ function TSHOTInfo() {
         </p>
         <div className="flex flex-col gap-1">
           {[
-            ["/swap", "Moments → TSHOT • Vaultopolis"],
+            ["/", "Moments → TSHOT • Vaultopolis"],
             [
               "https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken",
               "TSHOT → FLOW • Increment.fi",

@@ -17,11 +17,13 @@ const Header = () => {
   const mobileMenuRef = useRef(null);
   const location = useLocation();
 
+  /* -------- profile helpers -------- */
   const activeAddress = selectedAccount || user?.addr;
-  const profilePath = user.loggedIn ? `/profile/${activeAddress}` : "/profile";
-  const profileActive =
-    location.pathname === "/profile" ||
-    location.pathname.startsWith("/profile/");
+  const profilePath = `/profile/${activeAddress}`;
+  const profileActive = location.pathname.startsWith("/profile/");
+
+  /* -------- nav helpers -------- */
+  const isHome = location.pathname === "/";
 
   const toggleMenu = () => setIsMenuOpen((p) => !p);
   const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
@@ -62,7 +64,7 @@ const Header = () => {
 
         {/* ── Desktop nav ── */}
         <nav className="hidden md:flex items-center space-x-4 flex-grow justify-center">
-          <NavLink to="/swap" isActive={location.pathname === "/swap"}>
+          <NavLink to="/" isActive={isHome}>
             Swap
           </NavLink>
           <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
@@ -71,9 +73,13 @@ const Header = () => {
           <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
             Bulk Transfer
           </NavLink>
-          <NavLink to={profilePath} isActive={profileActive}>
-            Profile
-          </NavLink>
+
+          {/* Profile only when wallet connected */}
+          {user.loggedIn && (
+            <NavLink to={profilePath} isActive={profileActive}>
+              Profile
+            </NavLink>
+          )}
         </nav>
 
         {/* ── Right: connect / account ── */}
@@ -117,8 +123,8 @@ const Header = () => {
           >
             <div className="flex flex-col divide-y divide-brand-border dark:divide-gray-700">
               <MobileNavLink
-                to="/swap"
-                isActive={location.pathname === "/swap"}
+                to="/"
+                isActive={isHome}
                 onClick={toggleMobileMenu}
               >
                 Swap
@@ -137,13 +143,17 @@ const Header = () => {
               >
                 Bulk Transfer
               </MobileNavLink>
-              <MobileNavLink
-                to={profilePath}
-                isActive={profileActive}
-                onClick={toggleMobileMenu}
-              >
-                Profile
-              </MobileNavLink>
+
+              {/* Profile only when wallet connected */}
+              {user.loggedIn && (
+                <MobileNavLink
+                  to={profilePath}
+                  isActive={profileActive}
+                  onClick={toggleMobileMenu}
+                >
+                  Profile
+                </MobileNavLink>
+              )}
             </div>
           </div>
         </>
