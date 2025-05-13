@@ -10,26 +10,28 @@ const Footer = () => {
       {/* Horizontal line at the top */}
       <hr className="border-brand-border" />
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
           {/* Logo Section */}
-          <div>
-            <div className="mb-4">
+          <div className="space-y-4">
+            <div>
               <img
                 src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
                 alt="Vaultopolis Logo"
                 className="max-h-8"
               />
             </div>
-            <p className="text-sm text-brand-text/80">
-              Ownership Evolved, Possibilities Unlocked
+            <p className="text-sm text-brand-text/80 max-w-md leading-relaxed">
+              Vaultopolis is a decentralized platform that tokenizes NBA Top
+              Shot Moments into TSHOT, enabling instant bulk trading, yield
+              opportunities, and seamless liquidity management.
             </p>
           </div>
 
           {/* Disclaimer Section */}
-          <div>
-            <p className="text-sm text-brand-text/80">
+          <div className="flex items-center">
+            <p className="text-sm text-brand-text/80 leading-relaxed">
               Vaultopolis is not affiliated with NBA Top Shot or Dapper Labs.
               All operations are executed through decentralized smart contracts.
             </p>
@@ -37,24 +39,16 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-brand-border pt-8 flex flex-col md:flex-row justify-between items-center">
-          <div className="text-sm text-brand-text/70 mb-4 md:mb-0">
+        <div className="border-t border-brand-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="text-sm text-brand-text/70">
             © {new Date().getFullYear()} Vaultopolis
           </div>
 
-          <div className="flex items-center">
-            {/* TSHOT Info Link */}
-            <button
-              onClick={() => navigate("/tshot")}
-              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors mr-6"
-            >
-              TSHOT – Tokenized Top Shot Liquidity
-            </button>
-
+          <div className="flex items-center gap-8">
             {/* Terms of Service Button */}
             <button
               onClick={() => navigate("/terms")}
-              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors mr-6"
+              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors"
             >
               Terms of Service
             </button>
