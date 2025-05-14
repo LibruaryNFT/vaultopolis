@@ -55,6 +55,7 @@ function TSHOTVault() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [retry, setRetry] = useState(0);
+  const [lastRunTime, setLastRunTime] = useState(null);
 
   /* filters & paging */
   const [selectedTiers, setSelectedTiers] = useState(
@@ -77,6 +78,22 @@ function TSHOTVault() {
     fetchPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTiers, selectedSeries, onlySpecial, page, retry]);
+
+  useEffect(() => {
+    async function fetchLastRun() {
+      try {
+        const resp = await fetch(
+          "https://api.vaultopolis.com/tshot-vault/last-run"
+        );
+        if (!resp.ok) throw new Error(`Error ${resp.status}`);
+        const data = await resp.json();
+        setLastRunTime(data.timestamp);
+      } catch (e) {
+        console.error("Failed to fetch last run time:", e);
+      }
+    }
+    fetchLastRun();
+  }, []);
 
   async function fetchPage() {
     try {
@@ -159,7 +176,7 @@ function TSHOTVault() {
       {summary && (
         <div className="bg-brand-secondary p-3 rounded mb-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
-            <Stat label="Total in vault" value={summary.totalInVault} />
+            <Stat label="Total in vault" value={totalCount} />
             <Stat label="Common" value={summary.totalCommon} />
             <Stat label="Fandom" value={summary.totalFandom} />
             <Stat label="#1 Mints" value={summary.totalFirstMints} />
@@ -168,7 +185,7 @@ function TSHOTVault() {
             <Stat label="Series 0" value={summary.totalSeries0} />
           </div>
           <p className="italic text-xs text-brand-text/60 mt-2">
-            Data refreshes every&nbsp;4&nbsp;hours.
+            Data refreshes every 10 minutes on the hour.
           </p>
         </div>
       )}
