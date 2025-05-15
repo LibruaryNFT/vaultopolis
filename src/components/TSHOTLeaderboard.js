@@ -104,7 +104,7 @@ function TSHOTLeaderboard() {
 
   /* UI block */
   const TableBlock = () => (
-    <>
+    <div className="bg-brand-primary rounded-lg p-3">
       {/* ——— disclaimer note ——— */}
       <p className="text-xs text-brand-text/70 text-center sm:text-left mb-2">
         This is an <strong>experimental leaderboard</strong>. There is currently
@@ -134,7 +134,7 @@ function TSHOTLeaderboard() {
       ) : (
         <>
           <div className="overflow-x-auto rounded-lg shadow border border-brand-border">
-            <table className="min-w-full table-fixed bg-brand-primary/10 select-none">
+            <table className="min-w-full table-fixed bg-brand-secondary select-none">
               <colgroup>
                 <col style={{ width: "40px" }} />
                 <col style={{ width: "120px" }} />
@@ -203,7 +203,7 @@ function TSHOTLeaderboard() {
           )}
         </>
       )}
-    </>
+    </div>
   );
 
   /* render */

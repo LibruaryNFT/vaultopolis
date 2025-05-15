@@ -55,7 +55,6 @@ function TSHOTVault() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [retry, setRetry] = useState(0);
-  const [lastRunTime, setLastRunTime] = useState(null);
 
   /* filters & paging */
   const [selectedTiers, setSelectedTiers] = useState(
@@ -78,22 +77,6 @@ function TSHOTVault() {
     fetchPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTiers, selectedSeries, onlySpecial, page, retry]);
-
-  useEffect(() => {
-    async function fetchLastRun() {
-      try {
-        const resp = await fetch(
-          "https://api.vaultopolis.com/tshot-vault/last-run"
-        );
-        if (!resp.ok) throw new Error(`Error ${resp.status}`);
-        const data = await resp.json();
-        setLastRunTime(data.timestamp);
-      } catch (e) {
-        console.error("Failed to fetch last run time:", e);
-      }
-    }
-    fetchLastRun();
-  }, []);
 
   async function fetchPage() {
     try {

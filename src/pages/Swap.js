@@ -80,7 +80,7 @@ const Swap = () => {
   const [showModal, setShowModal] = useState(false);
   const [transactionData, setTransactionData] = useState({});
 
-  // Excluded NFT IDs (committed for TSHOT, so we don’t see them again)
+  // Excluded NFT IDs (committed for TSHOT, so we don't see them again)
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
   const [benefitsOpen, setBenefitsOpen] = useState(false);
@@ -289,6 +289,12 @@ const Swap = () => {
     const newTo = fromAsset;
     setFromAsset(newFrom);
     setToAsset(newTo);
+
+    // Reset input values when switching from NFT->TSHOT to TSHOT->NFT
+    if (fromAsset === "TopShot Common / Fandom") {
+      setFromInput("");
+      setToInput("");
+    }
   };
 
   /** Only accounts that have a TopShot collection. */
@@ -428,7 +434,7 @@ const Swap = () => {
                 onChange={handleFromInputChange}
                 placeholder="0"
                 maxLength={3}
-                className="w-16 bg-brand-secondary text-brand-text p-2 rounded text-3xl text-center"
+                className="w-20 bg-brand-secondary text-brand-text p-2 rounded text-3xl text-center"
                 readOnly={isNFTMode}
               />
             </div>
@@ -518,7 +524,7 @@ const Swap = () => {
                 placeholder="0"
                 maxLength={3}
                 className="
-                  w-16
+                  w-20
                   bg-brand-secondary
                   text-brand-text
                   p-2

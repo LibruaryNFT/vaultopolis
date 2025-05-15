@@ -1,430 +1,214 @@
-// src/components/MomentSelection.js
-
-import React, { useContext, useMemo, useState, useEffect, useRef } from "react";
+/* eslint-disable react/prop-types */
+import React, { useContext, useState } from "react";
+import { Settings as SettingsIcon } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
+import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 
-// If allowAllTiers=false => ["common","fandom"]
-// If allowAllTiers=true  => ["common","fandom","rare","legendary","ultimate"]
-const defaultTiers = ["common", "fandom"];
-const allPossibleTiers = ["common", "fandom", "rare", "legendary", "ultimate"];
+/* ─── helpers ──────────────────────────────────────────── */
+const colour = {
+  common: "text-gray-400",
+  fandom: "text-lime-400",
+  rare: "text-blue-500",
+  legendary: "text-orange-500",
+  ultimate: "text-pink-500",
+};
+const tierClass = (t) => colour[t] ?? "";
 
-/** Tier color classes */
-function getTierColorClass(tierVal) {
-  switch (tierVal) {
-    case "common":
-      return "text-gray-400";
-    case "rare":
-      return "text-blue-500";
-    case "fandom":
-      return "text-lime-400";
-    case "legendary":
-      return "text-orange-500";
-    case "ultimate":
-      return "text-pink-500";
-    default:
-      return "";
-  }
+const Dropdown = ({ opts, value, onChange, title, countFn }) => (
+  <select
+    value={value}
+    onChange={onChange}
+    disabled={!opts.length}
+    title={title}
+    className="w-36 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40"
+  >
+    <option value="All">All</option>
+    {opts.map((o) => (
+      <option key={o} value={o} className="text-brand-text">
+        {`${o} (${countFn(o)})`}
+      </option>
+    ))}
+  </select>
+);
+
+/* ─── Preset-modal ────────────────────────────────────── */
+const sanitizeName = (str) =>
+  str
+    .replace(/<\/?[^>]*>/g, "") // strip HTML
+    .replace(/[^\w\s\-]/gi, "") // allow A-Z 0-9 _-
+    .replace(/\s+/g, " ") // collapse spaces
+    .trim()
+    .slice(0, 40); // max 40 chars
+
+function PrefsModal({
+  prefs,
+  current,
+  apply,
+  save,
+  del,
+  onClose,
+  newName,
+  setNewName,
+}) {
+  const [err, setErr] = useState("");
+  const trySave = () => {
+    const clean = sanitizeName(newName);
+    if (!clean) return setErr("Name required");
+    if (Object.keys(prefs).some((k) => k.toLowerCase() === clean.toLowerCase()))
+      return setErr("Name already exists");
+    if (!save(clean)) return setErr("Could not save (quota?)");
+    setNewName("");
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-brand-primary p-6 rounded-lg w-full max-w-md">
+        <h3 className="text-lg font-semibold mb-4">Filter preferences</h3>
+
+        {Object.keys(prefs).length > 0 && (
+          <div className="space-y-2 mb-4 max-h-60 overflow-y-auto pr-1">
+            {Object.keys(prefs).map((k) => (
+              <div key={k} className="flex items-center">
+                <button
+                  onClick={() => {
+                    apply(k);
+                    onClose();
+                  }}
+                  className={`flex-1 text-left px-2 py-1 rounded ${
+                    k === current
+                      ? "bg-flow-dark text-white"
+                      : "hover:bg-brand-secondary"
+                  }`}
+                >
+                  {k}
+                </button>
+                <button
+                  onClick={() => del(k)}
+                  className="ml-2 px-2 text-red-500 hover:bg-red-500/10 rounded"
+                  title="Delete preference"
+                >
+                  🗑
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <input
+          value={newName}
+          onChange={(e) => {
+            setErr("");
+            setNewName(e.target.value);
+          }}
+          placeholder="New preference name"
+          className="w-full bg-brand-secondary px-3 py-2 rounded mb-2"
+        />
+        {err && <p className="text-xs text-red-500 mb-3">{err}</p>}
+
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-brand-secondary rounded"
+          >
+            Close
+          </button>
+          <button
+            onClick={trySave}
+            className={`px-4 py-2 rounded ${
+              newName.trim()
+                ? "bg-flow-dark text-white hover:opacity-90"
+                : "bg-brand-secondary opacity-40 cursor-not-allowed"
+            }`}
+          >
+            Save current
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
+/* ─── Main component ──────────────────────────────────── */
+export default function MomentSelection(props) {
   const {
     user,
     accountData,
-    selectedAccount,
     selectedNFTs,
-    dispatch,
+    dispatch: appDispatch,
     isRefreshing,
+    selectedAccount,
+    selectedAccountType,
   } = useContext(UserDataContext);
 
-  // Identify the active account
-  // Identify the active account (case‑insensitive match)
-  const activeAccount = useMemo(() => {
-    if (!selectedAccount || !accountData) return null;
+  /* pick NFT list for parent vs child */
+  const nftDetails =
+    selectedAccountType === "parent"
+      ? accountData?.nftDetails || []
+      : accountData?.childrenData?.find((c) => c.addr === selectedAccount)
+          ?.nftDetails || [];
 
-    const selAddr = selectedAccount.toLowerCase();
+  const hasCollection =
+    selectedAccountType === "parent"
+      ? accountData?.hasCollection ?? false
+      : accountData?.childrenData?.find((c) => c.addr === selectedAccount)
+          ?.hasCollection ?? false;
 
-    // 1) Look for a matching child
-    const childHit = (accountData.childrenData || []).find(
-      (c) => (c.addr || "").toLowerCase() === selAddr
-    );
-    if (childHit) return childHit;
+  const {
+    filter,
+    setFilter,
+    tierOptions,
+    seriesOptions,
+    leagueOptions,
+    setNameOptions,
+    teamOptions,
+    playerOptions,
+    eligibleMoments,
+    base,
+    prefs,
+    currentPrefKey,
+    savePref,
+    applyPref,
+    deletePref,
+  } = useMomentFilters({ ...props, nftDetails, selectedNFTs });
 
-    // 2) Otherwise compare to the parent address
-    const parentAddr = (
-      accountData.parentAddress ||
-      user?.addr ||
-      ""
-    ).toLowerCase();
-    return selAddr === parentAddr ? accountData : null;
-  }, [selectedAccount, accountData, user]);
-
-  const nftDetails = useMemo(() => {
-    return activeAccount?.nftDetails || [];
-  }, [activeAccount?.nftDetails]);
-
-  const hasCollection = useMemo(() => {
-    return activeAccount?.hasCollection ?? false;
-  }, [activeAccount?.hasCollection]);
-
-  // 1) Tiers: always show common/fandom; if allowAllTiers => add rare/legendary/ultimate
-  const tierOptions = useMemo(
-    () => (allowAllTiers ? allPossibleTiers : defaultTiers),
-    [allowAllTiers]
+  /* ── pagination helpers ─────────────────────────────── */
+  const PER_PAGE = 30;
+  const pageCount = Math.ceil(eligibleMoments.length / PER_PAGE);
+  const pageSlice = eligibleMoments.slice(
+    (filter.currentPage - 1) * PER_PAGE,
+    filter.currentPage * PER_PAGE
   );
-  const [selectedTiers, setSelectedTiers] = useState(tierOptions);
-
-  // 2) Series: always show 0,2,3,4,5,6,7 plus any from user's NFTs
-  const seriesOptions = useMemo(() => {
-    // Define forced series inside the memo to prevent unnecessary rerenders
-    const forcedSeries = [0, 2, 3, 4, 5, 6, 7];
-
-    // Combine forced series + actual series from user's NFT details
-    const setOfSeries = new Set(forcedSeries);
-    (nftDetails || []).forEach((n) => {
-      const val = Number(n.series);
-      if (!Number.isNaN(val)) {
-        setOfSeries.add(val);
-      }
-    });
-    return [...setOfSeries].sort((a, b) => a - b);
-  }, [nftDetails]); // Only nftDetails as dependency
-
-  const [selectedSeries, setSelectedSeries] = useState([]);
-
-  // Track if this is initial load - only set defaults on first load
-  const initialLoadDone = useRef(false);
-  const prevSeriesOptions = useRef([]);
-
-  // On mount or when seriesOptions change, handle default selection
-  useEffect(() => {
-    // Case 1: First load - select all series by default
-    if (!initialLoadDone.current && seriesOptions.length > 0) {
-      setSelectedSeries([...seriesOptions]);
-      initialLoadDone.current = true;
-      prevSeriesOptions.current = [...seriesOptions];
-    }
-    // Case 2: New series options appeared (and we weren't manually cleared)
-    else if (
-      seriesOptions.length > prevSeriesOptions.current.length &&
-      selectedSeries.length > 0
-    ) {
-      // Find new options that weren't in the previous set
-      const newOptions = seriesOptions.filter(
-        (option) => !prevSeriesOptions.current.includes(option)
-      );
-
-      // Add only new options to selection
-      setSelectedSeries((prev) => [...prev, ...newOptions]);
-      prevSeriesOptions.current = [...seriesOptions];
-    }
-  }, [seriesOptions, selectedSeries]);
-
-  // For "Select All" or "Unselect All" series
-  const allSeriesChecked =
-    selectedSeries.length > 0 && selectedSeries.length === seriesOptions.length;
-
-  const handleAllSeriesToggle = (checked) => {
-    if (checked) {
-      // User checked "All" => select all series
-      setSelectedSeries([...seriesOptions]);
-    } else {
-      // User unchecked "All" => deselect everything => no results
-      setSelectedSeries([]);
-    }
-    setCurrentPage(1);
+  const goPage = (p) => {
+    setFilter({ currentPage: p });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Additional toggles
-  const [excludeSpecialSerials, setExcludeSpecialSerials] = useState(true);
-  const [excludeLowSerials, setExcludeLowSerials] = useState(true);
+  /* modal state */
+  const [showPrefs, setShowPrefs] = useState(false);
+  const [newPrefName, setNewPrefName] = useState("");
 
-  // Set & Player
-  const [selectedSetName, setSelectedSetName] = useState("All");
-  const [selectedPlayer, setSelectedPlayer] = useState("All");
-
-  // 3) Subset for building setNameOptions
-  const subsetForSets = useMemo(() => {
-    // If no series is selected => no need to filter further
-    if (selectedSeries.length === 0) return [];
-    return (nftDetails || []).filter((n) => {
-      const s = Number(n.series);
-      if (!selectedSeries.includes(s)) return false;
-
-      const t = n.tier?.toLowerCase();
-      if (!selectedTiers.includes(t)) return false;
-
-      if (selectedPlayer !== "All") {
-        if (!n.fullName || n.fullName !== selectedPlayer) return false;
-      }
-
-      if (excludeSpecialSerials) {
-        const sn = parseInt(n.serialNumber, 10);
-        const effectiveMax =
-          n.subeditionID && n.subeditionMaxMint
-            ? parseInt(n.subeditionMaxMint, 10)
-            : parseInt(n.momentCount, 10);
-
-        const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
-        const isSpecial =
-          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
-        if (isSpecial) return false;
-      }
-
-      if (excludeLowSerials) {
-        const sn = parseInt(n.serialNumber, 10);
-        if (sn <= 4000) return false;
-      }
-
-      return true;
-    });
-  }, [
-    nftDetails,
-    selectedSeries,
-    selectedTiers,
-    selectedPlayer,
-    excludeSpecialSerials,
-    excludeLowSerials,
-  ]);
-
-  // 4) Subset for building playerNameOptions
-  const subsetForPlayers = useMemo(() => {
-    // If no series is selected => no need to filter further
-    if (selectedSeries.length === 0) return [];
-    return (nftDetails || []).filter((n) => {
-      const s = Number(n.series);
-      if (!selectedSeries.includes(s)) return false;
-
-      const t = n.tier?.toLowerCase();
-      if (!selectedTiers.includes(t)) return false;
-
-      if (selectedSetName !== "All" && n.name !== selectedSetName) {
-        return false;
-      }
-
-      if (excludeSpecialSerials) {
-        const sn = parseInt(n.serialNumber, 10);
-        const effectiveMax =
-          n.subeditionID && n.subeditionMaxMint
-            ? parseInt(n.subeditionMaxMint, 10)
-            : parseInt(n.momentCount, 10);
-
-        const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
-        const isSpecial =
-          sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
-        if (isSpecial) return false;
-      }
-
-      if (excludeLowSerials) {
-        const sn = parseInt(n.serialNumber, 10);
-        if (sn <= 4000) return false;
-      }
-      return true;
-    });
-  }, [
-    nftDetails,
-    selectedSeries,
-    selectedTiers,
-    selectedSetName,
-    excludeSpecialSerials,
-    excludeLowSerials,
-  ]);
-
-  // 5) Build setNameOptions
-  const setNameOptions = useMemo(() => {
-    const s = new Set(subsetForSets.map((n) => n.name).filter(Boolean));
-    return [...s].sort((a, b) => a.localeCompare(b));
-  }, [subsetForSets]);
-
-  // 6) Build playerNameOptions
-  const playerNameOptions = useMemo(() => {
-    const p = new Set(
-      subsetForPlayers.map((n) => n.fullName).filter((val) => val && val !== "")
-    );
-    return [...p].sort((a, b) => a.localeCompare(b));
-  }, [subsetForPlayers]);
-
-  // 7) Ensure selectedSetName/player remain valid
-  useEffect(() => {
-    if (
-      selectedSetName !== "All" &&
-      !setNameOptions.includes(selectedSetName)
-    ) {
-      setSelectedSetName("All");
-    }
-  }, [selectedSetName, setNameOptions]);
-
-  useEffect(() => {
-    if (
-      selectedPlayer !== "All" &&
-      !playerNameOptions.includes(selectedPlayer)
-    ) {
-      setSelectedPlayer("All");
-    }
-  }, [selectedPlayer, playerNameOptions]);
-
-  // 8) Build final list => eligibleMoments
-  const eligibleMoments = useMemo(() => {
-    if (!nftDetails?.length) return [];
-
-    // If no series is selected => short-circuit to "no results"
-    if (selectedSeries.length === 0) {
-      return [];
-    }
-
-    return nftDetails
-      .filter((n) => {
-        if (excludeIds.includes(String(n.id))) return false;
-        if (n.isLocked) return false;
-
-        // Tier
-        const t = n.tier?.toLowerCase();
-        if (!selectedTiers.includes(t)) return false;
-
-        // Series
-        const s = Number(n.series);
-        if (!selectedSeries.includes(s)) return false;
-
-        // Set
-        if (selectedSetName !== "All" && n.name !== selectedSetName) {
-          return false;
-        }
-
-        // Player
-        if (selectedPlayer !== "All") {
-          if (!n.fullName || n.fullName !== selectedPlayer) {
-            return false;
-          }
-        }
-
-        // Exclude special serials
-        if (excludeSpecialSerials) {
-          const sn = parseInt(n.serialNumber, 10);
-          const effectiveMax =
-            n.subeditionID && n.subeditionMaxMint
-              ? parseInt(n.subeditionMaxMint, 10)
-              : parseInt(n.momentCount, 10);
-          const jersey = n.jerseyNumber ? parseInt(n.jerseyNumber, 10) : null;
-          const isSpecial =
-            sn === 1 || sn === effectiveMax || (jersey && jersey === sn);
-          if (isSpecial) return false;
-        }
-
-        // Exclude low serials
-        if (excludeLowSerials) {
-          const sn = parseInt(n.serialNumber, 10);
-          if (sn <= 4000) return false;
-        }
-
-        // Not already selected
-        if (selectedNFTs.includes(n.id)) return false;
-
-        return true;
-      })
-      .sort(
-        (a, b) => parseInt(b.serialNumber, 10) - parseInt(a.serialNumber, 10)
-      );
-  }, [
-    nftDetails,
-    excludeIds,
-    selectedTiers,
-    selectedSeries,
-    selectedSetName,
-    selectedPlayer,
-    excludeSpecialSerials,
-    excludeLowSerials,
-    selectedNFTs,
-  ]);
-
-  // 9) Pagination - 30 items/page
-  const [itemsPerPage] = useState(30);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.ceil(eligibleMoments.length / itemsPerPage);
-  const paginatedMoments = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return eligibleMoments.slice(start, start + itemsPerPage);
-  }, [eligibleMoments, currentPage, itemsPerPage]);
-
-  // handle NFT selection
-  const handleNFTSelection = (id) => {
-    dispatch({ type: "SET_SELECTED_NFTS", payload: id });
-  };
-
-  // Render pagination
-  const renderPaginationButtons = () => {
-    if (totalPages <= 1) return null;
-    const pages = [];
-    if (totalPages <= 7) {
-      for (let i = 1; i <= totalPages; i++) pages.push(i);
-    } else if (currentPage <= 4) {
-      pages.push(1, 2, 3, 4, 5, "...", totalPages);
-    } else if (currentPage > totalPages - 4) {
-      pages.push(
-        1,
-        "...",
-        totalPages - 4,
-        totalPages - 3,
-        totalPages - 2,
-        totalPages - 1,
-        totalPages
-      );
-    } else {
-      pages.push(
-        1,
-        "...",
-        currentPage - 1,
-        currentPage,
-        currentPage + 1,
-        "...",
-        totalPages
-      );
-    }
-    return (
-      <div className="flex justify-center mt-4">
-        {pages.map((p, idx) => (
-          <button
-            key={`page-${idx}`}
-            onClick={() => p !== "..." && setCurrentPage(Number(p))}
-            className={`
-              px-3 py-1 mx-1 rounded
-              ${
-                p === currentPage
-                  ? "bg-flow-dark text-white"
-                  : "bg-brand-secondary text-brand-text/80"
-              }
-              ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}
-            `}
-          >
-            {p}
-          </button>
-        ))}
-      </div>
-    );
-  };
-
-  // Early return: Not logged in
-  if (!user?.loggedIn) {
+  /* early exits */
+  if (!user?.loggedIn)
     return <p className="text-brand-text/70 px-2">Please log in.</p>;
-  }
-
-  // Early return: No TopShot collection
-  if (!hasCollection) {
+  if (!hasCollection)
     return (
       <div className="bg-brand-primary p-2 rounded-lg">
         <p className="text-brand-text/80 text-sm">
-          This account does not have a TopShot collection.
+          This account does not have a Top Shot collection.
         </p>
       </div>
     );
-  }
 
+  /* ── render ─────────────────────────────────────────── */
   return (
     <div className="w-full bg-brand-primary text-brand-text rounded-lg">
-      {/* (A) Count + "Loading" status row */}
-      <div className="flex justify-between items-center mb-2 px-2 pt-2">
-        <div>
-          {selectedSeries.length === 0 ? (
+      {/* header */}
+      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2 px-2 pt-2">
+        {/* counts */}
+        <div className="flex-1">
+          {filter.selectedSeries.length === 0 ? (
             <p className="text-brand-text/70 font-semibold">
               Please select at least one Series to view available Moments.
             </p>
@@ -441,225 +225,307 @@ const MomentSelection = ({ allowAllTiers = false, excludeIds = [] }) => {
           </p>
         </div>
 
-        {isRefreshing && (
-          <span className="text-brand-text/70">
-            <span className="animate-spin inline-block mr-2">⟳</span>
-            Loading...
+        {/* cog + badge */}
+        <div className="flex items-center gap-3">
+          <button
+            aria-label="Filter settings"
+            onClick={() => setShowPrefs(true)}
+            className="
+              relative group
+              p-2                       /* 44×44 tap area */
+              rounded-full
+              hover:bg-flow-dark/10
+              focus-visible:ring focus-visible:ring-flow-dark/60
+              transition-colors duration-150
+            "
+          >
+            {/* tooltip */}
+            <span
+              className="
+                pointer-events-none
+                absolute -top-9 left-1/2 -translate-x-1/2
+                rounded bg-flow-dark px-2 py-1 text-xs text-white
+                opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100
+                transition-opacity duration-150
+              "
+            >
+              Filter settings
+            </span>
+            <SettingsIcon
+              size={32}
+              strokeWidth={2.4}
+              className="text-brand-text"
+            />
+          </button>
+
+          <span className="text-xs text-brand-text/60 whitespace-nowrap sm:whitespace-normal">
+            Filter:&nbsp;
+            {currentPrefKey ? (
+              <span className="text-brand-text">{currentPrefKey}</span>
+            ) : (
+              "None"
+            )}
           </span>
-        )}
-      </div>
 
-      {/* (B) If we have NFT details, but no recognized series? */}
-      {seriesOptions.length === 0 && nftDetails.length > 0 && (
-        <p className="text-brand-text/70 px-2">
-          You have no NFTs in this account. No Series available.
-        </p>
-      )}
+          {isRefreshing && (
+            <span className="text-brand-text/70 ml-2">
+              <span className="animate-spin inline-block mr-1">⟳</span>
+              Loading…
+            </span>
+          )}
+        </div>
+      </header>
 
-      {/* (C) Filters row */}
+      {/* ── filter panel (unchanged logic) ──────────────── */}
       {seriesOptions.length > 0 && (
-        <div
-          className="
-            flex flex-wrap items-center gap-4 text-sm
-            bg-brand-secondary
-            p-2
-            rounded
-            mb-2
-            mx-2
-          "
-        >
-          {/* Tiers */}
-          <div className="flex items-center gap-2">
-            <span className="text-brand-text font-semibold">Tiers:</span>
-            <div className="flex items-center gap-2 flex-wrap">
-              {tierOptions.map((tVal) => {
-                const label = tVal.charAt(0).toUpperCase() + tVal.slice(1);
-                const colorClass = getTierColorClass(tVal);
-                return (
-                  <label key={tVal} className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedTiers.includes(tVal)}
-                      onChange={() => {
-                        setSelectedTiers((prev) =>
-                          prev.includes(tVal)
-                            ? prev.filter((v) => v !== tVal)
-                            : [...prev, tVal]
-                        );
-                        setCurrentPage(1);
-                      }}
-                    />
-                    <span className={colorClass}>{label}</span>
-                  </label>
-                );
-              })}
+        <section className="flex flex-col gap-4 bg-brand-secondary p-4 rounded mb-2 mx-2">
+          {/* tiers + series */}
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            {/* tiers */}
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Tiers:</span>
+              {tierOptions.map((t) => (
+                <label key={t} className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={filter.selectedTiers.includes(t)}
+                    onChange={() => {
+                      const next = filter.selectedTiers.includes(t)
+                        ? filter.selectedTiers.filter((x) => x !== t)
+                        : [...filter.selectedTiers, t];
+                      setFilter({ selectedTiers: next, currentPage: 1 });
+                    }}
+                  />
+                  <span className={tierClass(t)}>
+                    {t[0].toUpperCase() + t.slice(1)}
+                  </span>
+                </label>
+              ))}
             </div>
-          </div>
 
-          {/* Series */}
-          <div className="flex items-center gap-2">
-            <span className="text-brand-text font-semibold">Series:</span>
-            <div className="flex items-center gap-2 flex-wrap">
-              <label className="flex items-center gap-1 text-brand-text">
+            {/* series */}
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">Series:</span>
+              <label className="flex items-center gap-1">
                 <input
                   type="checkbox"
-                  checked={allSeriesChecked}
-                  onChange={(e) => handleAllSeriesToggle(e.target.checked)}
+                  checked={
+                    filter.selectedSeries.length &&
+                    filter.selectedSeries.length === seriesOptions.length
+                  }
+                  onChange={(e) =>
+                    setFilter({
+                      selectedSeries: e.target.checked ? seriesOptions : [],
+                      currentPage: 1,
+                    })
+                  }
                 />
                 All
               </label>
-              {seriesOptions.map((val) => (
-                <label
-                  key={val}
-                  className="flex items-center gap-1 text-brand-text"
-                >
+              {seriesOptions.map((s) => (
+                <label key={s} className="flex items-center gap-1">
                   <input
                     type="checkbox"
-                    checked={selectedSeries.includes(val)}
+                    checked={filter.selectedSeries.includes(s)}
                     onChange={() => {
-                      // Handle individual checkbox toggle
-                      const newSelectedSeries = selectedSeries.includes(val)
-                        ? selectedSeries.filter((x) => x !== val)
-                        : [...selectedSeries, val];
-
-                      setSelectedSeries(newSelectedSeries);
-                      setCurrentPage(1);
+                      const next = filter.selectedSeries.includes(s)
+                        ? filter.selectedSeries.filter((x) => x !== s)
+                        : [...filter.selectedSeries, s];
+                      setFilter({ selectedSeries: next, currentPage: 1 });
                     }}
                   />
-                  {val}
+                  {s}
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Set */}
-          <div className="flex items-center gap-1">
-            <span className="text-brand-text font-semibold">Set:</span>
-            <select
-              value={selectedSetName}
-              onChange={(e) => {
-                setSelectedSetName(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="
-                w-32
-                bg-brand-primary
-                text-brand-text
-                rounded
-                px-1
-                py-0.5
-              "
-              disabled={setNameOptions.length === 0}
-            >
-              {setNameOptions.length === 0 ? (
-                <option>No sets</option>
-              ) : (
-                <>
-                  <option value="All">All</option>
-                  {setNameOptions.map((name) => (
-                    <option key={name} value={name} className="text-brand-text">
-                      {name}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
+          {/* dropdowns */}
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            {/* league */}
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">League:</span>
+              <Dropdown
+                opts={leagueOptions}
+                value={filter.selectedLeague}
+                onChange={(e) =>
+                  setFilter({
+                    selectedLeague: e.target.value,
+                    selectedSetName: "All",
+                    selectedTeam: "All",
+                    selectedPlayer: "All",
+                    currentPage: 1,
+                  })
+                }
+                title="Select a league"
+                countFn={(o) =>
+                  base.baseNoLeague.filter(
+                    (m) =>
+                      (WNBA_TEAMS.includes(m.teamAtMoment || "")
+                        ? "WNBA"
+                        : "NBA") === o
+                  ).length
+                }
+              />
+            </div>
+
+            {/* set */}
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">Set:</span>
+              <Dropdown
+                opts={setNameOptions}
+                value={filter.selectedSetName}
+                onChange={(e) =>
+                  setFilter({
+                    selectedSetName: e.target.value,
+                    selectedTeam: "All",
+                    selectedPlayer: "All",
+                    currentPage: 1,
+                  })
+                }
+                title="Select a set"
+                countFn={(o) =>
+                  base.baseNoSet.filter((m) => m.name === o).length
+                }
+              />
+            </div>
+
+            {/* team */}
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">Team:</span>
+              <Dropdown
+                opts={teamOptions}
+                value={filter.selectedTeam}
+                onChange={(e) =>
+                  setFilter({
+                    selectedTeam: e.target.value,
+                    selectedPlayer: "All",
+                    currentPage: 1,
+                  })
+                }
+                title="Select a team"
+                countFn={(o) =>
+                  base.baseNoTeam.filter((m) => m.teamAtMoment === o).length
+                }
+              />
+            </div>
+
+            {/* player */}
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">Player:</span>
+              <Dropdown
+                opts={playerOptions}
+                value={filter.selectedPlayer}
+                onChange={(e) =>
+                  setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
+                }
+                title="Select a player"
+                countFn={(o) =>
+                  base.baseNoPlayer.filter((m) => m.fullName === o).length
+                }
+              />
+            </div>
           </div>
 
-          {/* Player */}
-          <div className="flex items-center gap-1">
-            <span className="text-brand-text font-semibold">Player:</span>
-            <select
-              value={selectedPlayer}
-              onChange={(e) => {
-                setSelectedPlayer(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="
-                w-32
-                bg-brand-primary
-                text-brand-text
-                rounded
-                px-1
-                py-0.5
-              "
-              disabled={playerNameOptions.length === 0}
-            >
-              {playerNameOptions.length === 0 ? (
-                <option>No players</option>
-              ) : (
-                <>
-                  <option value="All">All</option>
-                  {playerNameOptions.map((p) => (
-                    <option key={p} value={p} className="text-brand-text">
-                      {p}
-                    </option>
-                  ))}
-                </>
-              )}
-            </select>
-          </div>
-
-          {/* Exclude #1, last, or jersey */}
-          <div className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={excludeSpecialSerials}
-              onChange={() => {
-                setExcludeSpecialSerials((prev) => !prev);
-                setCurrentPage(1);
-              }}
-            />
-            <label className="text-brand-text">
-              Exclude #1, last, or jersey
+          {/* serial + reset */}
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={filter.excludeSpecialSerials}
+                onChange={(e) =>
+                  setFilter({ excludeSpecialSerials: e.target.checked })
+                }
+              />
+              Exclude #1 / last / jersey
             </label>
-          </div>
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={filter.excludeLowSerials}
+                onChange={(e) =>
+                  setFilter({ excludeLowSerials: e.target.checked })
+                }
+              />
+              Exclude serials ≤ 4000
+            </label>
 
-          {/* Exclude serials <= 4000 */}
-          <div className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={excludeLowSerials}
-              onChange={() => {
-                setExcludeLowSerials((prev) => !prev);
-                setCurrentPage(1);
-              }}
-            />
-            <label className="text-brand-text">Exclude serials ≤ 4000</label>
+            <button
+              onClick={() =>
+                setFilter({
+                  selectedTiers: tierOptions,
+                  selectedSeries: seriesOptions,
+                  selectedSetName: "All",
+                  selectedLeague: "All",
+                  selectedTeam: "All",
+                  selectedPlayer: "All",
+                  excludeSpecialSerials: true,
+                  excludeLowSerials: true,
+                  currentPage: 1,
+                })
+              }
+              className="ml-auto px-2 py-1 bg-brand-primary rounded hover:opacity-80 text-sm"
+            >
+              Reset All
+            </button>
           </div>
-        </div>
+        </section>
       )}
 
-      {/* (D) - Main grid of unselected Moments */}
-      {paginatedMoments.length > 0 ? (
+      {/* grid */}
+      {pageSlice.length ? (
         <div className="flex flex-wrap gap-2 mt-2 px-2 pb-2">
-          {paginatedMoments.map((nft) => (
+          {pageSlice.map((n) => (
             <MomentCard
-              key={nft.id}
-              nft={nft}
-              handleNFTSelection={handleNFTSelection}
-              isSelected={selectedNFTs.includes(nft.id)}
+              key={n.id}
+              nft={n}
+              handleNFTSelection={(id) =>
+                appDispatch({ type: "SET_SELECTED_NFTS", payload: id })
+              }
+              isSelected={selectedNFTs.includes(n.id)}
             />
           ))}
         </div>
-      ) : // Only show message if we have series options and no series is selected
-      selectedSeries.length === 0 ? (
-        <p className="text-brand-text/70 mt-4 text-sm px-2 pb-2">
-          Please select at least one Series to view available Moments.
-        </p>
       ) : (
-        // Only show "no matches" text if we do have some series & NFT data
-        seriesOptions.length > 0 &&
-        nftDetails.length > 0 && (
-          <p className="text-brand-text/70 mt-4 text-sm px-2 pb-2">
-            No moments match your filters. Try adjusting them.
-          </p>
-        )
+        <p className="text-brand-text/70 mt-4 text-sm px-2 pb-2">
+          {filter.selectedSeries.length === 0
+            ? "Please select at least one Series to view available Moments."
+            : "No moments match your filters. Try adjusting them."}
+        </p>
       )}
 
-      {renderPaginationButtons()}
+      {/* pagination */}
+      {pageCount > 1 && (
+        <div className="flex justify-center mt-4">
+          {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => goPage(p)}
+              className={`px-3 py-1 mx-1 rounded ${
+                p === filter.currentPage
+                  ? "bg-flow-dark text-white"
+                  : "bg-brand-secondary text-brand-text/80"
+              } hover:opacity-80`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* modal */}
+      {showPrefs && (
+        <PrefsModal
+          prefs={prefs}
+          current={currentPrefKey}
+          apply={applyPref}
+          save={savePref}
+          del={deletePref}
+          onClose={() => setShowPrefs(false)}
+          newName={newPrefName}
+          setNewName={setNewPrefName}
+        />
+      )}
     </div>
   );
-};
-
-export default MomentSelection;
+}
