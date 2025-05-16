@@ -182,7 +182,6 @@ export default function MomentSelection(props) {
   );
   const goPage = (p) => {
     setFilter({ currentPage: p });
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   /* modal state */
@@ -497,19 +496,55 @@ export default function MomentSelection(props) {
       {/* pagination */}
       {pageCount > 1 && (
         <div className="flex justify-center mt-4">
-          {Array.from({ length: pageCount }, (_, i) => i + 1).map((p) => (
-            <button
-              key={p}
-              onClick={() => goPage(p)}
-              className={`px-3 py-1 mx-1 rounded ${
-                p === filter.currentPage
-                  ? "bg-flow-dark text-white"
-                  : "bg-brand-secondary text-brand-text/80"
-              } hover:opacity-80`}
-            >
-              {p}
-            </button>
-          ))}
+          {(() => {
+            const pages = [];
+            if (pageCount <= 7) {
+              // If 7 or fewer pages, show all
+              for (let i = 1; i <= pageCount; i++) pages.push(i);
+            } else if (filter.currentPage <= 4) {
+              // If current page is near start, show first 5 + ... + last
+              pages.push(1, 2, 3, 4, 5, "...", pageCount);
+            } else if (filter.currentPage > pageCount - 4) {
+              // If current page is near end, show first + ... + last 5
+              pages.push(
+                1,
+                "...",
+                pageCount - 4,
+                pageCount - 3,
+                pageCount - 2,
+                pageCount - 1,
+                pageCount
+              );
+            } else {
+              // If current page is in middle, show first + ... + current-1, current, current+1 + ... + last
+              pages.push(
+                1,
+                "...",
+                filter.currentPage - 1,
+                filter.currentPage,
+                filter.currentPage + 1,
+                "...",
+                pageCount
+              );
+            }
+            return pages.map((p, idx) => (
+              <button
+                key={`page-${idx}`}
+                onClick={() => p !== "..." && goPage(Number(p))}
+                className={`
+                  px-3 py-1 mx-1 rounded
+                  ${
+                    p === filter.currentPage
+                      ? "bg-flow-dark text-white"
+                      : "bg-brand-secondary text-brand-text/80"
+                  }
+                  ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}
+                `}
+              >
+                {p}
+              </button>
+            ));
+          })()}
         </div>
       )}
 
