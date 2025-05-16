@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useContext } from "react";
 import { UserDataContext } from "../context/UserContext";
+import * as fcl from "@onflow/fcl";
+import { getChildren } from "../flow/getChildren";
+import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 
 import Dropdown, { FROM_OPTIONS } from "../components/Dropdown";
 import NFTToTSHOTPanel from "../components/NFTToTSHOTPanel";
@@ -85,6 +88,9 @@ const Swap = () => {
 
   const [benefitsOpen, setBenefitsOpen] = useState(false);
 
+  const [childAddresses, setChildAddresses] = useState([]);
+  const [accountCollections, setAccountCollections] = useState({});
+
   // Whenever fromAsset changes, auto-switch toAsset
   useEffect(() => {
     setToAsset(getOppositeAsset(fromAsset));
@@ -116,6 +122,51 @@ const Swap = () => {
       setToInput(tshotReceiptAmount.toString());
     }
   }, [fromAsset, tshotReceiptAmount]);
+
+  // Load child addresses and check collections independently for step 2
+  useEffect(() => {
+    if (tshotReceiptAmount && accountData?.parentAddress) {
+      // First check parent collection
+      fcl
+        .query({
+          cadence: verifyTopShotCollection,
+          args: (arg, t) => [arg(accountData.parentAddress, t.Address)],
+        })
+        .then((hasCollection) => {
+          setAccountCollections((prev) => ({
+            ...prev,
+            [accountData.parentAddress]: hasCollection,
+          }));
+        })
+        .catch(console.error);
+
+      // Then get and check child addresses
+      fcl
+        .query({
+          cadence: getChildren,
+          args: (arg, t) => [arg(accountData.parentAddress, t.Address)],
+        })
+        .then(async (addrs) => {
+          setChildAddresses(addrs || []);
+          // Check collections for each child
+          for (const addr of addrs) {
+            try {
+              const hasCollection = await fcl.query({
+                cadence: verifyTopShotCollection,
+                args: (arg, t) => [arg(addr, t.Address)],
+              });
+              setAccountCollections((prev) => ({
+                ...prev,
+                [addr]: hasCollection,
+              }));
+            } catch (err) {
+              console.error(`Error checking collection for ${addr}:`, err);
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [tshotReceiptAmount, accountData?.parentAddress]);
 
   // Decide if we show NFT->TSHOT or TSHOT->NFT swap panel
   function getDashboardMode() {
@@ -158,6 +209,8 @@ const Swap = () => {
   }
   const computedFrom = isNaN(rawFrom) ? 0 : rawFrom;
   const formattedFrom = computedFrom.toFixed(1);
+  const isOverMax = computedFrom > 50;
+  const isOverNFTLimit = isNFTMode && selectedNFTs.length > 200;
 
   let rawTo;
   if (isNFTMode) {
@@ -297,25 +350,6 @@ const Swap = () => {
     }
   };
 
-  /** Only accounts that have a TopShot collection. */
-  function filterAccountsWithCollection() {
-    if (!accountData) return { parent: null, children: [] };
-
-    const parentHasCollection = !!accountData.hasCollection;
-    const parentAccount = parentHasCollection
-      ? {
-          addr: accountData.parentAddress || user?.addr,
-          ...accountData,
-        }
-      : null;
-
-    const validChildren = (accountData.childrenData || []).filter(
-      (c) => c.hasCollection
-    );
-
-    return { parent: parentAccount, children: validChildren };
-  }
-
   /** Called when user selects parent or child. */
   const handleSelectAccount = (addr) => {
     if (!accountData) return;
@@ -351,19 +385,95 @@ const Swap = () => {
           {/* If we have a deposit receipt, let user choose which account receives minted NFTs */}
           {hasReceipt && (
             <div className="mt-2 bg-brand-primary p-2 rounded-lg">
-              {(() => {
-                const { parent, children } = filterAccountsWithCollection();
-                return (
-                  <AccountSelection
-                    parentAccount={parent}
-                    childrenAddresses={children.map((c) => c.addr)}
-                    childrenAccounts={children}
-                    selectedAccount={selectedAccount}
-                    onSelectAccount={handleSelectAccount}
-                    isLoadingChildren={isLoadingChildren}
-                  />
-                );
-              })()}
+              <div className="text-center">
+                <h3 className="text-brand-text text-sm font-bold mb-2">
+                  Select Receiving Account
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Parent Account */}
+                  {accountData?.parentAddress && (
+                    <div
+                      onClick={() =>
+                        handleSelectAccount(accountData.parentAddress)
+                      }
+                      className={`
+                        p-2 rounded-lg border-2 transition-all
+                        ${
+                          selectedAccount === accountData.parentAddress
+                            ? "border-opolis"
+                            : "border-brand-border"
+                        }
+                        ${
+                          accountCollections[accountData.parentAddress] ===
+                          false
+                            ? "opacity-50 cursor-not-allowed"
+                            : "bg-brand-primary hover:bg-brand-blue cursor-pointer"
+                        }
+                      `}
+                      title={
+                        accountCollections[accountData.parentAddress] === false
+                          ? "This account has no TopShot collection"
+                          : ""
+                      }
+                    >
+                      <h4
+                        className={`text-sm font-semibold ${
+                          selectedAccount === accountData.parentAddress
+                            ? "text-opolis"
+                            : "text-brand-text"
+                        }`}
+                      >
+                        Parent Account
+                      </h4>
+                      <p className="text-[11px] leading-snug text-brand-text/70 break-all">
+                        {accountData.parentAddress}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Child Accounts */}
+                  {childAddresses.map((childAddr) => (
+                    <div
+                      key={childAddr}
+                      onClick={() =>
+                        accountCollections[childAddr] !== false &&
+                        handleSelectAccount(childAddr)
+                      }
+                      className={`
+                        p-2 rounded-lg border-2 transition-all
+                        ${
+                          selectedAccount === childAddr
+                            ? "border-opolis"
+                            : "border-brand-border"
+                        }
+                        ${
+                          accountCollections[childAddr] === false
+                            ? "opacity-50 cursor-not-allowed"
+                            : "bg-brand-primary hover:bg-brand-blue cursor-pointer"
+                        }
+                      `}
+                      title={
+                        accountCollections[childAddr] === false
+                          ? "This account has no TopShot collection"
+                          : ""
+                      }
+                    >
+                      <h4
+                        className={`text-sm font-semibold ${
+                          selectedAccount === childAddr
+                            ? "text-opolis"
+                            : "text-brand-text"
+                        }`}
+                      >
+                        Child Account
+                      </h4>
+                      <p className="text-[11px] leading-snug text-brand-text/70 break-all">
+                        {childAddr}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </>
@@ -395,194 +505,293 @@ const Swap = () => {
         )}
       </AnimatePresence>
 
-      <div className="max-w-md mx-auto mt-2 space-y-4">
-        {/* Outer container => brand-primary with shadow */}
-        <div className="p-2 rounded-lg bg-brand-primary shadow-md shadow-black/30">
-          {/* FROM BOX => brand-secondary */}
-          <div
-            className="
-              bg-brand-secondary
-              p-2
-              rounded-lg
-              mb-2
-              flex
-              items-start
-              justify-between
-              min-h-[120px]
-            "
-          >
-            <div className="mr-4 flex flex-col">
-              <label className="block text-sm text-brand-text mb-1">From</label>
-              <Dropdown
-                options={FROM_OPTIONS}
-                selectedValue={fromAsset}
-                onChange={(val) => setFromAsset(val)}
-                excludeSelected={true}
-              />
-              {renderFromBalance()}
-            </div>
+      {/* Desktop grid wrapper */}
+      <div className="md:grid md:grid-cols-[minmax(0,1fr)_260px_minmax(auto,640px)_260px_minmax(0,1fr)] md:gap-6">
+        {/* col-1 : left spacer */}
+        <div className="hidden md:block" />
 
-            <div className="flex flex-col">
-              <label className="block text-sm text-brand-text mb-1">
-                Amount
-              </label>
-              <input
-                autoFocus
-                type="text"
-                value={fromInput}
-                onKeyDown={handleFromKeyDown}
-                onChange={handleFromInputChange}
-                placeholder="0"
-                maxLength={3}
-                className="w-20 bg-brand-secondary text-brand-text p-2 rounded text-3xl text-center"
-                readOnly={isNFTMode}
-              />
-            </div>
-          </div>
+        {/* col-2 : left ghost */}
+        <div className="hidden md:block" />
 
-          {/* Exchange Icon + horizontal line => brand-primary button */}
-          <div className="relative my-2 flex items-center justify-center">
-            <hr className="absolute inset-x-0 border-t border-brand-text/50 opacity-30 top-1/2 -translate-y-1/2" />
-            <button
-              onClick={toggleAssets}
+        {/* col-3 : swap panel */}
+        <div className="max-w-md mx-auto mt-2 space-y-2 md:justify-self-center w-[400px]">
+          {/* Outer container => brand-primary with shadow */}
+          <div className="p-2 rounded-lg bg-brand-primary shadow-md shadow-black/30">
+            {/* FROM BOX => brand-secondary */}
+            <div
               className="
-                z-10
-                w-10
-                h-10
-                rounded-full
-                border
-                border-brand-text/30
-                bg-brand-primary
-                text-2xl
-                text-brand-text
+                bg-brand-secondary
+                p-2
+                rounded-lg
+                mb-2
                 flex
-                items-center
-                justify-center
+                items-start
+                justify-between
+                min-h-[120px]
               "
             >
-              ⇅
-            </button>
-          </div>
+              <div className="mr-2 flex flex-col">
+                <label className="block text-sm text-brand-text mb-1">
+                  From
+                </label>
+                <Dropdown
+                  options={FROM_OPTIONS}
+                  selectedValue={fromAsset}
+                  onChange={(val) => setFromAsset(val)}
+                  excludeSelected={true}
+                />
+                {renderFromBalance()}
+              </div>
 
-          {/* TO BOX => brand-secondary */}
-          <div
-            className="
-              bg-brand-secondary
-              p-2
-              rounded-lg
-              flex
-              items-start
-              justify-between
-              min-h-[120px]
-            "
-          >
-            <div className="mr-4 flex flex-col">
-              <label className="block text-sm text-brand-text mb-1">To</label>
-              <div
-                className="
-                  bg-brand-primary
-                  text-brand-text
-                  px-3
-                  py-2
-                  rounded-lg
-                  text-base
-                  w-60 sm:w-72
-                  h-14
-                  flex
-                  items-center
-                "
-              >
-                {toAsset === "TSHOT" ? (
-                  <div className="flex items-center gap-2">
-                    <img
-                      src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-                      alt="TSHOT"
-                      className="w-9 h-9"
-                    />
-                    <span>TSHOT</span>
-                  </div>
-                ) : (
-                  // partial coloring for Common / Fandom
-                  <span>
-                    TopShot <span className="text-gray-400">Common</span> /{" "}
-                    <span className="text-lime-400">Fandom</span>
-                  </span>
+              <div className="flex flex-col w-[80px] ml-2">
+                <label className="block text-sm text-brand-text mb-1">
+                  Amount
+                </label>
+                <input
+                  autoFocus
+                  type="text"
+                  value={fromInput}
+                  onKeyDown={handleFromKeyDown}
+                  onChange={handleFromInputChange}
+                  placeholder="0"
+                  maxLength={3}
+                  className={`w-full bg-brand-secondary text-brand-text px-1 py-2 rounded text-3xl text-center ${
+                    isOverMax || isOverNFTLimit ? "border-2 border-red-400" : ""
+                  }`}
+                  readOnly={isNFTMode}
+                />
+                {isOverMax && fromAsset === "TSHOT" && (
+                  <div className="text-red-400 text-xs mt-1">Max 50 TSHOT</div>
+                )}
+                {isOverNFTLimit && (
+                  <div className="text-red-400 text-xs mt-1">Max 200 NFTs</div>
                 )}
               </div>
-              {renderToBalance()}
             </div>
 
-            <div className="flex flex-col">
-              <label className="block text-sm text-brand-text mb-1">
-                Amount
-              </label>
-              <input
-                type="text"
-                value={toInput}
-                onKeyDown={handleToKeyDown}
-                onChange={handleToInputChange}
-                placeholder="0"
-                maxLength={3}
+            {/* Exchange Icon + horizontal line => brand-primary button */}
+            <div className="relative my-2 flex items-center justify-center">
+              <hr className="absolute inset-x-0 border-t border-brand-text/50 opacity-30 top-1/2 -translate-y-1/2" />
+              <button
+                onClick={toggleAssets}
                 className="
-                  w-20
-                  bg-brand-secondary
+                  z-10
+                  w-10
+                  h-10
+                  rounded-full
+                  border
+                  border-brand-text/30
+                  bg-brand-primary
+                  text-2xl
                   text-brand-text
-                  p-2
-                  rounded
-                  text-3xl
-                  text-center
+                  flex
+                  items-center
+                  justify-center
                 "
-                readOnly={
-                  dashboardMode === "TSHOT_TO_NFT" ||
-                  dashboardMode === "NFT_TO_TSHOT"
-                }
-              />
+              >
+                ⇅
+              </button>
+            </div>
+
+            {/* TO BOX => brand-secondary */}
+            <div
+              className="
+                bg-brand-secondary
+                p-2
+                rounded-lg
+                flex
+                items-start
+                justify-between
+                min-h-[120px]
+              "
+            >
+              <div className="mr-2 flex flex-col">
+                <label className="block text-sm text-brand-text mb-1">To</label>
+                <div
+                  className="
+                    bg-brand-primary
+                    text-brand-text
+                    px-3
+                    py-2
+                    rounded-lg
+                    text-base
+                    w-60 sm:w-72
+                    h-14
+                    flex
+                    items-center
+                  "
+                >
+                  {toAsset === "TSHOT" ? (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+                        alt="TSHOT"
+                        className="w-9 h-9"
+                      />
+                      <span>TSHOT</span>
+                    </div>
+                  ) : (
+                    // partial coloring for Common / Fandom
+                    <span>
+                      TopShot <span className="text-gray-400">Common</span> /{" "}
+                      <span className="text-lime-400">Fandom</span>
+                    </span>
+                  )}
+                </div>
+                {renderToBalance()}
+              </div>
+
+              <div className="flex flex-col w-[80px] ml-2">
+                <label className="block text-sm text-brand-text mb-1">
+                  Amount
+                </label>
+                <input
+                  type="text"
+                  value={toInput}
+                  onKeyDown={handleToKeyDown}
+                  onChange={handleToInputChange}
+                  placeholder="0"
+                  maxLength={3}
+                  className="w-full bg-brand-secondary text-brand-text px-1 py-2 rounded text-3xl text-center"
+                  readOnly={
+                    dashboardMode === "TSHOT_TO_NFT" ||
+                    dashboardMode === "NFT_TO_TSHOT"
+                  }
+                />
+              </div>
             </div>
           </div>
+
+          {/* ========== SWAP ACTION PANEL ========== */}
+          <div>{renderSwapPanel()}</div>
         </div>
 
-        {/* ========== SWAP ACTION PANEL ========== */}
-        <div>{renderSwapPanel()}</div>
+        {/* col-4 : benefits sidebar */}
+        <aside className="hidden md:block w-[260px] sticky top-4 mt-2">
+          <div className="bg-brand-primary rounded-lg p-2 shadow-md shadow-black/30">
+            <h3 className="flex items-center justify-center text-sm font-semibold text-brand mb-2">
+              <img
+                src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+                alt="TSHOT"
+                className="w-6 h-6 mr-2"
+              />
+              <span>TSHOT Benefits</span>
+            </h3>
 
-        {/* ─────────────  QUICK BENEFITS  ───────────── */}
-        <details
-          onToggle={(e) => setBenefitsOpen(e.target.open)}
-          className="
-    max-w-md mx-auto mt-2
-    bg-brand-primary
-    rounded-lg p-2
-    shadow-md shadow-black/30
-    mb-2
-  "
-        >
-          <summary
-            className="
-    flex items-center justify-center
-    cursor-pointer
-    text-sm font-semibold text-brand
-    mb-2
-  "
-          >
-            <ChevronDown
-              className={`
-      w-4 h-4
-      transform transition-transform duration-200
-      ${benefitsOpen ? "rotate-180" : ""}
-    `}
-            />
-            <span className="mx-2">TSHOT Benefits</span>
-            <ChevronDown
-              className={`
-      w-4 h-4
-      transform transition-transform duration-200
-      ${benefitsOpen ? "rotate-180" : ""}
-    `}
-            />
-          </summary>
+            <p className="text-xs text-brand-text/90 mb-3">
+              TSHOT is a fungible token backed 1-for-1 by NBA Top Shot Moments.
+            </p>
 
-          <ul className="list-disc list-inside space-y-1 text-xs text-brand-text/90 leading-snug">
-            <li>
-              <strong>Instant liquidity</strong> — Swap TSHOT ↔ FLOW anytime
+            <ul className="space-y-2 text-xs text-brand-text/90 leading-snug">
+              <li className="flex items-start">
+                <span className="text-brand mr-1">•</span>
+                <div>
+                  <strong>Trade Anywhere</strong> — Swap TSHOT ↔ FLOW instantly
+                  on&nbsp;
+                  <a
+                    href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    Increment.fi
+                  </a>
+                  &nbsp;or&nbsp;
+                  <a
+                    href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    PunchSwap
+                  </a>
+                </div>
+              </li>
+              <li className="flex items-start">
+                <span className="text-brand mr-1">•</span>
+                <div>
+                  <strong>Bulk Trading</strong> — Convert multiple Moments to
+                  TSHOT in one transaction
+                </div>
+              </li>
+              <li className="flex items-start">
+                <span className="text-brand mr-1">•</span>
+                <div>
+                  <strong>Earn Rewards</strong> — Provide liquidity to earn
+                  trading fees on&nbsp;
+                  <a
+                    href="https://app.increment.fi/liquidity/add"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    Increment.fi
+                  </a>
+                  &nbsp;or&nbsp;
+                  <a
+                    href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    PunchSwap
+                  </a>
+                </div>
+              </li>
+            </ul>
+
+            <a
+              href="/tshot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 block text-xs text-brand hover:text-flow-light text-center font-medium"
+            >
+              For more info, see the TSHOT info page →
+            </a>
+          </div>
+        </aside>
+
+        {/* col-5 : right spacer */}
+        <div className="hidden md:block" />
+      </div>
+
+      {/* Mobile version (unchanged), but add md:hidden */}
+      <details
+        onToggle={(e) => setBenefitsOpen(e.target.open)}
+        className="md:hidden max-w-md mx-auto mt-2 bg-brand-primary rounded-lg p-2 shadow-md shadow-black/30 mb-2"
+      >
+        <summary className="flex items-center justify-center cursor-pointer text-sm font-semibold text-brand mb-2">
+          <ChevronDown
+            className={`
+              w-4 h-4
+              transform transition-transform duration-200
+              ${benefitsOpen ? "rotate-180" : ""}
+            `}
+          />
+          <img
+            src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+            alt="TSHOT"
+            className="w-6 h-6 mx-2"
+          />
+          <span>TSHOT Benefits</span>
+          <ChevronDown
+            className={`
+              w-4 h-4
+              transform transition-transform duration-200
+              ${benefitsOpen ? "rotate-180" : ""}
+            `}
+          />
+        </summary>
+
+        <p className="text-xs text-brand-text/90 mb-3">
+          TSHOT is a fungible token backed 1-for-1 by NBA Top Shot Moments.
+        </p>
+
+        <ul className="space-y-2 text-xs text-brand-text/90 leading-snug">
+          <li className="flex items-start">
+            <span className="text-brand mr-1">•</span>
+            <div>
+              <strong>Trade Anywhere</strong> — Swap TSHOT ↔ FLOW instantly
               on&nbsp;
               <a
                 href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
@@ -601,41 +810,50 @@ const Swap = () => {
               >
                 PunchSwap
               </a>
-              .
-            </li>
-            <li>
-              <strong>Bulk buying</strong> — Burn TSHOT for fresh Common /
-              Fandom Moments.
-            </li>
-            <li>
-              <strong>Passive yield</strong> — Provide liquidity and earn
-              fees&nbsp;
+            </div>
+          </li>
+          <li className="flex items-start">
+            <span className="text-brand mr-1">•</span>
+            <div>
+              <strong>Bulk Trading</strong> — Convert multiple Moments to TSHOT
+              in one transaction
+            </div>
+          </li>
+          <li className="flex items-start">
+            <span className="text-brand mr-1">•</span>
+            <div>
+              <strong>Earn Rewards</strong> — Provide liquidity to earn trading
+              fees on&nbsp;
               <a
                 href="https://app.increment.fi/liquidity/add"
                 target="_blank"
                 rel="noreferrer"
                 className="underline hover:text-flow-light"
               >
-                on Increment.fi
+                Increment.fi
               </a>
-              .
-            </li>
-          </ul>
+              &nbsp;or&nbsp;
+              <a
+                href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-flow-light"
+              >
+                PunchSwap
+              </a>
+            </div>
+          </li>
+        </ul>
 
-          <p className="mt-2 text-xs text-brand-text/70">
-            For more info, see the&nbsp;
-            <a
-              href="/tshot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-flow-light"
-            >
-              TSHOT info page
-            </a>
-            .
-          </p>
-        </details>
-      </div>
+        <a
+          href="/tshot"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 block text-xs text-brand hover:text-flow-light text-center font-medium"
+        >
+          For more info, see the TSHOT info page →
+        </a>
+      </details>
 
       {fromAsset === "TopShot Common / Fandom" &&
         isLoggedIn &&

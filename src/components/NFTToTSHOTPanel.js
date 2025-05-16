@@ -209,13 +209,6 @@ function NFTToTSHOTPanel({ nftIds, buyAmount, onTransactionStart }) {
       >
         {buttonLabel}
       </button>
-
-      {isOverLimit && (
-        <div className="mt-2 text-sm text-red-500 px-3 pb-2">
-          You can only swap up to {MAX_NFTS} NFTs at a time. Please reduce your
-          selection.
-        </div>
-      )}
     </>
   );
 }

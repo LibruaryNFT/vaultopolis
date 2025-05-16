@@ -26,7 +26,7 @@ const AccountBox = ({
       onClick={handleClick}
       title={isDisabled ? "This account has no TopShot collection." : ""}
       className={`
-        p-2 w-36 sm:w-48 rounded-lg border-2 transition-all
+        p-2 w-36 sm:w-48 rounded-lg border-2 transition-all flex-shrink-0
         ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
 
         /* Border color: opolis if selected, brand-border if not */
@@ -64,6 +64,7 @@ const AccountSelection = ({
   isLoadingChildren,
   // You can pass this in if you only want to enforce a collection check for certain steps
   requireCollection = false,
+  title = "Account Selection",
 }) => {
   // Render the parent account box if available
   const renderParentBox = () => {
@@ -98,7 +99,7 @@ const AccountSelection = ({
             flex-col
             items-center
             text-center
-            w-36 sm:w-48
+            w-full
           "
         >
           <p className="text-sm text-brand-text">Loading child data...</p>
@@ -119,7 +120,7 @@ const AccountSelection = ({
             flex-col
             items-center
             text-center
-            w-36 sm:w-48
+            w-full
           "
         >
           <div className="flex items-center justify-center text-base font-bold text-brand-text mb-1">
@@ -153,11 +154,8 @@ const AccountSelection = ({
 
     // Otherwise, build an array of child boxes
     return childrenAddresses.map((childAddr) => {
-      const childData = childrenAccounts.find((c) => c.addr === childAddr);
-
-      // If we require a TS collection, disable those that lack it
-      const disabledBecauseNoCollection =
-        requireCollection && !childData?.hasCollection;
+      // For step 2, we don't need to check collection status
+      const disabledBecauseNoCollection = false;
 
       return (
         <AccountBox
@@ -180,10 +178,8 @@ const AccountSelection = ({
 
   return (
     <div className="text-center">
-      <h3 className="text-brand-text text-sm font-bold mb-2">
-        Account Selection
-      </h3>
-      <div className="flex flex-wrap gap-3">{allBoxes}</div>
+      <h3 className="text-brand-text text-sm font-bold mb-2">{title}</h3>
+      <div className="grid grid-cols-2 gap-2">{allBoxes}</div>
     </div>
   );
 };

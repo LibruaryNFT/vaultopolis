@@ -36,7 +36,7 @@ const Dropdown = ({ opts, value, onChange, title, countFn }) => (
 const sanitizeName = (str) =>
   str
     .replace(/<\/?[^>]*>/g, "") // strip HTML
-    .replace(/[^\w\s\-]/gi, "") // allow A-Z 0-9 _-
+    .replace(/[^\w\s-]/gi, "") // allow A-Z 0-9 _-
     .replace(/\s+/g, " ") // collapse spaces
     .trim()
     .slice(0, 40); // max 40 chars

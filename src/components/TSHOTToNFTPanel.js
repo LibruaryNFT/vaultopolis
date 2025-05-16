@@ -1,5 +1,5 @@
 // src/components/TSHOTToNFTPanel.js
-import React, { useContext } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserDataContext } from "../context/UserContext";
 
@@ -7,6 +7,7 @@ import { UserDataContext } from "../context/UserContext";
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import { getTopShotBatched } from "../flow/getTopShotBatched";
+import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 
 // NOTE: This local enrich function is used for immediate enrichment in handleReveal.
 // Consider consolidating with the version in UserContext if appropriate.
@@ -98,8 +99,35 @@ export default function TSHOTToNFTPanel({
     selectedAccount,
     loadAllUserData,
     loadChildData,
-    metadataCache, // Get metadata cache from context
+    metadataCache,
   } = useContext(UserDataContext);
+
+  // Add state for collection check
+  const [hasTopShotCollection, setHasTopShotCollection] = useState(false);
+  const [isCheckingCollection, setIsCheckingCollection] = useState(false);
+
+  // Check collection status when selectedAccount changes
+  useEffect(() => {
+    async function checkCollection() {
+      if (!selectedAccount) return;
+
+      setIsCheckingCollection(true);
+      try {
+        const hasCollection = await fcl.query({
+          cadence: verifyTopShotCollection,
+          args: (arg, t) => [arg(selectedAccount, t.Address)],
+        });
+        setHasTopShotCollection(hasCollection);
+      } catch (err) {
+        console.error("Error checking TopShot collection:", err);
+        setHasTopShotCollection(false);
+      } finally {
+        setIsCheckingCollection(false);
+      }
+    }
+
+    checkCollection();
+  }, [selectedAccount]);
 
   const isLoggedIn = Boolean(user?.loggedIn);
   if (!isLoggedIn) {
@@ -158,9 +186,6 @@ export default function TSHOTToNFTPanel({
   // ---------------------------------------------
   async function handleDeposit() {
     if (buttonDisabled) {
-      if (isOverMax) {
-        alert("Max 50 TSHOT allowed. Please lower your amount.");
-      }
       return;
     }
     if (!parentAddr?.startsWith("0x")) {
@@ -434,8 +459,6 @@ export default function TSHOTToNFTPanel({
       } else {
         await loadAllUserData(parentAddr);
       }
-
-      onRevealComplete?.(); // Callback for potential further actions
     } catch (err) {
       console.error("Reveal TX failed:", err);
       onTransactionStart?.({
@@ -447,7 +470,7 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
     }
-  } // End handleReveal
+  }
 
   // -------------------------------------------------------------
   // RENDER LOGIC
@@ -471,36 +494,16 @@ export default function TSHOTToNFTPanel({
         >
           {depositButtonLabel}
         </button>
-
-        {/* Show "over max" error only */}
-        {isOverMax && (
-          <div className="mt-2 text-red-400 text-sm">
-            You have exceeded the maximum of <strong>50 TSHOT</strong>. Please
-            lower your amount.
-          </div>
-        )}
       </>
     );
   }
 
   if (revealStep) {
     // Step 2 => reveal minted NFTs
-    const isParentSelected = selectedAccount === parentAddr;
-    let currentAccountHasCollection = false;
-
-    if (isParentSelected) {
-      currentAccountHasCollection = !!accountData?.hasCollection;
-    } else {
-      const childData = accountData?.childrenData?.find(
-        (c) => c.addr === selectedAccount
-      );
-      currentAccountHasCollection = !!childData?.hasCollection;
-    }
-
-    const isRevealDisabled = !currentAccountHasCollection;
+    const isRevealDisabled = !hasTopShotCollection || isCheckingCollection;
 
     return (
-      <>
+      <div className="space-y-4">
         {/* Reveal Button */}
         <button
           onClick={handleReveal}
@@ -515,16 +518,18 @@ export default function TSHOTToNFTPanel({
             }
           `}
         >
-          (Step 2 of 2) Receive Random Moments
+          {isCheckingCollection
+            ? "Checking collection..."
+            : "(Step 2 of 2) Receive Random Moments"}
         </button>
 
-        {isRevealDisabled && (
+        {isRevealDisabled && !isCheckingCollection && (
           <p className="text-red-400 mt-2 text-sm">
             Please select an account that has a TopShot collection before
             revealing your minted Moments.
           </p>
         )}
-      </>
+      </div>
     );
   }
 
