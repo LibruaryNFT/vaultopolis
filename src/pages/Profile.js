@@ -11,10 +11,12 @@ import { useParams, Navigate } from "react-router-dom";
 import * as fcl from "@onflow/fcl";
 import axios from "axios";
 import pLimit from "p-limit";
+import { metaStore } from "../utils/metaStore";
 
 /* ───────── cadence scripts ───────── */
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
+import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
 import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
@@ -29,17 +31,24 @@ const tierColour = {
   legendary: "text-orange-500",
   ultimate: "text-pink-500",
 };
-const LIMIT = pLimit(10);
-const BATCH = 4000;
+
+const LIMIT = pLimit(30); // RPC concurrency guard
+const BATCH = 2500; // Same batch size as UserContext
+const FIVE_MIN = 5 * 60_000;
+const SNAP = (addr) => `collSnap:${addr.toLowerCase()}`;
 
 /* ───────── helpers ───────── */
-const bump = (o, k, n = 1) => ((o[k] = (o[k] || 0) + n), o);
+const bump = (obj, key, inc = 1) => {
+  obj[key] = (obj[key] || 0) + inc;
+  return obj;
+};
 const fixed = (n, d = 2) => (Number.isFinite(+n) ? (+n).toFixed(d) : "0");
 
 /* ───────── minimal UI helpers ───────── */
 const Skeleton = ({ w = "w-16", h = "h-7" }) => (
   <div className={`${w} ${h} rounded bg-brand-secondary animate-pulse`} />
 );
+
 const Tile = ({ title, value, loading }) => (
   <div className="flex flex-col items-center justify-center w-full min-h-[90px] rounded-lg shadow bg-brand-primary text-brand-text px-4 py-3">
     <span className="text-xs opacity-80 mb-1 text-center">{title}</span>
@@ -51,82 +60,159 @@ const Tile = ({ title, value, loading }) => (
   </div>
 );
 
-/* ───────── metadata cache ───────── */
+/* ───────── tier-only metadata cache via metaStore ───────── */
 let topshotMeta = null;
 async function loadTopShotMeta() {
   if (topshotMeta) return topshotMeta;
-  const KEY = "topshotMeta_v1";
+  const KEY = "topshotTier_v1";
+
+  /* try IndexedDB first */
+  const cached = await metaStore.getItem(KEY);
+  if (cached) return (topshotMeta = cached);
+
+  /* legacy localStorage migration (one-off) */
   try {
-    const cached = localStorage.getItem(KEY);
-    if (cached) {
-      topshotMeta = JSON.parse(cached);
-      return topshotMeta;
+    const ls = localStorage.getItem(KEY);
+    if (ls) {
+      const parsed = JSON.parse(ls);
+      await metaStore.setItem(KEY, parsed);
+      localStorage.removeItem(KEY);
+      return (topshotMeta = parsed);
     }
-  } catch (_) {}
+  } catch (_) {
+    /* ignore */
+  }
+
+  /* fallback – download trimmed metadata */
   const resp = await fetch("https://api.vaultopolis.com/topshot-data");
   const arr = await resp.json();
-  topshotMeta = arr.reduce((a, r) => {
-    a[`${r.setID}-${r.playID}`] = r.tier?.toLowerCase?.() || null;
-    return a;
+  topshotMeta = arr.reduce((acc, r) => {
+    acc[`${r.setID}-${r.playID}`] = r.tier?.toLowerCase?.() || null;
+    return acc;
   }, {});
-  try {
-    localStorage.setItem(KEY, JSON.stringify(topshotMeta));
-  } catch (_) {}
+  metaStore.setItem(KEY, topshotMeta).catch(() => {});
   return topshotMeta;
 }
 
-/* ───────── account fetch helpers ───────── */
-async function fetchAccount(addr) {
-  const meta = await loadTopShotMeta();
-  const [flow, tshot, ids] = await Promise.all([
-    fcl.query({
+/* ───────── cheap balance fetches ───────── */
+const fetchFlowFast = async (addr) => {
+  try {
+    return await fcl.query({
       cadence: getFLOWBalance,
       args: (arg, t) => [arg(addr, t.Address)],
-    }),
-    fcl.query({
+    });
+  } catch {
+    return 0;
+  }
+};
+const fetchTshotFast = async (addr) => {
+  try {
+    return await fcl.query({
       cadence: getTSHOTBalance,
       args: (arg, t) => [arg(addr, t.Address)],
-    }),
-    fcl.query({
-      cadence: getTopShotCollectionIDs,
-      args: (arg, t) => [arg(addr, t.Address)],
-    }),
-  ]);
-  const tiers = {};
+    });
+  } catch {
+    return 0;
+  }
+};
+
+/* ───────── Account fetch using shared snapshots ───────── */
+async function fetchAccount(addr) {
+  /* 0️⃣ snapshot shortcut */
+  const snap = await metaStore.getItem(SNAP(addr));
+  if (snap && Date.now() - snap.ts < FIVE_MIN) {
+    return {
+      addr,
+      flow: +(await fetchFlowFast(addr)),
+      tshot: +(await fetchTshotFast(addr)),
+      moments: snap.ids.length,
+      tiers: snap.tiers,
+    };
+  }
+
+  /* 1️⃣ verify collection – quick exit if none */
+  const hasColl = await fcl.query({
+    cadence: verifyTopShotCollection,
+    args: (arg, t) => [arg(addr, t.Address)],
+  });
+  if (!hasColl) {
+    return {
+      addr,
+      flow: +(await fetchFlowFast(addr)),
+      tshot: +(await fetchTshotFast(addr)),
+      moments: 0,
+      tiers: {},
+    };
+  }
+
+  /* 2️⃣ get fresh IDs (strings) */
+  const ids = await fcl.query({
+    cadence: getTopShotCollectionIDs,
+    args: (arg, t) => [arg(addr, t.Address)],
+  });
   const idArr = Array.from(ids || []).map(String);
-  const batchCalls = [];
+
+  /* 3️⃣ tier counts */
+  const tiers = {};
+  const meta = await loadTopShotMeta();
+
+  const batches = [];
   for (let i = 0; i < idArr.length; i += BATCH) {
-    batchCalls.push(
-      LIMIT(() =>
-        fcl.query({
+    batches.push(idArr.slice(i, i + BATCH));
+  }
+
+  await Promise.all(
+    batches.map((chunk) =>
+      LIMIT(async () => {
+        const details = await fcl.query({
           cadence: getTopShotCollectionBatched,
           args: (arg, t) => [
             arg(addr, t.Address),
-            arg(idArr.slice(i, i + BATCH), t.Array(t.UInt64)),
+            arg(chunk, t.Array(t.UInt64)),
           ],
-        })
-      )
-    );
-  }
-  const chunks = await Promise.all(batchCalls);
-  chunks.flat().forEach((nft) => {
-    const tier = meta[`${nft.setID}-${nft.playID}`];
-    if (tier) bump(tiers, tier);
+        });
+        details.forEach((nft) => {
+          const tier = meta[`${nft.setID}-${nft.playID}`];
+          if (tier) bump(tiers, tier);
+        });
+      })
+    )
+  );
+
+  /* 4️⃣ cache snapshot for next visit */
+  await metaStore.setItem(SNAP(addr), {
+    ts: Date.now(),
+    ids: idArr,
+    tiers,
   });
+
+  /* 5️⃣ final payload */
+  const [flow, tshot] = await Promise.all([
+    fetchFlowFast(addr),
+    fetchTshotFast(addr),
+  ]);
+
   return { addr, flow: +flow, tshot: +tshot, moments: idArr.length, tiers };
 }
+
 async function loadFamily(addr) {
   const parent = await fetchAccount(addr);
-  const hasKids = await fcl.query({
-    cadence: hasChildrenCadence,
-    args: (arg, t) => [arg(addr, t.Address)],
-  });
-  if (!hasKids) return [parent];
-  const kidAddrs = await fcl.query({
-    cadence: getChildren,
-    args: (arg, t) => [arg(addr, t.Address)],
-  });
-  const kids = await Promise.all(kidAddrs.map(fetchAccount));
+  let kids = [];
+  try {
+    const hasKids = await fcl.query({
+      cadence: hasChildrenCadence,
+      args: (arg, t) => [arg(addr, t.Address)],
+    });
+    if (hasKids) {
+      const kidAddrs = await fcl.query({
+        cadence: getChildren,
+        args: (arg, t) => [arg(addr, t.Address)],
+      });
+      kids = await Promise.all(kidAddrs.map(fetchAccount));
+    }
+  } catch (e) {
+    console.error("[loadFamily-children]", e);
+  }
   return [parent, ...kids];
 }
 
@@ -137,6 +223,7 @@ const MiniStat = ({ label, value }) => (
     <p className="font-semibold m-0">{value}</p>
   </div>
 );
+
 const AccountCard = ({ acc, idx }) => (
   <div className="rounded-lg shadow border border-brand-primary">
     <div className="flex justify-between bg-brand-secondary px-3 py-1.5 rounded-t-lg">
@@ -191,13 +278,12 @@ function Profile() {
     []
   );
 
-  /* state that exists regardless of redirect */
+  /* address */
   const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
 
-  /* heavy data hooks (always declared) */
+  /* family load */
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     if (!walletAddr) return;
     let alive = true;
@@ -216,6 +302,7 @@ function Profile() {
     return () => void (alive = false);
   }, [walletAddr]);
 
+  /* aggregates */
   const aggregate = useMemo(() => {
     const out = { flow: 0, tshot: 0, moments: 0, tiers: {} };
     accounts.forEach((a) => {
@@ -227,7 +314,7 @@ function Profile() {
     return out;
   }, [accounts]);
 
-  /* swap stats & events hooks (declared unconditionally) */
+  /* swap stats & events */
   const [swapStats, setSwapStats] = useState(null);
   const [swapLoading, setSwapLoading] = useState(true);
   useEffect(() => {
@@ -261,11 +348,10 @@ function Profile() {
       .finally(() => setEventsLoading(false));
   }, [walletAddr, page]);
 
-  /* -------- redirect logic (after hooks) -------- */
+  /* redirect */
   let redirectTarget = null;
   if (!paramAddr && viewerReady) {
-    if (viewer?.addr) redirectTarget = `/profile/${viewer.addr}`;
-    else redirectTarget = "/";
+    redirectTarget = viewer?.addr ? `/profile/${viewer.addr}` : "/";
   }
 
   /* ───────── render ───────── */

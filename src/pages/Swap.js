@@ -407,7 +407,7 @@ const Swap = () => {
                           accountCollections[accountData.parentAddress] ===
                           false
                             ? "opacity-50 cursor-not-allowed"
-                            : "bg-brand-primary hover:bg-brand-blue cursor-pointer"
+                            : "bg-brand-secondary hover:bg-brand-blue cursor-pointer"
                         }
                       `}
                       title={
@@ -449,7 +449,7 @@ const Swap = () => {
                         ${
                           accountCollections[childAddr] === false
                             ? "opacity-50 cursor-not-allowed"
-                            : "bg-brand-primary hover:bg-brand-blue cursor-pointer"
+                            : "bg-brand-secondary hover:bg-brand-blue cursor-pointer"
                         }
                       `}
                       title={
@@ -495,7 +495,7 @@ const Swap = () => {
           name="description"
           content="Swap Top Shot Moments for TSHOT or redeem TSHOT for new Moments instantly on the Flow blockchain."
         />
-        <link rel="canonical" href="https://vaultopolis.com" />
+        <link rel="canonical" href="https://vaultopolis.com/swap" />
       </Helmet>
 
       {/* Transaction Modal */}
@@ -514,7 +514,7 @@ const Swap = () => {
         <div className="hidden md:block" />
 
         {/* col-3 : swap panel */}
-        <div className="max-w-md mx-auto mt-2 space-y-2 md:justify-self-center w-[400px]">
+        <div className="max-w-md mx-auto mt-2 space-y-2 md:justify-self-center w-[400px] mb-2">
           {/* Outer container => brand-primary with shadow */}
           <div className="p-2 rounded-lg bg-brand-primary shadow-md shadow-black/30">
             {/* FROM BOX => brand-secondary */}
@@ -626,6 +626,8 @@ const Swap = () => {
                       <img
                         src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
                         alt="TSHOT"
+                        width="36"
+                        height="36"
                         className="w-9 h-9"
                       />
                       <span>TSHOT</span>
@@ -664,15 +666,119 @@ const Swap = () => {
 
           {/* ========== SWAP ACTION PANEL ========== */}
           <div>{renderSwapPanel()}</div>
+
+          {/* Mobile TSHOT Benefits */}
+          <details
+            onToggle={(e) => setBenefitsOpen(e.target.open)}
+            className="lg:hidden bg-brand-primary rounded-lg p-2 shadow-md shadow-black/30 mb-4"
+          >
+            <summary className="flex items-center justify-center cursor-pointer text-sm font-semibold text-brand mb-2">
+              <ChevronDown
+                className={`
+                  w-4 h-4
+                  transform transition-transform duration-200
+                  ${benefitsOpen ? "rotate-180" : ""}
+                `}
+              />
+              <img
+                src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+                alt="TSHOT"
+                width="24"
+                height="24"
+                className="w-6 h-6 mx-2"
+              />
+              <span>TSHOT Benefits</span>
+              <ChevronDown
+                className={`
+                  w-4 h-4
+                  transform transition-transform duration-200
+                  ${benefitsOpen ? "rotate-180" : ""}
+                `}
+              />
+            </summary>
+
+            <p className="text-xs text-brand-text/90 mb-3">
+              TSHOT is a fungible token backed 1-for-1 by NBA Top Shot Moments.
+            </p>
+
+            <ul className="space-y-2 text-xs text-brand-text/90 leading-snug">
+              <li className="flex items-start">
+                <span className="text-brand mr-1">•</span>
+                <div>
+                  <strong>Trade Anywhere</strong> — Swap TSHOT ↔ FLOW instantly
+                  on&nbsp;
+                  <a
+                    href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    Increment.fi
+                  </a>
+                  &nbsp;or&nbsp;
+                  <a
+                    href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    PunchSwap
+                  </a>
+                </div>
+              </li>
+              <li className="flex items-start">
+                <span className="text-brand mr-1">•</span>
+                <div>
+                  <strong>Bulk Trading</strong> — Convert multiple Moments to
+                  TSHOT in one transaction
+                </div>
+              </li>
+              <li className="flex items-start">
+                <span className="text-brand mr-1">•</span>
+                <div>
+                  <strong>Earn Rewards</strong> — Provide liquidity to earn
+                  trading fees on&nbsp;
+                  <a
+                    href="https://app.increment.fi/liquidity/add"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    Increment.fi
+                  </a>
+                  &nbsp;or&nbsp;
+                  <a
+                    href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline hover:text-flow-light"
+                  >
+                    PunchSwap
+                  </a>
+                </div>
+              </li>
+            </ul>
+
+            <a
+              href="/tshot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 block text-xs text-brand hover:text-flow-light text-center font-medium"
+            >
+              For more info, see the TSHOT info page →
+            </a>
+          </details>
         </div>
 
         {/* col-4 : benefits sidebar */}
-        <aside className="hidden md:block w-[260px] sticky top-4 mt-2">
+        <aside className="hidden lg:block w-[260px] sticky top-4 mt-2">
           <div className="bg-brand-primary rounded-lg p-2 shadow-md shadow-black/30">
             <h3 className="flex items-center justify-center text-sm font-semibold text-brand mb-2">
               <img
                 src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
                 alt="TSHOT"
+                width="24"
+                height="24"
                 className="w-6 h-6 mr-2"
               />
               <span>TSHOT Benefits</span>
@@ -755,110 +861,10 @@ const Swap = () => {
         <div className="hidden md:block" />
       </div>
 
-      {/* Mobile version (unchanged), but add md:hidden */}
-      <details
-        onToggle={(e) => setBenefitsOpen(e.target.open)}
-        className="md:hidden max-w-md mx-auto mt-2 bg-brand-primary rounded-lg p-2 shadow-md shadow-black/30 mb-2"
-      >
-        <summary className="flex items-center justify-center cursor-pointer text-sm font-semibold text-brand mb-2">
-          <ChevronDown
-            className={`
-              w-4 h-4
-              transform transition-transform duration-200
-              ${benefitsOpen ? "rotate-180" : ""}
-            `}
-          />
-          <img
-            src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-            alt="TSHOT"
-            className="w-6 h-6 mx-2"
-          />
-          <span>TSHOT Benefits</span>
-          <ChevronDown
-            className={`
-              w-4 h-4
-              transform transition-transform duration-200
-              ${benefitsOpen ? "rotate-180" : ""}
-            `}
-          />
-        </summary>
-
-        <p className="text-xs text-brand-text/90 mb-3">
-          TSHOT is a fungible token backed 1-for-1 by NBA Top Shot Moments.
-        </p>
-
-        <ul className="space-y-2 text-xs text-brand-text/90 leading-snug">
-          <li className="flex items-start">
-            <span className="text-brand mr-1">•</span>
-            <div>
-              <strong>Trade Anywhere</strong> — Swap TSHOT ↔ FLOW instantly
-              on&nbsp;
-              <a
-                href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:text-flow-light"
-              >
-                Increment.fi
-              </a>
-              &nbsp;or&nbsp;
-              <a
-                href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:text-flow-light"
-              >
-                PunchSwap
-              </a>
-            </div>
-          </li>
-          <li className="flex items-start">
-            <span className="text-brand mr-1">•</span>
-            <div>
-              <strong>Bulk Trading</strong> — Convert multiple Moments to TSHOT
-              in one transaction
-            </div>
-          </li>
-          <li className="flex items-start">
-            <span className="text-brand mr-1">•</span>
-            <div>
-              <strong>Earn Rewards</strong> — Provide liquidity to earn trading
-              fees on&nbsp;
-              <a
-                href="https://app.increment.fi/liquidity/add"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:text-flow-light"
-              >
-                Increment.fi
-              </a>
-              &nbsp;or&nbsp;
-              <a
-                href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:text-flow-light"
-              >
-                PunchSwap
-              </a>
-            </div>
-          </li>
-        </ul>
-
-        <a
-          href="/tshot"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 block text-xs text-brand hover:text-flow-light text-center font-medium"
-        >
-          For more info, see the TSHOT info page →
-        </a>
-      </details>
-
       {fromAsset === "TopShot Common / Fandom" &&
         isLoggedIn &&
         accountData?.parentAddress && (
-          <div className="w-full p-0 space-y-2 mb-2 mt-2">
+          <div className="w-full p-0 space-y-2 mb-2">
             {/* Selected Moments (full width) */}
             <div className="bg-brand-primary shadow-md p-2 rounded w-full">
               <h4 className="text-brand-text text-sm mb-2">

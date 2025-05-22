@@ -1,97 +1,111 @@
-// src/components/TSHOTToNFTPanel.js
+/* eslint-disable react/prop-types */
 import React, { useContext, useState, useEffect } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserDataContext } from "../context/UserContext";
+import { metaStore } from "../utils/metaStore";
 
-// Flow scripts
+/* ──────────── Cadence ──────────── */
 import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import { getTopShotBatched } from "../flow/getTopShotBatched";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 
-// NOTE: This local enrich function is used for immediate enrichment in handleReveal.
-// Consider consolidating with the version in UserContext if appropriate.
-/**
- * Updated enrichWithMetadata that also merges set name + momentCount
- */
-async function enrichWithMetadata(nftList, metadataCache) {
-  if (!metadataCache) return nftList; // if no cache, just return raw
+/* ──────────── constants ─────────── */
+const SUBEDITIONS = {
+  1: { name: "Explosion", minted: 500 },
+  2: { name: "Torn", minted: 1000 },
+  3: { name: "Vortex", minted: 2500 },
+  4: { name: "Rippled", minted: 4000 },
+  5: { name: "Coded", minted: 25 },
+  6: { name: "Halftone", minted: 100 },
+  7: { name: "Bubbled", minted: 250 },
+  8: { name: "Diced", minted: 10 },
+  9: { name: "Bit", minted: 50 },
+  10: { name: "Vibe", minted: 5 },
+  11: { name: "Astra", minted: 75 },
+};
 
-  // Example subedition data, kept locally for this function's use.
-  // Ensure this matches the definition in UserContext.js or import from there.
-  const SUBEDITIONS = {
-    1: { name: "Explosion", minted: 500 },
-    2: { name: "Torn", minted: 1000 },
-    3: { name: "Vortex", minted: 2500 },
-    4: { name: "Rippled", minted: 4000 },
-    5: { name: "Coded", minted: 25 },
-    6: { name: "Halftone", minted: 100 },
-    7: { name: "Bubbled", minted: 250 },
-    8: { name: "Diced", minted: 10 },
-    9: { name: "Bit", minted: 50 },
-    10: { name: "Vibe", minted: 5 },
-    11: { name: "Astra", minted: 75 },
-  };
+const META_KEY = "topshotMeta_v1";
+const ONE_HOUR = 3_600_000;
 
-  return nftList.map((nft) => {
-    // Start with the potentially already partially enriched NFT
-    // (e.g., might already have subeditionMaxMint from the calling logic)
-    const enriched = { ...nft };
-    const key = `${nft.setID}-${nft.playID}`;
-    const meta = metadataCache[key];
+/* ──────────────────────────────────────────────────────────
+ *  1. Make sure we always have the metadata cache in memory
+ * ─────────────────────────────────────────────────────────*/
+async function ensureMetadataCache(current, dispatch) {
+  /* a) already good? */
+  if (current && Object.keys(current).length) return current;
 
-    if (meta) {
-      // Player name & tier
-      enriched.tier = meta.tier || enriched.tier;
-      enriched.fullName =
-        meta.FullName ||
-        meta.fullName ||
-        enriched.fullName ||
-        enriched.playerName ||
-        "Unknown Player";
+  /* b) try IndexedDB */
+  try {
+    const snap = await metaStore.getItem(META_KEY);
+    if (snap && Date.now() - snap.ts < ONE_HOUR) {
+      dispatch({ type: "SET_METADATA_CACHE", payload: snap.data });
+      return snap.data;
+    }
+  } catch (e) {
+    console.warn("[meta] IDB read failed:", e);
+  }
 
-      // Series
-      if (typeof meta.series !== "undefined") {
-        enriched.series = meta.series;
-      }
+  /* c) download */
+  try {
+    const res = await fetch("https://api.vaultopolis.com/topshot-data");
+    const arr = await res.json();
+    const map = arr.reduce((m, r) => {
+      m[`${r.setID}-${r.playID}`] = {
+        tier: r.tier?.toLowerCase() || null,
+        FullName: r.FullName,
+        JerseyNumber: r.JerseyNumber,
+        momentCount: r.momentCount,
+        TeamAtMoment: r.TeamAtMoment,
+        name: r.name,
+        series: r.series,
+      };
+      return m;
+    }, {});
+    metaStore.setItem(META_KEY, { ts: Date.now(), data: map }).catch(() => {});
+    dispatch({ type: "SET_METADATA_CACHE", payload: map });
+    return map;
+  } catch (err) {
+    console.error("[meta] fetch failed:", err);
+    dispatch({ type: "SET_METADATA_CACHE", payload: {} });
+    return {};
+  }
+}
 
-      // Team
-      if (meta.TeamAtMoment) {
-        enriched.teamAtMoment = meta.TeamAtMoment;
-      }
+/* ──────────────────────────────────────────────────────────
+ *  2. Helper that merges raw NFT data with meta + subedition
+ * ─────────────────────────────────────────────────────────*/
+function enrichWithMetadata(list, meta) {
+  return list.map((n) => {
+    const out = { ...n };
+    const m = meta?.[`${n.setID}-${n.playID}`];
 
-      // Set name & moment count
-      // Use enriched.name as fallback in case raw data/partial enrichment had one
-      enriched.name =
-        meta.setName || meta.name || enriched.name || "Unknown Set";
-      if (typeof meta.momentCount !== "undefined") {
-        enriched.momentCount = Number(meta.momentCount);
-      }
-    } else {
-      console.warn(
-        `No metadata found for setID=${nft.setID}, playID=${nft.playID}.`
-      );
-      // Ensure a default name if none exists
-      if (!enriched.name) enriched.name = "Unknown Set";
+    if (m) {
+      out.tier = m.tier || out.tier;
+      out.fullName = m.FullName || out.fullName || "Unknown Player";
+      out.series = m.series ?? out.series;
+      out.teamAtMoment = m.TeamAtMoment ?? out.teamAtMoment;
+      out.name = m.name ?? out.name ?? "Unknown Set";
+      if (typeof m.momentCount !== "undefined")
+        out.momentCount = Number(m.momentCount);
     }
 
-    // Subedition handling (redundant if called after partial enrichment, but safe)
-    // This ensures it's applied even if this function is called directly with raw data.
-    if (nft.subeditionID && SUBEDITIONS[nft.subeditionID]) {
-      const sub = SUBEDITIONS[nft.subeditionID];
-      enriched.subeditionName = sub.name;
-      enriched.subeditionMaxMint = sub.minted;
+    if (out.subeditionID && SUBEDITIONS[out.subeditionID]) {
+      const s = SUBEDITIONS[out.subeditionID];
+      out.subeditionName = s.name;
+      out.subeditionMaxMint = s.minted;
     }
-
-    return enriched;
+    return out;
   });
 }
 
+/* ──────────────────────────────────────────────────────────
+ *  COMPONENT
+ * ─────────────────────────────────────────────────────────*/
 export default function TSHOTToNFTPanel({
   sellAmount = "0",
-  depositDisabled,
+  depositDisabled = false,
   onTransactionStart,
-  onRevealComplete,
 }) {
   const {
     user,
@@ -100,106 +114,60 @@ export default function TSHOTToNFTPanel({
     loadAllUserData,
     loadChildData,
     metadataCache,
+    dispatch, // <- for ensureMetadataCache
   } = useContext(UserDataContext);
 
-  // Add state for collection check
-  const [hasTopShotCollection, setHasTopShotCollection] = useState(false);
-  const [isCheckingCollection, setIsCheckingCollection] = useState(false);
+  /* ───  local state  ─── */
+  const [hasCollection, setHasCollection] = useState(false);
+  const [checkingCol, setCheckingCol] = useState(false);
 
-  // Check collection status when selectedAccount changes
+  /* ───  misc derived  ─── */
+  const loggedIn = Boolean(user?.loggedIn);
+  const parentAddr = accountData?.parentAddress || user?.addr;
+  const parentTSHOT = parseFloat(accountData?.tshotBalance || "0");
+  const numericValue = Math.max(0, Number.parseInt(sellAmount, 10) || 0);
+  const isOverMax = numericValue > 50;
+  const depositStep = !accountData?.hasReceipt;
+  const revealStep = accountData?.hasReceipt;
+  const btnDisabledDeposit =
+    depositDisabled ||
+    numericValue === 0 ||
+    numericValue > parentTSHOT ||
+    isOverMax;
+
+  /* ───  collection check whenever selectedAccount changes  ─── */
   useEffect(() => {
-    async function checkCollection() {
-      if (!selectedAccount) return;
-
-      setIsCheckingCollection(true);
+    if (!selectedAccount) return;
+    (async () => {
       try {
-        const hasCollection = await fcl.query({
+        setCheckingCol(true);
+        const has = await fcl.query({
           cadence: verifyTopShotCollection,
           args: (arg, t) => [arg(selectedAccount, t.Address)],
         });
-        setHasTopShotCollection(hasCollection);
-      } catch (err) {
-        console.error("Error checking TopShot collection:", err);
-        setHasTopShotCollection(false);
+        setHasCollection(!!has);
+      } catch (e) {
+        console.error("[collection check]", e);
+        setHasCollection(false);
       } finally {
-        setIsCheckingCollection(false);
+        setCheckingCol(false);
       }
-    }
-
-    checkCollection();
+    })();
   }, [selectedAccount]);
 
-  const isLoggedIn = Boolean(user?.loggedIn);
-  if (!isLoggedIn) {
-    // Same style as NFTToTSHOTPanel for "Connect Wallet"
-    return (
-      <button
-        onClick={() => fcl.authenticate()}
-        className="
-          w-full
-          text-lg
-          rounded-lg
-          font-bold
-          text-white
-          bg-flow-light
-          hover:bg-flow-dark
-          p-2
-        "
-      >
-        Connect Wallet
-      </button>
-    );
-  }
-
-  // Parent address & TSHOT balance
-  const parentAddr = accountData?.parentAddress || user?.addr;
-  const parentTSHOTBalance = parseFloat(accountData?.tshotBalance || "0");
-
-  // Step logic: deposit => no receipt; reveal => has receipt
-  const depositStep = !accountData?.hasReceipt; // Step 1
-  const revealStep = !!accountData?.hasReceipt; // Step 2
-
-  // Validate numeric portion of sellAmount
-  let numericValue = parseInt(sellAmount, 10);
-  if (Number.isNaN(numericValue) || numericValue < 0) numericValue = 0;
-
-  // Additional checks
-  const isOverMax = numericValue > 50;
-
-  // Prepare the deposit button label based on numericValue & TSHOT balance
-  let depositButtonLabel = "(Step 1 of 2) Swap TSHOT for Moments";
-  if (numericValue === 0) {
-    depositButtonLabel = "(Step 1 of 2) Enter an amount";
-  } else if (numericValue > parentTSHOTBalance) {
-    depositButtonLabel = "(Step 1 of 2) Insufficient TSHOT";
-  }
-
-  // Combined deposit disabled logic:
-  const buttonDisabled =
-    depositDisabled ||
-    numericValue === 0 ||
-    numericValue > parentTSHOTBalance ||
-    isOverMax;
-
-  // ---------------------------------------------
-  // STEP 1 => deposit TSHOT (commitSwap)
-  // ---------------------------------------------
+  /* ───────────────────────────────────────────────────────
+   *  STEP 1 → deposit (commitSwap)
+   * ───────────────────────────────────────────────────────*/
   async function handleDeposit() {
-    if (buttonDisabled) {
-      return;
-    }
-    if (!parentAddr?.startsWith("0x")) {
-      alert("No valid parent address for deposit!");
-      return;
-    }
+    if (btnDisabledDeposit) return;
 
-    const betAmount = `${numericValue}.0`; // e.g. "10.0"
+    const bet = `${numericValue}.0`;
 
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
       error: null,
-      tshotAmount: betAmount,
+      tshotAmount: bet,
       transactionAction: "COMMIT_SWAP",
       swapType: "TSHOT_TO_NFT",
     });
@@ -207,7 +175,7 @@ export default function TSHOTToNFTPanel({
     try {
       const txId = await fcl.mutate({
         cadence: commitSwap,
-        args: (arg, t) => [arg(betAmount, t.UFix64)],
+        args: (arg, t) => [arg(bet, t.UFix64)],
         limit: 9999,
         proposer: fcl.authz,
         payer: fcl.authz,
@@ -217,83 +185,52 @@ export default function TSHOTToNFTPanel({
       onTransactionStart?.({
         status: "Pending",
         txId,
-        error: null,
-        tshotAmount: betAmount,
+        tshotAmount: bet,
         transactionAction: "COMMIT_SWAP",
         swapType: "TSHOT_TO_NFT",
       });
 
-      const unsub = fcl.tx(txId).subscribe((txStatus) => {
-        let newStatus = "Processing...";
-        switch (txStatus.statusString) {
-          case "PENDING":
-            newStatus = "Pending";
-            break;
-          case "FINALIZED":
-            newStatus = "Finalized";
-            break;
-          case "EXECUTED":
-            newStatus = "Executed";
-            unsub();
-            break;
-          default:
-            break;
-        }
-        const errMsg = txStatus.errorMessage || null;
+      const unsub = fcl.tx(txId).subscribe((s) => {
+        const map = {
+          PENDING: "Pending",
+          FINALIZED: "Finalized",
+          EXECUTED: "Executed",
+          SEALED: "Sealed",
+        };
         onTransactionStart?.({
-          status: newStatus,
+          status: map[s.statusString] || "Processing…",
+          error: s.errorMessage?.length ? s.errorMessage : null,
           txId,
-          error: errMsg,
-          tshotAmount: betAmount,
+          tshotAmount: bet,
           transactionAction: "COMMIT_SWAP",
           swapType: "TSHOT_TO_NFT",
         });
+        if (s.status === 4) unsub();
       });
 
       await fcl.tx(txId).onceSealed();
 
-      onTransactionStart?.({
-        status: "Sealed",
-        txId,
-        error: null,
-        tshotAmount: betAmount,
-        transactionAction: "COMMIT_SWAP",
-        swapType: "TSHOT_TO_NFT",
-      });
-
-      // Refresh parent / child
-      if (selectedAccount && selectedAccount !== parentAddr) {
-        await loadAllUserData(parentAddr, { skipChildLoad: true });
-        await loadChildData(selectedAccount);
-      } else {
-        await loadAllUserData(parentAddr);
-      }
+      /* background refresh */
+      if (parentAddr?.startsWith("0x")) await loadAllUserData(parentAddr);
     } catch (err) {
-      console.error("Deposit TX failed:", err);
+      console.error("[deposit] failed:", err);
       onTransactionStart?.({
         status: "Error",
-        error: err?.message || String(err),
+        error: err?.message ?? String(err),
         txId: null,
-        tshotAmount: betAmount,
+        tshotAmount: bet,
         transactionAction: "COMMIT_SWAP",
         swapType: "TSHOT_TO_NFT",
       });
     }
   }
 
-  // ---------------------------------------------
-  // STEP 2 => reveal minted NFTs (revealSwap)
-  // ---------------------------------------------
+  /* ───────────────────────────────────────────────────────
+   *  STEP 2 → reveal (revealSwap)
+   * ───────────────────────────────────────────────────────*/
   async function handleReveal() {
-    const betFromReceipt = accountData?.receiptDetails?.betAmount;
-    const fallback = numericValue.toString();
-    const betInteger = betFromReceipt || fallback;
+    const betInteger = accountData?.receiptDetails?.betAmount || sellAmount;
     const betAmount = betInteger.includes(".") ? betInteger : `${betInteger}.0`;
-
-    if (!selectedAccount?.startsWith("0x")) {
-      alert("Invalid receiving address for reveal.");
-      return;
-    }
 
     onTransactionStart?.({
       status: "Awaiting Approval",
@@ -305,6 +242,10 @@ export default function TSHOTToNFTPanel({
     });
 
     try {
+      /* ---------- make sure meta cache is loaded ---------- */
+      const meta = await ensureMetadataCache(metadataCache, dispatch);
+
+      /* ---------- send tx ---------- */
       const txId = await fcl.mutate({
         cadence: revealSwap,
         args: (arg, t) => [arg(selectedAccount, t.Address)],
@@ -314,133 +255,68 @@ export default function TSHOTToNFTPanel({
         authorizations: [fcl.authz],
       });
 
-      onTransactionStart?.({
-        status: "Pending",
-        txId,
-        error: null,
-        tshotAmount: betAmount,
-        transactionAction: "REVEAL_SWAP",
-        swapType: "TSHOT_TO_NFT",
-      });
-
-      const unsub = fcl.tx(txId).subscribe((txStatus) => {
-        let newStatus = "Processing...";
-        switch (txStatus.statusString) {
-          case "PENDING":
-            newStatus = "Pending";
-            break;
-          case "FINALIZED":
-            newStatus = "Finalized";
-            break;
-          case "EXECUTED":
-            newStatus = "Executed";
-            unsub();
-            break;
-          default:
-            break;
-        }
-        const errMsg = txStatus.errorMessage || null;
+      /* live updates */
+      const unsub = fcl.tx(txId).subscribe((s) => {
+        const map = {
+          PENDING: "Pending",
+          FINALIZED: "Finalized",
+          EXECUTED: "Executed",
+          SEALED: "Sealed",
+        };
         onTransactionStart?.({
-          status: newStatus,
+          status: map[s.statusString] || "Processing…",
+          error: s.errorMessage?.length ? s.errorMessage : null,
           txId,
-          error: errMsg,
           tshotAmount: betAmount,
           transactionAction: "REVEAL_SWAP",
           swapType: "TSHOT_TO_NFT",
         });
+        if (s.status === 4) unsub();
       });
 
-      // wait for seal
-      const sealedResult = await fcl.tx(txId).onceSealed();
+      /* wait seal */
+      const sealed = await fcl.tx(txId).onceSealed();
 
-      // Find any "TopShot.Deposit" events to see which IDs we received
-      const depositEvents = sealedResult.events.filter(
-        (evt) =>
-          evt.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
-          evt.data.to === selectedAccount
+      /* parse TopShot.Deposit events to know IDs */
+      const depositEv = sealed.events.filter(
+        (e) =>
+          e.type === "A.0b2a3299cc857e29.TopShot.Deposit" &&
+          e.data.to === selectedAccount
       );
-      const receivedNFTIDs = depositEvents.map((evt) => evt.data.id);
+      const ids = depositEv.map((e) => e.data.id);
 
-      // Initialize final details array
-      let finalRevealedDetails = [];
-
-      if (receivedNFTIDs.length > 0) {
-        // 1) Grab raw NFT data on-chain
-        const rawNFTData = await fcl.query({
+      /* fetch + enrich */
+      let details = [];
+      if (ids.length) {
+        const raw = await fcl.query({
           cadence: getTopShotBatched,
           args: (arg, t) => [
             arg(selectedAccount, t.Address),
-            arg(receivedNFTIDs, t.Array(t.UInt64)),
+            arg(ids, t.Array(t.UInt64)),
           ],
         });
 
-        // --- START: MODIFIED ENRICHMENT LOGIC ---
+        const pre = raw.map((n) => {
+          const o = { ...n };
+          o.id = Number(o.id);
+          o.setID = Number(o.setID);
+          o.playID = Number(o.playID);
+          o.serialNumber = Number(o.serialNumber);
+          o.isLocked = Boolean(o.isLocked);
+          o.subeditionID =
+            o.subeditionID != null ? Number(o.subeditionID) : null;
 
-        // Define or import the SUBEDITIONS map. Ensure it's consistent with UserContext.
-        const SUBEDITIONS = {
-          1: { name: "Explosion", minted: 500 },
-          2: { name: "Torn", minted: 1000 },
-          3: { name: "Vortex", minted: 2500 },
-          4: { name: "Rippled", minted: 4000 },
-          5: { name: "Coded", minted: 25 },
-          6: { name: "Halftone", minted: 100 },
-          7: { name: "Bubbled", minted: 250 },
-          8: { name: "Diced", minted: 10 },
-          9: { name: "Bit", minted: 50 },
-          10: { name: "Vibe", minted: 5 },
-          11: { name: "Astra", minted: 75 },
-        };
-
-        // 2a) Apply Subedition Enrichment FIRST & Basic Type Conversion
-        let partiallyEnrichedData = rawNFTData.map((nft) => {
-          const enriched = { ...nft }; // Start with raw data
-          // Basic Type Conversions
-          enriched.id = Number(nft.id);
-          enriched.setID = Number(nft.setID);
-          enriched.playID = Number(nft.playID);
-          enriched.serialNumber = Number(nft.serialNumber);
-          enriched.isLocked = Boolean(nft.isLocked);
-          enriched.subeditionID =
-            nft.subeditionID != null && !isNaN(Number(nft.subeditionID))
-              ? Number(nft.subeditionID)
-              : null;
-
-          // Apply Subedition Data
-          if (enriched.subeditionID && SUBEDITIONS[enriched.subeditionID]) {
-            const sub = SUBEDITIONS[enriched.subeditionID];
-            enriched.subeditionName = sub.name;
-            enriched.subeditionMaxMint = sub.minted; // Add the crucial field
+          if (o.subeditionID && SUBEDITIONS[o.subeditionID]) {
+            const s = SUBEDITIONS[o.subeditionID];
+            o.subeditionName = s.name;
+            o.subeditionMaxMint = s.minted;
           }
-          return enriched;
+          return o;
         });
 
-        // 2b) Apply Metadata Cache Enrichment if available
-        if (metadataCache) {
-          // Use the local/imported enrichWithMetadata function, passing the *partially enriched* data
-          // This function will now layer on details from the cache onto the data
-          // that already has subeditionMaxMint (if applicable).
-          try {
-            // Pass partially enriched data to the local enrich function
-            finalRevealedDetails = await enrichWithMetadata(
-              partiallyEnrichedData,
-              metadataCache
-            );
-          } catch (enrichErr) {
-            console.error("Error during metadata enrichment:", enrichErr);
-            // Fallback to partially enriched data if metadata enrichment fails
-            finalRevealedDetails = partiallyEnrichedData;
-          }
-        } else {
-          console.warn(
-            "Metadata cache not available during reveal enrichment. Using partial enrichment."
-          );
-          // Use the data that at least has subedition info applied
-          finalRevealedDetails = partiallyEnrichedData;
-        }
-        // --- END: MODIFIED ENRICHMENT LOGIC ---
-      } // End: if (receivedNFTIDs.length > 0)
+        details = enrichWithMetadata(pre, meta);
+      }
 
-      // Pass the final (partially or fully enriched) data to the modal state update
       onTransactionStart?.({
         status: "Sealed",
         txId,
@@ -448,22 +324,23 @@ export default function TSHOTToNFTPanel({
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
         swapType: "TSHOT_TO_NFT",
-        revealedNFTs: receivedNFTIDs, // Pass the IDs
-        revealedNFTDetails: finalRevealedDetails, // Pass the enriched details array
+        revealedNFTs: ids,
+        revealedNFTDetails: details,
       });
 
-      // Refresh parent + child data in the background AFTER updating the modal
-      if (selectedAccount && selectedAccount !== parentAddr) {
-        await loadAllUserData(parentAddr, { skipChildLoad: true });
+      /* background refresh */
+      const pAddr = accountData?.parentAddress || user?.addr;
+      if (selectedAccount && selectedAccount !== pAddr) {
+        await loadAllUserData(pAddr, { skipChildLoad: true });
         await loadChildData(selectedAccount);
       } else {
-        await loadAllUserData(parentAddr);
+        await loadAllUserData(pAddr);
       }
     } catch (err) {
-      console.error("Reveal TX failed:", err);
+      console.error("[reveal] failed:", err);
       onTransactionStart?.({
         status: "Error",
-        error: err?.message || String(err),
+        error: err?.message ?? String(err),
         txId: null,
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
@@ -472,59 +349,72 @@ export default function TSHOTToNFTPanel({
     }
   }
 
-  // -------------------------------------------------------------
-  // RENDER LOGIC
-  // -------------------------------------------------------------
-  if (depositStep) {
+  /* ───────────────────────────────────────────────────────
+   *  RENDER
+   * ───────────────────────────────────────────────────────*/
+  if (!loggedIn) {
     return (
-      <>
-        {/* Deposit Button */}
-        <button
-          onClick={handleDeposit}
-          disabled={buttonDisabled}
-          className={`
-            w-full p-4 text-lg rounded-lg font-bold transition-colors
-            shadow-md shadow-black/40
-            ${
-              buttonDisabled
-                ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
-                : "bg-flow-light text-white hover:bg-flow-dark"
-            }
-          `}
-        >
-          {depositButtonLabel}
-        </button>
-      </>
+      <button
+        onClick={() => fcl.authenticate()}
+        className="
+          w-full p-4 text-lg font-bold rounded-lg
+          bg-flow-light text-white hover:bg-flow-dark
+        "
+      >
+        Connect Wallet
+      </button>
     );
   }
 
-  if (revealStep) {
-    // Step 2 => reveal minted NFTs
-    const isRevealDisabled = !hasTopShotCollection || isCheckingCollection;
+  /* STEP-1 UI */
+  if (depositStep) {
+    let label = "(Step 1 of 2) Swap TSHOT for Moments";
+    if (numericValue === 0) label = "(Step 1 of 2) Enter an amount";
+    else if (numericValue > parentTSHOT)
+      label = "(Step 1 of 2) Insufficient TSHOT";
 
     return (
+      <button
+        onClick={handleDeposit}
+        disabled={btnDisabledDeposit}
+        className={`
+          w-full p-4 text-lg font-bold rounded-lg shadow-md shadow-black/40
+          ${
+            btnDisabledDeposit
+              ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
+              : "bg-flow-light text-white hover:bg-flow-dark"
+          }
+        `}
+      >
+        {label}
+      </button>
+    );
+  }
+
+  /* STEP-2 UI */
+  if (revealStep) {
+    const disabled = checkingCol || !hasCollection;
+    return (
       <div className="space-y-4">
-        {/* Reveal Button */}
         <button
           onClick={handleReveal}
-          disabled={isRevealDisabled}
+          disabled={disabled}
           className={`
-            w-full p-4 text-lg rounded-lg font-bold transition-colors
-            shadow-md shadow-black/40
+            w-full p-4 text-lg font-bold rounded-lg shadow-md shadow-black/40
             ${
-              isRevealDisabled
+              disabled
                 ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
                 : "bg-flow-light text-white hover:bg-flow-dark"
             }
           `}
         >
-          {isCheckingCollection
+          {checkingCol
             ? "Checking collection..."
             : "(Step 2 of 2) Receive Random Moments"}
         </button>
 
-        {isRevealDisabled && !isCheckingCollection && (
-          <p className="text-red-400 mt-2 text-sm">
+        {disabled && !checkingCol && (
+          <p className="text-red-400 text-sm">
             Please select an account that has a TopShot collection before
             revealing your minted Moments.
           </p>
@@ -533,16 +423,16 @@ export default function TSHOTToNFTPanel({
     );
   }
 
-  // Fallback if state is still loading
+  /* fallback */
   return (
     <button
       disabled
       className="
-        w-full p-4 text-lg rounded-lg font-bold transition-colors
-        shadow-md shadow-black/40 cursor-not-allowed bg-brand-primary text-brand-text/50
+        w-full p-4 text-lg font-bold rounded-lg
+        cursor-not-allowed bg-brand-primary text-brand-text/50
       "
     >
-      Loading...
+      Loading…
     </button>
   );
 }

@@ -1,11 +1,17 @@
 /* eslint-disable react/prop-types */
-import React, { useContext, useState } from "react";
-import { Settings as SettingsIcon } from "lucide-react";
+import React, {
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+} from "react";
+import { Settings as SettingsIcon, RefreshCw } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 
-/* ─── helpers ──────────────────────────────────────────── */
+/* ───── colour helpers ───── */
 const colour = {
   common: "text-gray-400",
   fandom: "text-lime-400",
@@ -15,31 +21,51 @@ const colour = {
 };
 const tierClass = (t) => colour[t] ?? "";
 
-const Dropdown = ({ opts, value, onChange, title, countFn }) => (
+/* ───── local exclude-set helpers ───── */
+const exclKey = (addr) => `excluded:${addr?.toLowerCase?.()}`;
+const readExcluded = (addr) => {
+  try {
+    const raw = localStorage.getItem(exclKey(addr));
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+/* ───── reusable dropdown ───── */
+const Dropdown = ({
+  opts,
+  value,
+  onChange,
+  title,
+  countFn = () => 0,
+  labelFn = null,
+  width = "w-40",
+}) => (
   <select
     value={value}
     onChange={onChange}
     disabled={!opts.length}
     title={title}
-    className="w-36 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40"
+    className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40`}
   >
     <option value="All">All</option>
     {opts.map((o) => (
       <option key={o} value={o} className="text-brand-text">
-        {`${o} (${countFn(o)})`}
+        {labelFn ? labelFn(o) : `${o} (${countFn(o)})`}
       </option>
     ))}
   </select>
 );
 
-/* ─── Preset-modal ────────────────────────────────────── */
-const sanitizeName = (str) =>
-  str
-    .replace(/<\/?[^>]*>/g, "") // strip HTML
-    .replace(/[^\w\s-]/gi, "") // allow A-Z 0-9 _-
-    .replace(/\s+/g, " ") // collapse spaces
+/* ───── preset-modal (unchanged) ───── */
+const sanitizeName = (s) =>
+  s
+    .replace(/<\/?[^>]*>/g, "")
+    .replace(/[^\w\s-]/gi, "")
+    .replace(/\s+/g, " ")
     .trim()
-    .slice(0, 40); // max 40 chars
+    .slice(0, 40);
 
 function PrefsModal({
   prefs,
@@ -52,10 +78,13 @@ function PrefsModal({
   setNewName,
 }) {
   const [err, setErr] = useState("");
+
   const trySave = () => {
     const clean = sanitizeName(newName);
     if (!clean) return setErr("Name required");
-    if (Object.keys(prefs).some((k) => k.toLowerCase() === clean.toLowerCase()))
+    if (
+      !Object.keys(prefs).every((k) => k.toLowerCase() !== clean.toLowerCase())
+    )
       return setErr("Name already exists");
     if (!save(clean)) return setErr("Could not save (quota?)");
     setNewName("");
@@ -130,7 +159,20 @@ function PrefsModal({
   );
 }
 
-/* ─── Main component ──────────────────────────────────── */
+/* ───── helper: format elapsed time ───── */
+function formatElapsed(ts) {
+  if (!ts) return "never";
+  const diffMs = Date.now() - ts;
+  const diffMin = Math.floor(diffMs / 60_000);
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay} d ago`;
+}
+
+/* ───── main component ───── */
 export default function MomentSelection(props) {
   const {
     user,
@@ -140,21 +182,86 @@ export default function MomentSelection(props) {
     isRefreshing,
     selectedAccount,
     selectedAccountType,
+    loadChildData,
+    refreshUserData,
+    lastCollectionLoad,
   } = useContext(UserDataContext);
 
-  /* pick NFT list for parent vs child */
-  const nftDetails =
+  /* live “x min ago” label */
+  const [elapsed, setElapsed] = useState(formatElapsed(lastCollectionLoad));
+  useEffect(() => {
+    setElapsed(formatElapsed(lastCollectionLoad));
+    const id = setInterval(
+      () => setElapsed(formatElapsed(lastCollectionLoad)),
+      30_000
+    );
+    return () => clearInterval(id);
+  }, [lastCollectionLoad]);
+
+  /* --- refresh cooldown (30 s) ------------------ */
+  const [cooldown, setCooldown] = useState(false);
+  const cooldownTimerRef = useRef(null);
+
+  const handleRefresh = useCallback(() => {
+    if (isRefreshing || cooldown) return;
+    refreshUserData();
+    setCooldown(true);
+  }, [isRefreshing, cooldown, refreshUserData]);
+
+  /* start cooldown AFTER refresh completes */
+  useEffect(() => {
+    if (!isRefreshing && cooldown && !cooldownTimerRef.current) {
+      cooldownTimerRef.current = setTimeout(() => {
+        setCooldown(false);
+        cooldownTimerRef.current = null;
+      }, 30_000);
+    }
+    return () => {
+      if (cooldownTimerRef.current && isRefreshing) {
+        // if another refresh starts before timer ends, keep timer
+      }
+    };
+  }, [isRefreshing, cooldown]);
+
+  /* 1️⃣ locate current child object */
+  const childObj =
+    selectedAccountType === "child"
+      ? accountData?.childrenData?.find(
+          (c) => c.addr?.toLowerCase?.() === selectedAccount?.toLowerCase?.()
+        )
+      : null;
+
+  /* fetch child data first time */
+  useEffect(() => {
+    if (
+      selectedAccountType === "child" &&
+      selectedAccount &&
+      !childObj &&
+      typeof loadChildData === "function"
+    ) {
+      loadChildData(selectedAccount);
+    }
+  }, [selectedAccountType, selectedAccount, childObj, loadChildData]);
+
+  /* 2️⃣ raw list + excludes */
+  const raw =
     selectedAccountType === "parent"
       ? accountData?.nftDetails || []
-      : accountData?.childrenData?.find((c) => c.addr === selectedAccount)
-          ?.nftDetails || [];
+      : childObj?.nftDetails || [];
+
+  const addrForExcl =
+    selectedAccountType === "child"
+      ? selectedAccount
+      : accountData.parentAddress;
+  const excludedIds = readExcluded(addrForExcl);
+  const nftDetails = raw.filter((n) => !excludedIds.has(n.id));
 
   const hasCollection =
     selectedAccountType === "parent"
       ? accountData?.hasCollection ?? false
-      : accountData?.childrenData?.find((c) => c.addr === selectedAccount)
-          ?.hasCollection ?? false;
+      : childObj?.hasCollection ?? false;
 
+  /* heavy filter hook */
   const {
     filter,
     setFilter,
@@ -164,6 +271,8 @@ export default function MomentSelection(props) {
     setNameOptions,
     teamOptions,
     playerOptions,
+    subeditionOptions,
+    subMeta,
     eligibleMoments,
     base,
     prefs,
@@ -173,24 +282,23 @@ export default function MomentSelection(props) {
     deletePref,
   } = useMomentFilters({ ...props, nftDetails, selectedNFTs });
 
-  /* ── pagination helpers ─────────────────────────────── */
+  /* pagination */
   const PER_PAGE = 30;
   const pageCount = Math.ceil(eligibleMoments.length / PER_PAGE);
   const pageSlice = eligibleMoments.slice(
     (filter.currentPage - 1) * PER_PAGE,
     filter.currentPage * PER_PAGE
   );
-  const goPage = (p) => {
-    setFilter({ currentPage: p });
-  };
+  const goPage = (p) => setFilter({ currentPage: p });
 
-  /* modal state */
+  /* prefs modal */
   const [showPrefs, setShowPrefs] = useState(false);
   const [newPrefName, setNewPrefName] = useState("");
 
-  /* early exits */
+  /* ───────── early exits ───────── */
   if (!user?.loggedIn)
     return <p className="text-brand-text/70 px-2">Please log in.</p>;
+
   if (!hasCollection)
     return (
       <div className="bg-brand-primary p-2 rounded-lg">
@@ -200,12 +308,11 @@ export default function MomentSelection(props) {
       </div>
     );
 
-  /* ── render ─────────────────────────────────────────── */
+  /* ───────── render ───────── */
   return (
     <div className="w-full bg-brand-primary text-brand-text rounded-lg">
       {/* header */}
       <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2 px-2 pt-2">
-        {/* counts */}
         <div className="flex-1">
           {filter.selectedSeries.length === 0 ? (
             <p className="text-brand-text/70 font-semibold">
@@ -219,35 +326,39 @@ export default function MomentSelection(props) {
             </p>
           )}
           <p className="text-xs text-brand-text/60 mt-1">
-            Note: Only unlocked Common and Fandom are eligible to be swapped for
-            TSHOT.
+            Only unlocked Common&nbsp;/&nbsp;Fandom can be swapped.
           </p>
         </div>
 
-        {/* cog + badge */}
         <div className="flex items-center gap-3">
+          {/* refresh button */}
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing || cooldown}
+            title={
+              cooldown
+                ? "Please wait a few seconds before refreshing again"
+                : "Refresh snapshots"
+            }
+            className="p-2 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60"
+          >
+            <RefreshCw
+              size={24}
+              className={isRefreshing ? "animate-spin" : ""}
+            />
+          </button>
+
+          <span className="text-xs text-brand-text/60 whitespace-nowrap">
+            Updated:&nbsp;
+            <span className="text-brand-text">{elapsed}</span>
+          </span>
+
           <button
             aria-label="Filter settings"
             onClick={() => setShowPrefs(true)}
-            className="
-              relative group
-              p-2                       /* 44×44 tap area */
-              rounded-full
-              hover:bg-flow-dark/10
-              focus-visible:ring focus-visible:ring-flow-dark/60
-              transition-colors duration-150
-            "
+            className="relative group p-2 rounded-full hover:bg-flow-dark/10 focus-visible:ring focus-visible:ring-flow-dark/60"
           >
-            {/* tooltip */}
-            <span
-              className="
-                pointer-events-none
-                absolute -top-9 left-1/2 -translate-x-1/2
-                rounded bg-flow-dark px-2 py-1 text-xs text-white
-                opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100
-                transition-opacity duration-150
-              "
-            >
+            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded bg-flow-dark px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
               Filter settings
             </span>
             <SettingsIcon
@@ -265,22 +376,14 @@ export default function MomentSelection(props) {
               "None"
             )}
           </span>
-
-          {isRefreshing && (
-            <span className="text-brand-text/70 ml-2">
-              <span className="animate-spin inline-block mr-1">⟳</span>
-              Loading…
-            </span>
-          )}
         </div>
       </header>
 
-      {/* ── filter panel (unchanged logic) ──────────────── */}
+      {/* ----- filter panel ----- */}
       {seriesOptions.length > 0 && (
         <section className="flex flex-col gap-4 bg-brand-secondary p-4 rounded mb-2 mx-2">
           {/* tiers + series */}
           <div className="flex flex-wrap items-center gap-4 text-sm">
-            {/* tiers */}
             <div className="flex items-center gap-2">
               <span className="font-semibold">Tiers:</span>
               {tierOptions.map((t) => (
@@ -302,7 +405,6 @@ export default function MomentSelection(props) {
               ))}
             </div>
 
-            {/* series */}
             <div className="flex items-center gap-2">
               <span className="font-semibold">Series:</span>
               <label className="flex items-center gap-1">
@@ -339,9 +441,8 @@ export default function MomentSelection(props) {
             </div>
           </div>
 
-          {/* dropdowns */}
+          {/* dropdown rows */}
           <div className="flex flex-wrap items-center gap-4 text-sm">
-            {/* league */}
             <div className="flex items-center gap-1">
               <span className="font-semibold">League:</span>
               <Dropdown
@@ -356,7 +457,7 @@ export default function MomentSelection(props) {
                     currentPage: 1,
                   })
                 }
-                title="Select a league"
+                title="Select league"
                 countFn={(o) =>
                   base.baseNoLeague.filter(
                     (m) =>
@@ -368,7 +469,6 @@ export default function MomentSelection(props) {
               />
             </div>
 
-            {/* set */}
             <div className="flex items-center gap-1">
               <span className="font-semibold">Set:</span>
               <Dropdown
@@ -382,14 +482,13 @@ export default function MomentSelection(props) {
                     currentPage: 1,
                   })
                 }
-                title="Select a set"
+                title="Select set"
                 countFn={(o) =>
                   base.baseNoSet.filter((m) => m.name === o).length
                 }
               />
             </div>
 
-            {/* team */}
             <div className="flex items-center gap-1">
               <span className="font-semibold">Team:</span>
               <Dropdown
@@ -402,31 +501,56 @@ export default function MomentSelection(props) {
                     currentPage: 1,
                   })
                 }
-                title="Select a team"
+                title="Select team"
                 countFn={(o) =>
                   base.baseNoTeam.filter((m) => m.teamAtMoment === o).length
                 }
               />
             </div>
 
-            {/* player */}
             <div className="flex items-center gap-1">
               <span className="font-semibold">Player:</span>
               <Dropdown
                 opts={playerOptions}
                 value={filter.selectedPlayer}
                 onChange={(e) =>
-                  setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
+                  setFilter({
+                    selectedPlayer: e.target.value,
+                    currentPage: 1,
+                  })
                 }
-                title="Select a player"
+                title="Select player"
                 countFn={(o) =>
                   base.baseNoPlayer.filter((m) => m.fullName === o).length
                 }
               />
             </div>
+
+            <div className="flex items-center gap-1">
+              <span className="font-semibold">Sub-edition:</span>
+              <Dropdown
+                opts={subeditionOptions}
+                value={filter.selectedSubedition}
+                onChange={(e) =>
+                  setFilter({
+                    selectedSubedition: e.target.value,
+                    currentPage: 1,
+                  })
+                }
+                title="Select sub-edition"
+                width="w-56"
+                labelFn={(id) => {
+                  const meta = subMeta[id] || {};
+                  const cnt = base.baseNoSub.filter(
+                    (m) => String(m.subeditionID) === String(id)
+                  ).length;
+                  const baseLabel = `${meta.name} /${meta.minted}`;
+                  return cnt ? `${baseLabel} (${cnt})` : baseLabel;
+                }}
+              />
+            </div>
           </div>
 
-          {/* serial + reset */}
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <label className="flex items-center gap-1">
               <input
@@ -458,6 +582,7 @@ export default function MomentSelection(props) {
                   selectedLeague: "All",
                   selectedTeam: "All",
                   selectedPlayer: "All",
+                  selectedSubedition: "All",
                   excludeSpecialSerials: true,
                   excludeLowSerials: true,
                   currentPage: 1,
@@ -471,7 +596,7 @@ export default function MomentSelection(props) {
         </section>
       )}
 
-      {/* grid */}
+      {/* ----- grid ----- */}
       {pageSlice.length ? (
         <div className="flex flex-wrap gap-2 mt-2 px-2 pb-2">
           {pageSlice.map((n) => (
@@ -499,13 +624,10 @@ export default function MomentSelection(props) {
           {(() => {
             const pages = [];
             if (pageCount <= 7) {
-              // If 7 or fewer pages, show all
               for (let i = 1; i <= pageCount; i++) pages.push(i);
             } else if (filter.currentPage <= 4) {
-              // If current page is near start, show first 5 + ... + last
               pages.push(1, 2, 3, 4, 5, "...", pageCount);
             } else if (filter.currentPage > pageCount - 4) {
-              // If current page is near end, show first + ... + last 5
               pages.push(
                 1,
                 "...",
@@ -516,7 +638,6 @@ export default function MomentSelection(props) {
                 pageCount
               );
             } else {
-              // If current page is in middle, show first + ... + current-1, current, current+1 + ... + last
               pages.push(
                 1,
                 "...",
@@ -531,15 +652,11 @@ export default function MomentSelection(props) {
               <button
                 key={`page-${idx}`}
                 onClick={() => p !== "..." && goPage(Number(p))}
-                className={`
-                  px-3 py-1 mx-1 rounded
-                  ${
-                    p === filter.currentPage
-                      ? "bg-flow-dark text-white"
-                      : "bg-brand-secondary text-brand-text/80"
-                  }
-                  ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}
-                `}
+                className={`px-3 py-1 mx-1 rounded ${
+                  p === filter.currentPage
+                    ? "bg-flow-dark text-white"
+                    : "bg-brand-secondary text-brand-text/80"
+                } ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}`}
               >
                 {p}
               </button>
@@ -548,7 +665,7 @@ export default function MomentSelection(props) {
         </div>
       )}
 
-      {/* modal */}
+      {/* prefs modal */}
       {showPrefs && (
         <PrefsModal
           prefs={prefs}

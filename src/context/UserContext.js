@@ -1,4 +1,4 @@
-// src/context/UserContext.js
+/* eslint-disable react/prop-types */
 import React, {
   createContext,
   useReducer,
@@ -9,8 +9,9 @@ import React, {
 } from "react";
 import * as fcl from "@onflow/fcl";
 import pLimit from "p-limit";
+import { metaStore } from "../utils/metaStore";
 
-// Flow imports
+/* ───────── cadence imports ───────── */
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
@@ -21,12 +22,10 @@ import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
 import { getChildren } from "../flow/getChildren";
 import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT";
 
-// Named export for the context object
+/* ───────── exports ───────── */
 export const UserDataContext = createContext();
 
-/*************************************************************
- * Hardcoded subedition data & initial state
- *************************************************************/
+/* ───────── constants ───────── */
 const SUBEDITIONS = {
   1: { name: "Explosion", minted: 500 },
   2: { name: "Torn", minted: 1000 },
@@ -41,6 +40,10 @@ const SUBEDITIONS = {
   11: { name: "Astra", minted: 75 },
 };
 
+/** Increment this when snapshot schema changes */
+const SNAPSHOT_VERSION = 1;
+
+/* ───────── initial state ───────── */
 const initialState = {
   user: { loggedIn: null, addr: "" },
   accountData: {
@@ -49,8 +52,10 @@ const initialState = {
     flowBalance: null,
     tshotBalance: null,
     hasCollection: null,
+    tierCounts: {},
     receiptDetails: {},
     hasReceipt: null,
+
     hasChildren: false,
     childrenData: [],
     childrenAddresses: [],
@@ -65,9 +70,7 @@ const initialState = {
   lastCollectionLoad: null,
 };
 
-/*************************************************************
- * userReducer
- *************************************************************/
+/* ───────── reducer ───────── */
 function userReducer(state, action) {
   switch (action.type) {
     case "SET_USER":
@@ -87,10 +90,10 @@ function userReducer(state, action) {
         selectedNFTs: [],
       };
     case "SET_SELECTED_NFTS": {
-      const isSelected = state.selectedNFTs.includes(action.payload);
+      const isSel = state.selectedNFTs.includes(action.payload);
       return {
         ...state,
-        selectedNFTs: isSelected
+        selectedNFTs: isSel
           ? state.selectedNFTs.filter((id) => id !== action.payload)
           : [...state.selectedNFTs, action.payload],
       };
@@ -102,10 +105,7 @@ function userReducer(state, action) {
     case "SET_CHILDREN_DATA":
       return {
         ...state,
-        accountData: {
-          ...state.accountData,
-          childrenData: action.payload,
-        },
+        accountData: { ...state.accountData, childrenData: action.payload },
       };
     case "SET_CHILDREN_ADDRESSES":
       return {
@@ -128,160 +128,222 @@ function userReducer(state, action) {
   }
 }
 
-/*************************************************************
- * Merges DB-based metadata + subedition data
- *************************************************************/
-async function enrichWithMetadata(details, metadataCache) {
-  return details.map((nft) => {
-    const key = `${nft.setID}-${nft.playID}`;
-    const meta = metadataCache ? metadataCache[key] : undefined;
-    let enriched = { ...nft };
+/* ═══════════════════════════════════════════════
+ *  A. Metadata cache helpers
+ * ═══════════════════════════════════════════════ */
+async function loadMeta(dispatch) {
+  const snap = await metaStore.getItem("topshotMeta_v1");
+  const ONE_HOUR = 3_600_000;
+  if (snap && Date.now() - snap.ts < ONE_HOUR) {
+    dispatch({ type: "SET_METADATA_CACHE", payload: snap.data });
+    return snap.data;
+  }
+  return fetchMeta(dispatch);
+}
 
-    if (meta) {
-      enriched.tier = meta.tier || enriched.tier;
-      enriched.fullName =
-        meta.FullName ||
-        meta.fullName ||
-        enriched.fullName ||
-        enriched.playerName ||
-        "Unknown Player";
-      enriched.momentCount = Number(meta.momentCount) || enriched.momentCount;
-      enriched.jerseyNumber =
-        meta.JerseyNumber || meta.jerseyNumber || enriched.jerseyNumber;
+async function fetchMeta(dispatch) {
+  try {
+    const res = await fetch("https://api.vaultopolis.com/topshot-data");
+    const arr = await res.json();
+    const map = arr.reduce((m, r) => {
+      m[`${r.setID}-${r.playID}`] = {
+        tier: r.tier,
+        FullName: r.FullName,
+        JerseyNumber: r.JerseyNumber,
+        momentCount: r.momentCount,
+        TeamAtMoment: r.TeamAtMoment,
+        name: r.name,
+        series: r.series,
+      };
+      return m;
+    }, {});
+    dispatch({ type: "SET_METADATA_CACHE", payload: map });
+    await metaStore.setItem("topshotMeta_v1", { ts: Date.now(), data: map });
+    return map;
+  } catch (e) {
+    console.error("[meta] fetch failed", e);
+    dispatch({ type: "SET_METADATA_CACHE", payload: {} });
+    return {};
+  }
+}
 
-      if (meta.retired !== undefined) {
-        enriched.retired = meta.retired;
-      }
-      if (meta.playOrder) {
-        enriched.playOrder = meta.playOrder;
-      }
-      if (meta.series !== undefined) {
-        enriched.series = meta.series;
-      }
-      if (meta.name) {
-        enriched.name = meta.name;
-      }
-      if (meta.TeamAtMoment) {
-        enriched.teamAtMoment = meta.TeamAtMoment;
-      }
+/* ═══════════════════════════════════════════════
+ *  B. Collection snapshot & delta refresh
+ * ═══════════════════════════════════════════════ */
+const SNAP = (addr) => `collSnap:${addr.toLowerCase()}`;
+const LIMIT = pLimit(30);
+const BATCH_SIZE = 2500;
+
+function tierTally(list) {
+  return list.reduce((o, n) => {
+    const t = n.tier?.toLowerCase();
+    if (t) o[t] = (o[t] || 0) + 1;
+    return o;
+  }, {});
+}
+
+async function enrich(list, meta) {
+  return list.map((n) => {
+    const k = `${n.setID}-${n.playID}`;
+    const m = meta[k];
+    const out = { ...n };
+    if (m) {
+      out.tier = m.tier;
+      out.fullName = m.FullName || n.fullName;
+      out.name = m.name || n.name;
+      out.series = m.series ?? n.series;
+      out.teamAtMoment = m.TeamAtMoment ?? n.teamAtMoment;
+      out.momentCount = m.momentCount ?? n.momentCount;
     }
-
-    if (nft.subeditionID && SUBEDITIONS[nft.subeditionID]) {
-      const sub = SUBEDITIONS[nft.subeditionID];
-      enriched.subeditionName = sub.name;
-      enriched.subeditionMaxMint = sub.minted;
+    if (n.subeditionID && SUBEDITIONS[n.subeditionID]) {
+      const s = SUBEDITIONS[n.subeditionID];
+      out.subeditionName = s.name;
+      out.subeditionMaxMint = s.minted;
     }
-
-    return enriched;
+    return out;
   });
 }
 
-/*************************************************************
- * localStorage approach for metadata
- *************************************************************/
-async function loadTopShotMetadataFromServerOrCache(dispatch) {
+/* ------------- CORE FETCH ------------- */
+async function fetchCollection(addr, dispatch, state) {
+  /* 0️⃣ capability-check */
+  let hasColl = false;
   try {
-    const now = Date.now();
-    const ONE_HOUR = 3600_000;
-
-    const raw = localStorage.getItem("topshotMetadata");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-
-      /* ── use only if the cache is our current schema ───────── */
-      if (parsed.version === 1 && parsed.timestamp && parsed.data) {
-        const age = now - parsed.timestamp;
-        if (age < ONE_HOUR) {
-          dispatch({ type: "SET_METADATA_CACHE", payload: parsed.data });
-          return parsed.data; // ← fresh enough, stop here
-        }
-      }
-      /* else: fall through and fetch a new copy */
-    }
-
-    /* ── no usable cache → download ─────────────────────────── */
-    return await fetchRemoteTopShotMetadata(dispatch);
-  } catch (err) {
-    console.error("Error loading TopShot metadata:", err);
-    return {};
+    hasColl = await fcl.query({
+      cadence: verifyTopShotCollection,
+      args: (arg, t) => [arg(addr, t.Address)],
+    });
+  } catch (e) {
+    console.warn("[verifyTopShotCollection] failed →", e);
   }
-}
 
-/*************************************************************
- * Download Top Shot metadata, trim fields, put in memory,
- * then try to persist with {version:1, timestamp}.
- *************************************************************/
-async function fetchRemoteTopShotMetadata(dispatch) {
-  const now = Date.now();
-
-  try {
-    /* -------- 1. fetch -------- */
-    const resp = await fetch("https://api.vaultopolis.com/topshot-data");
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-
-    /* -------- 2. trim -------- */
-    const metadataMap = data.reduce((acc, item) => {
-      acc[`${item.setID}-${item.playID}`] = {
-        tier: item.tier,
-        FullName: item.FullName,
-        JerseyNumber: item.JerseyNumber,
-        momentCount: item.momentCount,
-        TeamAtMoment: item.TeamAtMoment,
-        name: item.name,
-        series: item.series,
-        ...(item.subeditions?.length ? { subeditions: item.subeditions } : {}),
-      };
-      return acc;
-    }, {});
-
-    /* -------- 3. give to React immediately -------- */
-    dispatch({ type: "SET_METADATA_CACHE", payload: metadataMap });
-
-    /* -------- 4. persist if possible -------- */
+  /* fallback brute-force */
+  let preFetchedIDs = null;
+  if (!hasColl) {
     try {
-      const toStore = { version: 1, timestamp: now, data: metadataMap };
-      localStorage.setItem("topshotMetadata", JSON.stringify(toStore));
-    } catch (storageErr) {
-      console.warn(
-        "LocalStorage quota exceeded – using in‑memory cache only",
-        storageErr
-      );
+      preFetchedIDs = await fcl.query({
+        cadence: getTopShotCollectionIDs,
+        args: (arg, t) => [arg(addr, t.Address)],
+      });
+      hasColl = preFetchedIDs.length > 0;
+    } catch (e) {
+      console.warn("[getTopShotCollectionIDs] fallback failed →", e);
+    }
+  }
+  if (!hasColl) return { hasCollection: false, details: [], tierCounts: {} };
+
+  /* 1️⃣ current IDs */
+  const ids =
+    preFetchedIDs ||
+    (await fcl.query({
+      cadence: getTopShotCollectionIDs,
+      args: (arg, t) => [arg(addr, t.Address)],
+    }));
+  ids.sort((a, b) => a.localeCompare(b));
+
+  /* 2️⃣ snapshot read & validation */
+  let snap = await metaStore.getItem(SNAP(addr));
+  const snapValid =
+    snap &&
+    snap.version === SNAPSHOT_VERSION &&
+    snap.details &&
+    snap.details.length === snap.ids?.length;
+  if (!snapValid && snap) {
+    try {
+      await metaStore.removeItem(SNAP(addr)); // purge incompatible or half-baked snapshot
+    } catch (e) {
+      console.error("[metaStore] purge failed", e);
+    }
+    snap = null;
+  }
+
+  const snapSet = new Set(snap?.ids || []);
+  const currSet = new Set(ids);
+  const addIds = [...currSet].filter((id) => !snapSet.has(id));
+  const removeIds = [...snapSet].filter((id) => !currSet.has(id));
+  const nothingChanged = snap && addIds.length === 0 && removeIds.length === 0;
+
+  /* 3️⃣ reuse snapshot if perfectly valid and unchanged */
+  if (snapValid && nothingChanged) {
+    return {
+      hasCollection: true,
+      details: snap.details,
+      tierCounts: snap.tiers,
+    };
+  }
+
+  /* 4️⃣ fetch missing IDs */
+  let fetched = [];
+  if (addIds.length) {
+    const batches = [];
+    for (let i = 0; i < addIds.length; i += BATCH_SIZE) {
+      batches.push(addIds.slice(i, i + BATCH_SIZE));
     }
 
-    return metadataMap;
-  } catch (err) {
-    console.error("fetchRemoteTopShotMetadata error:", err);
-    return {};
+    const chunks = await Promise.all(
+      batches.map((b) =>
+        LIMIT(() =>
+          fcl.query({
+            cadence: getTopShotCollectionBatched,
+            args: (arg, t) => [arg(addr, t.Address), arg(b, t.Array(t.UInt64))],
+          })
+        )
+      )
+    );
+
+    const raw = chunks.flat().map((n) => ({
+      ...n,
+      id: String(n.id),
+      setID: Number(n.setID),
+      playID: Number(n.playID),
+      serialNumber: Number(n.serialNumber),
+      isLocked: Boolean(n.isLocked),
+      subeditionID: n.subeditionID != null ? Number(n.subeditionID) : null,
+    }));
+
+    let meta = state.metadataCache;
+    if (!meta) meta = await loadMeta(dispatch);
+    const missingMeta = raw.some((n) => !meta[`${n.setID}-${n.playID}`]);
+    if (missingMeta) meta = await fetchMeta(dispatch);
+
+    fetched = await enrich(raw, meta);
   }
+
+  /* 5️⃣ merge */
+  const basis = (snap?.details || []).filter((n) => !removeIds.includes(n.id));
+  const details = [...basis, ...fetched];
+  const tiers = tierTally(details);
+
+  /* 6️⃣ save snapshot only if complete */
+  const isComplete = details.length === ids.length && ids.length > 0;
+  if (isComplete) {
+    try {
+      await metaStore.setItem(SNAP(addr), {
+        version: SNAPSHOT_VERSION,
+        ts: Date.now(),
+        ids,
+        details,
+        tiers,
+      });
+    } catch (e) {
+      console.error("[metaStore] setItem failed", e);
+    }
+  } else {
+    console.warn(
+      `[snapshot] skipped for ${addr}: ${details.length}/${ids.length} items resolved`
+    );
+  }
+
+  return { hasCollection: true, details, tierCounts: tiers };
 }
 
-/*************************************************************
- * Example flow fetches
- *************************************************************/
-async function fetchFLOWBalance(addr) {
-  if (!addr?.startsWith("0x")) return 0;
-  try {
-    return await fcl.query({
-      cadence: getFLOWBalance,
-      args: (arg, t) => [arg(addr, t.Address)],
-    });
-  } catch {
-    return 0;
-  }
-}
-async function fetchTSHOTBalance(addr) {
-  if (!addr?.startsWith("0x")) return 0;
-  try {
-    return await fcl.query({
-      cadence: getTSHOTBalance,
-      args: (arg, t) => [arg(addr, t.Address)],
-    });
-  } catch {
-    return 0;
-  }
-}
-async function fetchReceiptDetails(addr) {
+/* ═══════════════════════════════════════════════
+ *  C. Thin helpers for balances/receipts
+ * ═══════════════════════════════════════════════ */
+const fetchFLOW = (a) => fetchGeneric(a, getFLOWBalance);
+const fetchTSHOT = (a) => fetchGeneric(a, getTSHOTBalance);
+
+async function fetchReceipt(addr) {
   if (!addr?.startsWith("0x")) return {};
   try {
     return await fcl.query({
@@ -293,173 +355,111 @@ async function fetchReceiptDetails(addr) {
   }
 }
 
-/*************************************************************
- * fetchTopShotCollection => for a single address
- *************************************************************/
-async function fetchTopShotCollection(addr, dispatch, state) {
-  // 1) verify collection
-  const hasColl = await fcl.query({
-    cadence: verifyTopShotCollection,
-    args: (arg, t) => [arg(addr, t.Address)],
-  });
-  if (!hasColl) {
-    return { hasCollection: false, details: [], tierCounts: {} };
+async function fetchGeneric(addr, script) {
+  if (!addr?.startsWith("0x")) return 0;
+  try {
+    return await fcl.query({
+      cadence: script,
+      args: (arg, t) => [arg(addr, t.Address)],
+    });
+  } catch {
+    return 0;
   }
-
-  // 2) get IDs
-  const ids = await fcl.query({
-    cadence: getTopShotCollectionIDs,
-    args: (arg, t) => [arg(addr, t.Address)],
-  });
-  if (!ids || !ids.length) {
-    return { hasCollection: true, details: [], tierCounts: {} };
-  }
-
-  // 3) batch
-  const limit = pLimit(30);
-  const batchSize = 2500;
-  const batches = [];
-  for (let i = 0; i < ids.length; i += batchSize) {
-    batches.push(ids.slice(i, i + batchSize));
-  }
-
-  const allResults = await Promise.all(
-    batches.map((batch) =>
-      limit(() =>
-        fcl.query({
-          cadence: getTopShotCollectionBatched,
-          args: (arg, t) => [
-            arg(addr, t.Address),
-            arg(batch, t.Array(t.UInt64)),
-          ],
-        })
-      )
-    )
-  );
-
-  const rawNFTs = allResults.flat().map((n) => ({
-    ...n,
-    id: Number(n.id),
-    setID: Number(n.setID),
-    playID: Number(n.playID),
-    serialNumber: Number(n.serialNumber),
-    isLocked: Boolean(n.isLocked),
-    subeditionID: n.subeditionID != null ? Number(n.subeditionID) : null,
-  }));
-
-  // ensure metadata is loaded
-  let cache = state.metadataCache;
-  if (!cache) {
-    cache = await loadTopShotMetadataFromServerOrCache(dispatch);
-  }
-  // check missing
-  const missing = rawNFTs.some((nft) => {
-    const k = `${nft.setID}-${nft.playID}`;
-    return !cache[k];
-  });
-  if (missing) {
-    cache = await fetchRemoteTopShotMetadata(dispatch);
-  }
-
-  const enriched = await enrichWithMetadata(rawNFTs, cache);
-  const tierCounts = enriched.reduce((acc, nft) => {
-    const tier = nft.tier?.toLowerCase();
-    if (tier) acc[tier] = (acc[tier] || 0) + 1;
-    return acc;
-  }, {});
-  return { hasCollection: true, details: enriched, tierCounts };
 }
 
-/*************************************************************
- * The default export => a component named "UserContext"
- *************************************************************/
+/* ═══════════════════════════════════════════════
+ *  D. React context provider
+ * ═══════════════════════════════════════════════ */
 function UserContext({ children }) {
   const [state, dispatch] = useReducer(userReducer, initialState);
-  const [didLoad, setDidLoad] = useState(false);
+  const [didInit, setDidInit] = useState(false);
 
-  // loadParentData
-  const loadParentData = useCallback(
-    async (address) => {
-      if (!address?.startsWith("0x")) return;
-      dispatch({ type: "SET_REFRESHING_STATE", payload: true });
+  /* FLOW price polling */
+  useEffect(() => {
+    let timer;
+    const poll = async () => {
       try {
-        const [flowBal, tshotBal, colData, receipt] = await Promise.all([
-          fetchFLOWBalance(address),
-          fetchTSHOTBalance(address),
-          fetchTopShotCollection(address, dispatch, state),
-          fetchReceiptDetails(address),
-        ]);
-
-        dispatch({
-          type: "SET_ACCOUNT_DATA",
-          payload: {
-            parentAddress: address,
-            flowBalance: flowBal,
-            tshotBalance: tshotBal,
-            nftDetails: colData.details,
-            hasCollection: colData.hasCollection,
-            tierCounts: colData.tierCounts,
-            receiptDetails: receipt,
-            hasReceipt: receipt?.betAmount > 0,
-          },
-        });
-      } catch (err) {
-        console.error("Error in loadParentData:", err);
-      } finally {
-        dispatch({ type: "SET_REFRESHING_STATE", payload: false });
-      }
-    },
-    [state]
-  );
-
-  // loadChildrenData
-  const loadChildrenData = useCallback(
-    async (childAddrs) => {
-      if (!Array.isArray(childAddrs)) return;
-      dispatch({ type: "SET_LOADING_CHILDREN", payload: true });
-      try {
-        const results = [];
-        for (const child of childAddrs) {
-          const [flowBal, tshotBal, colData, receipt] = await Promise.all([
-            fetchFLOWBalance(child),
-            fetchTSHOTBalance(child),
-            fetchTopShotCollection(child, dispatch, state),
-            fetchReceiptDetails(child),
-          ]);
-          results.push({
-            addr: child,
-            flowBalance: flowBal,
-            tshotBalance: tshotBal,
-            nftDetails: colData.details || [],
-            hasCollection: colData.hasCollection,
-            tierCounts: colData.tierCounts || {},
-            receiptDetails: receipt,
-            hasReceipt: receipt?.betAmount > 0,
-          });
-        }
-        dispatch({ type: "SET_CHILDREN_DATA", payload: results });
-        dispatch({ type: "SET_CHILDREN_ADDRESSES", payload: childAddrs });
+        const p = await fcl.query({ cadence: getFlowPricePerNFT });
+        dispatch({ type: "SET_FLOW_PRICE_PER_NFT", payload: p });
       } catch (e) {
-        console.error("Error in loadChildrenData:", e);
-      } finally {
-        dispatch({ type: "SET_LOADING_CHILDREN", payload: false });
+        console.error("[price]", e);
       }
+      timer = setTimeout(poll, 600_000);
+    };
+    poll();
+    return () => clearTimeout(timer);
+  }, []);
+
+  /* parent */
+  const loadParent = useCallback(
+    async (addrRaw) => {
+      const addr = addrRaw?.toLowerCase();
+      if (!addr?.startsWith("0x")) return;
+      const [flow, tshot, col, receipt] = await Promise.all([
+        fetchFLOW(addr),
+        fetchTSHOT(addr),
+        fetchCollection(addr, dispatch, state),
+        fetchReceipt(addr),
+      ]);
+      dispatch({
+        type: "SET_ACCOUNT_DATA",
+        payload: {
+          parentAddress: addr,
+          flowBalance: flow,
+          tshotBalance: tshot,
+          nftDetails: col.details,
+          hasCollection: col.hasCollection,
+          tierCounts: col.tierCounts,
+          receiptDetails: receipt,
+          hasReceipt: receipt?.betAmount > 0,
+        },
+      });
     },
     [state]
   );
 
-  // Single-child loader if needed
-  const loadChildData = useCallback(
-    async (childAddr) => {
-      if (!childAddr?.startsWith("0x")) return;
-      await loadChildrenData([childAddr]);
+  /* children */
+  const loadChildren = useCallback(
+    async (addrs = []) => {
+      const out = [];
+      for (const raw of addrs) {
+        const a = raw.toLowerCase();
+        const [flow, tshot, col, receipt] = await Promise.all([
+          fetchFLOW(a),
+          fetchTSHOT(a),
+          fetchCollection(a, dispatch, state),
+          fetchReceipt(a),
+        ]);
+        out.push({
+          addr: a,
+          flowBalance: flow,
+          tshotBalance: tshot,
+          nftDetails: col.details,
+          hasCollection: col.hasCollection,
+          tierCounts: col.tierCounts,
+          receiptDetails: receipt,
+          hasReceipt: receipt?.betAmount > 0,
+        });
+      }
+      dispatch({ type: "SET_CHILDREN_DATA", payload: out });
+      dispatch({
+        type: "SET_CHILDREN_ADDRESSES",
+        payload: addrs.map((x) => x.toLowerCase()),
+      });
     },
-    [loadChildrenData]
+    [state]
   );
 
-  const checkForChildren = useCallback(
-    async (addr) => {
-      if (!addr?.startsWith("0x")) return false;
+  const loadChildData = useCallback(
+    (addr) => loadChildren([addr]),
+    [loadChildren]
+  );
+
+  /* ensureChildren */
+  const ensureChildren = useCallback(
+    async (addrRaw) => {
+      const addr = addrRaw?.toLowerCase();
+      if (!addr?.startsWith("0x")) return 0;
       dispatch({ type: "SET_LOADING_CHILDREN", payload: true });
       try {
         const hasKids = await fcl.query({
@@ -470,108 +470,87 @@ function UserContext({ children }) {
           type: "SET_ACCOUNT_DATA",
           payload: { hasChildren: hasKids },
         });
+
         if (hasKids) {
-          const childAddrs = await fcl.query({
+          const kids = await fcl.query({
             cadence: getChildren,
             args: (arg, t) => [arg(addr, t.Address)],
           });
-          await loadChildrenData(childAddrs);
-        } else {
-          dispatch({ type: "SET_CHILDREN_ADDRESSES", payload: [] });
-          dispatch({ type: "SET_CHILDREN_DATA", payload: [] });
+          await loadChildren(kids);
+          return kids.length;
         }
-        return hasKids;
-      } catch (err) {
-        console.error("Error in checkForChildren:", err);
-        return false;
+        dispatch({ type: "SET_CHILDREN_DATA", payload: [] });
+        dispatch({ type: "SET_CHILDREN_ADDRESSES", payload: [] });
+        return 0;
+      } catch (e) {
+        console.error("[children]", e);
+        return 0;
       } finally {
         dispatch({ type: "SET_LOADING_CHILDREN", payload: false });
       }
     },
-    [loadChildrenData]
+    [loadChildren]
   );
 
-  /**
-   * loadAllUserData => parent + children,
-   * with an optional parameter for skipping child load
-   */
-  const loadAllUserData = useCallback(
-    async (addr, options = { skipChildLoad: false }) => {
+  /* umbrella loader */
+  const loadAll = useCallback(
+    async (addrRaw, { skipChildLoad = false } = {}) => {
+      const addr = addrRaw?.toLowerCase();
       if (!addr?.startsWith("0x")) return;
       dispatch({ type: "SET_REFRESHING_STATE", payload: true });
       try {
-        await loadParentData(addr);
-
-        // Only load children if skipChildLoad is NOT set
-        if (!options.skipChildLoad) {
-          await checkForChildren(addr);
-        }
-
-        // fetch flowPrice
-        try {
-          const price = await fcl.query({
-            cadence: getFlowPricePerNFT,
-            args: (arg, t) => [],
-          });
-          dispatch({ type: "SET_FLOW_PRICE_PER_NFT", payload: price });
-        } catch (pErr) {
-          console.error("Error fetching getFlowPricePerNFT:", pErr);
-        }
-
+        await loadParent(addr);
+        if (!skipChildLoad) await ensureChildren(addr);
         dispatch({ type: "SET_LAST_COLLECTION_LOAD", payload: Date.now() });
       } finally {
         dispatch({ type: "SET_REFRESHING_STATE", payload: false });
       }
     },
-    [loadParentData, checkForChildren]
+    [loadParent, ensureChildren]
   );
 
-  // Subscribe to fcl.currentUser
+  /* FCL subscription */
   useEffect(() => {
-    const unsub = fcl.currentUser.subscribe((cu) => {
-      dispatch({ type: "SET_USER", payload: cu });
-      if (!cu?.loggedIn) {
+    const unsub = fcl.currentUser.subscribe((u) => {
+      if (u?.addr) u.addr = u.addr.toLowerCase(); // normalise
+      dispatch({ type: "SET_USER", payload: u });
+      if (!u?.loggedIn) {
         dispatch({ type: "RESET_STATE" });
-        setDidLoad(false);
+        setDidInit(false);
       }
     });
     return () => unsub();
-  }, [dispatch]);
+  }, []);
 
-  // After login => load once
+  /* first load */
   useEffect(() => {
-    const { loggedIn, addr } = state.user;
-    if (!didLoad && loggedIn && addr) {
-      setDidLoad(true);
+    if (!didInit && state.user.loggedIn && state.user.addr) {
+      setDidInit(true);
       dispatch({
         type: "SET_SELECTED_ACCOUNT",
-        payload: { address: addr, type: "parent" },
+        payload: { address: state.user.addr, type: "parent" },
       });
-      loadAllUserData(addr).catch((err) => console.error(err));
+      loadAll(state.user.addr).catch(console.error);
     }
-  }, [didLoad, state.user, dispatch, loadAllUserData]);
+  }, [didInit, state.user, loadAll]);
 
-  // manual refresh
-  const refreshUserData = useCallback(async () => {
-    if (state.user?.addr?.startsWith("0x")) {
-      await loadAllUserData(state.user.addr);
-    }
-  }, [loadAllUserData, state.user]);
+  const refreshUserData = useCallback(() => {
+    if (state.user.addr) loadAll(state.user.addr).catch(console.error);
+  }, [loadAll, state.user.addr]);
 
-  const contextValue = useMemo(() => {
-    return {
+  const ctx = useMemo(
+    () => ({
       ...state,
       dispatch,
-      loadAllUserData,
+      loadAllUserData: loadAll,
       refreshUserData,
       loadChildData,
-    };
-  }, [state, dispatch, loadAllUserData, refreshUserData, loadChildData]);
+    }),
+    [state, loadAll, refreshUserData, loadChildData]
+  );
 
   return (
-    <UserDataContext.Provider value={contextValue}>
-      {children}
-    </UserDataContext.Provider>
+    <UserDataContext.Provider value={ctx}>{children}</UserDataContext.Provider>
   );
 }
 

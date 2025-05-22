@@ -9,9 +9,14 @@ import {
   useState,
 } from "react";
 
-/* ─── constants ─────────────────────────────────────────── */
+/* ───────── helpers ───────── */
+const safeStringify = (o) =>
+  JSON.stringify(o, (_, v) => (typeof v === "bigint" ? v.toString() : v));
+
+/* ───────── constants ─────── */
 export const BASE_TIERS = ["common", "fandom"];
 export const EXTRA_TIERS = ["rare", "legendary", "ultimate"];
+
 export const WNBA_TEAMS = [
   "Atlanta Dream",
   "Chicago Sky",
@@ -32,9 +37,25 @@ export const WNBA_TEAMS = [
   "Team Wilson",
   "Golden State Valkyries",
 ];
+
 export const FORCED_SERIES = [0, 2, 3, 4, 5, 6, 7];
 
-/* ─── default filter shape ──────────────────────────────── */
+/* master sub-edition map (id → {name, minted}) */
+export const SUB_META = {
+  1: { name: "Explosion", minted: 500 },
+  2: { name: "Torn", minted: 1000 },
+  3: { name: "Vortex", minted: 2500 },
+  4: { name: "Rippled", minted: 4000 },
+  5: { name: "Coded", minted: 25 },
+  6: { name: "Halftone", minted: 100 },
+  7: { name: "Bubbled", minted: 250 },
+  8: { name: "Diced", minted: 10 },
+  9: { name: "Bit", minted: 50 },
+  10: { name: "Vibe", minted: 5 },
+  11: { name: "Astra", minted: 75 },
+};
+
+/* ───────── default filter ─── */
 const FILTER_SCHEMA = {
   selectedTiers: { def: BASE_TIERS },
   selectedSeries: { def: [] },
@@ -42,27 +63,36 @@ const FILTER_SCHEMA = {
   selectedLeague: { def: "All" },
   selectedTeam: { def: "All" },
   selectedPlayer: { def: "All" },
+  selectedSubedition: { def: "All" }, // id (string) | "All"
   excludeSpecialSerials: { def: true },
   excludeLowSerials: { def: true },
   currentPage: { def: 1 },
 };
+
 export const DEFAULT_FILTER = Object.fromEntries(
   Object.entries(FILTER_SCHEMA).map(([k, v]) => [k, v.def])
 );
 
-/* ─── main hook ─────────────────────────────────────────── */
+/* guarantee “All” & uniqueness (string-compare) */
+const ensureInOpts = (val, arr) => {
+  const v = String(val);
+  if (v === "All" || v === "") return arr;
+  return arr.some((x) => String(x) === v) ? arr : [...arr, val];
+};
+
+/* ───────── main hook ──────── */
 export function useMomentFilters({
   allowAllTiers = false,
   excludeIds = [],
   nftDetails = [],
   selectedNFTs = [],
 }) {
-  /* tier options */
+  /* ----- tier list ----- */
   const tierOptions = allowAllTiers
     ? [...BASE_TIERS, ...EXTRA_TIERS]
     : BASE_TIERS;
 
-  /* reducer */
+  /* ----- reducer ----- */
   const reducer = (s, a) =>
     a.type === "SET"
       ? { ...s, ...a.payload }
@@ -76,9 +106,9 @@ export function useMomentFilters({
     ...DEFAULT_FILTER,
     selectedTiers: tierOptions,
   });
-  const setFilter = (patch) => dispatch({ type: "SET", payload: patch });
+  const setFilter = (p) => dispatch({ type: "SET", payload: p });
 
-  /* series list */
+  /* ----- option arrays ----- */
   const seriesOptions = useMemo(() => {
     const s = new Set(FORCED_SERIES);
     nftDetails.forEach((n) => {
@@ -88,20 +118,20 @@ export function useMomentFilters({
     return [...s].sort((a, b) => a - b);
   }, [nftDetails]);
 
-  /* auto-select all series once */
-  const autoSelectDone = useRef(false);
+  /* auto-select series on first load */
+  const boot = useRef(false);
   useEffect(() => {
     if (
-      !autoSelectDone.current &&
+      !boot.current &&
       seriesOptions.length &&
-      filter.selectedSeries.length === 0
+      !filter.selectedSeries.length
     ) {
       setFilter({ selectedSeries: [...seriesOptions] });
-      autoSelectDone.current = true;
+      boot.current = true;
     }
   }, [seriesOptions, filter.selectedSeries.length]);
 
-  /* keep tiers in sync */
+  /* keep tier selection valid */
   useEffect(() => {
     setFilter({
       selectedTiers:
@@ -110,11 +140,10 @@ export function useMomentFilters({
     });
   }, [tierOptions.join("")]);
 
-  /* deferred copies */
+  /* heavy lists – defer */
   const dFilter = useDeferredValue(filter);
   const dDetails = useDeferredValue(nftDetails);
 
-  /* option helper */
   const buildOpts = useCallback(
     (extract, pred = () => true) => {
       const s = new Set(
@@ -130,61 +159,71 @@ export function useMomentFilters({
     [dDetails]
   );
 
-  /* dropdown arrays */
+  /* league / set / team / player options */
   const leagueOptions = buildOpts(
     (n) => (WNBA_TEAMS.includes(n.teamAtMoment || "") ? "WNBA" : "NBA"),
     (n) =>
       dFilter.selectedSeries.includes(Number(n.series)) &&
-      dFilter.selectedTiers.includes(n.tier?.toLowerCase() || "")
+      dFilter.selectedTiers.includes((n.tier || "").toLowerCase())
   );
 
-  const setNameOptions = buildOpts(
-    (n) => n.name,
-    (n) =>
-      dFilter.selectedSeries.includes(Number(n.series)) &&
-      dFilter.selectedTiers.includes(n.tier?.toLowerCase() || "") &&
-      (dFilter.selectedLeague === "All"
-        ? true
-        : dFilter.selectedLeague === "WNBA"
-        ? WNBA_TEAMS.includes(n.teamAtMoment || "")
-        : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
+  const setNameOptions = ensureInOpts(
+    dFilter.selectedSetName,
+    buildOpts(
+      (n) => n.name,
+      (n) =>
+        dFilter.selectedSeries.includes(Number(n.series)) &&
+        dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
+        (dFilter.selectedLeague === "All"
+          ? true
+          : dFilter.selectedLeague === "WNBA"
+          ? WNBA_TEAMS.includes(n.teamAtMoment || "")
+          : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
+    )
   );
 
-  const teamOptions = buildOpts(
-    (n) => n.teamAtMoment,
-    (n) =>
-      dFilter.selectedSeries.includes(Number(n.series)) &&
-      dFilter.selectedTiers.includes(n.tier?.toLowerCase() || "") &&
-      (dFilter.selectedSetName === "All" ||
-        n.name === dFilter.selectedSetName) &&
-      (dFilter.selectedLeague === "All"
-        ? true
-        : dFilter.selectedLeague === "WNBA"
-        ? WNBA_TEAMS.includes(n.teamAtMoment || "")
-        : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
+  const teamOptions = ensureInOpts(
+    dFilter.selectedTeam,
+    buildOpts(
+      (n) => n.teamAtMoment,
+      (n) =>
+        dFilter.selectedSeries.includes(Number(n.series)) &&
+        dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
+        (dFilter.selectedSetName === "All" ||
+          n.name === dFilter.selectedSetName) &&
+        (dFilter.selectedLeague === "All"
+          ? true
+          : dFilter.selectedLeague === "WNBA"
+          ? WNBA_TEAMS.includes(n.teamAtMoment || "")
+          : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
+    )
   );
 
-  const playerOptions = buildOpts(
-    (n) => n.fullName,
-    (n) =>
-      dFilter.selectedSeries.includes(Number(n.series)) &&
-      dFilter.selectedTiers.includes(n.tier?.toLowerCase() || "") &&
-      (dFilter.selectedSetName === "All" ||
-        n.name === dFilter.selectedSetName) &&
-      (dFilter.selectedTeam === "All" ||
-        n.teamAtMoment === dFilter.selectedTeam) &&
-      (dFilter.selectedLeague === "All"
-        ? true
-        : dFilter.selectedLeague === "WNBA"
-        ? WNBA_TEAMS.includes(n.teamAtMoment || "")
-        : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
+  const playerOptions = ensureInOpts(
+    dFilter.selectedPlayer,
+    buildOpts(
+      (n) => n.fullName,
+      (n) =>
+        dFilter.selectedSeries.includes(Number(n.series)) &&
+        dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
+        (dFilter.selectedSetName === "All" ||
+          n.name === dFilter.selectedSetName) &&
+        (dFilter.selectedTeam === "All" ||
+          n.teamAtMoment === dFilter.selectedTeam) &&
+        (dFilter.selectedLeague === "All"
+          ? true
+          : dFilter.selectedLeague === "WNBA"
+          ? WNBA_TEAMS.includes(n.teamAtMoment || "")
+          : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
+    )
   );
 
-  /* predicate */
+  /* ---------- predicate ---------- */
   const passes = useCallback(
     (n, omit = null) => {
       if (excludeIds.includes(String(n.id)) || n.isLocked) return false;
-      if (!dFilter.selectedTiers.includes(n.tier?.toLowerCase())) return false;
+      if (!dFilter.selectedTiers.includes((n.tier || "").toLowerCase()))
+        return false;
       if (!dFilter.selectedSeries.includes(Number(n.series))) return false;
 
       if (omit !== "league" && dFilter.selectedLeague !== "All") {
@@ -210,12 +249,16 @@ export function useMomentFilters({
       )
         return false;
 
+      if (omit !== "subedition" && dFilter.selectedSubedition !== "All") {
+        if (String(dFilter.selectedSubedition) !== String(n.subeditionID))
+          return false;
+      }
+
       const sn = Number(n.serialNumber);
       if (dFilter.excludeSpecialSerials) {
-        const max =
-          n.subeditionID && n.subeditionMaxMint
-            ? Number(n.subeditionMaxMint)
-            : Number(n.momentCount);
+        const max = n.subeditionMaxMint
+          ? Number(n.subeditionMaxMint)
+          : Number(n.momentCount);
         const jersey = n.jerseyNumber ? Number(n.jerseyNumber) : null;
         if (sn === 1 || sn === max || (jersey && jersey === sn)) return false;
       }
@@ -226,12 +269,35 @@ export function useMomentFilters({
     [dFilter, excludeIds, selectedNFTs]
   );
 
-  /* derived lists */
+  /* ---------- sub-edition options ---------- */
+  const subeditionOptions = ensureInOpts(
+    dFilter.selectedSubedition,
+    (() => {
+      const tally = {};
+      dDetails.forEach((n) => {
+        if (!n.subeditionID) return;
+        if (!passes(n, "subedition")) return; // respect upstream filters
+        tally[n.subeditionID] = (tally[n.subeditionID] || 0) + 1;
+      });
+
+      return Object.keys(tally)
+        .map(Number)
+        .sort((a, b) => SUB_META[b].minted - SUB_META[a].minted) // desc by max-mint
+        .map(String); // ensure all entries are strings → unique keys
+    })()
+  );
+
+  /* ---------- derived lists ---------- */
   const eligibleMoments = useMemo(
     () =>
       dDetails
         .filter((n) => passes(n))
         .sort((a, b) => b.serialNumber - a.serialNumber),
+    [dDetails, passes]
+  );
+
+  const baseNoSub = useMemo(
+    () => dDetails.filter((n) => passes(n, "subedition")),
     [dDetails, passes]
   );
   const baseNoLeague = useMemo(
@@ -251,7 +317,7 @@ export function useMomentFilters({
     [dDetails, passes]
   );
 
-  /* preferences */
+  /* ---------- presets ---------- */
   const PREF_KEY = "momentSelectionFilterPrefs";
   const [prefs, setPrefs] = useState(() => {
     try {
@@ -264,11 +330,17 @@ export function useMomentFilters({
   const [currentPrefKey, setCurrentPrefKey] = useState("");
 
   const savePref = (key) => {
-    const blob = { version: 1, data: filter };
-    const next = { ...prefs, [key]: blob };
-    setPrefs(next);
-    localStorage.setItem(PREF_KEY, JSON.stringify(next));
-    setCurrentPrefKey(key);
+    try {
+      const blob = { version: 1, data: filter };
+      const next = { ...prefs, [key]: blob };
+      localStorage.setItem(PREF_KEY, safeStringify(next));
+      setPrefs(next);
+      setCurrentPrefKey(key);
+      return true;
+    } catch (e) {
+      console.error("[prefs/save]", e);
+      return false;
+    }
   };
 
   const applyPref = (key) => {
@@ -281,12 +353,15 @@ export function useMomentFilters({
 
   const deletePref = (key) => {
     const { [key]: _, ...rest } = prefs;
+    try {
+      localStorage.setItem(PREF_KEY, safeStringify(rest));
+    } catch (e) {
+      console.error("[prefs/del]", e);
+    }
     setPrefs(rest);
-    localStorage.setItem(PREF_KEY, JSON.stringify(rest));
     if (currentPrefKey === key) setCurrentPrefKey("");
   };
 
-  /* clear badge if user edits loaded pref */
   useEffect(() => {
     if (!currentPrefKey) return;
     const pref = prefs[currentPrefKey];
@@ -295,23 +370,26 @@ export function useMomentFilters({
       return;
     }
     const saved = pref.version === 1 ? pref.data : DEFAULT_FILTER;
-    if (JSON.stringify(saved) !== JSON.stringify(filter)) {
-      setCurrentPrefKey("");
-    }
+    if (JSON.stringify(saved) !== JSON.stringify(filter)) setCurrentPrefKey("");
   }, [filter, prefs, currentPrefKey]);
 
-  /* API */
+  /* ---------- expose ---------- */
   return {
     filter,
     setFilter,
+
     tierOptions,
     seriesOptions,
     leagueOptions,
     setNameOptions,
     teamOptions,
     playerOptions,
+    subeditionOptions,
+
     eligibleMoments,
-    base: { baseNoLeague, baseNoSet, baseNoTeam, baseNoPlayer },
+    base: { baseNoSub, baseNoLeague, baseNoSet, baseNoTeam, baseNoPlayer },
+
+    subMeta: SUB_META,
 
     prefs,
     currentPrefKey,

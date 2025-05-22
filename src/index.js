@@ -1,35 +1,40 @@
-// src/index.js
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { HelmetProvider } from "react-helmet-async"; // ← NEW
+import { HelmetProvider } from "react-helmet-async";
 import App from "./App";
 import * as fcl from "@onflow/fcl";
 import "./index.css";
 
-/* ────────────────────────────────────────────────────────── */
-/*  1)  Dark-mode shim – unchanged                            */
-/* ────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────── */
+/* 1)  Dark-mode shim – unchanged              */
+/* ──────────────────────────────────────────── */
 (function applyThemeImmediately() {
   let storedMode = localStorage.getItem("themeMode");
   if (!storedMode) {
     storedMode = "dark";
     localStorage.setItem("themeMode", "dark");
   }
-
   if (storedMode === "system") {
-    const systemPrefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    ).matches;
-    document.documentElement.classList.toggle("dark", systemPrefersDark);
+    const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.classList.toggle("dark", dark);
   } else {
     document.documentElement.classList.toggle("dark", storedMode === "dark");
   }
 })();
 
-/* ────────────────────────────────────────────────────────── */
-/*  2)  Flow SDK config – unchanged                           */
-/* ────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────── */
+/*  NEW: one-time cleanup of legacy 400 KB key */
+/* ──────────────────────────────────────────── */
+try {
+  localStorage.removeItem("topshotMetadata");
+} catch {
+  /* ignore */
+}
+
+/* ──────────────────────────────────────────── */
+/* 2)  Flow SDK config – unchanged             */
+/* ──────────────────────────────────────────── */
 fcl
   .config()
   .put("flow.network", "mainnet")
@@ -51,16 +56,14 @@ fcl
     "0x55ad22f01ef568a1",
   ]);
 
-/* ────────────────────────────────────────────────────────── */
-/*  3)  React root                                            */
-/* ────────────────────────────────────────────────────────── */
+/* ──────────────────────────────────────────── */
+/* 3)  React root                              */
+/* ──────────────────────────────────────────── */
 const queryClient = new QueryClient();
 const root = createRoot(document.getElementById("root"));
 
 root.render(
   <HelmetProvider>
-    {" "}
-    {/* NEW */}
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
