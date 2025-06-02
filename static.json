@@ -3,15 +3,16 @@
   "https_only": true,
 
   "routes": {
-    "/":          "/index.html",
+    "www.vaultopolis.com/*": { "status": 301, "url": "https://vaultopolis.com/:splat" },
 
-    "/swap":      { "status": 301, "url": "/" },
-    "/sell":      { "status": 301, "url": "/" },
-    "/exchange":  { "status": 301, "url": "/" },
-    "/vaults":    { "status": 301, "url": "/" },
-    "/parked":    { "status": 301, "url": "/" },
-    "/profile":   { "status": 301, "url": "/" },
+    "/": "/index.html",
+    "/sell": "/index.html",
+    "/profile/*": "/index.html",
 
-    "/profile/*": "/index.html"
+    "/swap":     { "status": 301, "url": "/" },
+    "/exchange": { "status": 301, "url": "/" },
+    "/vaults":   { "status": 301, "url": "/" },
+    "/parked":   { "status": 301, "url": "/" },
+    "/profile":  { "status": 301, "url": "/" }
   }
 }

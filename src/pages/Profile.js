@@ -8,6 +8,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useParams, Navigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import * as fcl from "@onflow/fcl";
 import axios from "axios";
 import pLimit from "p-limit";
@@ -354,185 +355,222 @@ function Profile() {
     redirectTarget = viewer?.addr ? `/profile/${viewer.addr}` : "/";
   }
 
+  /* ───────── SEO meta & JSON-LD ───────── */
+  const canonicalUrl = walletAddr
+    ? `https://vaultopolis.com/profile/${walletAddr}`
+    : "https://vaultopolis.com/profile";
+
+  const metaTitle = walletAddr
+    ? `Vaultopolis | Profile ${walletAddr}`
+    : "Vaultopolis | Profile";
+
+  const metaDesc = walletAddr
+    ? `View Flow, TSHOT and NBA Top Shot holdings plus swap history for wallet ${walletAddr}.`
+    : "Connect your Flow wallet to view any Vaultopolis NFT profile.";
+
+  const jsonLd =
+    walletAddr &&
+    JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Person",
+      identifier: walletAddr,
+      url: canonicalUrl,
+      name: walletAddr,
+    });
+
   /* ───────── render ───────── */
   return redirectTarget ? (
     <Navigate to={redirectTarget} replace />
   ) : (
-    <div className="p-6 sm:p-10 max-w-7xl mx-auto text-brand-text">
-      <h1 className="text-2xl font-bold mb-6">
-        Profile
-        {walletAddr && (
-          <span className="block text-sm mt-1 text-brand-accent break-all">
-            {walletAddr}
-          </span>
-        )}
-      </h1>
+    <>
+      <Helmet>
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDesc} />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta name="robots" content="index,follow" />
+        {jsonLd && <script type="application/ld+json">{jsonLd}</script>}
+      </Helmet>
 
-      {!walletAddr ? (
-        <p className="mt-4">Connect your Flow wallet to view any profile.</p>
-      ) : (
-        <>
-          {/* headline tiles */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-            <Tile
-              title="Flow"
-              value={fixed(aggregate.flow)}
-              loading={loading}
-            />
-            <Tile title="Moments" value={aggregate.moments} loading={loading} />
-            <Tile
-              title="TSHOT"
-              value={fixed(aggregate.tshot, 1)}
-              loading={loading}
-            />
-          </div>
-
-          {/* vault summary */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Tile
-              title="Deposits (NFT → TSHOT)"
-              value={swapStats?.NFTToTSHOTSwapCompleted ?? 0}
-              loading={swapLoading}
-            />
-            <Tile
-              title="Withdrawals (TSHOT → NFT)"
-              value={swapStats?.TSHOTToNFTSwapCompleted ?? 0}
-              loading={swapLoading}
-            />
-            <Tile
-              title="Net (Deposits – Withdrawals)"
-              value={swapStats ? swapStats.net : "--"}
-              loading={swapLoading}
-            />
-          </div>
-          <p className="text-xs text-brand-text/60 mt-2 mb-8">
-            Vault-activity data counted from{" "}
-            <strong>May&nbsp;1&nbsp;2025</strong>.
-          </p>
-
-          {/* tier breakdown */}
-          <div className="bg-brand-primary rounded-lg shadow max-w-xs mb-12 p-4">
-            <h2 className="text-lg font-semibold mb-3">Tier Breakdown</h2>
-            {loading ? (
-              <p className="text-brand-text/70">Loading…</p>
-            ) : TIER_ORDER.some((t) => aggregate.tiers[t]) ? (
-              TIER_ORDER.map(
-                (t) =>
-                  aggregate.tiers[t] && (
-                    <div
-                      key={t}
-                      className="flex justify-between text-sm py-0.5"
-                    >
-                      <span className={tierColour[t]}>
-                        {t[0].toUpperCase() + t.slice(1)}
-                      </span>
-                      <span>{aggregate.tiers[t]}</span>
-                    </div>
-                  )
-              )
-            ) : (
-              <p className="italic text-sm">No moments yet.</p>
-            )}
-          </div>
-
-          {/* accounts list */}
-          {accounts.length > 0 && (
-            <>
-              <h2 className="text-xl font-bold mb-4">Accounts Breakdown</h2>
-              <div className="space-y-6 mb-12">
-                {accounts.map((a, i) => (
-                  <AccountCard key={a.addr} acc={a} idx={i} />
-                ))}
-              </div>
-            </>
+      <div className="p-6 sm:p-10 max-w-7xl mx-auto text-brand-text">
+        <h1 className="text-2xl font-bold mb-6">
+          Profile
+          {walletAddr && (
+            <span className="block text-sm mt-1 text-brand-accent break-all">
+              {walletAddr}
+            </span>
           )}
+        </h1>
 
-          {/* swap history */}
-          <div className="mb-12">
-            <h2 className="text-lg font-semibold mb-3">Swap History</h2>
-            {eventsLoading ? (
-              <p className="text-brand-text/70">Loading events…</p>
-            ) : !events.length ? (
-              <p className="italic text-sm">No swap events.</p>
-            ) : (
-              <>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left border-b border-brand-border">
-                      <th className="py-1 pr-2">When</th>
-                      <th className="py-1 pr-2">Type</th>
-                      <th className="py-1 pr-2"># NFTs</th>
-                      <th className="py-1">Tx ↗</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {events.map((ev) => (
-                      <tr
-                        key={ev.transactionId}
-                        className="border-b border-brand-border/30"
+        {!walletAddr ? (
+          <p className="mt-4">Connect your Flow wallet to view any profile.</p>
+        ) : (
+          <>
+            {/* headline tiles */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+              <Tile
+                title="Flow"
+                value={fixed(aggregate.flow)}
+                loading={loading}
+              />
+              <Tile
+                title="Moments"
+                value={aggregate.moments}
+                loading={loading}
+              />
+              <Tile
+                title="TSHOT"
+                value={fixed(aggregate.tshot, 1)}
+                loading={loading}
+              />
+            </div>
+
+            {/* vault summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Tile
+                title="Deposits (NFT → TSHOT)"
+                value={swapStats?.NFTToTSHOTSwapCompleted ?? 0}
+                loading={swapLoading}
+              />
+              <Tile
+                title="Withdrawals (TSHOT → NFT)"
+                value={swapStats?.TSHOTToNFTSwapCompleted ?? 0}
+                loading={swapLoading}
+              />
+              <Tile
+                title="Net (Deposits – Withdrawals)"
+                value={swapStats ? swapStats.net : "--"}
+                loading={swapLoading}
+              />
+            </div>
+            <p className="text-xs text-brand-text/60 mt-2 mb-8">
+              Vault-activity data counted from{" "}
+              <strong>May&nbsp;1&nbsp;2025</strong>.
+            </p>
+
+            {/* tier breakdown */}
+            <div className="bg-brand-primary rounded-lg shadow max-w-xs mb-12 p-4">
+              <h2 className="text-lg font-semibold mb-3">Tier Breakdown</h2>
+              {loading ? (
+                <p className="text-brand-text/70">Loading…</p>
+              ) : TIER_ORDER.some((t) => aggregate.tiers[t]) ? (
+                TIER_ORDER.map(
+                  (t) =>
+                    aggregate.tiers[t] && (
+                      <div
+                        key={t}
+                        className="flex justify-between text-sm py-0.5"
                       >
-                        <td className="py-1 pr-2">
-                          {new Date(ev.blockTimestamp).toLocaleString()}
-                        </td>
-                        <td className="py-1 pr-2">
-                          {ev.type.includes("NFTToTSHOT")
-                            ? "Deposit (NFT → TSHOT)"
-                            : "Withdrawal (TSHOT → NFT)"}
-                        </td>
-                        <td className="py-1 pr-2">{ev.data?.numNFTs}</td>
-                        <td className="py-1">
-                          <a
-                            href={`https://flowscan.io/transaction/${ev.transactionId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-brand-accent hover:underline"
-                          >
-                            view
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        <span className={tierColour[t]}>
+                          {t[0].toUpperCase() + t.slice(1)}
+                        </span>
+                        <span>{aggregate.tiers[t]}</span>
+                      </div>
+                    )
+                )
+              ) : (
+                <p className="italic text-sm">No moments yet.</p>
+              )}
+            </div>
 
-                {totalPages > 1 && (
-                  <div className="flex justify-center mt-4 gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1)
-                      .filter((p) => {
-                        if (totalPages <= 7) return true;
-                        if (page <= 4) return p <= 5 || p === totalPages;
-                        if (page >= totalPages - 3)
-                          return p >= totalPages - 4 || p === 1;
-                        return [
-                          1,
-                          totalPages,
-                          page - 1,
-                          page,
-                          page + 1,
-                        ].includes(p);
-                      })
-                      .map((p) => (
-                        <button
-                          key={p}
-                          disabled={p === page}
-                          onClick={() => setPage(p)}
-                          className={`px-3 py-1 rounded ${
-                            p === page
-                              ? "bg-flow-dark text-white"
-                              : "bg-brand-secondary hover:opacity-80"
-                          }`}
-                        >
-                          {p}
-                        </button>
-                      ))}
-                  </div>
-                )}
+            {/* accounts list */}
+            {accounts.length > 0 && (
+              <>
+                <h2 className="text-xl font-bold mb-4">Accounts Breakdown</h2>
+                <div className="space-y-6 mb-12">
+                  {accounts.map((a, i) => (
+                    <AccountCard key={a.addr} acc={a} idx={i} />
+                  ))}
+                </div>
               </>
             )}
-          </div>
-        </>
-      )}
-    </div>
+
+            {/* swap history */}
+            <div className="mb-12">
+              <h2 className="text-lg font-semibold mb-3">Swap History</h2>
+              {eventsLoading ? (
+                <p className="text-brand-text/70">Loading events…</p>
+              ) : !events.length ? (
+                <p className="italic text-sm">No swap events.</p>
+              ) : (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left border-b border-brand-border">
+                        <th className="py-1 pr-2">When</th>
+                        <th className="py-1 pr-2">Type</th>
+                        <th className="py-1 pr-2"># NFTs</th>
+                        <th className="py-1">Tx ↗</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {events.map((ev) => (
+                        <tr
+                          key={ev.transactionId}
+                          className="border-b border-brand-border/30"
+                        >
+                          <td className="py-1 pr-2">
+                            {new Date(ev.blockTimestamp).toLocaleString()}
+                          </td>
+                          <td className="py-1 pr-2">
+                            {ev.type.includes("NFTToTSHOT")
+                              ? "Deposit (NFT → TSHOT)"
+                              : "Withdrawal (TSHOT → NFT)"}
+                          </td>
+                          <td className="py-1 pr-2">{ev.data?.numNFTs}</td>
+                          <td className="py-1">
+                            <a
+                              href={`https://flowscan.io/transaction/${ev.transactionId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-brand-accent hover:underline"
+                            >
+                              view
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {totalPages > 1 && (
+                    <div className="flex justify-center mt-4 gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter((p) => {
+                          if (totalPages <= 7) return true;
+                          if (page <= 4) return p <= 5 || p === totalPages;
+                          if (page >= totalPages - 3)
+                            return p >= totalPages - 4 || p === 1;
+                          return [
+                            1,
+                            totalPages,
+                            page - 1,
+                            page,
+                            page + 1,
+                          ].includes(p);
+                        })
+                        .map((p) => (
+                          <button
+                            key={p}
+                            disabled={p === page}
+                            onClick={() => setPage(p)}
+                            className={`px-3 py-1 rounded ${
+                              p === page
+                                ? "bg-flow-dark text-white"
+                                : "bg-brand-secondary hover:opacity-80"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }
 

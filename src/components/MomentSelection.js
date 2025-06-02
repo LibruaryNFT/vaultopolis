@@ -184,19 +184,19 @@ export default function MomentSelection(props) {
     selectedAccountType,
     loadChildData,
     refreshUserData,
-    lastCollectionLoad,
+    lastSuccessfulUpdate, // MODIFIED: Changed from lastCollectionLoad
   } = useContext(UserDataContext);
 
   /* live “x min ago” label */
-  const [elapsed, setElapsed] = useState(formatElapsed(lastCollectionLoad));
+  const [elapsed, setElapsed] = useState(formatElapsed(lastSuccessfulUpdate)); // MODIFIED
   useEffect(() => {
-    setElapsed(formatElapsed(lastCollectionLoad));
+    setElapsed(formatElapsed(lastSuccessfulUpdate)); // MODIFIED
     const id = setInterval(
-      () => setElapsed(formatElapsed(lastCollectionLoad)),
+      () => setElapsed(formatElapsed(lastSuccessfulUpdate)), // MODIFIED
       30_000
     );
     return () => clearInterval(id);
-  }, [lastCollectionLoad]);
+  }, [lastSuccessfulUpdate]); // MODIFIED
 
   /* --- refresh cooldown (30 s) ------------------ */
   const [cooldown, setCooldown] = useState(false);
@@ -216,9 +216,12 @@ export default function MomentSelection(props) {
         cooldownTimerRef.current = null;
       }, 30_000);
     }
+    // Clear timeout if component unmounts or if a new refresh starts before cooldown ends
+    // This part of the logic might need review based on exact desired behavior
     return () => {
-      if (cooldownTimerRef.current && isRefreshing) {
-        // if another refresh starts before timer ends, keep timer
+      if (cooldownTimerRef.current) {
+        // clearTimeout(cooldownTimerRef.current); // Potentially clear if unmounting or new refresh
+        // cooldownTimerRef.current = null;
       }
     };
   }, [isRefreshing, cooldown]);
@@ -236,7 +239,7 @@ export default function MomentSelection(props) {
     if (
       selectedAccountType === "child" &&
       selectedAccount &&
-      !childObj &&
+      !childObj && // Only load if childObj is not yet populated
       typeof loadChildData === "function"
     ) {
       loadChildData(selectedAccount);
@@ -299,14 +302,28 @@ export default function MomentSelection(props) {
   if (!user?.loggedIn)
     return <p className="text-brand-text/70 px-2">Please log in.</p>;
 
-  if (!hasCollection)
+  // Display loading or error based on collectionLoadStatus from UserContext
+  // This part can be enhanced based on how you want to use `collectionLoadStatus`
+  // For now, just checking hasCollection after initial load attempts.
+
+  if (!hasCollection && !isRefreshing && accountData.parentAddress) {
+    // Check parentAddress to ensure some load attempt happened
     return (
       <div className="bg-brand-primary p-2 rounded-lg">
         <p className="text-brand-text/80 text-sm">
-          This account does not have a Top Shot collection.
+          This account does not have a Top Shot collection, or it's still
+          loading.
         </p>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing || cooldown}
+          className="mt-2 p-1 px-2 text-xs bg-flow-button-dark rounded hover:opacity-80 disabled:opacity-40"
+        >
+          {isRefreshing ? "Refreshing..." : "Try Refresh"}
+        </button>
       </div>
     );
+  }
 
   /* ───────── render ───────── */
   return (
@@ -597,7 +614,7 @@ export default function MomentSelection(props) {
       )}
 
       {/* ----- grid ----- */}
-      {pageSlice.length ? (
+      {pageSlice.length > 0 ? (
         <div className="flex flex-wrap gap-2 mt-2 px-2 pb-2">
           {pageSlice.map((n) => (
             <MomentCard
@@ -620,7 +637,9 @@ export default function MomentSelection(props) {
 
       {/* pagination */}
       {pageCount > 1 && (
-        <div className="flex justify-center mt-4">
+        <div className="flex justify-center mt-4 pb-2">
+          {" "}
+          {/* Added pb-2 for consistent spacing */}
           {(() => {
             const pages = [];
             if (pageCount <= 7) {

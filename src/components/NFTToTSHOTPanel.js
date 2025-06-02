@@ -2,6 +2,7 @@
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserDataContext } from "../context/UserContext";
+// Removed import of metaStore as direct snapshot removal is handled by UserContext options
 
 /* ─── Cadence transactions ─── */
 import { exchangeNFTForTSHOT } from "../flow/exchangeNFTForTSHOT";
@@ -15,8 +16,9 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
     accountData,
     selectedAccount,
     selectedAccountType,
-    loadAllUserData,
-    loadChildData,
+    loadAllUserData, // Used for parent refresh
+    loadChildData, // Used for specific child refresh
+    smartRefreshUserData, // Preferred for refreshing the main user's data
     dispatch,
   } = useContext(UserDataContext);
 
@@ -33,13 +35,20 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
   /* ─────────────────────────────── */
 
   const handleSwap = async () => {
-    if (!nftIds.length) return alert("Select at least one Moment.");
-    if (nftIds.length > MAX_NFTS)
-      return alert(`Max ${MAX_NFTS} NFTs per swap.`);
-    if (!parentAddr?.startsWith("0x"))
-      return console.error("Bad parent address:", parentAddr);
+    if (!nftIds.length) {
+      // Consider using a more user-friendly notification than alert
+      console.warn("Select at least one Moment.");
+      return;
+    }
+    if (nftIds.length > MAX_NFTS) {
+      console.warn(`Max ${MAX_NFTS} NFTs per swap.`);
+      return;
+    }
+    if (!parentAddr?.startsWith("0x")) {
+      console.error("Bad parent address:", parentAddr);
+      return;
+    }
 
-    // emit UI event – awaiting wallet approval
     onTransactionStart?.({
       status: "Awaiting Approval",
       txId: null,
@@ -57,17 +66,16 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
         args: (arg, t) =>
           isChildSwap
             ? [
-                arg(selectedAccount, t.Address),
+                arg(selectedAccount, t.Address), // selectedAccount is the child's address
                 arg(nftIds.map(String), t.Array(t.UInt64)),
               ]
-            : [arg(nftIds.map(String), t.Array(t.UInt64))],
+            : [arg(nftIds.map(String), t.Array(t.UInt64))], // For parent, no address arg needed in this tx
         proposer: fcl.authz,
         payer: fcl.authz,
         authorizations: [fcl.authz],
         limit: 9999,
       });
 
-      // clear selection immediately
       dispatch({ type: "RESET_SELECTED_NFTS" });
 
       onTransactionStart?.({
@@ -97,24 +105,42 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
           swapType: "NFT_TO_TSHOT",
           nftIds,
         });
-        if (tx.status === 4) unsub();
+        if (tx.status === 4) unsub(); // Sealed
       });
 
       /* 3. wait for seal */
       await fcl.tx(txId).onceSealed();
+      console.log(
+        "[NFTToTSHOTPanel] Transaction sealed. Triggering data refresh."
+      );
 
-      /* 4. delta-refresh */
+      /* 4. Refresh data ensuring collection snapshot is rebuilt */
       if (parentAddr?.startsWith("0x")) {
-        if (isChildSwap) {
-          await Promise.all([
-            loadAllUserData(parentAddr, { skipChildLoad: true }), // quick parent refresh
-            loadChildData(selectedAccount), // exact child refresh
-          ]);
+        if (isChildSwap && selectedAccount) {
+          console.log(
+            `[NFTToTSHOTPanel] Child swap. Refreshing child: ${selectedAccount} and parent: ${parentAddr}`
+          );
+          // For a child swap, TSHOT balance updates on the parent. Child's NFT collection changes.
+          // Refresh parent (mainly for TSHOT balance, collection snapshot also rebuilt).
+          await loadAllUserData(parentAddr, {
+            skipChildLoad: true, // Don't re-process all children here
+            forceCollectionRefresh: true,
+            forceGlobalMetaRefresh: false,
+          });
+          // Specifically refresh the child whose collection changed.
+          await loadChildData(selectedAccount, {
+            forceCollectionRefresh: true,
+            forceGlobalMetaRefresh: false,
+          });
         } else {
-          await loadAllUserData(parentAddr); // parent + children
+          // Parent swap, use smartRefreshUserData which handles parentAddr correctly
+          // smartRefreshUserData already sets forceCollectionRefresh: true and forceGlobalMetaRefresh: false
+          console.log(
+            `[NFTToTSHOTPanel] Parent swap. Calling smartRefreshUserData for ${parentAddr}`
+          );
+          await smartRefreshUserData();
         }
       }
-      // tier counts & MomentSelection update automatically
     } catch (err) {
       console.error("[NFT→TSHOT] tx failed:", err);
       onTransactionStart?.({
