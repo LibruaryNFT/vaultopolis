@@ -1,7 +1,7 @@
 // src/components/Transfer.js
 import React, { useState, useContext } from "react";
 import * as fcl from "@onflow/fcl";
-import { UserDataContext } from "../context/UserContext";
+import { UserDataContext } from "../context/UserContext"; // Ensure smartRefreshUserData is exported and imported if used
 
 import { batchTransfer } from "../flow/batchTransfer";
 import { batchTransfer_child } from "../flow/batchTransfer_child";
@@ -15,7 +15,7 @@ import TransactionModal from "../components/TransactionModal";
 import { Helmet } from "react-helmet-async";
 
 const MAX_FLOW_TRANSFER_COUNT = 500; // Flow → Flow
-const MAX_EVM_BRIDGE_COUNT = 9; // Flow → EVM
+const MAX_EVM_BRIDGE_COUNT = 12; // Flow → EVM
 
 const Transfer = () => {
   const {
@@ -27,6 +27,7 @@ const Transfer = () => {
     dispatch,
     loadAllUserData,
     loadChildData,
+    smartRefreshUserData, // Make sure this is available from UserDataContext
     isRefreshing,
     isLoadingChildren,
   } = useContext(UserDataContext);
@@ -166,7 +167,6 @@ const Transfer = () => {
           case "SEALED":
             newStatus = "Sealed";
             break;
-          /* ---------- added to satisfy ESLint default-case ---------- */
           default:
             newStatus = txStatus.statusString || "Processing...";
             break;
@@ -179,6 +179,7 @@ const Transfer = () => {
         setTransactionData((prev) => ({ ...prev, status: newStatus, error }));
 
         if (txStatus.status === 4) {
+          // Sealed
           if (error == null) {
             dispatch({ type: "RESET_SELECTED_NFTS" });
             setExcludedNftIds((prev) => [
@@ -191,17 +192,65 @@ const Transfer = () => {
       });
 
       await fcl.tx(txId).onceSealed();
+      console.log("[Transfer] Transaction sealed. Triggering data refresh. 🧾");
+
+      // --- BEGIN MODIFIED REFRESH LOGIC ---
+      const refreshOptions = {
+        forceCollectionRefresh: true,
+        forceGlobalMetaRefresh: false,
+      };
 
       if (childSelected && selectedAccount) {
-        if (recipient?.toLowerCase() === parentAddr?.toLowerCase()) {
-          await loadChildData(selectedAccount);
-          await loadAllUserData(parentAddr, { skipChildLoad: true });
-        } else {
-          await loadChildData(selectedAccount);
+        // Case 1: A child account performed the transfer/bridge.
+        console.log(
+          `[Transfer] Child account ${selectedAccount} operation. Refreshing its data...`
+        );
+        await loadChildData(selectedAccount, refreshOptions); // Child's NFT list changed.
+
+        if (
+          destinationType === "flow" &&
+          recipient?.toLowerCase() === parentAddr?.toLowerCase()
+        ) {
+          // Case 1a: Child transferred NFTs to its parent. Parent's NFT list also changed.
+          console.log(
+            `[Transfer] Child transferred to parent ${parentAddr}. Refreshing parent's data (collection only)...`
+          );
+          await loadAllUserData(parentAddr, {
+            ...refreshOptions,
+            skipChildLoad: true,
+          });
         }
+      } else if (parentAddr && user?.addr === parentAddr) {
+        // Case 2: The parent account (current logged-in user) transferred/bridged NFTs.
+        console.log(
+          `[Transfer] Parent account ${parentAddr} (current user) operation. Calling smartRefreshUserData...`
+        );
+        if (smartRefreshUserData) {
+          // Ensure smartRefreshUserData is available
+          await smartRefreshUserData();
+        } else {
+          console.warn(
+            "[Transfer] smartRefreshUserData not available, using loadAllUserData as fallback."
+          );
+          await loadAllUserData(parentAddr, refreshOptions); // Fallback if smartRefreshUserData is not on context
+        }
+      } else if (parentAddr) {
+        // Case 2b: Fallback if parentAddr is set but isn't the current logged-in user (less common for this component's flow).
+        console.log(
+          `[Transfer] Parent account ${parentAddr} operation (contextual parent). Refreshing its data fully...`
+        );
+        await loadAllUserData(parentAddr, refreshOptions);
       } else {
-        await loadAllUserData(parentAddr);
+        console.warn(
+          "[Transfer] Could not determine account for refresh. User logged in:",
+          isLoggedIn,
+          "Selected Account:",
+          selectedAccount,
+          "Parent Addr:",
+          parentAddr
+        );
       }
+      // --- END MODIFIED REFRESH LOGIC ---
     } catch (err) {
       console.error("transfer tx failed:", err);
       setTransactionData((prev) => ({
@@ -246,7 +295,7 @@ const Transfer = () => {
         <title>Bulk NFT Transfer & Bridge | Vaultopolis</title>
         <meta
           name="description"
-          content="Bulk-transfer NBA Top Shot Moments between Flow wallets or bridge up to 9 at a time to Flow EVM."
+          content="Bulk-transfer NBA Top Shot Moments between Flow wallets or bridge up to 12 at a time to Flow EVM."
         />
         <link rel="canonical" href="https://vaultopolis.com/transfer" />
       </Helmet>
@@ -352,7 +401,13 @@ const Transfer = () => {
                 payload: { address: addr, type: isChild ? "child" : "parent" },
               });
             }}
-            onRefresh={() => parentAddr && loadAllUserData(parentAddr)}
+            onRefresh={() =>
+              parentAddr &&
+              loadAllUserData(parentAddr, {
+                forceCollectionRefresh: true,
+                forceGlobalMetaRefresh: true,
+              })
+            } // Added force options to manual refresh
             isRefreshing={isRefreshing}
             isLoadingChildren={isLoadingChildren}
           />

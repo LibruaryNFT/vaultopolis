@@ -22,7 +22,7 @@ function TSHOT() {
       {/* space-y-3 = one uniform vertical gap between every major section */}
       <div className="w-full text-white space-y-3 mb-2">
         <TSHOTInfo />
-        <TSHOTLeaderboard />
+
         <TSHOTVault />
       </div>
     </>
