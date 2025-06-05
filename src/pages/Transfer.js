@@ -15,7 +15,7 @@ import TransactionModal from "../components/TransactionModal";
 import { Helmet } from "react-helmet-async";
 
 const MAX_FLOW_TRANSFER_COUNT = 500; // Flow → Flow
-const MAX_EVM_BRIDGE_COUNT = 12; // Flow → EVM
+const MAX_EVM_BRIDGE_COUNT = 9; // Flow → EVM
 
 const Transfer = () => {
   const {
@@ -295,7 +295,7 @@ const Transfer = () => {
         <title>Bulk NFT Transfer & Bridge | Vaultopolis</title>
         <meta
           name="description"
-          content="Bulk-transfer NBA Top Shot Moments between Flow wallets or bridge up to 12 at a time to Flow EVM."
+          content="Bulk-transfer NBA Top Shot Moments between Flow wallets or bridge up to 9 at a time to Flow EVM."
         />
         <link rel="canonical" href="https://vaultopolis.com/transfer" />
       </Helmet>
