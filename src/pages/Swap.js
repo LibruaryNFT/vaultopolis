@@ -514,7 +514,7 @@ const Swap = () => {
         <div className="hidden md:block" />
 
         {/* col-3 : swap panel */}
-        <div className="max-w-md mx-auto mt-2 space-y-2 md:justify-self-center w-[400px] mb-2">
+        <div className="max-w-md mx-auto mt-2 space-y-2 md:justify-self-center w-full md:w-[400px] mb-2">
           {/* Outer container => brand-primary with shadow */}
           <div className="p-2 rounded-lg bg-brand-primary shadow-md shadow-black/30">
             {/* FROM BOX => brand-secondary */}
@@ -615,7 +615,7 @@ const Swap = () => {
                     py-2
                     rounded-lg
                     text-base
-                    w-60 sm:w-72
+                    w-full sm:w-72
                     h-14
                     flex
                     items-center
@@ -635,7 +635,9 @@ const Swap = () => {
                   ) : (
                     // partial coloring for Common / Fandom
                     <span>
-                      TopShot <span className="text-gray-400">Common</span> /{" "}
+                      <span className="hidden sm:inline">TopShot</span>
+                      <span className="sm:hidden">TS</span>{" "}
+                      <span className="text-gray-400">Common</span> /{" "}
                       <span className="text-lime-400">Fandom</span>
                     </span>
                   )}

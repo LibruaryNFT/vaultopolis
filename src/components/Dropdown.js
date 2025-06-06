@@ -22,7 +22,9 @@ const tshotLabel = (
  */
 const topShotLabel = (
   <span>
-    TopShot <span className="text-gray-400">Common</span> /{" "}
+    <span className="hidden sm:inline">TopShot</span>
+    <span className="sm:hidden">TS</span>{" "}
+    <span className="text-gray-400">Common</span> /{" "}
     <span className="text-lime-400">Fandom</span>
   </span>
 );
@@ -77,7 +79,7 @@ export default function Dropdown({
           py-2
           rounded-lg
           text-base
-          w-60 sm:w-72
+          w-full sm:w-72
           h-14
           transition-colors
           hover:opacity-90
@@ -116,7 +118,7 @@ export default function Dropdown({
             border-brand-border
             rounded
             shadow-lg
-            w-60 sm:w-72
+            w-full sm:w-72
           "
         >
           {filtered.map((opt) => (
