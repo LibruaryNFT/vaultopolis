@@ -87,6 +87,7 @@ function TSHOTVault() {
   const [selectedSet, setSelectedSet] = useState("All");
   const [selectedTeam, setSelectedTeam] = useState("All");
   const [selectedPlayer, setSelectedPlayer] = useState("All");
+  const [onlySpecial, setOnlySpecial] = useState(false); // <-- ADDED THIS STATE BACK
 
   // State to hold all possible filter options, fetched once from the backend
   const [filterOptions, setFilterOptions] = useState(null);
@@ -137,6 +138,7 @@ function TSHOTVault() {
     selectedSet,
     selectedTeam,
     selectedPlayer,
+    onlySpecial, // <-- ADDED DEPENDENCY
   ]);
 
   async function fetchPage() {
@@ -155,6 +157,9 @@ function TSHOTVault() {
       if (selectedSet !== "All") params.set("setName", selectedSet);
       if (selectedTeam !== "All") params.set("team", selectedTeam);
       if (selectedPlayer !== "All") params.set("player", selectedPlayer);
+      if (onlySpecial) {
+        params.set("specialSerials", "true"); // <-- ADDED LOGIC
+      }
 
       const url = `https://api.vaultopolis.com/tshot-vault?${params.toString()}`;
       const resp = await fetch(url);
@@ -342,6 +347,21 @@ function TSHOTVault() {
               width="w-44"
             />
           </div>
+        </div>
+
+        {/* ===== ADDED SPECIAL FILTER CHECKBOX BACK ===== */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-brand-primary">
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={onlySpecial}
+              onChange={() => {
+                setOnlySpecial((v) => !v);
+                setPage(1);
+              }}
+            />
+            <span>#1 / Jersey / Last Mint</span>
+          </label>
         </div>
       </div>
 
