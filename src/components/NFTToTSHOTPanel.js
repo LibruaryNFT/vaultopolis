@@ -173,7 +173,7 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
       onClick={handleSwap}
       disabled={disabled}
       className={`
-        w-full p-4 text-lg font-bold rounded-lg transition-colors shadow-md shadow-black/40
+        w-full p-4 text-lg font-bold rounded-lg transition-colors shadow-md shadow-black/40 select-none
         ${
           disabled
             ? "cursor-not-allowed bg-brand-primary text-brand-text/50"

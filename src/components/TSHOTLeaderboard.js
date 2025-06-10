@@ -360,7 +360,7 @@ const Pager = ({ page, totalPages, setPage }) => (
     <button
       onClick={() => setPage((p) => Math.max(1, p - 1))}
       disabled={page === 1}
-      className="px-3 py-1 rounded bg-brand-secondary hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="px-3 py-1 rounded bg-brand-secondary hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed select-none"
     >
       &lt;
     </button>
@@ -396,7 +396,7 @@ const Pager = ({ page, totalPages, setPage }) => (
               p === page
                 ? "bg-flow-dark text-white"
                 : "bg-brand-secondary hover:opacity-80"
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            } disabled:opacity-50 disabled:cursor-not-allowed select-none`}
           >
             {p}
           </button>
@@ -405,7 +405,7 @@ const Pager = ({ page, totalPages, setPage }) => (
     <button
       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
       disabled={page === totalPages}
-      className="px-3 py-1 rounded bg-brand-secondary hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed"
+      className="px-3 py-1 rounded bg-brand-secondary hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed select-none"
     >
       &gt;
     </button>

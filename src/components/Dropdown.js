@@ -83,6 +83,7 @@ export default function Dropdown({
           h-14
           transition-colors
           hover:opacity-90
+          select-none
         "
       >
         <div className="text-left">
@@ -131,6 +132,7 @@ export default function Dropdown({
                 cursor-pointer
                 hover:bg-brand-secondary
                 transition-colors
+                select-none
               "
             >
               {opt.label}

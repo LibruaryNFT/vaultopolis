@@ -170,7 +170,7 @@ const NavLink = ({ to, isActive, children }) => (
   <Link
     to={to}
     className={`
-      py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80
+      py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none
       text-brand-text ${isActive ? "font-bold" : ""}
     `}
   >
@@ -183,7 +183,7 @@ const MobileNavLink = ({ to, isActive, children, onClick }) => (
     to={to}
     onClick={onClick}
     className={`
-      w-full text-center py-4 hover:opacity-80
+      w-full text-center py-4 hover:opacity-80 select-none
       text-brand-text ${isActive ? "font-bold" : ""}
     `}
   >

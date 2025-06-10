@@ -398,7 +398,7 @@ const AccountCard = ({ acc, idx, hasCollProp }) => {
         </h3>
         <button
           onClick={() => navigator.clipboard.writeText(acc.addr)}
-          className="truncate max-w-[200px] text-xs hover:opacity-80"
+          className="truncate max-w-[200px] text-xs hover:opacity-80 select-none"
         >
           {acc.addr}
         </button>
@@ -742,7 +742,7 @@ function Profile() {
                             key={p}
                             disabled={p === currentPageHistory}
                             onClick={() => setCurrentPageHistory(p)}
-                            className={`px-3 py-1 rounded ${
+                            className={`px-3 py-1 rounded select-none ${
                               p === currentPageHistory
                                 ? "bg-flow-dark text-white"
                                 : "bg-brand-secondary hover:opacity-80"

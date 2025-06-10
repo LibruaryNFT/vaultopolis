@@ -400,7 +400,7 @@ export default function TSHOTToNFTPanel({
           onClick={handleReveal}
           disabled={disabled}
           className={`
-            w-full p-4 text-lg font-bold rounded-lg shadow-md shadow-black/40
+            w-full p-4 text-lg font-bold rounded-lg shadow-md shadow-black/40 select-none
             ${
               disabled
                 ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
@@ -428,7 +428,7 @@ export default function TSHOTToNFTPanel({
     <button
       disabled
       className="
-        w-full p-4 text-lg font-bold rounded-lg
+        w-full p-4 text-lg font-bold rounded-lg select-none
         cursor-not-allowed bg-brand-primary text-brand-text/50
       "
     >

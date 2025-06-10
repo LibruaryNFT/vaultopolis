@@ -19,7 +19,7 @@ const AccountBox = ({
       onClick={handleClick}
       title={isDisabled ? "This account has no TopShot collection." : ""}
       className={`
-        p-2 w-36 sm:w-48 rounded-lg border-2 transition-all flex-shrink-0
+        p-2 w-36 sm:w-48 rounded-lg border-2 transition-all flex-shrink-0 select-none
         ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
         ${isSelected ? "border-opolis" : "border-brand-border"}
         ${
@@ -27,17 +27,18 @@ const AccountBox = ({
             ? "bg-brand-blue"
             : "bg-brand-secondary hover:bg-brand-blue"
         }
+        
       `}
     >
       <h4
         className={`
-          text-sm font-semibold
+          text-sm font-semibold select-none
           ${isSelected ? "text-opolis" : "text-brand-text"}
         `}
       >
         {label}
       </h4>
-      <p className="text-[11px] leading-snug text-brand-text/70 break-all">
+      <p className="text-[11px] leading-snug text-brand-text/70 break-all select-none">
         {address}
       </p>
     </div>
@@ -147,7 +148,7 @@ const AccountSelection = ({
 
   /* -------- render -------- */
   return (
-    <div className="text-center">
+    <div className="text-center select-none">
       <h3 className="text-brand-text text-sm font-bold mb-2">{title}</h3>
       <div className="grid grid-cols-2 gap-2">{allBoxes}</div>
     </div>

@@ -98,7 +98,7 @@ const Admin = () => {
       <button
         onClick={handleDestroyMoments}
         disabled={selectedIDs.length === 0 || loading}
-        className={`w-full p-3 mb-3 text-lg rounded-lg font-bold ${
+        className={`w-full p-3 mb-3 text-lg rounded-lg font-bold select-none ${
           selectedIDs.length
             ? "bg-red-500 hover:bg-red-600"
             : "bg-gray-500 cursor-not-allowed"
@@ -117,13 +117,13 @@ const Admin = () => {
         <div className="flex justify-between my-2">
           <button
             onClick={handleSelectAll}
-            className="px-4 py-2 bg-blue-500 text-white rounded"
+            className="px-4 py-2 bg-blue-500 text-white rounded select-none"
           >
             Select All
           </button>
           <button
             onClick={handleDeselectAll}
-            className="px-4 py-2 bg-gray-500 text-white rounded"
+            className="px-4 py-2 bg-gray-500 text-white rounded select-none"
           >
             Deselect All
           </button>
@@ -135,7 +135,7 @@ const Admin = () => {
             <div
               key={id}
               onClick={() => handleIDSelection(id)}
-              className={`p-2 border rounded text-center cursor-pointer ${
+              className={`p-2 border rounded text-center cursor-pointer select-none ${
                 selectedIDs.includes(id)
                   ? "bg-green-500 text-white"
                   : "bg-gray-200 text-black"
@@ -151,7 +151,7 @@ const Admin = () => {
           <button
             onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 bg-gray-600 text-white rounded mr-2 disabled:opacity-50"
+            className="px-4 py-2 bg-gray-600 text-white rounded mr-2 disabled:opacity-50 select-none"
           >
             Previous
           </button>
@@ -163,7 +163,7 @@ const Admin = () => {
               setCurrentPage((prev) => Math.min(prev + 1, totalPages))
             }
             disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-gray-600 text-white rounded ml-2 disabled:opacity-50"
+            className="px-4 py-2 bg-gray-600 text-white rounded ml-2 disabled:opacity-50 select-none"
           >
             Next
           </button>

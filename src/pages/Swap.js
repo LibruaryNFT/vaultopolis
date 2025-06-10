@@ -417,7 +417,7 @@ const Swap = () => {
                       }
                     >
                       <h4
-                        className={`text-sm font-semibold ${
+                        className={`text-sm font-semibold select-none ${
                           selectedAccount === accountData.parentAddress
                             ? "text-opolis"
                             : "text-brand-text"
@@ -425,7 +425,7 @@ const Swap = () => {
                       >
                         Parent Account
                       </h4>
-                      <p className="text-[11px] leading-snug text-brand-text/70 break-all">
+                      <p className="text-[11px] leading-snug text-brand-text/70 break-all select-none">
                         {accountData.parentAddress}
                       </p>
                     </div>
@@ -459,7 +459,7 @@ const Swap = () => {
                       }
                     >
                       <h4
-                        className={`text-sm font-semibold ${
+                        className={`text-sm font-semibold select-none ${
                           selectedAccount === childAddr
                             ? "text-opolis"
                             : "text-brand-text"
@@ -467,7 +467,7 @@ const Swap = () => {
                       >
                         Child Account
                       </h4>
-                      <p className="text-[11px] leading-snug text-brand-text/70 break-all">
+                      <p className="text-[11px] leading-snug text-brand-text/70 break-all select-none">
                         {childAddr}
                       </p>
                     </div>

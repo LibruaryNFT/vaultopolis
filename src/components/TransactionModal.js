@@ -201,7 +201,7 @@ const TransactionModal = ({
             className="
               w-11 h-11 flex items-center justify-center
               bg-brand-secondary hover:bg-brand-blue
-              text-brand-text rounded-full transition-colors
+              text-brand-text rounded-full transition-colors select-none
             "
           >
             <FaTimes size={26} />
@@ -221,7 +221,7 @@ const TransactionModal = ({
                   onClick={revealAll}
                   className="
                     bg-brand-secondary text-brand-text text-xs px-3 py-1 rounded
-                    hover:opacity-80
+                    hover:opacity-80 select-none
                   "
                 >
                   Reveal All
@@ -251,7 +251,7 @@ const TransactionModal = ({
             href={`https://flowscan.io/transaction/${txId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="block mt-4 text-center text-flow-light underline hover:opacity-80"
+            className="block mt-4 text-center text-flow-light underline hover:opacity-80 select-none"
           >
             View on Flowscan
           </a>

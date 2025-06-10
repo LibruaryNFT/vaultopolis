@@ -368,7 +368,7 @@ const Transfer = () => {
             onClick={handleTransfer}
             disabled={transferDisabled}
             className={`
-              w-full p-4 text-lg rounded-lg font-bold transition-colors
+              w-full p-4 text-lg rounded-lg font-bold transition-colors select-none
               shadow-md shadow-black/40
               ${
                 transferDisabled

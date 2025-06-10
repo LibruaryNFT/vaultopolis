@@ -187,7 +187,7 @@ export default function MomentSelection(props) {
     lastSuccessfulUpdate, // MODIFIED: Changed from lastCollectionLoad
   } = useContext(UserDataContext);
 
-  /* live “x min ago” label */
+  /* live "x min ago" label */
   const [elapsed, setElapsed] = useState(formatElapsed(lastSuccessfulUpdate)); // MODIFIED
   useEffect(() => {
     setElapsed(formatElapsed(lastSuccessfulUpdate)); // MODIFIED
@@ -357,7 +357,7 @@ export default function MomentSelection(props) {
                 ? "Please wait a few seconds before refreshing again"
                 : "Refresh snapshots"
             }
-            className="p-2 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60"
+            className="p-2 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
           >
             <RefreshCw
               size={24}
@@ -373,7 +373,7 @@ export default function MomentSelection(props) {
           <button
             aria-label="Filter settings"
             onClick={() => setShowPrefs(true)}
-            className="relative group p-2 rounded-full hover:bg-flow-dark/10 focus-visible:ring focus-visible:ring-flow-dark/60"
+            className="relative group p-2 rounded-full hover:bg-flow-dark/10 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
           >
             <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded bg-flow-dark px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
               Filter settings
