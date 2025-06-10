@@ -161,7 +161,7 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
     return (
       <button
         onClick={() => fcl.authenticate()}
-        className="w-full text-lg font-bold rounded-lg p-2 bg-flow-light text-white hover:bg-flow-dark"
+        className="w-full text-lg font-bold rounded-lg p-2 bg-flow-light text-white hover:bg-flow-dark transition-colors duration-200"
       >
         Connect Wallet
       </button>
@@ -173,7 +173,7 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
       onClick={handleSwap}
       disabled={disabled}
       className={`
-        w-full p-4 text-lg font-bold rounded-lg transition-colors shadow-md shadow-black/40 select-none
+        w-full p-4 text-lg font-bold rounded-lg transition-colors duration-200 shadow-md shadow-black/40 select-none
         ${
           disabled
             ? "cursor-not-allowed bg-brand-primary text-brand-text/50"

@@ -877,7 +877,7 @@ const Swap = () => {
               <h4 className="text-brand-text text-sm mb-2">
                 Selected Moments:
               </h4>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 justify-items-center">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
                 {selectedNFTs.length > 0 ? (
                   selectedNFTs.map((momentId) => {
                     const activeAcc =
