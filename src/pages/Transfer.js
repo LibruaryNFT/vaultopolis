@@ -265,7 +265,7 @@ const Transfer = () => {
     <div>
       <h4 className="text-sm mb-2 text-brand">Selected Moments:</h4>
       {selectedNftsInAccount.length ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 justify-items-center">
           {selectedNftsInAccount.map((id) => {
             const nft = (activeAccountData.nftDetails || []).find(
               (item) => Number(item.id) === Number(id)

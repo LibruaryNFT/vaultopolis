@@ -381,6 +381,10 @@ const Swap = () => {
             sellAmount={formattedFrom}
             depositDisabled={false}
             onTransactionStart={handleTransactionStart}
+            onTransactionComplete={() => {
+              setFromInput("");
+              setToInput("");
+            }}
           />
           {/* If we have a deposit receipt, let user choose which account receives minted NFTs */}
           {hasReceipt && (
@@ -873,7 +877,7 @@ const Swap = () => {
               <h4 className="text-brand-text text-sm mb-2">
                 Selected Moments:
               </h4>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 justify-items-center">
                 {selectedNFTs.length > 0 ? (
                   selectedNFTs.map((momentId) => {
                     const activeAcc =
@@ -898,7 +902,7 @@ const Swap = () => {
                     );
                   })
                 ) : (
-                  <span className="text-brand-text/70">
+                  <span className="text-brand-text/70 col-span-full text-center">
                     No moments selected
                   </span>
                 )}

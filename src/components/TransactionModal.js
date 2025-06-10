@@ -18,7 +18,9 @@ const HiddenCard = ({ nftId, onReveal }) => (
   <div
     onClick={() => onReveal(nftId)}
     className="
-      w-28 h-44 pt-1 px-1 pb-0
+      w-[80px] sm:w-28
+      aspect-[4/7]
+      pt-1 px-1 pb-0
       flex flex-col items-center justify-center
       bg-black text-white border border-brand-border rounded
       cursor-pointer transition-colors hover:border-2 hover:border-opolis
@@ -230,7 +232,8 @@ const TransactionModal = ({
             </div>
             <div
               className="
-                grid grid-cols-3 gap-1 justify-items-center
+                grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6
+                gap-2 justify-items-center
                 sm:flex sm:flex-wrap sm:justify-center
               "
             >

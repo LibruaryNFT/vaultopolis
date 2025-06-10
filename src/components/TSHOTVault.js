@@ -379,7 +379,7 @@ function TSHOTVault() {
 
       {!anyLoading && vaultData.length > 0 ? (
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
             {vaultData.map((nft) => (
               <MomentCard
                 key={nft.id || nft._id}

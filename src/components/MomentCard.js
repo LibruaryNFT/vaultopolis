@@ -12,6 +12,35 @@ export const tierStyles = {
 };
 
 /**
+ * Formats a number to be more compact if it's large
+ * @param {number} num - The number to format
+ * @param {boolean} isMintCount - Whether this is a mint count (true) or serial number (false)
+ * @returns {string} - Formatted number string
+ */
+function formatNumber(num, isMintCount = false) {
+  if (!num) return "?";
+
+  // For serial numbers, always show the full number
+  if (!isMintCount) return num.toString();
+
+  // For mint counts
+  if (num < 1000) {
+    // Always show full number under 1k
+    return num.toString();
+  }
+  if (num < 4000) {
+    // If it's a clean multiple of 500, show as k
+    if (num % 500 === 0) {
+      return num / 1000 + "k";
+    }
+    // Otherwise show full number
+    return num.toString();
+  }
+  // For numbers 4000 and above, show as k
+  return Math.floor(num / 1000) + "k";
+}
+
+/**
  * Returns the display name for an NFT.
  * - If the FullName is known and not "Unknown Player", use it.
  * - Otherwise, use the team name if available.
@@ -91,6 +120,10 @@ const MomentCard = ({
     ? nft?.subeditionMaxMint
     : nft?.momentCount;
 
+  // Format the serial numbers for display
+  const serialNumber = formatNumber(nft?.serialNumber, false);
+  const mintCount = formatNumber(finalMintCount, true);
+
   // Tier color classes from tierStyles, fallback "text-gray-400"
   const tierClass = nft?.tier
     ? tierStyles[nft.tier.toLowerCase()] || "text-gray-400"
@@ -102,8 +135,9 @@ const MomentCard = ({
 
   // Base styling for consistent layout
   const baseCardClasses = `
-    w-28
-    h-44
+    w-[80px]
+    sm:w-28
+    aspect-[4/7]
     rounded
     overflow-hidden
     flex
@@ -138,26 +172,20 @@ const MomentCard = ({
     <div onClick={handleClick} className={cardClasses}>
       {/* Only render div/img if imageUrl is set */}
       {imageUrl && (
-        <div
-          className="relative overflow-hidden rounded mx-auto"
-          style={{ width: 80, height: 80 }}
-        >
+        <div className="relative overflow-hidden rounded mx-auto w-full aspect-square">
           <img
             src={imageUrl}
             alt={`${playerName} moment`}
-            loading="eager" // Keep eager loading
+            loading="eager"
             className="object-cover w-full h-full transform scale-150"
             style={{ objectPosition: "center 20%" }}
-            onError={handleImageError} // Add the onError handler here
+            onError={handleImageError}
           />
         </div>
       )}
       {/* Placeholder if no image URL (e.g., missing nft.id) */}
       {!imageUrl && (
-        <div
-          className="relative overflow-hidden rounded mx-auto bg-gray-700" // Placeholder style
-          style={{ width: 80, height: 80 }}
-        >
+        <div className="relative overflow-hidden rounded mx-auto w-full aspect-square bg-gray-700">
           {/* Optional: Add an icon or text here */}
         </div>
       )}
@@ -166,7 +194,8 @@ const MomentCard = ({
         <h3
           className="
             text-center
-            text-xs
+            text-[10px]
+            sm:text-xs
             font-semibold
             truncate
             leading-tight
@@ -178,7 +207,8 @@ const MomentCard = ({
         <p
           className="
             text-center
-            text-xs
+            text-[10px]
+            sm:text-xs
             text-brand-text/60
             truncate
             leading-tight
@@ -188,14 +218,14 @@ const MomentCard = ({
           Series {seriesText}
         </p>
         <p
-          className={`text-center text-xs truncate leading-tight ${tierClass} mb-0`}
+          className={`text-center text-[10px] sm:text-xs truncate leading-tight ${tierClass} mb-0`}
         >
           {tierLabel}
         </p>
-        <p className="text-center text-xs text-brand-text/60 truncate leading-tight mb-0">
-          {nft?.serialNumber ?? "?"} / {finalMintCount ?? "?"}
+        <p className="text-center text-[10px] sm:text-xs text-brand-text/60 truncate leading-tight mb-0">
+          {serialNumber} / {mintCount}
         </p>
-        <p className="text-center text-xs text-brand-text/50 truncate leading-tight mb-0">
+        <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight mb-0">
           {nft?.name || "Unknown Set"}
         </p>
       </div>

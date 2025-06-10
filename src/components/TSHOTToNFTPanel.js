@@ -106,6 +106,7 @@ export default function TSHOTToNFTPanel({
   sellAmount = "0",
   depositDisabled = false,
   onTransactionStart,
+  onTransactionComplete,
 }) {
   const {
     user,
@@ -212,6 +213,8 @@ export default function TSHOTToNFTPanel({
 
       /* background refresh */
       if (parentAddr?.startsWith("0x")) await loadAllUserData(parentAddr);
+
+      /* Remove the reset after deposit step */
     } catch (err) {
       console.error("[deposit] failed:", err);
       onTransactionStart?.({
@@ -336,6 +339,9 @@ export default function TSHOTToNFTPanel({
       } else {
         await loadAllUserData(pAddr);
       }
+
+      /* reset amount after successful transaction */
+      onTransactionComplete?.();
     } catch (err) {
       console.error("[reveal] failed:", err);
       onTransactionStart?.({

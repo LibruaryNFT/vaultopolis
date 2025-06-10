@@ -422,7 +422,7 @@ export default function MomentSelection(props) {
               ))}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="font-semibold">Series:</span>
               <label className="flex items-center gap-1">
                 <input
@@ -615,7 +615,7 @@ export default function MomentSelection(props) {
 
       {/* ----- grid ----- */}
       {pageSlice.length > 0 ? (
-        <div className="flex flex-wrap gap-2 mt-2 px-2 pb-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center mt-2 px-2 pb-2">
           {pageSlice.map((n) => (
             <MomentCard
               key={n.id}
@@ -638,8 +638,6 @@ export default function MomentSelection(props) {
       {/* pagination */}
       {pageCount > 1 && (
         <div className="flex justify-center mt-4 pb-2">
-          {" "}
-          {/* Added pb-2 for consistent spacing */}
           {(() => {
             const pages = [];
             if (pageCount <= 7) {
