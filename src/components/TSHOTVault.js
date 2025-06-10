@@ -87,7 +87,7 @@ function TSHOTVault() {
   const [selectedSet, setSelectedSet] = useState("All");
   const [selectedTeam, setSelectedTeam] = useState("All");
   const [selectedPlayer, setSelectedPlayer] = useState("All");
-  const [onlySpecial, setOnlySpecial] = useState(false); // <-- ADDED THIS STATE BACK
+  const [onlySpecial, setOnlySpecial] = useState(false);
 
   // State to hold all possible filter options, fetched once from the backend
   const [filterOptions, setFilterOptions] = useState(null);
@@ -138,7 +138,7 @@ function TSHOTVault() {
     selectedSet,
     selectedTeam,
     selectedPlayer,
-    onlySpecial, // <-- ADDED DEPENDENCY
+    onlySpecial,
   ]);
 
   async function fetchPage() {
@@ -158,7 +158,7 @@ function TSHOTVault() {
       if (selectedTeam !== "All") params.set("team", selectedTeam);
       if (selectedPlayer !== "All") params.set("player", selectedPlayer);
       if (onlySpecial) {
-        params.set("specialSerials", "true"); // <-- ADDED LOGIC
+        params.set("specialSerials", "true");
       }
 
       const url = `https://api.vaultopolis.com/tshot-vault?${params.toString()}`;
@@ -249,7 +249,8 @@ function TSHOTVault() {
       )}
 
       <div className="flex flex-col gap-3 text-sm bg-brand-secondary p-2 rounded mb-2">
-        <div className="flex flex-wrap items-center gap-4">
+        {/* ===== This is the container we've adjusted ===== */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
             <span className="font-semibold">Tiers:</span>
             {TIER_OPTIONS.map((t) => (
@@ -269,7 +270,7 @@ function TSHOTVault() {
               </label>
             ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold">Series:</span>
             <label className="flex items-center gap-1">
               <input
@@ -349,7 +350,6 @@ function TSHOTVault() {
           </div>
         </div>
 
-        {/* ===== ADDED SPECIAL FILTER CHECKBOX BACK ===== */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-brand-primary">
           <label className="flex items-center gap-1">
             <input
