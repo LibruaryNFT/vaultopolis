@@ -83,6 +83,7 @@ const ensureInOpts = (val, arr) => {
 /* ───────── main hook ──────── */
 export function useMomentFilters({
   allowAllTiers = false,
+  disableBootEffect = false, // <-- ADDED THIS PROP
   excludeIds = [],
   nftDetails = [],
   selectedNFTs = [],
@@ -90,9 +91,8 @@ export function useMomentFilters({
   /* ----- tier list ----- */
   const tierOptions = allowAllTiers
     ? [...BASE_TIERS, ...EXTRA_TIERS]
-    : BASE_TIERS;
+    : BASE_TIERS; /* ----- reducer ----- */
 
-  /* ----- reducer ----- */
   const reducer = (s, a) =>
     a.type === "SET"
       ? { ...s, ...a.payload }
@@ -106,9 +106,9 @@ export function useMomentFilters({
     ...DEFAULT_FILTER,
     selectedTiers: tierOptions,
   });
-  const setFilter = (p) => dispatch({ type: "SET", payload: p });
+  const setFilter = (p) =>
+    dispatch({ type: "SET", payload: p }); /* ----- option arrays ----- */
 
-  /* ----- option arrays ----- */
   const seriesOptions = useMemo(() => {
     const s = new Set(FORCED_SERIES);
     nftDetails.forEach((n) => {
@@ -116,12 +116,13 @@ export function useMomentFilters({
       if (!Number.isNaN(v)) s.add(v);
     });
     return [...s].sort((a, b) => a - b);
-  }, [nftDetails]);
+  }, [nftDetails]); /* auto-select series on first load */
 
-  /* auto-select series on first load */
   const boot = useRef(false);
   useEffect(() => {
+    // Only run this effect if it's NOT disabled
     if (
+      !disableBootEffect && // <-- MODIFIED THIS CONDITION
       !boot.current &&
       seriesOptions.length &&
       !filter.selectedSeries.length
@@ -129,18 +130,20 @@ export function useMomentFilters({
       setFilter({ selectedSeries: [...seriesOptions] });
       boot.current = true;
     }
-  }, [seriesOptions, filter.selectedSeries.length]);
+  }, [
+    seriesOptions,
+    filter.selectedSeries.length,
+    disableBootEffect,
+  ]); /* keep tier selection valid */
 
-  /* keep tier selection valid */
   useEffect(() => {
     setFilter({
       selectedTiers:
         filter.selectedTiers.filter((t) => tierOptions.includes(t)) ||
         tierOptions,
     });
-  }, [tierOptions.join("")]);
+  }, [tierOptions.join("")]); /* heavy lists – defer */
 
-  /* heavy lists – defer */
   const dFilter = useDeferredValue(filter);
   const dDetails = useDeferredValue(nftDetails);
 
@@ -157,9 +160,8 @@ export function useMomentFilters({
       );
     },
     [dDetails]
-  );
+  ); /* league / set / team / player options */
 
-  /* league / set / team / player options */
   const leagueOptions = buildOpts(
     (n) => (WNBA_TEAMS.includes(n.teamAtMoment || "") ? "WNBA" : "NBA"),
     (n) =>
@@ -216,9 +218,8 @@ export function useMomentFilters({
           ? WNBA_TEAMS.includes(n.teamAtMoment || "")
           : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
     )
-  );
+  ); /* ---------- predicate ---------- */
 
-  /* ---------- predicate ---------- */
   const passes = useCallback(
     (n, omit = null) => {
       if (excludeIds.includes(String(n.id)) || n.isLocked) return false;
@@ -267,9 +268,8 @@ export function useMomentFilters({
       return true;
     },
     [dFilter, excludeIds, selectedNFTs]
-  );
+  ); /* ---------- sub-edition options ---------- */
 
-  /* ---------- sub-edition options ---------- */
   const subeditionOptions = ensureInOpts(
     dFilter.selectedSubedition,
     (() => {
@@ -282,12 +282,11 @@ export function useMomentFilters({
 
       return Object.keys(tally)
         .map(Number)
-        .sort((a, b) => SUB_META[b].minted - SUB_META[a].minted) // desc by max-mint
+        .sort((a, b) => (SUB_META[b]?.minted ?? 0) - (SUB_META[a]?.minted ?? 0)) // desc by max-mint
         .map(String); // ensure all entries are strings → unique keys
     })()
-  );
+  ); /* ---------- derived lists ---------- */
 
-  /* ---------- derived lists ---------- */
   const eligibleMoments = useMemo(
     () =>
       dDetails
@@ -315,9 +314,8 @@ export function useMomentFilters({
   const baseNoPlayer = useMemo(
     () => dDetails.filter((n) => passes(n, "player")),
     [dDetails, passes]
-  );
+  ); /* ---------- presets ---------- */
 
-  /* ---------- presets ---------- */
   const PREF_KEY = "momentSelectionFilterPrefs";
   const [prefs, setPrefs] = useState(() => {
     try {
@@ -371,9 +369,8 @@ export function useMomentFilters({
     }
     const saved = pref.version === 1 ? pref.data : DEFAULT_FILTER;
     if (JSON.stringify(saved) !== JSON.stringify(filter)) setCurrentPrefKey("");
-  }, [filter, prefs, currentPrefKey]);
+  }, [filter, prefs, currentPrefKey]); /* ---------- expose ---------- */
 
-  /* ---------- expose ---------- */
   return {
     filter,
     setFilter,

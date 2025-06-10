@@ -550,6 +550,7 @@ const Swap = () => {
                 <input
                   autoFocus
                   type="text"
+                  inputMode="numeric"
                   value={fromInput}
                   onKeyDown={handleFromKeyDown}
                   onChange={handleFromInputChange}

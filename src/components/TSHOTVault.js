@@ -10,21 +10,19 @@ const TIER_OPTIONS = [
 const ALL_SERIES_OPTIONS = [0, 2, 3, 4, 5, 6, 7];
 const PAGE_SIZE = 50;
 
-/* ---------- layout wrappers ---------- */
+/* ---------- layout wrappers (unchanged) ---------- */
 const Section = ({ children }) => (
   <section className="px-2 md:px-3">{children}</section>
 );
-
 const MobileAccordion = ({ title, children }) => (
   <details className="md:hidden group border border-brand-border rounded">
     <summary className="cursor-pointer select-none flex items-center justify-between bg-brand-primary px-2 py-1 font-semibold text-base text-brand-text rounded">
-      {title}
+      {title}{" "}
       <span className="transition-transform group-open:rotate-180">▼</span>
     </summary>
     <div className="mt-2">{children}</div>
   </details>
 );
-
 const DesktopSection = ({ title, children }) => (
   <div className="hidden md:block">
     <div className="max-w-6xl mx-auto grid md:grid-cols-[160px_1fr] gap-2">
@@ -38,7 +36,7 @@ const DesktopSection = ({ title, children }) => (
   </div>
 );
 
-/* ---------- stat tile ---------- */
+/* ---------- stat tile (unchanged) ---------- */
 const Stat = ({ label, value }) => (
   <div className="flex justify-between text-sm">
     <span className="opacity-70">{label}</span>
@@ -46,49 +44,117 @@ const Stat = ({ label, value }) => (
   </div>
 );
 
+/* ---------- reusable dropdown (unchanged) ---------- */
+const Dropdown = ({ opts, value, onChange, title, width = "w-40" }) => (
+  <select
+    value={value}
+    onChange={onChange}
+    disabled={!opts}
+    title={title}
+    className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-xs`}
+  >
+    <option value="All">All ({opts?.length ?? 0})</option>
+    {opts?.map((o) => (
+      <option key={o} value={o}>
+        {o}
+      </option>
+    ))}
+  </select>
+);
+
 /* ---------- main component ---------- */
 function TSHOTVault() {
-  /* server / ui state */
+  /* Server/API Data */
   const [vaultData, setVaultData] = useState([]);
-  const [totalCount, setTotalCount] = useState(0);
+  const [queryTotal, setQueryTotal] = useState(0);
   const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState({ moments: true, filters: true });
   const [errorMsg, setErrorMsg] = useState("");
   const [retry, setRetry] = useState(0);
 
-  /* filters & paging */
-  const [selectedTiers, setSelectedTiers] = useState(
-    TIER_OPTIONS.map((t) => t.value)
-  );
-  const [selectedSeries, setSelectedSeries] = useState(ALL_SERIES_OPTIONS);
-  const [onlySpecial, setOnlySpecial] = useState(false);
+  /* Paging */
   const [page, setPage] = useState(1);
   const [maxPages, setMaxPages] = useState(1);
 
-  /* ---------- fetch ---------- */
+  /* Filters */
+  const [selectedTiers, setSelectedTiers] = useState(() =>
+    TIER_OPTIONS.map((t) => t.value)
+  );
+  const [selectedSeries, setSelectedSeries] = useState(
+    () => ALL_SERIES_OPTIONS
+  );
+  const [selectedLeague, setSelectedLeague] = useState("All");
+  const [selectedSet, setSelectedSet] = useState("All");
+  const [selectedTeam, setSelectedTeam] = useState("All");
+  const [selectedPlayer, setSelectedPlayer] = useState("All");
+
+  // State to hold all possible filter options, fetched once from the backend
+  const [filterOptions, setFilterOptions] = useState(null);
+
+  /* ---------- DATA FETCHING ---------- */
+
+  // Fetch the list of all possible filter options once on component mount
   useEffect(() => {
-    if (!selectedSeries.length) {
+    async function fetchOptions() {
+      setLoading((prev) => ({ ...prev, filters: true }));
+      try {
+        const url = `https://api.vaultopolis.com/tshot-vault/filters`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Error fetching filters: ${resp.status}`);
+        const json = await resp.json();
+        setFilterOptions(json);
+      } catch (e) {
+        console.error("Could not fetch vault filters:", e);
+        setErrorMsg(`Failed to load filter options: ${e.message}`);
+        setFilterOptions({
+          allLeagues: [],
+          allTeams: [],
+          allPlayers: [],
+          allSets: [],
+        });
+      } finally {
+        setLoading((prev) => ({ ...prev, filters: false }));
+      }
+    }
+    fetchOptions();
+  }, []);
+
+  // Fetch the moments themselves whenever a filter changes
+  useEffect(() => {
+    if (selectedSeries.length === 0) {
       setVaultData([]);
-      setTotalCount(0);
-      setSummary(null);
-      setMaxPages(1);
+      setQueryTotal(0);
       return;
     }
     fetchPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTiers, selectedSeries, onlySpecial, page, retry]);
+  }, [
+    page,
+    retry,
+    selectedTiers,
+    selectedSeries,
+    selectedLeague,
+    selectedSet,
+    selectedTeam,
+    selectedPlayer,
+  ]);
 
   async function fetchPage() {
     try {
-      setLoading(true);
+      setLoading((prev) => ({ ...prev, moments: true }));
       setErrorMsg("");
 
       const params = new URLSearchParams();
-      params.set("tier", selectedTiers.join(","));
-      params.set("series", selectedSeries.join(","));
-      if (onlySpecial) params.set("specialSerials", "true");
       params.set("page", page);
       params.set("pageSize", PAGE_SIZE);
+      params.set("tier", selectedTiers.join(","));
+      params.set("series", selectedSeries.join(","));
+
+      // Add all other filters to the query if they are not "All"
+      if (selectedLeague !== "All") params.set("league", selectedLeague);
+      if (selectedSet !== "All") params.set("setName", selectedSet);
+      if (selectedTeam !== "All") params.set("team", selectedTeam);
+      if (selectedPlayer !== "All") params.set("player", selectedPlayer);
 
       const url = `https://api.vaultopolis.com/tshot-vault?${params.toString()}`;
       const resp = await fetch(url);
@@ -96,70 +162,54 @@ function TSHOTVault() {
       const json = await resp.json();
 
       setVaultData(json.data || []);
-      setTotalCount(json.total || 0);
-      setSummary(json.summary || null);
+      setQueryTotal(json.total || 0);
+      if (page === 1) setSummary(json.summary || null);
 
-      const m = Math.max(1, Math.ceil((json.total || 0) / PAGE_SIZE));
-      setMaxPages(m);
-      if (json.page && json.page !== page) setPage(json.page);
+      setMaxPages(json.maxPages || 1);
+      if (page > (json.maxPages || 1) && (json.maxPages || 1) > 0) {
+        setPage(json.maxPages);
+      }
     } catch (e) {
       setErrorMsg(e.message || "Fetch failed");
       setVaultData([]);
-      setTotalCount(0);
-      setSummary(null);
+      setQueryTotal(0);
       setMaxPages(1);
     } finally {
-      setLoading(false);
+      setLoading((prev) => ({ ...prev, moments: false }));
     }
   }
 
-  useEffect(() => {
-    if (page > maxPages) setPage(maxPages);
-  }, [maxPages, page]);
+  /* ---------- EVENT HANDLERS ---------- */
+  const handleFilterChange = (setter, value) => {
+    setPage(1); // Any filter change should reset to page 1
+    setter(value);
+  };
 
-  /* ---------- helpers ---------- */
-  const toggleTier = (v) =>
-    setSelectedTiers((prev) =>
-      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
-    );
-  const toggleSeries = (v) =>
-    setSelectedSeries((prev) =>
-      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]
-    );
-  const setAllSeries = (c) => setSelectedSeries(c ? ALL_SERIES_OPTIONS : []);
-  const retryFetch = () => setRetry((r) => r + 1);
+  const toggleArrayFilter = (setter, fullOptionsArray, value) => {
+    setPage(1);
+    setter((prev) => {
+      const next = prev.includes(value)
+        ? prev.filter((x) => x !== value)
+        : [...prev, value];
+      if (next.length === fullOptionsArray.length) return fullOptionsArray;
+      return next;
+    });
+  };
 
-  const Pager = () =>
-    maxPages > 1 && (
-      <div className="flex justify-center gap-3 mt-4">
-        <button
-          onClick={() => setPage(page - 1)}
-          disabled={page === 1}
-          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-        >
-          Prev
-        </button>
-        <span className="text-sm text-brand-text/70">
-          Page {page} of {maxPages}
-        </span>
-        <button
-          onClick={() => setPage(page + 1)}
-          disabled={page === maxPages}
-          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-        >
-          Next
-        </button>
-      </div>
-    );
+  const retryFetch = () => {
+    setRetry((r) => r + 1);
+    setErrorMsg("");
+  };
 
-  /* ---------- block ---------- */
+  const anyLoading = loading.moments || loading.filters;
+
+  /* ---------- RENDER ---------- */
   const VaultBlock = () => (
     <div className="bg-brand-primary text-brand-text p-3 rounded-lg">
-      {/* SUMMARY */}
       {summary && (
         <div className="bg-brand-secondary p-3 rounded mb-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
-            <Stat label="Total in vault" value={totalCount} />
+            <Stat label="Total in vault" value={summary.totalInVault} />
             <Stat label="Common" value={summary.totalCommon} />
             <Stat label="Fandom" value={summary.totalFandom} />
             <Stat label="#1 Mints" value={summary.totalFirstMints} />
@@ -173,14 +223,13 @@ function TSHOTVault() {
         </div>
       )}
 
-      {/* LOADER / ERROR */}
-      {loading && (
+      {anyLoading && (
         <div className="flex items-center gap-2 mb-3">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <p className="text-sm text-brand-text/70">Loading vault data…</p>
+          <p className="text-sm text-brand-text/70">Loading data…</p>
         </div>
       )}
-      {errorMsg && (
+      {errorMsg && !anyLoading && (
         <div className="flex items-center gap-2 bg-red-900/20 p-3 rounded mb-3">
           <AlertTriangle className="h-5 w-5 text-red-500" />
           <p className="flex-1 text-red-400">{errorMsg}</p>
@@ -194,89 +243,121 @@ function TSHOTVault() {
         </div>
       )}
 
-      {/* FILTER BAR */}
-      <div className="flex flex-wrap items-center gap-4 text-sm bg-brand-secondary p-2 rounded mb-2">
-        {/* tiers */}
-        <div className="flex items-center gap-2">
-          <span className="font-semibold">Tiers:</span>
-          {TIER_OPTIONS.map((t) => (
-            <label key={t.value} className="flex items-center gap-1">
+      <div className="flex flex-col gap-3 text-sm bg-brand-secondary p-2 rounded mb-2">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Tiers:</span>
+            {TIER_OPTIONS.map((t) => (
+              <label key={t.value} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={selectedTiers.includes(t.value)}
+                  onChange={() =>
+                    toggleArrayFilter(
+                      setSelectedTiers,
+                      TIER_OPTIONS.map((opt) => opt.value),
+                      t.value
+                    )
+                  }
+                />
+                <span className={tierStyles[t.value]}>{t.label}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Series:</span>
+            <label className="flex items-center gap-1">
               <input
                 type="checkbox"
-                checked={selectedTiers.includes(t.value)}
-                onChange={() => {
-                  toggleTier(t.value);
-                  setPage(1);
-                }}
+                checked={selectedSeries.length === ALL_SERIES_OPTIONS.length}
+                onChange={(e) =>
+                  handleFilterChange(
+                    setSelectedSeries,
+                    e.target.checked ? ALL_SERIES_OPTIONS : []
+                  )
+                }
               />
-              <span className={tierStyles[t.value]}>{t.label}</span>
+              All
             </label>
-          ))}
+            {ALL_SERIES_OPTIONS.map((s) => (
+              <label key={s} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={selectedSeries.includes(s)}
+                  onChange={() =>
+                    toggleArrayFilter(setSelectedSeries, ALL_SERIES_OPTIONS, s)
+                  }
+                />
+                {s}
+              </label>
+            ))}
+          </div>
         </div>
-
-        {/* series */}
-        <div className="flex items-center gap-2">
-          <span className="font-semibold">Series:</span>
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={selectedSeries.length === ALL_SERIES_OPTIONS.length}
-              onChange={(e) => {
-                setAllSeries(e.target.checked);
-                setPage(1);
-              }}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">League:</span>
+            <Dropdown
+              opts={filterOptions?.allLeagues}
+              value={selectedLeague}
+              onChange={(e) =>
+                handleFilterChange(setSelectedLeague, e.target.value)
+              }
+              title="Filter by league"
+              width="w-32"
             />
-            All
-          </label>
-          {ALL_SERIES_OPTIONS.map((s) => (
-            <label key={s} className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={selectedSeries.includes(s)}
-                onChange={() => {
-                  toggleSeries(s);
-                  setPage(1);
-                }}
-              />
-              {s}
-            </label>
-          ))}
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">Set:</span>
+            <Dropdown
+              opts={filterOptions?.allSets}
+              value={selectedSet}
+              onChange={(e) =>
+                handleFilterChange(setSelectedSet, e.target.value)
+              }
+              title="Filter by set"
+              width="w-44"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">Team:</span>
+            <Dropdown
+              opts={filterOptions?.allTeams}
+              value={selectedTeam}
+              onChange={(e) =>
+                handleFilterChange(setSelectedTeam, e.target.value)
+              }
+              title="Filter by team"
+              width="w-44"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">Player:</span>
+            <Dropdown
+              opts={filterOptions?.allPlayers}
+              value={selectedPlayer}
+              onChange={(e) =>
+                handleFilterChange(setSelectedPlayer, e.target.value)
+              }
+              title="Filter by player"
+              width="w-44"
+            />
+          </div>
         </div>
-
-        {/* special */}
-        <label className="flex items-center gap-1">
-          <input
-            type="checkbox"
-            checked={onlySpecial}
-            onChange={() => {
-              setOnlySpecial((v) => !v);
-              setPage(1);
-            }}
-          />
-          <span>#1 / Jersey / Last Mint</span>
-        </label>
       </div>
 
-      {/* META */}
-      {!loading && !errorMsg && (
-        <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
-          <p>
-            Showing {vaultData.length} of {totalCount.toLocaleString()} items
-          </p>
-          {maxPages > 1 && (
-            <p>
-              Page {page} of {maxPages}
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* CARDS */}
-      {selectedSeries.length === 0 ? (
-        <p className="text-sm text-brand-text/70">
-          Please select at least one series.
+      <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
+        <p>
+          Showing {vaultData.length} of{" "}
+          {queryTotal > 0 ? queryTotal.toLocaleString() : "..."} items
         </p>
-      ) : vaultData.length ? (
+        {maxPages > 1 && (
+          <p>
+            Page {page} of {maxPages}
+          </p>
+        )}
+      </div>
+
+      {!anyLoading && vaultData.length > 0 ? (
         <>
           <div className="flex flex-wrap gap-2">
             {vaultData.map((nft) => (
@@ -288,17 +369,36 @@ function TSHOTVault() {
               />
             ))}
           </div>
-          <Pager />
+          <div className="flex justify-center gap-3 mt-4">
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1 || anyLoading}
+              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-sm text-brand-text/70">
+              Page {page} of {maxPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page === maxPages || anyLoading}
+              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
         </>
-      ) : !loading && !errorMsg ? (
+      ) : !anyLoading ? (
         <p className="text-sm text-brand-text/70">
-          No moments match your filters.
+          {selectedSeries.length > 0
+            ? "No moments match your filters."
+            : "Please select at least one series."}
         </p>
       ) : null}
     </div>
   );
 
-  /* ---------- render ---------- */
   return (
     <div className="text-brand-text">
       <Section>
@@ -306,7 +406,6 @@ function TSHOTVault() {
           <VaultBlock />
         </MobileAccordion>
       </Section>
-
       <Section>
         <DesktopSection title="Vault">
           <VaultBlock />

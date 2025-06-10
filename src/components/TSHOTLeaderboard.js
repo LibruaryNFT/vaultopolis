@@ -205,8 +205,9 @@ function TSHOTLeaderboard() {
   useEffect(() => setPage(1), [sortKey, sortDir, query]);
 
   const toggleSort = (k) => {
-    if (k === sortKey) setSortDir((d) => -d);
-    else {
+    if (k === sortKey) {
+      setSortDir((d) => -d);
+    } else {
       setSortKey(k);
       setSortDir(1);
     }
@@ -303,11 +304,7 @@ function TSHOTLeaderboard() {
                         className="hover:underline"
                         title={r.addr}
                       >
-                        {r.addr
-                          ? `${r.addr.substring(0, 6)}...${r.addr.substring(
-                              r.addr.length - 4
-                            )}`
-                          : "N/A"}
+                        {r.addr || "N/A"}
                       </Link>
                     </td>
                     <td
@@ -320,11 +317,7 @@ function TSHOTLeaderboard() {
                       r.coaAddr === "Invalid Format" ||
                       r.coaAddr === "Error (Promise Rejected)"
                         ? r.coaAddr
-                        : r.coaAddr && typeof r.coaAddr === "string"
-                        ? `${r.coaAddr.substring(0, 6)}...${r.coaAddr.substring(
-                            r.coaAddr.length - 4
-                          )}`
-                        : "N/A"}
+                        : r.coaAddr || "N/A"}
                     </td>
                     <td className="py-2 px-2 border-r border-brand-border">
                       {fmt(r.deposits)}
