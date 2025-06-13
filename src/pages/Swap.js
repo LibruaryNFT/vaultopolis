@@ -14,7 +14,7 @@ import TransactionModal from "../components/TransactionModal";
 import { AnimatePresence } from "framer-motion";
 import MomentCard from "../components/MomentCard";
 import { Helmet } from "react-helmet-async";
-import { ChevronDown, Info, X } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { motion } from "framer-motion";
 
 /** Utility to get total TSHOT balance across parent + child. */
@@ -88,7 +88,6 @@ const Swap = () => {
   // Excluded NFT IDs (committed for TSHOT, so we don't see them again)
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
-  const [benefitsOpen, setBenefitsOpen] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
   const [childAddresses, setChildAddresses] = useState([]);

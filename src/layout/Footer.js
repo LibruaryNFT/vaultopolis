@@ -10,11 +10,11 @@ const Footer = () => {
       {/* Horizontal line at the top */}
       <hr className="border-brand-border" />
 
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Logo Section */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
               <img
                 src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
@@ -39,7 +39,7 @@ const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-brand-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t border-brand-border pt-6 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-brand-text/70">
             © {new Date().getFullYear()} Vaultopolis
           </div>

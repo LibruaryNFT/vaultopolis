@@ -12,7 +12,7 @@ const PAGE_SIZE = 50;
 
 /* ---------- layout wrappers (unchanged) ---------- */
 const Section = ({ children }) => (
-  <section className="px-0">{children}</section>
+  <section className="px-0 -mx-2">{children}</section>
 );
 const MobileAccordion = ({ title, children }) => (
   <details className="md:hidden group border border-brand-border rounded">
@@ -25,9 +25,9 @@ const MobileAccordion = ({ title, children }) => (
 );
 const DesktopSection = ({ title, children }) => (
   <div className="hidden md:block">
-    <div className="max-w-6xl mx-auto grid md:grid-cols-[160px_1fr] gap-2">
-      <div className="text-right mt-[0.75rem]">
-        <span className="inline-block bg-brand-primary text-brand-text px-2 py-1 rounded">
+    <div className="grid md:grid-cols-[260px_1fr] gap-2">
+      <div className="text-right">
+        <span className="inline-block bg-brand-primary text-brand-text px-2 py-1 rounded w-[260px]">
           {title}
         </span>
       </div>
@@ -228,12 +228,6 @@ function TSHOTVault() {
         </div>
       )}
 
-      {anyLoading && (
-        <div className="flex items-center gap-2 mb-3">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <p className="text-sm text-brand-text/70">Loading data…</p>
-        </div>
-      )}
       {errorMsg && !anyLoading && (
         <div className="flex items-center gap-2 bg-red-900/20 p-3 rounded mb-3">
           <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -249,7 +243,6 @@ function TSHOTVault() {
       )}
 
       <div className="flex flex-col gap-3 text-sm bg-brand-secondary p-2 rounded mb-2">
-        {/* ===== This is the container we've adjusted ===== */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
             <span className="font-semibold">Tiers:</span>
@@ -299,9 +292,10 @@ function TSHOTVault() {
             ))}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-1">
-            <span className="font-semibold text-xs">League:</span>
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-brand-primary">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">League:</span>
             <Dropdown
               opts={filterOptions?.allLeagues}
               value={selectedLeague}
@@ -309,11 +303,10 @@ function TSHOTVault() {
                 handleFilterChange(setSelectedLeague, e.target.value)
               }
               title="Filter by league"
-              width="w-32"
             />
           </div>
-          <div className="flex items-center gap-1">
-            <span className="font-semibold text-xs">Set:</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Set:</span>
             <Dropdown
               opts={filterOptions?.allSets}
               value={selectedSet}
@@ -321,11 +314,10 @@ function TSHOTVault() {
                 handleFilterChange(setSelectedSet, e.target.value)
               }
               title="Filter by set"
-              width="w-44"
             />
           </div>
-          <div className="flex items-center gap-1">
-            <span className="font-semibold text-xs">Team:</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Team:</span>
             <Dropdown
               opts={filterOptions?.allTeams}
               value={selectedTeam}
@@ -333,11 +325,10 @@ function TSHOTVault() {
                 handleFilterChange(setSelectedTeam, e.target.value)
               }
               title="Filter by team"
-              width="w-44"
             />
           </div>
-          <div className="flex items-center gap-1">
-            <span className="font-semibold text-xs">Player:</span>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold">Player:</span>
             <Dropdown
               opts={filterOptions?.allPlayers}
               value={selectedPlayer}
@@ -345,7 +336,6 @@ function TSHOTVault() {
                 handleFilterChange(setSelectedPlayer, e.target.value)
               }
               title="Filter by player"
-              width="w-44"
             />
           </div>
         </div>
@@ -379,15 +369,25 @@ function TSHOTVault() {
 
       {!anyLoading && vaultData.length > 0 ? (
         <>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
-            {vaultData.map((nft) => (
-              <MomentCard
-                key={nft.id || nft._id}
-                nft={nft}
-                isVault
-                disableHover
-              />
-            ))}
+          <div className="relative">
+            {anyLoading && (
+              <div className="absolute inset-0 bg-brand-primary/50 flex items-center justify-center z-10">
+                <div className="flex items-center gap-2 bg-brand-secondary p-3 rounded shadow-lg">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <p className="text-sm text-brand-text/70">Loading data…</p>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
+              {vaultData.map((nft) => (
+                <MomentCard
+                  key={nft.id || nft._id}
+                  nft={nft}
+                  isVault
+                  disableHover
+                />
+              ))}
+            </div>
           </div>
           <div className="flex justify-center gap-3 mt-4">
             <button
@@ -422,14 +422,10 @@ function TSHOTVault() {
   return (
     <div className="text-brand-text">
       <Section>
-        <MobileAccordion title="Vault">
-          <VaultBlock />
-        </MobileAccordion>
+        <MobileAccordion title="Vault">{VaultBlock()}</MobileAccordion>
       </Section>
       <Section>
-        <DesktopSection title="Vault">
-          <VaultBlock />
-        </DesktopSection>
+        <DesktopSection title="Vault">{VaultBlock()}</DesktopSection>
       </Section>
     </div>
   );
