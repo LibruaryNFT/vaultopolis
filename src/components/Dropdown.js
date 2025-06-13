@@ -66,7 +66,7 @@ export default function Dropdown({
   const selectedOption = options.find((opt) => opt.value === selectedValue);
 
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <div className="relative block w-full" ref={dropdownRef}>
       {/* Dropdown Button */}
       <button
         type="button"
@@ -79,7 +79,7 @@ export default function Dropdown({
           py-2
           rounded-lg
           text-base
-          w-full sm:w-72
+          w-full
           h-14
           transition-colors
           hover:opacity-90
@@ -119,7 +119,7 @@ export default function Dropdown({
             border-brand-border
             rounded
             shadow-lg
-            w-full sm:w-72
+            w-full
           "
         >
           {filtered.map((opt) => (

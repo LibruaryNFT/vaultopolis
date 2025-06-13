@@ -3,6 +3,7 @@ import { UserDataContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
 import { getChildren } from "../flow/getChildren";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
+import { setupTopShotCollection } from "../flow/setupTopShotCollection";
 
 import Dropdown, { FROM_OPTIONS } from "../components/Dropdown";
 import NFTToTSHOTPanel from "../components/NFTToTSHOTPanel";
@@ -13,7 +14,8 @@ import TransactionModal from "../components/TransactionModal";
 import { AnimatePresence } from "framer-motion";
 import MomentCard from "../components/MomentCard";
 import { Helmet } from "react-helmet-async";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Info, X } from "lucide-react";
+import { motion } from "framer-motion";
 
 /** Utility to get total TSHOT balance across parent + child. */
 function getTotalTSHOTBalance(accountData) {
@@ -87,6 +89,7 @@ const Swap = () => {
   const [excludedNftIds, setExcludedNftIds] = useState([]);
 
   const [benefitsOpen, setBenefitsOpen] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const [childAddresses, setChildAddresses] = useState([]);
   const [accountCollections, setAccountCollections] = useState({});
@@ -125,7 +128,7 @@ const Swap = () => {
 
   // Load child addresses and check collections independently for step 2
   useEffect(() => {
-    if (tshotReceiptAmount && accountData?.parentAddress) {
+    if (accountData?.parentAddress) {
       // First check parent collection
       fcl
         .query({
@@ -166,7 +169,7 @@ const Swap = () => {
         })
         .catch(console.error);
     }
-  }, [tshotReceiptAmount, accountData?.parentAddress]);
+  }, [accountData?.parentAddress]);
 
   // Decide if we show NFT->TSHOT or TSHOT->NFT swap panel
   function getDashboardMode() {
@@ -509,6 +512,124 @@ const Swap = () => {
         )}
       </AnimatePresence>
 
+      {/* TSHOT Info Modal */}
+      <AnimatePresence>
+        {showInfoModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowInfoModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-brand-primary rounded-lg p-4 max-w-md w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <img
+                    src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+                    alt="TSHOT"
+                    width="24"
+                    height="24"
+                    className="w-6 h-6"
+                  />
+                  <h3 className="text-lg font-semibold text-brand-text">
+                    TSHOT Info
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowInfoModal(false)}
+                  className="p-1 hover:bg-brand-secondary rounded-full transition-colors"
+                  aria-label="Close"
+                >
+                  <X size={20} className="text-brand-text/70" />
+                </button>
+              </div>
+              <div className="text-sm text-brand-text/90 space-y-3">
+                <p className="text-brand-text/90">
+                  TSHOT is a fungible token backed 1-for-1 by NBA Top Shot
+                  Moments.
+                </p>
+                <ul className="space-y-3">
+                  <li className="flex items-start">
+                    <span className="text-brand mr-1">•</span>
+                    <div className="space-y-1">
+                      <strong>Trade Anywhere</strong>
+                      <p className="text-brand-text/80">
+                        Swap TSHOT ↔ FLOW instantly on&nbsp;
+                        <a
+                          href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-flow-light"
+                        >
+                          Increment.fi
+                        </a>
+                        &nbsp;or&nbsp;
+                        <a
+                          href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-flow-light"
+                        >
+                          PunchSwap
+                        </a>
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-brand mr-1">•</span>
+                    <div className="space-y-1">
+                      <strong>Bulk Trading</strong>
+                      <p className="text-brand-text/80">
+                        Convert multiple Moments to TSHOT in one transaction
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-brand mr-1">•</span>
+                    <div className="space-y-1">
+                      <strong>Earn Rewards</strong>
+                      <p className="text-brand-text/80">
+                        Provide liquidity to earn trading fees on&nbsp;
+                        <a
+                          href="https://app.increment.fi/liquidity/add"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-flow-light"
+                        >
+                          Increment.fi
+                        </a>
+                        &nbsp;or&nbsp;
+                        <a
+                          href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-flow-light"
+                        >
+                          PunchSwap
+                        </a>
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+                <a
+                  href="/tshot"
+                  className="block text-sm text-brand hover:text-flow-light text-center font-medium mt-4 bg-brand-secondary py-2 px-4 rounded hover:bg-opolis hover:text-white transition-colors"
+                >
+                  More Info →
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Desktop grid wrapper */}
       <div className="md:grid md:grid-cols-[minmax(0,1fr)_260px_minmax(auto,640px)_260px_minmax(0,1fr)] md:gap-6">
         {/* col-1 : left spacer */}
@@ -538,17 +659,30 @@ const Swap = () => {
                 <label className="block text-sm text-brand-text mb-1">
                   From
                 </label>
-                <Dropdown
-                  options={FROM_OPTIONS}
-                  selectedValue={fromAsset}
-                  onChange={(val) => setFromAsset(val)}
-                  excludeSelected={true}
-                />
+                <div className="flex items-center">
+                  <div className="w-[220px] h-14">
+                    <Dropdown
+                      options={FROM_OPTIONS}
+                      selectedValue={fromAsset}
+                      onChange={(val) => setFromAsset(val)}
+                      excludeSelected={true}
+                    />
+                  </div>
+                  {fromAsset === "TSHOT" && (
+                    <button
+                      onClick={() => setShowInfoModal(true)}
+                      className="ml-2 p-1 hover:bg-brand-primary rounded-full transition-colors"
+                      aria-label="Learn more about TSHOT"
+                    >
+                      <Info size={18} className="text-brand-text/70" />
+                    </button>
+                  )}
+                </div>
                 {renderFromBalance()}
               </div>
 
               <div className="flex flex-col w-[80px] ml-2">
-                <label className="block text-sm text-brand-text mb-1">
+                <label className="block text-sm text-brand-text mb-1 text-center">
                   Amount
                 </label>
                 <input
@@ -612,46 +746,56 @@ const Swap = () => {
             >
               <div className="mr-2 flex flex-col">
                 <label className="block text-sm text-brand-text mb-1">To</label>
-                <div
-                  className="
-                    bg-brand-primary
-                    text-brand-text
-                    px-3
-                    py-2
-                    rounded-lg
-                    text-base
-                    w-full sm:w-72
-                    h-14
-                    flex
-                    items-center
-                  "
-                >
-                  {toAsset === "TSHOT" ? (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-                        alt="TSHOT"
-                        width="36"
-                        height="36"
-                        className="w-9 h-9"
-                      />
-                      <span>TSHOT</span>
-                    </div>
-                  ) : (
-                    // partial coloring for Common / Fandom
-                    <span>
-                      <span className="hidden sm:inline">TopShot</span>
-                      <span className="sm:hidden">TS</span>{" "}
-                      <span className="text-gray-400">Common</span> /{" "}
-                      <span className="text-lime-400">Fandom</span>
-                    </span>
+                <div className="flex flex-nowrap items-center">
+                  <div
+                    className="
+                      bg-brand-primary
+                      text-brand-text
+                      px-3
+                      py-2
+                      rounded-lg
+                      text-base
+                      w-[220px]
+                      h-14
+                      flex
+                      items-center
+                    "
+                  >
+                    {toAsset === "TSHOT" ? (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+                          alt="TSHOT"
+                          width="36"
+                          height="36"
+                          className="w-9 h-9"
+                        />
+                        <span>TSHOT</span>
+                      </div>
+                    ) : (
+                      <span>
+                        <span className="hidden sm:inline">TopShot</span>
+                        <span className="sm:hidden">TS</span>{" "}
+                        <span className="text-gray-400">Common</span> /{" "}
+                        <span className="text-lime-400">Fandom</span>
+                      </span>
+                    )}
+                  </div>
+                  {toAsset === "TSHOT" && (
+                    <button
+                      onClick={() => setShowInfoModal(true)}
+                      className="ml-2 p-1 hover:bg-brand-primary rounded-full transition-colors"
+                      aria-label="Learn more about TSHOT"
+                    >
+                      <Info size={18} className="text-brand-text/70" />
+                    </button>
                   )}
                 </div>
                 {renderToBalance()}
               </div>
 
               <div className="flex flex-col w-[80px] ml-2">
-                <label className="block text-sm text-brand-text mb-1">
+                <label className="block text-sm text-brand-text mb-1 text-center">
                   Amount
                 </label>
                 <input
@@ -673,108 +817,6 @@ const Swap = () => {
 
           {/* ========== SWAP ACTION PANEL ========== */}
           <div>{renderSwapPanel()}</div>
-
-          {/* Mobile TSHOT Benefits */}
-          <details
-            onToggle={(e) => setBenefitsOpen(e.target.open)}
-            className="lg:hidden bg-brand-primary rounded-lg p-2 shadow-md shadow-black/30 mb-4"
-          >
-            <summary className="flex items-center justify-center cursor-pointer text-sm font-semibold text-brand mb-2">
-              <ChevronDown
-                className={`
-                  w-4 h-4
-                  transform transition-transform duration-200
-                  ${benefitsOpen ? "rotate-180" : ""}
-                `}
-              />
-              <img
-                src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-                alt="TSHOT"
-                width="24"
-                height="24"
-                className="w-6 h-6 mx-2"
-              />
-              <span>TSHOT Benefits</span>
-              <ChevronDown
-                className={`
-                  w-4 h-4
-                  transform transition-transform duration-200
-                  ${benefitsOpen ? "rotate-180" : ""}
-                `}
-              />
-            </summary>
-
-            <p className="text-xs text-brand-text/90 mb-3">
-              TSHOT is a fungible token backed 1-for-1 by NBA Top Shot Moments.
-            </p>
-
-            <ul className="space-y-2 text-xs text-brand-text/90 leading-snug">
-              <li className="flex items-start">
-                <span className="text-brand mr-1">•</span>
-                <div>
-                  <strong>Trade Anywhere</strong> — Swap TSHOT ↔ FLOW instantly
-                  on&nbsp;
-                  <a
-                    href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-flow-light"
-                  >
-                    Increment.fi
-                  </a>
-                  &nbsp;or&nbsp;
-                  <a
-                    href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-flow-light"
-                  >
-                    PunchSwap
-                  </a>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="text-brand mr-1">•</span>
-                <div>
-                  <strong>Bulk Trading</strong> — Convert multiple Moments to
-                  TSHOT in one transaction
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="text-brand mr-1">•</span>
-                <div>
-                  <strong>Earn Rewards</strong> — Provide liquidity to earn
-                  trading fees on&nbsp;
-                  <a
-                    href="https://app.increment.fi/liquidity/add"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-flow-light"
-                  >
-                    Increment.fi
-                  </a>
-                  &nbsp;or&nbsp;
-                  <a
-                    href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline hover:text-flow-light"
-                  >
-                    PunchSwap
-                  </a>
-                </div>
-              </li>
-            </ul>
-
-            <a
-              href="/tshot"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 block text-xs text-brand hover:text-flow-light text-center font-medium"
-            >
-              For more info, see the TSHOT info page →
-            </a>
-          </details>
         </div>
 
         {/* col-4 : benefits sidebar */}
@@ -913,19 +955,80 @@ const Swap = () => {
             <div className="bg-brand-primary shadow-md px-1 py-2 rounded flex flex-wrap gap-2 w-full">
               <AccountSelection
                 parentAccount={{
-                  addr: accountData.parentAddress || user?.addr,
-                  ...accountData,
+                  addr: accountData?.parentAddress,
+                  hasCollection: accountCollections[accountData?.parentAddress],
                 }}
-                childrenAddresses={accountData.childrenAddresses || []}
-                childrenAccounts={accountData.childrenData || []}
+                childrenAddresses={childAddresses}
                 selectedAccount={selectedAccount}
                 onSelectAccount={handleSelectAccount}
                 isLoadingChildren={isLoadingChildren}
+                requireCollection={true}
+                onSetupTopShotCollection={async (address) => {
+                  try {
+                    const txId = await fcl.mutate({
+                      cadence: setupTopShotCollection,
+                      args: (arg, t) => [],
+                      proposer: fcl.authz,
+                      payer: fcl.authz,
+                      authorizations: [fcl.authz],
+                      limit: 9999,
+                    });
+
+                    // Wait for transaction to be sealed
+                    await fcl.tx(txId).onceSealed();
+
+                    // After successful setup, refresh the account data
+                    if (accountData?.parentAddress) {
+                      try {
+                        const hasCollection = await fcl.query({
+                          cadence: verifyTopShotCollection,
+                          args: (arg, t) => [
+                            arg(accountData.parentAddress, t.Address),
+                          ],
+                        });
+                        setAccountCollections((prev) => ({
+                          ...prev,
+                          [accountData.parentAddress]: hasCollection,
+                        }));
+                      } catch (error) {
+                        console.error(
+                          "Error refreshing collection status:",
+                          error
+                        );
+                      }
+                    }
+                  } catch (error) {
+                    console.error("Failed to setup TopShot collection:", error);
+                    throw error; // Re-throw to be handled by AccountSelection
+                  }
+                }}
+                onRefreshParentAccount={async () => {
+                  // Refresh the account collections
+                  if (accountData?.parentAddress) {
+                    try {
+                      const hasCollection = await fcl.query({
+                        cadence: verifyTopShotCollection,
+                        args: (arg, t) => [
+                          arg(accountData.parentAddress, t.Address),
+                        ],
+                      });
+                      setAccountCollections((prev) => ({
+                        ...prev,
+                        [accountData.parentAddress]: hasCollection,
+                      }));
+                    } catch (error) {
+                      console.error(
+                        "Error refreshing collection status:",
+                        error
+                      );
+                    }
+                  }
+                }}
               />
             </div>
 
             {/* Moment Selection (full width) */}
-            <div className="bg-brand-primary shadow-md p-2 rounded-lg w-full">
+            <div className="bg-brand-primary shadow-md rounded-lg w-full">
               <MomentSelection excludeIds={excludedNftIds} />
             </div>
           </div>

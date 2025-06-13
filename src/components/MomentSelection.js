@@ -9,7 +9,7 @@ import React, {
 import { Settings as SettingsIcon, RefreshCw } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
-import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
+import { useMomentFilters } from "../hooks/useMomentFilters";
 
 /* ───── colour helpers ───── */
 const colour = {
@@ -76,6 +76,7 @@ function PrefsModal({
   onClose,
   newName,
   setNewName,
+  maxNameLength,
 }) {
   const [err, setErr] = useState("");
 
@@ -133,6 +134,7 @@ function PrefsModal({
           }}
           placeholder="New preference name"
           className="w-full bg-brand-secondary px-3 py-2 rounded mb-2"
+          maxLength={maxNameLength}
         />
         {err && <p className="text-xs text-red-500 mb-3">{err}</p>}
 
@@ -274,10 +276,7 @@ export default function MomentSelection(props) {
     setNameOptions,
     teamOptions,
     playerOptions,
-    subeditionOptions,
-    subMeta,
     eligibleMoments,
-    base,
     prefs,
     currentPrefKey,
     savePref,
@@ -327,295 +326,249 @@ export default function MomentSelection(props) {
 
   /* ───────── render ───────── */
   return (
-    <div className="w-full bg-brand-primary text-brand-text rounded-lg">
-      {/* header */}
-      <header className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-2 px-2 pt-2">
-        <div className="flex-1">
-          {filter.selectedSeries.length === 0 ? (
-            <p className="text-brand-text/70 font-semibold">
-              Please select at least one Series to view available Moments.
-            </p>
-          ) : eligibleMoments.length === 0 ? (
-            <p className="text-brand-text/70">No Moments match your filters.</p>
-          ) : (
-            <p className="text-brand-text/70">
-              {eligibleMoments.length} Moments match your filters.
-            </p>
-          )}
-          <p className="text-xs text-brand-text/60 mt-1">
-            Only unlocked Common&nbsp;/&nbsp;Fandom can be swapped.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* refresh button */}
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing || cooldown}
-            title={
-              cooldown
-                ? "Please wait a few seconds before refreshing again"
-                : "Refresh snapshots"
-            }
-            className="p-2 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
-          >
-            <RefreshCw
-              size={24}
-              className={isRefreshing ? "animate-spin" : ""}
-            />
-          </button>
-
-          <span className="text-xs text-brand-text/60 whitespace-nowrap">
-            Updated:&nbsp;
-            <span className="text-brand-text">{elapsed}</span>
-          </span>
-
-          <button
-            aria-label="Filter settings"
-            onClick={() => setShowPrefs(true)}
-            className="relative group p-2 rounded-full hover:bg-flow-dark/10 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
-          >
-            <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded bg-flow-dark px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-              Filter settings
-            </span>
-            <SettingsIcon
-              size={32}
-              strokeWidth={2.4}
-              className="text-brand-text"
-            />
-          </button>
-
-          <span className="text-xs text-brand-text/60 whitespace-nowrap sm:whitespace-normal">
-            Filter:&nbsp;
-            {currentPrefKey ? (
-              <span className="text-brand-text">{currentPrefKey}</span>
+    <div className="bg-brand-primary text-brand-text p-2 rounded w-full">
+      {/* filter panel */}
+      <div className="bg-brand-secondary p-2 rounded mb-2">
+        {/* header with count and reset */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-brand-text/70">
+            {filter.selectedSeries.length === 0 ? (
+              <p>
+                Please select at least one Series to view available Moments.
+              </p>
+            ) : eligibleMoments.length === 0 ? (
+              <p>No Moments match your filters.</p>
             ) : (
-              "None"
+              <p>{eligibleMoments.length} Moments match your filters.</p>
             )}
-          </span>
+          </div>
+          <button
+            onClick={() =>
+              setFilter({
+                selectedTiers: tierOptions,
+                selectedSeries: seriesOptions,
+                selectedSetName: "All",
+                selectedLeague: "All",
+                selectedTeam: "All",
+                selectedPlayer: "All",
+                currentPage: 1,
+              })
+            }
+            className="px-1.5 py-0.5 bg-brand-primary rounded hover:opacity-80 text-xs"
+          >
+            Reset All
+          </button>
         </div>
-      </header>
 
-      {/* ----- filter panel ----- */}
-      {seriesOptions.length > 0 && (
-        <section className="flex flex-col gap-4 bg-brand-secondary p-4 rounded mb-2 mx-2">
-          {/* tiers + series */}
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">Tiers:</span>
-              {tierOptions.map((t) => (
-                <label key={t} className="flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    checked={filter.selectedTiers.includes(t)}
-                    onChange={() => {
-                      const next = filter.selectedTiers.includes(t)
-                        ? filter.selectedTiers.filter((x) => x !== t)
-                        : [...filter.selectedTiers, t];
-                      setFilter({ selectedTiers: next, currentPage: 1 });
-                    }}
-                  />
-                  <span className={tierClass(t)}>
-                    {t[0].toUpperCase() + t.slice(1)}
-                  </span>
-                </label>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-semibold">Series:</span>
-              <label className="flex items-center gap-1">
+        {/* filter controls */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-xs">Tiers:</span>
+            {tierOptions.map((t) => (
+              <label key={t} className="flex items-center gap-1">
                 <input
                   type="checkbox"
-                  checked={
-                    filter.selectedSeries.length &&
-                    filter.selectedSeries.length === seriesOptions.length
-                  }
-                  onChange={(e) =>
-                    setFilter({
-                      selectedSeries: e.target.checked ? seriesOptions : [],
-                      currentPage: 1,
-                    })
-                  }
+                  checked={filter.selectedTiers.includes(t)}
+                  onChange={() => {
+                    const next = filter.selectedTiers.includes(t)
+                      ? filter.selectedTiers.filter((x) => x !== t)
+                      : [...filter.selectedTiers, t];
+                    setFilter({ selectedTiers: next, currentPage: 1 });
+                  }}
                 />
-                All
+                <span className={tierClass(t)}>
+                  {t[0].toUpperCase() + t.slice(1)}
+                </span>
               </label>
-              {seriesOptions.map((s) => (
-                <label key={s} className="flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    checked={filter.selectedSeries.includes(s)}
-                    onChange={() => {
-                      const next = filter.selectedSeries.includes(s)
-                        ? filter.selectedSeries.filter((x) => x !== s)
-                        : [...filter.selectedSeries, s];
-                      setFilter({ selectedSeries: next, currentPage: 1 });
-                    }}
-                  />
-                  {s}
-                </label>
-              ))}
-            </div>
+            ))}
           </div>
-
-          {/* dropdown rows */}
-          <div className="flex flex-wrap items-center gap-4 text-sm">
-            <div className="flex items-center gap-1">
-              <span className="font-semibold">League:</span>
-              <Dropdown
-                opts={leagueOptions}
-                value={filter.selectedLeague}
-                onChange={(e) =>
-                  setFilter({
-                    selectedLeague: e.target.value,
-                    selectedSetName: "All",
-                    selectedTeam: "All",
-                    selectedPlayer: "All",
-                    currentPage: 1,
-                  })
-                }
-                title="Select league"
-                countFn={(o) =>
-                  base.baseNoLeague.filter(
-                    (m) =>
-                      (WNBA_TEAMS.includes(m.teamAtMoment || "")
-                        ? "WNBA"
-                        : "NBA") === o
-                  ).length
-                }
-              />
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="font-semibold">Set:</span>
-              <Dropdown
-                opts={setNameOptions}
-                value={filter.selectedSetName}
-                onChange={(e) =>
-                  setFilter({
-                    selectedSetName: e.target.value,
-                    selectedTeam: "All",
-                    selectedPlayer: "All",
-                    currentPage: 1,
-                  })
-                }
-                title="Select set"
-                countFn={(o) =>
-                  base.baseNoSet.filter((m) => m.name === o).length
-                }
-              />
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="font-semibold">Team:</span>
-              <Dropdown
-                opts={teamOptions}
-                value={filter.selectedTeam}
-                onChange={(e) =>
-                  setFilter({
-                    selectedTeam: e.target.value,
-                    selectedPlayer: "All",
-                    currentPage: 1,
-                  })
-                }
-                title="Select team"
-                countFn={(o) =>
-                  base.baseNoTeam.filter((m) => m.teamAtMoment === o).length
-                }
-              />
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="font-semibold">Player:</span>
-              <Dropdown
-                opts={playerOptions}
-                value={filter.selectedPlayer}
-                onChange={(e) =>
-                  setFilter({
-                    selectedPlayer: e.target.value,
-                    currentPage: 1,
-                  })
-                }
-                title="Select player"
-                countFn={(o) =>
-                  base.baseNoPlayer.filter((m) => m.fullName === o).length
-                }
-              />
-            </div>
-
-            <div className="flex items-center gap-1">
-              <span className="font-semibold">Sub-edition:</span>
-              <Dropdown
-                opts={subeditionOptions}
-                value={filter.selectedSubedition}
-                onChange={(e) =>
-                  setFilter({
-                    selectedSubedition: e.target.value,
-                    currentPage: 1,
-                  })
-                }
-                title="Select sub-edition"
-                width="w-56"
-                labelFn={(id) => {
-                  const meta = subMeta[id] || {};
-                  const cnt = base.baseNoSub.filter(
-                    (m) => String(m.subeditionID) === String(id)
-                  ).length;
-                  const baseLabel = `${meta.name} /${meta.minted}`;
-                  return cnt ? `${baseLabel} (${cnt})` : baseLabel;
-                }}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-sm">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-xs">Series:</span>
             <label className="flex items-center gap-1">
               <input
                 type="checkbox"
-                checked={filter.excludeSpecialSerials}
+                checked={
+                  filter.selectedSeries.length &&
+                  filter.selectedSeries.length === seriesOptions.length
+                }
                 onChange={(e) =>
-                  setFilter({ excludeSpecialSerials: e.target.checked })
+                  setFilter({
+                    selectedSeries: e.target.checked ? seriesOptions : [],
+                    currentPage: 1,
+                  })
                 }
               />
-              Exclude #1 / last / jersey
+              All
             </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={filter.excludeLowSerials}
-                onChange={(e) =>
-                  setFilter({ excludeLowSerials: e.target.checked })
-                }
-              />
-              Exclude serials ≤ 4000
-            </label>
+            {seriesOptions.map((s) => (
+              <label key={s} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={filter.selectedSeries.includes(s)}
+                  onChange={() => {
+                    const next = filter.selectedSeries.includes(s)
+                      ? filter.selectedSeries.filter((x) => x !== s)
+                      : [...filter.selectedSeries, s];
+                    setFilter({ selectedSeries: next, currentPage: 1 });
+                  }}
+                />
+                {s}
+              </label>
+            ))}
+          </div>
+        </div>
 
-            <button
-              onClick={() =>
+        {/* other filters */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">League:</span>
+            <Dropdown
+              opts={leagueOptions}
+              value={filter.selectedLeague}
+              onChange={(e) =>
                 setFilter({
-                  selectedTiers: tierOptions,
-                  selectedSeries: seriesOptions,
+                  selectedLeague: e.target.value,
                   selectedSetName: "All",
-                  selectedLeague: "All",
                   selectedTeam: "All",
                   selectedPlayer: "All",
-                  selectedSubedition: "All",
-                  excludeSpecialSerials: true,
-                  excludeLowSerials: true,
                   currentPage: 1,
                 })
               }
-              className="ml-auto px-2 py-1 bg-brand-primary rounded hover:opacity-80 text-sm"
-            >
-              Reset All
-            </button>
+              title="Filter by league"
+              width="w-32"
+            />
           </div>
-        </section>
-      )}
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">Set:</span>
+            <Dropdown
+              opts={setNameOptions}
+              value={filter.selectedSetName}
+              onChange={(e) =>
+                setFilter({
+                  selectedSetName: e.target.value,
+                  selectedTeam: "All",
+                  selectedPlayer: "All",
+                  currentPage: 1,
+                })
+              }
+              title="Filter by set"
+              width="w-44"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">Team:</span>
+            <Dropdown
+              opts={teamOptions}
+              value={filter.selectedTeam}
+              onChange={(e) =>
+                setFilter({
+                  selectedTeam: e.target.value,
+                  selectedPlayer: "All",
+                  currentPage: 1,
+                })
+              }
+              title="Filter by team"
+              width="w-44"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-semibold text-xs">Player:</span>
+            <Dropdown
+              opts={playerOptions}
+              value={filter.selectedPlayer}
+              onChange={(e) =>
+                setFilter({
+                  selectedPlayer: e.target.value,
+                  currentPage: 1,
+                })
+              }
+              title="Filter by player"
+              width="w-44"
+            />
+          </div>
+        </div>
 
-      {/* ----- grid ----- */}
+        {/* serial filters */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={filter.excludeSpecialSerials}
+              onChange={(e) =>
+                setFilter({ excludeSpecialSerials: e.target.checked })
+              }
+            />
+            <span className="text-xs">#1 / Jersey / Last Mint</span>
+          </label>
+          <label className="flex items-center gap-1">
+            <input
+              type="checkbox"
+              checked={filter.excludeLowSerials}
+              onChange={(e) =>
+                setFilter({ excludeLowSerials: e.target.checked })
+              }
+            />
+            <span className="text-xs">Exclude serials ≤ 4000</span>
+          </label>
+        </div>
+
+        {/* bottom section */}
+        <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-brand-primary">
+          <div className="text-xs text-brand-text/70">
+            Only unlocked Common / Fandom can be swapped.
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing || cooldown}
+                title={
+                  cooldown
+                    ? "Please wait a few seconds before refreshing again"
+                    : "Refresh snapshots"
+                }
+                className="p-1 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
+              >
+                <RefreshCw
+                  size={20}
+                  className={`${
+                    isRefreshing ? "animate-spin" : ""
+                  } text-opolis`}
+                />
+              </button>
+              <span className="text-xs text-brand-text/70">
+                Updated: <span className="text-brand-text">{elapsed}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-brand-text/70">
+                Filter:{" "}
+                <span className="text-brand-text">
+                  {currentPrefKey || "None"}
+                </span>
+              </span>
+              <button
+                aria-label="Filter settings"
+                onClick={() => setShowPrefs(true)}
+                className="relative group p-1 rounded-full hover:bg-flow-dark/10 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
+              >
+                <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded bg-flow-dark px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+                  Filter settings
+                </span>
+                <SettingsIcon
+                  size={24}
+                  strokeWidth={2.4}
+                  className="text-brand-text"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* moments grid */}
       {pageSlice.length > 0 ? (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center mt-2 px-2 pb-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
           {pageSlice.map((n) => (
             <MomentCard
               key={n.id}
@@ -628,7 +581,7 @@ export default function MomentSelection(props) {
           ))}
         </div>
       ) : (
-        <p className="text-brand-text/70 mt-4 text-sm px-2 pb-2">
+        <p className="text-xs text-brand-text/70 mt-4">
           {filter.selectedSeries.length === 0
             ? "Please select at least one Series to view available Moments."
             : "No moments match your filters. Try adjusting them."}
@@ -637,7 +590,7 @@ export default function MomentSelection(props) {
 
       {/* pagination */}
       {pageCount > 1 && (
-        <div className="flex justify-center mt-4 pb-2">
+        <div className="flex justify-center mt-4">
           {(() => {
             const pages = [];
             if (pageCount <= 7) {
@@ -672,7 +625,7 @@ export default function MomentSelection(props) {
                 className={`px-3 py-1 mx-1 rounded ${
                   p === filter.currentPage
                     ? "bg-flow-dark text-white"
-                    : "bg-brand-secondary text-brand-text/80"
+                    : "bg-brand-primary text-brand-text/80"
                 } ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}`}
               >
                 {p}
@@ -693,6 +646,7 @@ export default function MomentSelection(props) {
           onClose={() => setShowPrefs(false)}
           newName={newPrefName}
           setNewName={setNewPrefName}
+          maxNameLength={20}
         />
       )}
     </div>

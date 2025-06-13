@@ -2,7 +2,6 @@ import React from "react";
 import { Helmet } from "react-helmet-async";
 
 import TSHOTInfo from "../components/TSHOTInfo";
-import TSHOTLeaderboard from "../components/TSHOTLeaderboard";
 import TSHOTVault from "../components/TSHOTVault";
 
 function TSHOT() {

@@ -12,7 +12,7 @@ const PAGE_SIZE = 50;
 
 /* ---------- layout wrappers (unchanged) ---------- */
 const Section = ({ children }) => (
-  <section className="px-2 md:px-3">{children}</section>
+  <section className="px-0">{children}</section>
 );
 const MobileAccordion = ({ title, children }) => (
   <details className="md:hidden group border border-brand-border rounded">
@@ -210,7 +210,7 @@ function TSHOTVault() {
 
   /* ---------- RENDER ---------- */
   const VaultBlock = () => (
-    <div className="bg-brand-primary text-brand-text p-3 rounded-lg">
+    <div className="bg-brand-primary text-brand-text p-2 rounded w-full">
       {summary && (
         <div className="bg-brand-secondary p-3 rounded mb-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">

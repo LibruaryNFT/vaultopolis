@@ -364,7 +364,7 @@ export default function TSHOTToNFTPanel({
         onClick={() => fcl.authenticate()}
         className="
           w-full p-4 text-lg font-bold rounded-lg
-          bg-flow-light text-white hover:bg-flow-dark
+          bg-opolis text-white hover:bg-opolis-dark
         "
       >
         Connect Wallet
@@ -388,7 +388,7 @@ export default function TSHOTToNFTPanel({
           ${
             btnDisabledDeposit
               ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
-              : "bg-flow-light text-white hover:bg-flow-dark"
+              : "bg-opolis text-white hover:bg-opolis-dark"
           }
         `}
       >
@@ -410,7 +410,7 @@ export default function TSHOTToNFTPanel({
             ${
               disabled
                 ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
-                : "bg-flow-light text-white hover:bg-flow-dark"
+                : "bg-opolis text-white hover:bg-opolis-dark"
             }
           `}
         >
