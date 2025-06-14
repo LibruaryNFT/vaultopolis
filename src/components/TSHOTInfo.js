@@ -6,12 +6,10 @@ import {
   Dice5,
   Globe2,
   ShieldQuestion,
-  Info,
   Wrench,
   BarChart2,
   Network, // Using Network for Ecosystem section
   BarChart,
-  Vault,
 } from "lucide-react";
 
 /* ---------- helpers ---------- */
@@ -64,7 +62,7 @@ const DesktopSection = ({ icon: Icon, title, children }) => (
 );
 
 /* ---------- main component ---------- */
-function TSHOTInfo() {
+function TSHOTInfo({ vaultSummary }) {
   /* Grids */
   const statisticsGrid = (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -78,6 +76,10 @@ function TSHOTInfo() {
         </p>
         <p className="text-xs text-brand-text/80">
           • Over 4 million moments exchanged
+        </p>
+        <p className="text-xs text-brand-text/80">
+          • {vaultSummary?.totalInVault?.toLocaleString() ?? "..."} moments in
+          vault
         </p>
         <p className="text-xs text-brand-text/80">
           • Approximately 300 active users
@@ -441,26 +443,6 @@ function TSHOTInfo() {
           Wager on aiSports
         </p>
       </a>
-    </div>
-  );
-
-  const vaultGrid = (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <InfoCard icon={Info} title="Vaultopolis" extraClass="bg-brand-primary">
-        <p className="text-xs text-brand-text/80">
-          The platform for trading and managing TSHOT.
-        </p>
-      </InfoCard>
-      <InfoCard icon={Info} title="Dapper Labs" extraClass="bg-brand-primary">
-        <p className="text-xs text-brand-text/80">
-          The team behind Top Shot Moments.
-        </p>
-      </InfoCard>
-      <InfoCard icon={Info} title="Increment.fi" extraClass="bg-brand-primary">
-        <p className="text-xs text-brand-text/80">
-          The decentralized exchange for TSHOT.
-        </p>
-      </InfoCard>
     </div>
   );
 

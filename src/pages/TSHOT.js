@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
 
 import TSHOTInfo from "../components/TSHOTInfo";
 import TSHOTVault from "../components/TSHOTVault";
 
 function TSHOT() {
+  const [vaultSummary, setVaultSummary] = useState(null);
+
   return (
     <>
       {/* ─── SEO ─── */}
@@ -20,9 +22,8 @@ function TSHOT() {
       {/* ─── PAGE BODY ─── */}
       {/* space-y-2 = one uniform vertical gap between every major section */}
       <div className="w-full text-white space-y-2 mb-2">
-        <TSHOTInfo />
-
-        <TSHOTVault />
+        <TSHOTInfo vaultSummary={vaultSummary} />
+        <TSHOTVault onSummaryUpdate={setVaultSummary} />
       </div>
     </>
   );

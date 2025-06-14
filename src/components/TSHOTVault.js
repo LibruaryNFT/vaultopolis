@@ -67,7 +67,7 @@ const Dropdown = ({ opts, value, onChange, title, width = "w-40" }) => (
 );
 
 /* ---------- main component ---------- */
-function TSHOTVault() {
+function TSHOTVault({ onSummaryUpdate }) {
   /* Server/API Data */
   const [vaultData, setVaultData] = useState([]);
   const [queryTotal, setQueryTotal] = useState(0);
@@ -172,7 +172,10 @@ function TSHOTVault() {
 
       setVaultData(json.data || []);
       setQueryTotal(json.total || 0);
-      if (page === 1) setSummary(json.summary || null);
+      if (page === 1) {
+        setSummary(json.summary || null);
+        onSummaryUpdate?.(json.summary || null);
+      }
 
       setMaxPages(json.maxPages || 1);
       if (page > (json.maxPages || 1) && (json.maxPages || 1) > 0) {
