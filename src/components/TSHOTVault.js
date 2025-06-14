@@ -12,7 +12,7 @@ const PAGE_SIZE = 50;
 
 /* ---------- layout wrappers (unchanged) ---------- */
 const Section = ({ children }) => (
-  <section className="px-0 -mx-2">{children}</section>
+  <section className="px-0 md:px-3">{children}</section>
 );
 const MobileAccordion = ({ title, children }) => (
   <details className="md:hidden group border border-brand-border rounded">
@@ -25,9 +25,9 @@ const MobileAccordion = ({ title, children }) => (
 );
 const DesktopSection = ({ title, children }) => (
   <div className="hidden md:block">
-    <div className="grid md:grid-cols-[260px_1fr] gap-2">
-      <div className="text-right">
-        <span className="inline-block bg-brand-primary text-brand-text px-2 py-1 rounded w-[260px]">
+    <div className="max-w-6xl mx-auto grid md:grid-cols-[160px_1fr] gap-2">
+      <div className="text-right mt-[0.75rem]">
+        <span className="inline-block bg-brand-primary text-brand-text px-2 py-1 rounded">
           {title}
         </span>
       </div>
@@ -378,7 +378,7 @@ function TSHOTVault() {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
               {vaultData.map((nft) => (
                 <MomentCard
                   key={nft.id || nft._id}
@@ -422,10 +422,14 @@ function TSHOTVault() {
   return (
     <div className="text-brand-text">
       <Section>
-        <MobileAccordion title="Vault">{VaultBlock()}</MobileAccordion>
+        <MobileAccordion title="Vault">
+          <VaultBlock />
+        </MobileAccordion>
       </Section>
       <Section>
-        <DesktopSection title="Vault">{VaultBlock()}</DesktopSection>
+        <DesktopSection title="Vault">
+          <VaultBlock />
+        </DesktopSection>
       </Section>
     </div>
   );

@@ -9,7 +9,7 @@ import React, {
 import { Settings as SettingsIcon, RefreshCw } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
-import { useMomentFilters } from "../hooks/useMomentFilters";
+import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 
 /* ───── colour helpers ───── */
 const colour = {
@@ -420,70 +420,72 @@ export default function MomentSelection(props) {
 
         {/* other filters */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <span className="font-semibold text-xs">League:</span>
             <Dropdown
               opts={leagueOptions}
               value={filter.selectedLeague}
               onChange={(e) =>
-                setFilter({
-                  selectedLeague: e.target.value,
-                  selectedSetName: "All",
-                  selectedTeam: "All",
-                  selectedPlayer: "All",
-                  currentPage: 1,
-                })
+                setFilter({ selectedLeague: e.target.value, currentPage: 1 })
               }
               title="Filter by league"
-              width="w-32"
+              countFn={(league) =>
+                eligibleMoments.filter((m) =>
+                  league === "All"
+                    ? true
+                    : league === "WNBA"
+                    ? WNBA_TEAMS.includes(m.teamAtMoment || "")
+                    : !WNBA_TEAMS.includes(m.teamAtMoment || "")
+                ).length
+              }
             />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <span className="font-semibold text-xs">Set:</span>
             <Dropdown
               opts={setNameOptions}
               value={filter.selectedSetName}
               onChange={(e) =>
-                setFilter({
-                  selectedSetName: e.target.value,
-                  selectedTeam: "All",
-                  selectedPlayer: "All",
-                  currentPage: 1,
-                })
+                setFilter({ selectedSetName: e.target.value, currentPage: 1 })
               }
               title="Filter by set"
-              width="w-44"
+              countFn={(set) =>
+                eligibleMoments.filter((m) =>
+                  set === "All" ? true : m.name === set
+                ).length
+              }
             />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <span className="font-semibold text-xs">Team:</span>
             <Dropdown
               opts={teamOptions}
               value={filter.selectedTeam}
               onChange={(e) =>
-                setFilter({
-                  selectedTeam: e.target.value,
-                  selectedPlayer: "All",
-                  currentPage: 1,
-                })
+                setFilter({ selectedTeam: e.target.value, currentPage: 1 })
               }
               title="Filter by team"
-              width="w-44"
+              countFn={(team) =>
+                eligibleMoments.filter((m) =>
+                  team === "All" ? true : m.teamAtMoment === team
+                ).length
+              }
             />
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <span className="font-semibold text-xs">Player:</span>
             <Dropdown
               opts={playerOptions}
               value={filter.selectedPlayer}
               onChange={(e) =>
-                setFilter({
-                  selectedPlayer: e.target.value,
-                  currentPage: 1,
-                })
+                setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
               }
               title="Filter by player"
-              width="w-44"
+              countFn={(player) =>
+                eligibleMoments.filter((m) =>
+                  player === "All" ? true : m.player === player
+                ).length
+              }
             />
           </div>
         </div>
