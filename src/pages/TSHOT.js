@@ -18,8 +18,8 @@ function TSHOT() {
       </Helmet>
 
       {/* ─── PAGE BODY ─── */}
-      {/* space-y-3 = one uniform vertical gap between every major section */}
-      <div className="w-full text-white space-y-3 mb-2">
+      {/* space-y-2 = one uniform vertical gap between every major section */}
+      <div className="w-full text-white space-y-2 mb-2">
         <TSHOTInfo />
 
         <TSHOTVault />

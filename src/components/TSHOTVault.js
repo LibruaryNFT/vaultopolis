@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, AlertTriangle, RefreshCw, LockIcon } from "lucide-react";
 import MomentCard, { tierStyles } from "./MomentCard";
 
 /* ---------- constants ---------- */
@@ -12,12 +12,15 @@ const PAGE_SIZE = 50;
 
 /* ---------- layout wrappers (unchanged) ---------- */
 const Section = ({ children }) => (
-  <section className="px-0 md:px-3">{children}</section>
+  <section className="px-2 md:px-3">{children}</section>
 );
 const MobileAccordion = ({ title, children }) => (
   <details className="md:hidden group border border-brand-border rounded">
     <summary className="cursor-pointer select-none flex items-center justify-between bg-brand-primary px-2 py-1 font-semibold text-base text-brand-text rounded">
-      {title}{" "}
+      <div className="flex items-center gap-2">
+        <LockIcon className="h-4 w-4" />
+        {title}
+      </div>
       <span className="transition-transform group-open:rotate-180">▼</span>
     </summary>
     <div className="mt-2">{children}</div>
@@ -27,7 +30,8 @@ const DesktopSection = ({ title, children }) => (
   <div className="hidden md:block">
     <div className="max-w-6xl mx-auto grid md:grid-cols-[160px_1fr] gap-2">
       <div className="text-right mt-[0.75rem]">
-        <span className="inline-block bg-brand-primary text-brand-text px-2 py-1 rounded">
+        <span className="inline-flex items-center gap-2 bg-brand-primary text-brand-text px-2 py-1 rounded whitespace-nowrap">
+          <LockIcon className="h-4 w-4" />
           {title}
         </span>
       </div>
