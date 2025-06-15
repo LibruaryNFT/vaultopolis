@@ -1,15 +1,18 @@
 import React from "react";
 import {
-  Repeat,
   CircleDollarSign,
   ShieldCheck,
   Dice5,
   Globe2,
-  ShieldQuestion,
   Wrench,
   BarChart2,
-  Network, // Using Network for Ecosystem section
+  Network,
   BarChart,
+  GitFork,
+  CandlestickChart,
+  ArrowDown,
+  Replace,
+  BookLock,
 } from "lucide-react";
 
 /* ---------- helpers ---------- */
@@ -23,22 +26,9 @@ const InfoCard = ({ icon: Icon, title, children, extraClass = "" }) => (
   </div>
 );
 
-const Tooltip = ({ text, children }) => (
-  <span className="relative group">
-    {children}
-    <span className="absolute bottom-full mb-2 w-48 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none left-1/2 -translate-x-1/2">
-      {text}
-    </span>
-  </span>
-);
-
-const SectionShell = ({ children, extraClass = "" }) => (
-  <section className={`px-2 md:px-3 ${extraClass}`}>{children}</section>
-);
-
 const MobileAccordion = ({ icon: Icon, title, children }) => (
-  <details className="md:hidden group border border-brand-border rounded">
-    <summary className="cursor-pointer select-none flex items-center justify-between bg-brand-primary px-2 py-1 font-semibold text-base text-brand-text rounded">
+  <details className="md:hidden group border border-brand-border rounded w-full">
+    <summary className="cursor-pointer select-none flex items-center justify-between bg-brand-primary px-2 py-1 font-semibold text-base text-brand-text rounded w-full">
       <div className="flex items-center">
         <Icon className="w-5 h-5 mr-2" /> {title}
       </div>
@@ -64,83 +54,281 @@ const DesktopSection = ({ icon: Icon, title, children }) => (
 /* ---------- main component ---------- */
 function TSHOTInfo({ vaultSummary }) {
   /* Grids */
-  const statisticsGrid = (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-      <InfoCard
-        icon={BarChart}
-        title="Key Statistics"
-        extraClass="bg-brand-primary"
-      >
-        <p className="text-xs text-brand-text/80">
-          • Launched on April 17th, 2025
+
+  const userJourneyGrid = (
+    <div>
+      <p className="text-center text-sm text-brand-text/80 mb-6 max-w-2xl mx-auto">
+        Whether you're a Top Shot collector or a crypto trader, there's a path
+        for you.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Path 1: Collector */}
+        <div className="bg-brand-primary/50 p-4 rounded-lg border border-brand-border">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <img
+              src="https://support.nbatopshot.com/hc/article_attachments/5907379633299.png"
+              alt="TopShot"
+              className="h-7 w-7 object-contain"
+            />
+            Path 1: Start with Moments
+          </h3>
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-3">
+            If you already own Top Shot Moments, deposit them to get TSHOT.
+          </p>
+          <a
+            href="https://vaultopolis.com"
+            target="_blank"
+            rel="noreferrer"
+            className="bg-blue-400 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors inline-flex items-center gap-2 text-xs sm:text-sm"
+          >
+            <img
+              src="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png"
+              alt="Vaultopolis"
+              className="h-4 w-4"
+            />
+            Deposit on Vaultopolis
+          </a>
+        </div>
+
+        {/* Path 2: Trader */}
+        <div className="bg-brand-primary/50 p-4 rounded-lg border border-brand-border">
+          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <img
+              src="https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/67e1750c3eb15026e1ca6618_Flow_Icon_Color.svg"
+              alt="Flow"
+              className="h-7 w-7 object-contain"
+            />
+            Path 2: Start with Crypto
+          </h3>
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-3">
+            If you have FLOW, swap it for TSHOT on a Decentralized Exchange
+            (DEX).
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <a
+              href="https://app.increment.fi/swap?in=A.1654653399040a61.FlowToken&out=A.05b67ba314000b2d.TSHOT"
+              target="_blank"
+              rel="noreferrer"
+              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm"
+            >
+              <img
+                src="https://www.increment.fi/favicon.ico"
+                alt="Increment.fi"
+                className="h-4 w-4"
+              />
+              Increment.fi
+            </a>
+            <a
+              href="https://swap.kittypunch.xyz/?tokens=0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e-0xc618a7356fcf601f694c51578cd94144deaee690"
+              target="_blank"
+              rel="noreferrer"
+              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm"
+            >
+              <img
+                src="https://swap.kittypunch.xyz/Punch1.png"
+                alt="PunchSwap"
+                className="h-4 w-4"
+              />
+              PunchSwap
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Stage 2: Convergence */}
+      <div className="flex flex-col items-center justify-center text-center my-6">
+        <p className="font-bold mt-2 text-xs sm:text-sm flex items-center justify-center gap-2">
+          Now that you own{" "}
+          <img
+            src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+            alt="TSHOT"
+            className="h-8 w-8 object-contain"
+          />
+          , activate its power:
         </p>
-        <p className="text-xs text-brand-text/80">
-          • Over 4 million moments exchanged
-        </p>
-        <p className="text-xs text-brand-text/80">
-          • {vaultSummary?.totalInVault?.toLocaleString() ?? "..."} moments in
-          vault
-        </p>
-        <p className="text-xs text-brand-text/80">
-          • Approximately 300 active users
-        </p>
-      </InfoCard>
+        <ArrowDown className="w-8 h-8 text-brand-text/50 mt-2" />
+      </div>
+
+      {/* Stage 3: Unified Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <InfoCard
+          icon={Dice5}
+          title="Redeem for Moments"
+          extraClass="border border-brand-border"
+        >
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img
+              src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+              alt="TSHOT"
+              className="h-7 w-7 object-contain"
+            />
+            <svg
+              className="w-8 h-8 text-brand-text/50"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 12h16" />
+              <path d="M4 12l4 4" />
+              <path d="M4 12l4-4" />
+              <path d="M20 12l-4 4" />
+              <path d="M20 12l-4-4" />
+            </svg>
+            <img
+              src="https://support.nbatopshot.com/hc/article_attachments/5907379633299.png"
+              alt="TopShot"
+              className="h-7 w-7 object-contain"
+            />
+          </div>
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-3 flex-grow">
+            Swap your TSHOT tokens back for random Top Shot Moments from the
+            vault 24/7. It's a great way to hunt for gems.
+          </p>
+          <a
+            href="https://vaultopolis.com"
+            target="_blank"
+            rel="noreferrer"
+            className="bg-blue-400 hover:bg-blue-600 text-white mt-auto px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm"
+          >
+            <img
+              src="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png"
+              alt="Vaultopolis"
+              className="h-4 w-4"
+            />
+            Redeem on Vaultopolis
+          </a>
+        </InfoCard>
+        <InfoCard
+          icon={CircleDollarSign}
+          title="Earn Passive Yield"
+          extraClass="border border-brand-border"
+        >
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img
+              src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+              alt="TSHOT"
+              className="h-7 w-7 object-contain"
+            />
+            <span className="text-brand-text/50 text-xl">+</span>
+            <img
+              src="https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/67e1750c3eb15026e1ca6618_Flow_Icon_Color.svg"
+              alt="Flow"
+              className="h-7 w-7 object-contain"
+            />
+          </div>
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-3 flex-grow">
+            Provide liquidity by pairing TSHOT with FLOW on a DEX to earn
+            passive income from trading fees.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-auto">
+            <a
+              href="https://app.increment.fi/liquidity/add"
+              target="_blank"
+              rel="noreferrer"
+              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm"
+            >
+              <img
+                src="https://www.increment.fi/favicon.ico"
+                alt="Increment.fi"
+                className="h-4 w-4"
+              />
+              Increment.fi
+            </a>
+            <a
+              href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
+              target="_blank"
+              rel="noreferrer"
+              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm"
+            >
+              <img
+                src="https://swap.kittypunch.xyz/Punch1.png"
+                alt="PunchSwap"
+                className="h-4 w-4"
+              />
+              PunchSwap
+            </a>
+          </div>
+        </InfoCard>
+        <InfoCard
+          icon={BarChart2}
+          title="Wager on FastBreak"
+          extraClass="border border-brand-border"
+        >
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img
+              src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+              alt="TSHOT"
+              className="h-7 w-7 object-contain"
+            />
+            <svg
+              className="w-8 h-8 text-brand-text/50"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="M12 5l7 7-7 7" />
+            </svg>
+            <img
+              src="https://www.aisportspro.com/ais_logo_new.svg"
+              alt="aiSports"
+              className="h-9 w-9 object-contain"
+            />
+          </div>
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-3 flex-grow">
+            Use TSHOT to enter wagering contests for Top Shot FastBreak and
+            compete for prize pools.
+          </p>
+          <a
+            href="https://www.aisportspro.com/fastbreak"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center text-xs sm:text-sm"
+          >
+            aiSports FastBreak
+          </a>
+        </InfoCard>
+      </div>
     </div>
   );
 
   const coreMechanicsGrid = (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <InfoCard
-        icon={ShieldCheck}
-        title="Convert Moments to TSHOT"
+        icon={Replace}
+        title="1-for-1 Conversion"
         extraClass="bg-brand-primary"
       >
         <p className="text-xs text-brand-text/80">
-          Deposit Moments 1-for-1 to receive TSHOT.
+          Deposit any Top Shot Moment to mint exactly 1 TSHOT. The process is
+          instant and reversible - burn 1 TSHOT to redeem 1 random Moment.
         </p>
       </InfoCard>
       <InfoCard
         icon={Dice5}
-        title="Convert TSHOT to Moments"
+        title="Random Redemptions"
         extraClass="bg-brand-primary"
       >
         <p className="text-xs text-brand-text/80">
-          Redeem TSHOT for random Moments from the Vault.
+          When redeeming TSHOT for Moments, the selection is random and fair.
+          Each TSHOT token can be redeemed for any Moment in the vault.
         </p>
       </InfoCard>
       <InfoCard
-        icon={ShieldQuestion}
-        title="Fair & Random Redemptions"
-        extraClass="bg-brand-primary"
-      >
-        <p className="text-xs text-brand-text/80 flex-grow">
-          Redemptions use Flow's on-chain{" "}
-          <Tooltip text="Verifiable Random Function: A cryptographic method that ensures randomness is provably fair and tamper-proof.">
-            <span className="font-bold underline decoration-dotted cursor-help">
-              VRF
-            </span>
-          </Tooltip>{" "}
-          to ensure the selection of Moments is fair.
-        </p>
-        <div className="mt-2">
-          <a
-            href="https://developers.flow.com/build/advanced-concepts/randomness"
-            target="_blank"
-            rel="noreferrer"
-            className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors text-xs"
-          >
-            Learn&nbsp;More
-          </a>
-        </div>
-      </InfoCard>
-      <InfoCard
-        icon={Repeat}
-        title="Use Dapper Wallet Moments"
+        icon={Globe2}
+        title="Dapper Wallet Integration"
         extraClass="bg-brand-primary"
       >
         <div className="flex flex-col flex-grow">
           <p className="text-xs text-brand-text/80 flex-grow">
-            Seamlessly leverage Moments stored in your Dapper Wallet.
+            Seamlessly use your existing Dapper Wallet to deposit and withdraw
+            Moments. No need to create new accounts or transfer assets.
           </p>
           <div className="mt-2">
             <a
@@ -154,185 +342,87 @@ function TSHOTInfo({ vaultSummary }) {
           </div>
         </div>
       </InfoCard>
+      <InfoCard
+        icon={BarChart}
+        title="Key Statistics"
+        extraClass="bg-brand-primary col-span-full"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="text-center">
+            <p className="text-lg font-bold text-brand-text">
+              April 17th, 2025
+            </p>
+            <p className="text-xs text-brand-text/80">Launch Date</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-brand-text">4M+</p>
+            <p className="text-xs text-brand-text/80">Moments Exchanged</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-brand-text">
+              {vaultSummary?.totalInVault?.toLocaleString() ?? "..."}
+            </p>
+            <p className="text-xs text-brand-text/80">Moments in Vault</p>
+          </div>
+          <div className="text-center">
+            <p className="text-lg font-bold text-brand-text">300+</p>
+            <p className="text-xs text-brand-text/80">Active Users</p>
+          </div>
+        </div>
+      </InfoCard>
     </div>
   );
 
-  const benefitsGrid = (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  const trustAndSecurityGrid = (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
       <InfoCard
-        icon={Globe2}
-        title="Buy and Sell Moments Fast"
+        icon={ShieldCheck}
+        title="Secure Smart Contract"
         extraClass="bg-brand-primary"
       >
-        <div className="text-xs text-brand-text/80 space-y-2">
-          <p className="font-semibold text-brand-text/90 mb-1">
-            Swap TSHOT and FLOW
-          </p>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <img
-              src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-              alt="TSHOT"
-              className="h-12 w-12 object-contain"
-            />
-            <span className="text-brand-text/70 text-lg">↔</span>
-            <img
-              src="https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/67e1750c3eb15026e1ca6618_Flow_Icon_Color.svg"
-              alt="Flow"
-              className="h-12 w-12 object-contain"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href="https://app.increment.fi/swap?in=A.1654653399040a61.FlowToken&out=A.05b67ba314000b2d.TSHOT"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <img
-                src="https://www.increment.fi/favicon.ico"
-                alt="Increment.fi"
-                className="h-4 w-4"
-              />
-              Increment.fi
-            </a>
-            <a
-              href="https://swap.kittypunch.xyz/?tokens=0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e-0xc618a7356fcf601f694c51578cd94144deaee690"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <img
-                src="https://swap.kittypunch.xyz/Punch1.png"
-                alt="PunchSwap"
-                className="h-4 w-4"
-              />
-              PunchSwap
-            </a>
-          </div>
-          <p className="font-semibold text-brand-text/90 mb-1">
-            Swap TSHOT and Moments
-          </p>
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <img
-              src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-              alt="TSHOT"
-              className="h-12 w-12 object-contain"
-            />
-            <span className="text-brand-text/70 text-lg">↔</span>
-            <img
-              src="https://support.nbatopshot.com/hc/article_attachments/5907379633299.png"
-              alt="TopShot"
-              className="h-12 w-12 object-contain"
-            />
-          </div>
-          <div className="flex justify-center mt-4 mb-12">
-            <a
-              href="https://vaultopolis.com"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-blue-400 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <img
-                src="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png"
-                alt="Vaultopolis"
-                className="h-4 w-4"
-              />
-              Get Started
-            </a>
-          </div>
-        </div>
-      </InfoCard>
-      <InfoCard
-        icon={CircleDollarSign}
-        title="Earn Passive Yield"
-        extraClass="bg-brand-primary"
-      >
-        <p className="text-xs text-brand-text/80 mb-2">
-          Provide TSHOT liquidity on a DEX to earn trading fees and other
-          rewards.
+        <p className="text-xs text-brand-text/80">
+          Built on Flow's secure blockchain with comprehensive security measures
+          and regular audits to protect your assets.
         </p>
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <img
-            src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-            alt="TSHOT"
-            className="h-12 w-12 object-contain"
-          />
-          <span className="text-brand-text/70 text-lg">+</span>
-          <img
-            src="https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/67e1750c3eb15026e1ca6618_Flow_Icon_Color.svg"
-            alt="Flow"
-            className="h-12 w-12 object-contain"
-          />
-        </div>
-        <div className="text-xs text-brand-text/80 space-y-1">
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href="https://app.increment.fi/liquidity/add"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <img
-                src="https://www.increment.fi/favicon.ico"
-                alt="Increment.fi"
-                className="h-4 w-4"
-              />
-              Increment.fi
-            </a>
-            <a
-              href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
-              target="_blank"
-              rel="noreferrer"
-              className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              <img
-                src="https://swap.kittypunch.xyz/Punch1.png"
-                alt="PunchSwap"
-                className="h-4 w-4"
-              />
-              PunchSwap
-            </a>
-          </div>
+      </InfoCard>
+      <InfoCard
+        icon={Dice5}
+        title="Fair & Random Redemptions"
+        extraClass="bg-brand-primary"
+      >
+        <p className="text-xs text-brand-text/80 flex-grow">
+          Redemptions use Flow's Verifiable Random Function (VRF) to ensure fair
+          and tamper-proof selection of Moments. The randomness is generated
+          on-chain and can be verified by anyone.
+        </p>
+        <div className="mt-2">
+          <a
+            href="https://developers.flow.com/build/advanced-concepts/randomness"
+            target="_blank"
+            rel="noreferrer"
+            className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors text-xs"
+          >
+            Learn&nbsp;More
+          </a>
         </div>
       </InfoCard>
       <InfoCard
-        icon={BarChart2}
-        title="Wager on TopShot FastBreak"
+        icon={BookLock}
+        title="Audited & Verifiable"
         extraClass="bg-brand-primary"
       >
-        <div className="text-xs text-brand-text/80 space-y-2">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <img
-              src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-              alt="TSHOT"
-              className="h-12 w-12 object-contain"
-            />
-            <span className="text-brand-text/70 text-lg">→</span>
-            <div className="flex items-center gap-2">
-              <img
-                src="https://www.aisportspro.com/ais_logo_new.svg"
-                alt="aiSports"
-                className="h-16 w-16 object-contain"
-              />
-              <span className="text-brand-text/70 text-lg">+</span>
-              <img
-                src="https://support.nbatopshot.com/hc/article_attachments/5907379633299.png"
-                alt="TopShot"
-                className="h-12 w-12 object-contain"
-              />
-            </div>
-          </div>
-          <p>
-            Use TSHOT to wager on your FastBreak lineups. Enter the shared prize
-            pool and split winnings with other successful entries.
-          </p>
+        <p className="text-xs text-brand-text/80 flex-grow">
+          Built with security best practices and undergoing regular audits.
+          Anyone can inspect the contract on the Flow blockchain.
+        </p>
+        <div className="mt-2">
           <a
-            href="https://www.aisportspro.com/fastbreak"
+            href="https://www.flowscan.io/contract/A.05b67ba314000b2d.TSHOTExchange?tab=deployments"
             target="_blank"
-            rel="noopener noreferrer"
-            className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors flex items-center justify-center gap-2"
+            rel="noreferrer"
+            className="bg-blue-400 hover:bg-blue-600 text-white px-2 py-1 rounded-lg transition-colors text-xs"
           >
-            aiSports FastBreak
+            View&nbsp;Contract
           </a>
         </div>
       </InfoCard>
@@ -340,7 +430,7 @@ function TSHOTInfo({ vaultSummary }) {
   );
 
   const ecosystemGrid = (
-    <div className="flex flex-wrap items-start justify-start gap-x-8 gap-y-6">
+    <div className="flex flex-wrap items-start justify-center gap-x-8 gap-y-6">
       <a
         href="https://flow.com/"
         target="_blank"
@@ -448,7 +538,8 @@ function TSHOTInfo({ vaultSummary }) {
 
   return (
     <div className="text-brand-text">
-      <div className="bg-gradient-to-b from-brand-primary to-brand-secondary pt-2 px-3">
+      {/* ---------- Hero Section ---------- */}
+      <div className="bg-gradient-to-b from-brand-primary to-brand-secondary pt-2 px-3 pb-8">
         <div className="max-w-6xl mx-auto md:pl-[160px] grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
           <div className="order-2 md:order-1">
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-1">
@@ -467,7 +558,7 @@ function TSHOTInfo({ vaultSummary }) {
                 href="/"
                 className="bg-opolis hover:bg-opolis-dark text-white px-4 py-2 rounded-lg transition-colors"
               >
-                Get Started
+                Launch App
               </a>
             </div>
           </div>
@@ -481,56 +572,63 @@ function TSHOTInfo({ vaultSummary }) {
         </div>
       </div>
 
-      <div className="space-y-1">
-        <div className="mt-8">
-          <MobileAccordion icon={BarChart} title="Statistics">
-            <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_width%3D%2240%22_height%3D%2240%22_viewBox%3D%220_0_40_40%22_xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_fill-rule%3D%22evenodd%22%3E%3Cpath_d%3D%22M0_40L40_0H20L0_20M40_40V20L20_40%22/%3E%3C/g%3E%3C/svg%3E')]">
-              {statisticsGrid}
+      {/* Sections Wrapper */}
+      <div className="space-y-1 mt-2 px-2">
+        {/* How to Get Started Section */}
+        <div>
+          <MobileAccordion icon={GitFork} title="How to Get Started">
+            <div className="bg-brand-primary rounded-lg p-4">
+              {userJourneyGrid}
             </div>
           </MobileAccordion>
-          <DesktopSection icon={BarChart} title="Statistics">
-            <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_width%3D%2240%22_height%3D%2240%22_viewBox%3D%220_0_40_40%22_xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_fill-rule%3D%22evenodd%22%3E%3Cpath_d%3D%22M0_40L40_0H20L0_20M40_40V20L20_40%22/%3E%3C/g%3E%3C/svg%3E')]">
-              {statisticsGrid}
+          <DesktopSection icon={GitFork} title="How to Get Started">
+            <div className="bg-brand-primary rounded-lg p-4">
+              {userJourneyGrid}
             </div>
           </DesktopSection>
         </div>
 
-        <MobileAccordion icon={Wrench} title="Core Mechanics">
-          <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_width%3D%2240%22_height%3D%2240%22_viewBox%3D%220_0_40_40%22_xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_fill-rule%3D%22evenodd%22%3E%3Cpath_d%3D%22M0_40L40_0H20L0_20M40_40V20L20_40%22/%3E%3C/g%3E%3C/svg%3E')]">
-            {coreMechanicsGrid}
-          </div>
-        </MobileAccordion>
-        <DesktopSection icon={Wrench} title="Core Mechanics">
-          <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_width%3D%2240%22_height%3D%2240%22_viewBox%3D%220_0_40_40%22_xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_fill-rule%3D%22evenodd%22%3E%3Cpath_d%3D%22M0_40L40_0H20L0_20M40_40V20L20_40%22/%3E%3C/g%3E%3C/svg%3E')]">
-            {coreMechanicsGrid}
-          </div>
-        </DesktopSection>
+        {/* Core Mechanics Section */}
+        <div>
+          <MobileAccordion icon={Wrench} title="Core Mechanics">
+            <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_width%3D%2240%22_height%3D%2240%22_viewBox%3D%220_0_40_40%22_xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_fill-rule%3D%22evenodd%22%3E%3Cpath_d%3D%22M0_40L40_0H20L0_20M40_40V20L20_40%22/%3E%3C/g%3E%3C/svg%3E')]">
+              {coreMechanicsGrid}
+            </div>
+          </MobileAccordion>
+          <DesktopSection icon={Wrench} title="Core Mechanics">
+            <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_width%3D%2240%22_height%3D%2240%22_viewBox%3D%220_0_40_40%22_xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_fill-rule%3D%22evenodd%22%3E%3Cpath_d%3D%22M0_40L40_0H20L0_20M40_40V20L20_40%22/%3E%3C/g%3E%3C/svg%3E')]">
+              {coreMechanicsGrid}
+            </div>
+          </DesktopSection>
+        </div>
 
-        <MobileAccordion icon={BarChart2} title="Benefits">
-          <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_xmlns%3D%22http%3A//www.w3.org/2000/svg%22_width%3D%2228%22_height%3D%2228%22_viewBox%3D%220_0_28_28%22%3E%3Cpath_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_d%3D%22M14_0_C6.268_0_0_6.268_0_14s6.268_14_14_14_14-6.268_14-14S21.732_0_14_0zM7_14c0-3.86_3.14-7_7-7s7_3.14_7_7-3.14_7-7_7-7-3.14-7-7z%22/%3E%3C/svg%3E')]">
-            {benefitsGrid}
-          </div>
-        </MobileAccordion>
-        <DesktopSection icon={BarChart2} title="Benefits">
-          <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_xmlns%3D%22http%3A//www.w3.org/2000/svg%22_width%3D%2228%22_height%3D%2228%22_viewBox%3D%220_0_28_28%22%3E%3Cpath_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_d%3D%22M14_0_C6.268_0_0_6.268_0_14s6.268_14_14_14_14-6.268_14-14S21.732_0_14_0zM7_14c0-3.86_3.14-7_7-7s7_3.14_7_7-3.14_7-7_7-7-3.14-7-7z%22/%3E%3C/svg%3E')]">
-            {benefitsGrid}
-          </div>
-        </DesktopSection>
+        {/* Trust & Security Section */}
+        <div>
+          <MobileAccordion icon={ShieldCheck} title="Trust & Security">
+            <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_xmlns%3D%22http%3A//www.w3.org/2000/svg%22_width%3D%2228%22_height%3D%2228%22_viewBox%3D%220_0_28_28%22%3E%3Cpath_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_d%3D%22M14_0_C6.268_0_0_6.268_0_14s6.268_14_14_14_14-6.268_14-14S21.732_0_14_0zM7_14c0-3.86_3.14-7_7-7s7_3.14_7_7-3.14_7-7_7-7-3.14-7-7z%22/%3E%3C/svg%3E')]">
+              {trustAndSecurityGrid}
+            </div>
+          </MobileAccordion>
+          <DesktopSection icon={ShieldCheck} title="Trust & Security">
+            <div className="rounded-lg p-2 bg-brand-primary/10 [background-image:url('data:image/svg+xml,%3Csvg_xmlns%3D%22http%3A//www.w3.org/2000/svg%22_width%3D%2228%22_height%3D%2228%22_viewBox%3D%220_0_28_28%22%3E%3Cpath_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_d%3D%22M14_0_C6.268_0_0_6.268_0_14s6.268_14_14_14_14-6.268_14-14S21.732_0_14_0zM7_14c0-3.86_3.14-7_7-7s7_3.14_7_7-3.14_7-7_7-7-3.14-7-7z%22/%3E%3C/svg%3E')]">
+              {trustAndSecurityGrid}
+            </div>
+          </DesktopSection>
+        </div>
 
-        <MobileAccordion icon={Network} title="Ecosystem">
-          <SectionShell extraClass="px-1 md:px-2">
+        {/* Ecosystem Section */}
+        <div>
+          <MobileAccordion icon={Network} title="Ecosystem">
             <div className="rounded-lg p-2 bg-brand-primary [background-image:url('data:image/svg+xml,%3Csvg_xmlns%3D%22http%3A//www.w3.org/2000/svg%22_width%3D%2228%22_height%3D%2228%22_viewBox%3D%220_0_28_28%22%3E%3Cpath_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_d%3D%22M14_0_C6.268_0_0_6.268_0_14s6.268_14_14_14_14-6.268_14-14S21.732_0_14_0zM7_14c0-3.86_3.14-7_7-7s7_3.14_7_7-3.14_7-7_7-7-3.14-7-7z%22/%3E%3C/svg%3E')]">
               {ecosystemGrid}
             </div>
-          </SectionShell>
-        </MobileAccordion>
-        <DesktopSection icon={Network} title="Ecosystem">
-          <SectionShell extraClass="px-1 md:px-2">
+          </MobileAccordion>
+          <DesktopSection icon={Network} title="Ecosystem">
             <div className="rounded-lg p-2 bg-brand-primary [background-image:url('data:image/svg+xml,%3Csvg_xmlns%3D%22http%3A//www.w3.org/2000/svg%22_width%3D%2228%22_height%3D%2228%22_viewBox%3D%220_0_28_28%22%3E%3Cpath_fill%3D%22%23ffffff%22_fill-opacity%3D%220.05%22_d%3D%22M14_0_C6.268_0_0_6.268_0_14s6.268_14_14_14_14-6.268_14-14S21.732_0_14_0zM7_14c0-3.86_3.14-7_7-7s7_3.14_7_7-3.14_7-7_7-7-3.14-7-7z%22/%3E%3C/svg%3E')]">
               {ecosystemGrid}
             </div>
-          </SectionShell>
-        </DesktopSection>
+          </DesktopSection>
+        </div>
       </div>
     </div>
   );
