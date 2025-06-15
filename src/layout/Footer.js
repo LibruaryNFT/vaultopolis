@@ -23,8 +23,8 @@ const Footer = () => {
               />
             </div>
             <p className="text-sm text-brand-text/80 max-w-md leading-relaxed">
-              Vaultopolis is a decentralized platform that tokenizes NBA Top
-              Shot Moments into TSHOT, enabling instant bulk trading, yield
+              Vaultopolis is a decentralized platform that tokenizes Top Shot
+              Moments into TSHOT, enabling instant bulk trading, yield
               opportunities, and seamless liquidity management.
             </p>
           </div>
@@ -32,8 +32,8 @@ const Footer = () => {
           {/* Disclaimer Section */}
           <div className="flex items-center">
             <p className="text-sm text-brand-text/80 leading-relaxed">
-              Vaultopolis is not affiliated with NBA Top Shot or Dapper Labs.
-              All operations are executed through decentralized smart contracts.
+              Vaultopolis is not affiliated with Top Shot or Dapper Labs. All
+              operations are executed through decentralized smart contracts.
             </p>
           </div>
         </div>

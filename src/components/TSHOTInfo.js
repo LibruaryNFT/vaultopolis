@@ -9,7 +9,6 @@ import {
   Network,
   BarChart,
   GitFork,
-  CandlestickChart,
   ArrowDown,
   Replace,
   BookLock,
@@ -61,10 +60,10 @@ function TSHOTInfo({ vaultSummary }) {
         Whether you're a Top Shot collector or a crypto trader, there's a path
         for you.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Path 1: Collector */}
-        <div className="bg-brand-primary/50 p-4 rounded-lg border border-brand-border">
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <div className="bg-brand-primary/50 p-3 rounded-lg border border-brand-border">
+          <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
             <img
               src="https://support.nbatopshot.com/hc/article_attachments/5907379633299.png"
               alt="TopShot"
@@ -72,7 +71,7 @@ function TSHOTInfo({ vaultSummary }) {
             />
             Path 1: Start with Moments
           </h3>
-          <p className="text-xs sm:text-sm text-brand-text/80 mb-3">
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-2">
             If you already own Top Shot Moments, deposit them to get TSHOT.
           </p>
           <a
@@ -91,8 +90,8 @@ function TSHOTInfo({ vaultSummary }) {
         </div>
 
         {/* Path 2: Trader */}
-        <div className="bg-brand-primary/50 p-4 rounded-lg border border-brand-border">
-          <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+        <div className="bg-brand-primary/50 p-3 rounded-lg border border-brand-border">
+          <h3 className="text-xl font-bold mb-2 flex items-center gap-2">
             <img
               src="https://cdn.prod.website-files.com/5f734f4dbd95382f4fdfa0ea/67e1750c3eb15026e1ca6618_Flow_Icon_Color.svg"
               alt="Flow"
@@ -100,7 +99,7 @@ function TSHOTInfo({ vaultSummary }) {
             />
             Path 2: Start with Crypto
           </h3>
-          <p className="text-xs sm:text-sm text-brand-text/80 mb-3">
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-2">
             If you have FLOW, swap it for TSHOT on a Decentralized Exchange
             (DEX).
           </p>
@@ -136,8 +135,8 @@ function TSHOTInfo({ vaultSummary }) {
       </div>
 
       {/* Stage 2: Convergence */}
-      <div className="flex flex-col items-center justify-center text-center my-6">
-        <p className="font-bold mt-2 text-xs sm:text-sm flex items-center justify-center gap-2">
+      <div className="flex flex-col items-center justify-center text-center my-4">
+        <p className="font-bold text-xs sm:text-sm flex items-center justify-center gap-2">
           Now that you own{" "}
           <img
             src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
@@ -146,17 +145,17 @@ function TSHOTInfo({ vaultSummary }) {
           />
           , activate its power:
         </p>
-        <ArrowDown className="w-8 h-8 text-brand-text/50 mt-2" />
+        <ArrowDown className="w-8 h-8 text-brand-text/50 mt-1" />
       </div>
 
       {/* Stage 3: Unified Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
         <InfoCard
           icon={Dice5}
           title="Redeem for Moments"
           extraClass="border border-brand-border"
         >
-          <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <img
               src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
               alt="TSHOT"
@@ -183,7 +182,7 @@ function TSHOTInfo({ vaultSummary }) {
               className="h-7 w-7 object-contain"
             />
           </div>
-          <p className="text-xs sm:text-sm text-brand-text/80 mb-3 flex-grow">
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-2 flex-grow">
             Swap your TSHOT tokens back for random Top Shot Moments from the
             vault 24/7. It's a great way to hunt for gems.
           </p>
@@ -206,7 +205,7 @@ function TSHOTInfo({ vaultSummary }) {
           title="Earn Passive Yield"
           extraClass="border border-brand-border"
         >
-          <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <img
               src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
               alt="TSHOT"
@@ -219,7 +218,7 @@ function TSHOTInfo({ vaultSummary }) {
               className="h-7 w-7 object-contain"
             />
           </div>
-          <p className="text-xs sm:text-sm text-brand-text/80 mb-3 flex-grow">
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-2 flex-grow">
             Provide liquidity by pairing TSHOT with FLOW on a DEX to earn
             passive income from trading fees.
           </p>
@@ -257,7 +256,7 @@ function TSHOTInfo({ vaultSummary }) {
           title="Wager on FastBreak"
           extraClass="border border-brand-border"
         >
-          <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="flex items-center justify-center gap-2 mb-2">
             <img
               src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
               alt="TSHOT"
@@ -278,10 +277,10 @@ function TSHOTInfo({ vaultSummary }) {
             <img
               src="https://www.aisportspro.com/ais_logo_new.svg"
               alt="aiSports"
-              className="h-9 w-9 object-contain"
+              className="h-11 w-11 object-contain"
             />
           </div>
-          <p className="text-xs sm:text-sm text-brand-text/80 mb-3 flex-grow">
+          <p className="text-xs sm:text-sm text-brand-text/80 mb-2 flex-grow">
             Use TSHOT to enter wagering contests for Top Shot FastBreak and
             compete for prize pools.
           </p>
