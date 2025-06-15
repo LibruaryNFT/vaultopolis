@@ -174,6 +174,61 @@ function formatElapsed(ts) {
   return `${diffDay} d ago`;
 }
 
+const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
+  const [inputValue, setInputValue] = useState("");
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    if (value === "" || /^\d+$/.test(value)) {
+      setInputValue(value);
+    }
+  };
+
+  const handleSubmit = () => {
+    const newPage = parseInt(inputValue, 10);
+    if (
+      newPage &&
+      newPage >= 1 &&
+      newPage <= maxPages &&
+      newPage !== currentPage
+    ) {
+      onPageChange(newPage);
+    }
+    setInputValue("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Page #"
+          className="w-16 px-2 py-1 rounded bg-brand-primary text-brand-text/80 text-sm"
+          disabled={disabled}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={disabled}
+        className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm"
+      >
+        Go
+      </button>
+    </div>
+  );
+};
+
 /* ───── main component ───── */
 export default function MomentSelection(props) {
   const {
@@ -199,6 +254,13 @@ export default function MomentSelection(props) {
     );
     return () => clearInterval(id);
   }, [lastSuccessfulUpdate]); // MODIFIED
+
+  // Reset page to 1 when switching accounts
+  useEffect(() => {
+    if (filter.currentPage > 1) {
+      goPage(1);
+    }
+  }, [selectedAccount]);
 
   /* --- refresh cooldown (30 s) ------------------ */
   const [cooldown, setCooldown] = useState(false);
@@ -568,72 +630,60 @@ export default function MomentSelection(props) {
         </div>
       </div>
 
-      {/* moments grid */}
-      {pageSlice.length > 0 ? (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
-          {pageSlice.map((n) => (
-            <MomentCard
-              key={n.id}
-              nft={n}
-              handleNFTSelection={(id) =>
-                appDispatch({ type: "SET_SELECTED_NFTS", payload: id })
-              }
-              isSelected={selectedNFTs.includes(n.id)}
-            />
-          ))}
+      {/* grid */}
+      {pageCount > 1 && (
+        <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
+          <p>
+            Showing {pageSlice.length} of{" "}
+            {eligibleMoments.length.toLocaleString()} items
+          </p>
+          <p>
+            Page {filter.currentPage} of {pageCount}
+          </p>
         </div>
-      ) : (
-        <p className="text-xs text-brand-text/70 mt-4">
-          {filter.selectedSeries.length === 0
-            ? "Please select at least one Series to view available Moments."
-            : "No moments match your filters. Try adjusting them."}
-        </p>
       )}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+        {pageSlice.map((n) => (
+          <MomentCard
+            key={n.id}
+            nft={n}
+            handleNFTSelection={(id) =>
+              appDispatch({ type: "SET_SELECTED_NFTS", payload: id })
+            }
+            isSelected={selectedNFTs.includes(n.id)}
+          />
+        ))}
+      </div>
 
       {/* pagination */}
       {pageCount > 1 && (
-        <div className="flex justify-center mt-4">
-          {(() => {
-            const pages = [];
-            if (pageCount <= 7) {
-              for (let i = 1; i <= pageCount; i++) pages.push(i);
-            } else if (filter.currentPage <= 4) {
-              pages.push(1, 2, 3, 4, 5, "...", pageCount);
-            } else if (filter.currentPage > pageCount - 4) {
-              pages.push(
-                1,
-                "...",
-                pageCount - 4,
-                pageCount - 3,
-                pageCount - 2,
-                pageCount - 1,
-                pageCount
-              );
-            } else {
-              pages.push(
-                1,
-                "...",
-                filter.currentPage - 1,
-                filter.currentPage,
-                filter.currentPage + 1,
-                "...",
-                pageCount
-              );
-            }
-            return pages.map((p, idx) => (
-              <button
-                key={`page-${idx}`}
-                onClick={() => p !== "..." && goPage(Number(p))}
-                className={`px-3 py-1 mx-1 rounded ${
-                  p === filter.currentPage
-                    ? "bg-flow-dark text-white"
-                    : "bg-brand-primary text-brand-text/80"
-                } ${p === "..." ? "pointer-events-none" : "hover:opacity-80"}`}
-              >
-                {p}
-              </button>
-            ));
-          })()}
+        <div className="flex justify-center items-center gap-3 mt-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => goPage(filter.currentPage - 1)}
+              disabled={filter.currentPage === 1}
+              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+              Page {filter.currentPage} of {pageCount}
+            </span>
+            <button
+              onClick={() => goPage(filter.currentPage + 1)}
+              disabled={filter.currentPage === pageCount}
+              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+          <div className="h-[1px] w-8 bg-brand-primary/30" />
+          <PageInput
+            maxPages={pageCount}
+            currentPage={filter.currentPage}
+            onPageChange={goPage}
+            disabled={false}
+          />
         </div>
       )}
 

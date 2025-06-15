@@ -67,6 +67,61 @@ const Dropdown = ({ opts, value, onChange, title, width = "w-40" }) => (
 );
 
 /* ---------- main component ---------- */
+const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
+  const [inputValue, setInputValue] = useState("");
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    if (value === "" || /^\d+$/.test(value)) {
+      setInputValue(value);
+    }
+  };
+
+  const handleSubmit = () => {
+    const newPage = parseInt(inputValue, 10);
+    if (
+      newPage &&
+      newPage >= 1 &&
+      newPage <= maxPages &&
+      newPage !== currentPage
+    ) {
+      onPageChange(newPage);
+    }
+    setInputValue("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="relative">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Page #"
+          className="w-16 px-2 py-1 rounded bg-brand-primary text-brand-text/80 text-sm"
+          disabled={disabled}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={handleSubmit}
+        disabled={disabled}
+        className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm"
+      >
+        Go
+      </button>
+    </div>
+  );
+};
+
 function TSHOTVault({ onSummaryUpdate }) {
   /* Server/API Data */
   const [vaultData, setVaultData] = useState([]);
@@ -396,24 +451,33 @@ function TSHOTVault({ onSummaryUpdate }) {
               ))}
             </div>
           </div>
-          <div className="flex justify-center gap-3 mt-4">
-            <button
-              onClick={() => setPage((p) => p - 1)}
-              disabled={page === 1 || anyLoading}
-              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-            >
-              Prev
-            </button>
-            <span className="text-sm text-brand-text/70">
-              Page {page} of {maxPages}
-            </span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={page === maxPages || anyLoading}
-              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-            >
-              Next
-            </button>
+          <div className="flex justify-center items-center gap-3 mt-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1 || anyLoading}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                Page {page} of {maxPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page === maxPages || anyLoading}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="h-[1px] w-8 bg-brand-primary/30" />
+            <PageInput
+              maxPages={maxPages}
+              currentPage={page}
+              onPageChange={setPage}
+              disabled={anyLoading}
+            />
           </div>
         </>
       ) : !anyLoading ? (
