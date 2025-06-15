@@ -12,7 +12,7 @@ import MomentCard from "../components/MomentCard";
 import { Info } from "lucide-react";
 
 const MAX_FLOW_TRANSFER_COUNT = 500; // Flow → Flow
-const MAX_EVM_BRIDGE_COUNT = 50; // Flow → EVM
+const MAX_EVM_BRIDGE_COUNT = 9; // Flow → EVM
 
 const Transfer = () => {
   /* ───────── context ───────── */
@@ -63,20 +63,22 @@ const Transfer = () => {
     (activeAccountData.nftDetails || []).some((nft) => nft.id === id)
   );
 
+  const maxTransferCount =
+    destinationType === "evm" ? MAX_EVM_BRIDGE_COUNT : MAX_FLOW_TRANSFER_COUNT;
+
   const transferDisabled =
     !selectedNftsInAccount.length ||
     (destinationType === "flow" && recipient === "0x") ||
+    (destinationType === "evm" &&
+      selectedNftsInAccount.length > MAX_EVM_BRIDGE_COUNT) ||
     isRefreshing;
-
-  const maxTransferCount =
-    destinationType === "evm" ? MAX_EVM_BRIDGE_COUNT : MAX_FLOW_TRANSFER_COUNT;
 
   /* ───────── button label / disabled ───────── */
   let transferButtonLabel =
     destinationType === "evm" ? "Bridge to EVM" : "Transfer to Flow Account";
 
   if (selectedNftsInAccount.length > maxTransferCount) {
-    transferButtonLabel = `Max ${maxTransferCount} NFTs`;
+    transferButtonLabel = `Max ${maxTransferCount} Moments`;
   }
 
   /* ───────── helpers ───────── */
@@ -122,28 +124,38 @@ const Transfer = () => {
 
   const renderSelectedMoments = () => (
     <div>
-      <h4 className="text-sm mb-2 text-brand">Selected Moments:</h4>
-      {selectedNftsInAccount.length ? (
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-2 justify-items-center">
-          {selectedNftsInAccount.map((id) => {
-            const nft = (activeAccountData.nftDetails || []).find(
-              (item) => Number(item.id) === Number(id)
-            );
-            return nft ? (
-              <MomentCard
-                key={id}
-                nft={nft}
-                handleNFTSelection={() =>
-                  dispatch({ type: "SET_SELECTED_NFTS", payload: id })
-                }
-                isSelected
-              />
-            ) : null;
-          })}
-        </div>
-      ) : (
-        <p className="text-sm text-brand">No Moments selected yet.</p>
-      )}
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="text-sm text-brand">Selected Moments:</h4>
+        <span className="text-brand-text/70 text-sm">
+          {selectedNftsInAccount.length}/
+          {destinationType === "evm" ? "9" : "500"}
+        </span>
+      </div>
+      <div className="h-[280px] overflow-y-auto pr-1">
+        {selectedNftsInAccount.length ? (
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
+            {selectedNftsInAccount.map((id) => {
+              const nft = (activeAccountData.nftDetails || []).find(
+                (item) => Number(item.id) === Number(id)
+              );
+              return nft ? (
+                <MomentCard
+                  key={id}
+                  nft={nft}
+                  handleNFTSelection={() =>
+                    dispatch({ type: "SET_SELECTED_NFTS", payload: id })
+                  }
+                  isSelected
+                />
+              ) : null;
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-brand text-center">
+            No Moments selected yet.
+          </p>
+        )}
+      </div>
     </div>
   );
 
@@ -184,7 +196,7 @@ const Transfer = () => {
 
           <p className="text-xs mt-1 text-gray-400">
             {destinationType === "evm"
-              ? `You can bridge up to ${MAX_EVM_BRIDGE_COUNT} Moments per transaction (gas-efficient limit).`
+              ? "You can bridge up to 9 Moments per transaction (gas-efficient limit)."
               : `You can transfer up to ${MAX_FLOW_TRANSFER_COUNT} Moments per transaction.`}
           </p>
 

@@ -915,38 +915,43 @@ const Swap = () => {
           <div className="w-full p-0 space-y-2 mb-2">
             {/* Selected Moments (full width) */}
             <div className="bg-brand-primary shadow-md p-2 rounded w-full">
-              <h4 className="text-brand-text text-sm mb-2">
-                Selected Moments:
-              </h4>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
-                {selectedNFTs.length > 0 ? (
-                  selectedNFTs.map((momentId) => {
-                    const activeAcc =
-                      (accountData.childrenData || []).find(
-                        (c) => c.addr === selectedAccount
-                      ) || accountData;
-                    const nft = (activeAcc.nftDetails || []).find(
-                      (item) => Number(item.id) === Number(momentId)
-                    );
-                    return (
-                      <MomentCard
-                        key={momentId}
-                        nft={nft}
-                        handleNFTSelection={() =>
-                          dispatch({
-                            type: "SET_SELECTED_NFTS",
-                            payload: momentId,
-                          })
-                        }
-                        isSelected={true}
-                      />
-                    );
-                  })
-                ) : (
-                  <span className="text-brand-text/70 col-span-full text-center">
-                    No moments selected
-                  </span>
-                )}
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-brand-text text-sm">Selected Moments:</h4>
+                <span className="text-brand-text/70 text-sm">
+                  {selectedNFTs.length}/50
+                </span>
+              </div>
+              <div className="h-[280px] overflow-y-auto pr-1">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
+                  {selectedNFTs.length > 0 ? (
+                    selectedNFTs.map((momentId) => {
+                      const activeAcc =
+                        (accountData.childrenData || []).find(
+                          (c) => c.addr === selectedAccount
+                        ) || accountData;
+                      const nft = (activeAcc.nftDetails || []).find(
+                        (item) => Number(item.id) === Number(momentId)
+                      );
+                      return (
+                        <MomentCard
+                          key={momentId}
+                          nft={nft}
+                          handleNFTSelection={() =>
+                            dispatch({
+                              type: "SET_SELECTED_NFTS",
+                              payload: momentId,
+                            })
+                          }
+                          isSelected={true}
+                        />
+                      );
+                    })
+                  ) : (
+                    <span className="text-brand-text/70 col-span-full text-center">
+                      No moments selected
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
