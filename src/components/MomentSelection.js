@@ -245,22 +245,15 @@ export default function MomentSelection(props) {
   } = useContext(UserDataContext);
 
   /* live "x min ago" label */
-  const [elapsed, setElapsed] = useState(formatElapsed(lastSuccessfulUpdate)); // MODIFIED
+  const [elapsed, setElapsed] = useState(formatElapsed(lastSuccessfulUpdate));
   useEffect(() => {
-    setElapsed(formatElapsed(lastSuccessfulUpdate)); // MODIFIED
+    setElapsed(formatElapsed(lastSuccessfulUpdate));
     const id = setInterval(
-      () => setElapsed(formatElapsed(lastSuccessfulUpdate)), // MODIFIED
+      () => setElapsed(formatElapsed(lastSuccessfulUpdate)),
       30_000
     );
     return () => clearInterval(id);
-  }, [lastSuccessfulUpdate]); // MODIFIED
-
-  // Reset page to 1 when switching accounts
-  useEffect(() => {
-    if (filter.currentPage > 1) {
-      goPage(1);
-    }
-  }, [selectedAccount]);
+  }, [lastSuccessfulUpdate]);
 
   /* --- refresh cooldown (30 s) ------------------ */
   const [cooldown, setCooldown] = useState(false);
@@ -280,12 +273,10 @@ export default function MomentSelection(props) {
         cooldownTimerRef.current = null;
       }, 30_000);
     }
-    // Clear timeout if component unmounts or if a new refresh starts before cooldown ends
-    // This part of the logic might need review based on exact desired behavior
     return () => {
       if (cooldownTimerRef.current) {
-        // clearTimeout(cooldownTimerRef.current); // Potentially clear if unmounting or new refresh
-        // cooldownTimerRef.current = null;
+        clearTimeout(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
       }
     };
   }, [isRefreshing, cooldown]);
@@ -303,32 +294,21 @@ export default function MomentSelection(props) {
     if (
       selectedAccountType === "child" &&
       selectedAccount &&
-      !childObj && // Only load if childObj is not yet populated
+      !childObj &&
       typeof loadChildData === "function"
     ) {
       loadChildData(selectedAccount);
     }
   }, [selectedAccountType, selectedAccount, childObj, loadChildData]);
 
-  /* 2️⃣ raw list + excludes */
-  const raw =
-    selectedAccountType === "parent"
-      ? accountData?.nftDetails || []
-      : childObj?.nftDetails || [];
+  /* 2️⃣ get moments from the right place */
+  const moments = childObj?.nftDetails || accountData?.nftDetails || [];
 
-  const addrForExcl =
-    selectedAccountType === "child"
-      ? selectedAccount
-      : accountData.parentAddress;
-  const excludedIds = readExcluded(addrForExcl);
-  const nftDetails = raw.filter((n) => !excludedIds.has(n.id));
+  /* 3️⃣ filter out excluded moments */
+  const excluded = readExcluded(selectedAccount);
+  const eligibleMoments = moments.filter((m) => !excluded.has(m.id));
 
-  const hasCollection =
-    selectedAccountType === "parent"
-      ? accountData?.hasCollection ?? false
-      : childObj?.hasCollection ?? false;
-
-  /* heavy filter hook */
+  /* 4️⃣ apply filters */
   const {
     filter,
     setFilter,
@@ -338,22 +318,61 @@ export default function MomentSelection(props) {
     setNameOptions,
     teamOptions,
     playerOptions,
-    eligibleMoments,
     prefs,
     currentPrefKey,
     savePref,
     applyPref,
     deletePref,
-  } = useMomentFilters({ ...props, nftDetails, selectedNFTs });
+  } = useMomentFilters({
+    nftDetails: eligibleMoments,
+    selectedNFTs,
+    allowAllTiers: true,
+    allowAllSeries: true,
+  });
+  const filtered = eligibleMoments.filter((m) => {
+    if (
+      filter.selectedTiers.length > 0 &&
+      !filter.selectedTiers.includes(m.tier)
+    ) {
+      return false;
+    }
+    if (
+      filter.selectedSeries.length > 0 &&
+      !filter.selectedSeries.includes(m.series)
+    ) {
+      return false;
+    }
+    if (filter.selectedLeague !== "All" && m.league !== filter.selectedLeague) {
+      return false;
+    }
+    if (filter.selectedSet !== "All" && m.setName !== filter.selectedSet) {
+      return false;
+    }
+    if (filter.selectedTeam !== "All" && m.team !== filter.selectedTeam) {
+      return false;
+    }
+    if (filter.selectedPlayer !== "All" && m.player !== filter.selectedPlayer) {
+      return false;
+    }
+    return true;
+  });
 
-  /* pagination */
-  const PER_PAGE = 30;
-  const pageCount = Math.ceil(eligibleMoments.length / PER_PAGE);
-  const pageSlice = eligibleMoments.slice(
-    (filter.currentPage - 1) * PER_PAGE,
-    filter.currentPage * PER_PAGE
+  /* 5️⃣ paginate */
+  const pageSize = 50;
+  const pageCount = Math.ceil(filtered.length / pageSize);
+  const pageSlice = filtered.slice(
+    (filter.currentPage - 1) * pageSize,
+    filter.currentPage * pageSize
   );
-  const goPage = (p) => setFilter({ currentPage: p });
+
+  const goPage = useCallback((p) => setFilter({ currentPage: p }), [setFilter]);
+
+  // Reset page to 1 when switching accounts
+  useEffect(() => {
+    if (filter.currentPage > 1) {
+      goPage(1);
+    }
+  }, [selectedAccount, filter.currentPage, goPage]);
 
   /* prefs modal */
   const [showPrefs, setShowPrefs] = useState(false);
@@ -367,7 +386,11 @@ export default function MomentSelection(props) {
   // This part can be enhanced based on how you want to use `collectionLoadStatus`
   // For now, just checking hasCollection after initial load attempts.
 
-  if (!hasCollection && !isRefreshing && accountData.parentAddress) {
+  if (
+    !accountData.hasCollection &&
+    !isRefreshing &&
+    accountData.parentAddress
+  ) {
     // Check parentAddress to ensure some load attempt happened
     return (
       <div className="bg-brand-primary p-2 rounded-lg">
