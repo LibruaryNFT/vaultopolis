@@ -263,6 +263,7 @@ export default function MomentSelection(props) {
     isRefreshing,
     selectedAccount,
     selectedAccountType,
+    // eslint-disable-next-line no-unused-vars
     loadChildData,
     refreshUserData,
     lastSuccessfulUpdate, // MODIFIED: Changed from lastCollectionLoad
@@ -345,7 +346,11 @@ export default function MomentSelection(props) {
     savePref,
     applyPref,
     deletePref,
-  } = useMomentFilters({ nftDetails, selectedNFTs });
+  } = useMomentFilters({
+    nftDetails,
+    selectedNFTs,
+    allowAllTiers: props.allowAllTiers || false,
+  });
 
   /* pagination */
   const PER_PAGE = 30;

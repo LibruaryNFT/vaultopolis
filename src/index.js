@@ -60,7 +60,8 @@ fcl
     "0x95b85a9ef4daabb1", // Dapper Wallet
     "0xf086a545ce3c552d", // Outdated Ledger
     "0x55ad22f01ef568a1", // Blocto
-  ]);
+  ])
+  .put("fcl.limit", 9999); // Increase transaction computation limit
 
 /* ──────────────────────────────────────────── */
 /* 3)  React root – unchanged                  */

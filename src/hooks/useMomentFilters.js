@@ -296,9 +296,11 @@ export function useMomentFilters({
           // First apply the passes filter
           if (!passes(n)) return false;
 
-          // Then enforce common/fandom only filter
-          const tier = (n.tier || "").toLowerCase();
-          if (tier !== "common" && tier !== "fandom") return false;
+          // Only enforce common/fandom filter if allowAllTiers is false
+          if (!allowAllTiers) {
+            const tier = (n.tier || "").toLowerCase();
+            if (tier !== "common" && tier !== "fandom") return false;
+          }
 
           return true;
         })
@@ -308,7 +310,7 @@ export function useMomentFilters({
           const serialB = Number(b.serialNumber);
           return serialB - serialA;
         }),
-    [dDetails, passes]
+    [dDetails, passes, allowAllTiers]
   );
 
   const baseNoSub = useMemo(
