@@ -73,7 +73,7 @@ export const DEFAULT_FILTER = Object.fromEntries(
   Object.entries(FILTER_SCHEMA).map(([k, v]) => [k, v.def])
 );
 
-/* guarantee “All” & uniqueness (string-compare) */
+/* guarantee "All" & uniqueness (string-compare) */
 const ensureInOpts = (val, arr) => {
   const v = String(val);
   if (v === "All" || v === "") return arr;
@@ -148,10 +148,21 @@ export function useMomentFilters({
   const dDetails = useDeferredValue(nftDetails);
 
   const buildOpts = useCallback(
-    (extract, pred = () => true) => {
+    (extract, pred = () => true, isPlayerOptions = false) => {
       const s = new Set(
         dDetails
-          .filter((n) => !n.isLocked && pred(n))
+          .filter((n) => {
+            // For player options, only check if the moment is not locked and matches basic filters
+            if (isPlayerOptions) {
+              return (
+                !n.isLocked &&
+                dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
+                dFilter.selectedSeries.includes(Number(n.series))
+              );
+            }
+            // For other options, apply the full predicate
+            return !n.isLocked && pred(n);
+          })
           .map(extract)
           .filter(Boolean)
       );
@@ -159,8 +170,8 @@ export function useMomentFilters({
         ("" + a).localeCompare("" + b, undefined, { numeric: true })
       );
     },
-    [dDetails]
-  ); /* league / set / team / player options */
+    [dDetails, dFilter.selectedTiers, dFilter.selectedSeries]
+  );
 
   const leagueOptions = buildOpts(
     (n) => (WNBA_TEAMS.includes(n.teamAtMoment || "") ? "WNBA" : "NBA"),
@@ -205,21 +216,12 @@ export function useMomentFilters({
     dFilter.selectedPlayer,
     buildOpts(
       (n) => n.fullName,
-      (n) =>
-        dFilter.selectedSeries.includes(Number(n.series)) &&
-        dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
-        (dFilter.selectedSetName === "All" ||
-          n.name === dFilter.selectedSetName) &&
-        (dFilter.selectedTeam === "All" ||
-          n.teamAtMoment === dFilter.selectedTeam) &&
-        (dFilter.selectedLeague === "All"
-          ? true
-          : dFilter.selectedLeague === "WNBA"
-          ? WNBA_TEAMS.includes(n.teamAtMoment || "")
-          : !WNBA_TEAMS.includes(n.teamAtMoment || ""))
+      (n) => true, // Don't apply any filtering for player options
+      true // Mark this as player options
     )
-  ); /* ---------- predicate ---------- */
+  );
 
+  /* ---------- predicate ---------- */
   const passes = useCallback(
     (n, omit = null) => {
       if (excludeIds.includes(String(n.id)) || n.isLocked) return false;
@@ -290,8 +292,22 @@ export function useMomentFilters({
   const eligibleMoments = useMemo(
     () =>
       dDetails
-        .filter((n) => passes(n))
-        .sort((a, b) => b.serialNumber - a.serialNumber),
+        .filter((n) => {
+          // First apply the passes filter
+          if (!passes(n)) return false;
+
+          // Then enforce common/fandom only filter
+          const tier = (n.tier || "").toLowerCase();
+          if (tier !== "common" && tier !== "fandom") return false;
+
+          return true;
+        })
+        .sort((a, b) => {
+          // Sort by serial number from highest to lowest
+          const serialA = Number(a.serialNumber);
+          const serialB = Number(b.serialNumber);
+          return serialB - serialA;
+        }),
     [dDetails, passes]
   );
 

@@ -1033,7 +1033,10 @@ const Swap = () => {
 
             {/* Moment Selection (full width) */}
             <div className="bg-brand-primary shadow-md rounded-lg w-full">
-              <MomentSelection excludeIds={excludedNftIds} />
+              <MomentSelection
+                excludeIds={excludedNftIds}
+                restrictToCommonFandom={true}
+              />
             </div>
           </div>
         )}

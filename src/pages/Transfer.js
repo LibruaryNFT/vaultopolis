@@ -328,7 +328,7 @@ const Transfer = () => {
           </div>
 
           <div className="bg-brand-primary shadow-md rounded-lg w-full">
-            <MomentSelection />
+            <MomentSelection restrictToCommonFandom={false} />
           </div>
         </div>
       </div>

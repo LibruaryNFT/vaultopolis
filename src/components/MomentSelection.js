@@ -41,22 +41,46 @@ const Dropdown = ({
   countFn = () => 0,
   labelFn = null,
   width = "w-40",
-}) => (
-  <select
-    value={value}
-    onChange={onChange}
-    disabled={!opts.length}
-    title={title}
-    className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40`}
-  >
-    <option value="All">All</option>
-    {opts.map((o) => (
-      <option key={o} value={o} className="text-brand-text">
-        {labelFn ? labelFn(o) : `${o} (${countFn(o)})`}
-      </option>
-    ))}
-  </select>
-);
+  isPlayerDropdown = false,
+  nftDetails = [],
+  filter = {},
+}) => {
+  // For player dropdown, show total count without serial filters
+  const getCount = (option) => {
+    if (
+      isPlayerDropdown &&
+      Array.isArray(nftDetails) &&
+      filter.selectedTiers &&
+      filter.selectedSeries
+    ) {
+      return nftDetails.filter(
+        (n) =>
+          !n.isLocked &&
+          n.fullName === option &&
+          filter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
+          filter.selectedSeries.includes(Number(n.series))
+      ).length;
+    }
+    return countFn(option);
+  };
+
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      disabled={!opts.length}
+      title={title}
+      className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40`}
+    >
+      <option value="All">All</option>
+      {opts.map((o) => (
+        <option key={o} value={o} className="text-brand-text">
+          {labelFn ? labelFn(o) : `${o} (${getCount(o)})`}
+        </option>
+      ))}
+    </select>
+  );
+};
 
 /* ───── preset-modal (unchanged) ───── */
 const sanitizeName = (s) =>
@@ -244,6 +268,9 @@ export default function MomentSelection(props) {
     lastSuccessfulUpdate, // MODIFIED: Changed from lastCollectionLoad
   } = useContext(UserDataContext);
 
+  // Allow parent to control if only common/fandom are shown (default: false)
+  const restrictToCommonFandom = props.restrictToCommonFandom || false;
+
   /* live "x min ago" label */
   const [elapsed, setElapsed] = useState(formatElapsed(lastSuccessfulUpdate));
   useEffect(() => {
@@ -289,26 +316,19 @@ export default function MomentSelection(props) {
         )
       : null;
 
-  /* fetch child data first time */
-  useEffect(() => {
-    if (
-      selectedAccountType === "child" &&
-      selectedAccount &&
-      !childObj &&
-      typeof loadChildData === "function"
-    ) {
-      loadChildData(selectedAccount);
-    }
-  }, [selectedAccountType, selectedAccount, childObj, loadChildData]);
-
   /* 2️⃣ get moments from the right place */
   const moments = childObj?.nftDetails || accountData?.nftDetails || [];
 
-  /* 3️⃣ filter out excluded moments */
-  const excluded = readExcluded(selectedAccount);
-  const eligibleMoments = moments.filter((m) => !excluded.has(m.id));
+  // If restrictToCommonFandom, only allow common/fandom moments (for swap page)
+  const filteredNFTs = restrictToCommonFandom
+    ? moments.filter((m) => m.tier === "common" || m.tier === "fandom")
+    : moments;
 
-  /* 4️⃣ apply filters */
+  // Exclude locally excluded moments
+  const excluded = readExcluded(selectedAccount);
+  const nftDetails = filteredNFTs.filter((m) => !excluded.has(m.id));
+
+  /* heavy filter hook */
   const {
     filter,
     setFilter,
@@ -318,61 +338,30 @@ export default function MomentSelection(props) {
     setNameOptions,
     teamOptions,
     playerOptions,
+    eligibleMoments,
+    base,
     prefs,
     currentPrefKey,
     savePref,
     applyPref,
     deletePref,
-  } = useMomentFilters({
-    nftDetails: eligibleMoments,
-    selectedNFTs,
-    allowAllTiers: true,
-    allowAllSeries: true,
-  });
-  const filtered = eligibleMoments.filter((m) => {
-    if (
-      filter.selectedTiers.length > 0 &&
-      !filter.selectedTiers.includes(m.tier)
-    ) {
-      return false;
-    }
-    if (
-      filter.selectedSeries.length > 0 &&
-      !filter.selectedSeries.includes(m.series)
-    ) {
-      return false;
-    }
-    if (filter.selectedLeague !== "All" && m.league !== filter.selectedLeague) {
-      return false;
-    }
-    if (filter.selectedSet !== "All" && m.setName !== filter.selectedSet) {
-      return false;
-    }
-    if (filter.selectedTeam !== "All" && m.team !== filter.selectedTeam) {
-      return false;
-    }
-    if (filter.selectedPlayer !== "All" && m.player !== filter.selectedPlayer) {
-      return false;
-    }
-    return true;
-  });
+  } = useMomentFilters({ nftDetails, selectedNFTs });
 
-  /* 5️⃣ paginate */
-  const pageSize = 50;
-  const pageCount = Math.ceil(filtered.length / pageSize);
-  const pageSlice = filtered.slice(
-    (filter.currentPage - 1) * pageSize,
-    filter.currentPage * pageSize
+  /* pagination */
+  const PER_PAGE = 30;
+  const pageCount = Math.ceil(eligibleMoments.length / PER_PAGE);
+  const pageSlice = eligibleMoments.slice(
+    (filter.currentPage - 1) * PER_PAGE,
+    filter.currentPage * PER_PAGE
   );
 
   const goPage = useCallback((p) => setFilter({ currentPage: p }), [setFilter]);
 
   // Reset page to 1 when switching accounts
   useEffect(() => {
-    if (filter.currentPage > 1) {
-      goPage(1);
-    }
-  }, [selectedAccount, filter.currentPage, goPage]);
+    goPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAccount]);
 
   /* prefs modal */
   const [showPrefs, setShowPrefs] = useState(false);
@@ -567,9 +556,10 @@ export default function MomentSelection(props) {
               }
               title="Filter by player"
               countFn={(player) =>
-                eligibleMoments.filter((m) =>
-                  player === "All" ? true : m.player === player
-                ).length
+                player === "All"
+                  ? base.baseNoPlayer.length
+                  : base.baseNoPlayer.filter((m) => m.fullName === player)
+                      .length
               }
             />
           </div>
