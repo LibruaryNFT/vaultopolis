@@ -1,3 +1,22 @@
+# 🏆 PL_Genesis Hackathon Submission 🏆
+
+* **Project:** Vaultopolis (Existing Code Track)
+* **Challenges Entered:**
+    * `Flow: ⚡️ Most Killer App Potential`
+    * `Wildcard: ⚡️ Wildcard: Decentralized Economies, Governance & Science`
+
+### New Feature Built During Hackathon: Analytics Pipeline & Dashboard
+
+To provide critical insights for our users and community, we built a comprehensive, end-to-end analytics pipeline during the hackathon. This serves as our project's changelog for the event.
+
+**1. Backend Data Pipeline:** We developed a new backend service that runs a scheduled data aggregation job. This job processes over 1.3 million raw on-chain events from the Flow blockchain using a multi-stage MongoDB aggregation pipeline. It efficiently calculates key daily statistics (total deposits, withdrawals, unique wallets) and saves them to a new, optimized collection.
+
+**2. Frontend Analytics Dashboard:** This new backend and its `/tshot-stats` endpoint power a brand new, feature-rich **TSHOT Analytics dashboard** built in React. The dashboard visualizes both lifetime protocol metrics (from our existing `/wallet-leaderboard` endpoint) and daily activity trends (from the new endpoint), featuring KPI tiles, Top 10 leaderboards, and multiple charts to give a complete picture of our protocol's health and user engagement.
+
+This new feature transforms raw, high-volume blockchain data into actionable insights, significantly enhancing the value we provide to our community and demonstrating a scalable approach to on-chain analytics.
+
+---
+
 # Vaultopolis Frontend
 
 This repository contains the React frontend application for Vaultopolis, a decentralized protocol on the Flow Blockchain for swapping NBA Top Shot Moments and TSHOT tokens.
@@ -76,4 +95,3 @@ This application provides the user interface for interacting with the Vaultopoli
 npm run build
 # or
 yarn build
-```
