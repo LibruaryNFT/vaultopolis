@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 
 import TSHOTInfo from "../components/TSHOTInfo";
 import TSHOTVault from "../components/TSHOTVault";
+import TSHOTAnalytics from "../components/TSHOTAnalytics";
 
 function TSHOT() {
   const [vaultSummary, setVaultSummary] = useState(null);
@@ -24,6 +25,7 @@ function TSHOT() {
       <div className="w-full text-white space-y-2 mb-2">
         <TSHOTInfo vaultSummary={vaultSummary} />
         <TSHOTVault onSummaryUpdate={setVaultSummary} />
+        <TSHOTAnalytics />
       </div>
     </>
   );
