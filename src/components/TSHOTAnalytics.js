@@ -54,11 +54,10 @@ const TSHOTAnalytics = () => {
         
         const items = leaderboardData.items || [];
 
-        // --- Lifetime Stats Processing ---
         const totalDeposits = items.reduce((sum, user) => sum + (user.NFTToTSHOTSwapCompleted || 0), 0);
         const totalWithdrawals = items.reduce((sum, user) => sum + (user.TSHOTToNFTSwapCompleted || 0), 0);
-        const totalMomentsExchanged = totalDeposits + totalWithdrawals; // NEW: Total activity
-        const totalUniqueWallets = items.length; // This is correct as the API returns one doc per wallet.
+        const totalMomentsExchanged = totalDeposits + totalWithdrawals;
+        const totalUniqueWallets = items.length;
         
         const top10Depositors = [...items].sort((a, b) => (b.NFTToTSHOTSwapCompleted || 0) - (a.NFTToTSHOTSwapCompleted || 0)).slice(0, 10);
         const top10Withdrawers = [...items].sort((a, b) => (b.TSHOTToNFTSwapCompleted || 0) - (a.TSHOTToNFTSwapCompleted || 0)).slice(0, 10);
@@ -119,6 +118,9 @@ const TSHOTAnalytics = () => {
     if (loading) return <div className="text-center p-8 bg-brand-primary rounded-lg">Loading TSHOT Analytics...</div>;
     if (error) return <div className="text-center p-8 text-red-400 bg-brand-primary rounded-lg">Error: {error}</div>;
 
+    // NEW: Create a new array for the chart that excludes the last (incomplete) day
+    const lineChartData = dailyData.slice(0, -1);
+
     return (
         <div className="bg-brand-primary text-brand-text p-4 rounded-lg space-y-6">
             <div>
@@ -143,7 +145,8 @@ const TSHOTAnalytics = () => {
                 <h3 className="text-lg font-semibold mb-2 text-center">Daily Protocol Activity</h3>
                 <div className="bg-brand-secondary p-4 rounded-lg h-96">
                 <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={dailyData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                    {/* Use the new lineChartData variable here */}
+                    <LineChart data={lineChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2}/>
                     <XAxis dataKey="date" />
                     <YAxis yAxisId="left" />
