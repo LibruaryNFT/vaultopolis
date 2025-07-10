@@ -573,9 +573,33 @@ function Profile() {
       <Helmet>
         <title>{metaTitle}</title>
         <meta name="description" content={metaDesc} />
+        <meta name="keywords" content="vaultopolis profile, flow wallet profile, nba top shot portfolio, tshot balance, flow blockchain wallet" />
         <link rel="canonical" href={canonicalUrl} />
         <meta name="robots" content="index,follow" />
+        
+        {/* Open Graph Tags */}
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDesc} />
+        <meta property="og:type" content="profile" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png" />
+        
+        {/* Twitter Card Tags */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDesc} />
+        
+        {/* Enhanced Structured Data */}
         {jsonLd && <script type="application/ld+json">{jsonLd}</script>}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ProfilePage",
+            "name": "Vaultopolis Profile",
+            "description": "View your NBA Top Shot Moments, TSHOT balance, and transaction history",
+            "url": canonicalUrl
+          })}
+        </script>
       </Helmet>
 
       <div className="p-6 sm:p-10 max-w-7xl mx-auto text-brand-text">

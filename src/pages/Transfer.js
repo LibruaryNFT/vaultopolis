@@ -357,7 +357,37 @@ const Transfer = () => {
   return (
     <>
       <Helmet>
-        <title>Transfer | Vaultopolis</title>
+        <title>Bulk Transfer NBA Top Shot Moments | Vaultopolis</title>
+        <meta name="description" content="Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM. Bulk transfer functionality for efficient NFT management and cross-chain bridging." />
+        <meta name="keywords" content="bulk transfer, nba top shot transfer, flow nft transfer, evm bridge, flow blockchain transfer, nft bridge, cross-chain transfer" />
+        <link rel="canonical" href="https://vaultopolis.com/transfer" />
+        
+        {/* Open Graph Tags */}
+        <meta property="og:title" content="Bulk Transfer NBA Top Shot Moments | Vaultopolis" />
+        <meta property="og:description" content="Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM. Efficient bulk transfer functionality." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://vaultopolis.com/transfer" />
+        <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png" />
+        
+        {/* Twitter Card Tags */}
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content="Bulk Transfer NBA Top Shot Moments" />
+        <meta name="twitter:description" content="Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM." />
+        
+        {/* Structured Data for Service */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            "name": "Bulk Transfer Service",
+            "description": "Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM",
+            "provider": {
+              "@type": "Organization",
+              "name": "Vaultopolis"
+            },
+            "serviceType": "NFT Transfer Service"
+          })}
+        </script>
       </Helmet>
 
       {/* 1) Top panel */}

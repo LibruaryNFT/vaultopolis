@@ -496,12 +496,41 @@ const Swap = () => {
     <>
       {/* ────────────── SEO HEAD (new) ────────────── */}
       <Helmet>
-        <title>Vaultopolis | Swap TSHOT Tokens</title>
+        <title>Vaultopolis | Swap NBA Top Shot Moments for TSHOT Tokens on Flow</title>
         <meta
           name="description"
-          content="Swap Top Shot Moments for TSHOT or redeem TSHOT for new Moments instantly on the Flow blockchain."
+          content="Vaultopolis is a decentralized protocol on Flow blockchain for swapping NBA Top Shot Moments and TSHOT tokens. Mint, burn, or swap TSHOT instantly with 1:1 backing by Top Shot Moments."
         />
-        <link rel="canonical" href="https://vaultopolis.com/swap" />
+        <meta name="keywords" content="vaultopolis, tshot, nba top shot, flow blockchain, nft swap, tokenized moments, flow crypto" />
+        <link rel="canonical" href="https://vaultopolis.com" />
+        
+        {/* Open Graph Tags */}
+        <meta property="og:title" content="Vaultopolis | Swap NBA Top Shot Moments for TSHOT Tokens" />
+        <meta property="og:description" content="Decentralized protocol for swapping NBA Top Shot Moments and TSHOT tokens on Flow blockchain. 1:1 backed tokenized liquidity." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://vaultopolis.com" />
+        <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png" />
+        <meta property="og:site_name" content="Vaultopolis" />
+        
+        {/* Twitter Card Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Vaultopolis | Swap NBA Top Shot Moments for TSHOT Tokens" />
+        <meta name="twitter:description" content="Decentralized protocol for swapping NBA Top Shot Moments and TSHOT tokens on Flow blockchain." />
+        <meta name="twitter:image" content="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png" />
+        <meta name="twitter:site" content="@vaultopolis" />
+        
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Vaultopolis",
+            "url": "https://vaultopolis.com",
+            "logo": "https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png",
+            "description": "Decentralized protocol for swapping NBA Top Shot Moments and TSHOT tokens on Flow blockchain",
+            "sameAs": ["https://x.com/vaultopolis"]
+          })}
+        </script>
       </Helmet>
 
       {/* Transaction Modal */}
