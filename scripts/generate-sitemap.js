@@ -20,26 +20,27 @@ const CHANGEFREQ = "weekly";
 const PRIORITY = "0.7";
 
 /* ───────── helpers ───────── */
-const normalize = (p) =>
-  (p || "")
-    .replace(/\/?:[^/]+[\?\*]?/g, "") // `/profile/:id?` → `/profile`
-    .replace(/\/+$/, "") || "/";
+const isStaticRoute = (path) => {
+  // Check if the route contains dynamic parameters (colons)
+  return !path.includes(":");
+};
+
+const normalize = (p) => (p || "").replace(/\/+$/, "") || "/"; // Only remove trailing slashes, don't strip dynamic params
 
 const todayISO = () => new Date().toISOString().split("T")[0];
 
 /* ───────── main ───────── */
 (async function buildSiteMap() {
-  /* 1) static routes */
-  const staticUrls = [...new Set(routes.map((r) => normalize(r.path)))].map(
-    (p) => ({
-      loc: `${BASE_URL}${p === "/" ? "" : p}`,
-      lastmod: todayISO(),
-      priority: PRIORITY,
-    })
-  );
+  /* 1) static routes only - exclude dynamic routes */
+  const staticRoutes = routes.filter((r) => isStaticRoute(r.path));
+  const staticUrls = staticRoutes.map((r) => ({
+    loc: `${BASE_URL}${r.path === "/" ? "" : r.path}`,
+    lastmod: todayISO(),
+    priority: PRIORITY,
+  }));
 
   /* 2) XML assembly */
-  const urlNodes = [...staticUrls] // We removed walletUrls from here
+  const urlNodes = staticUrls
     .map(
       (u) => `
           <url>
@@ -59,4 +60,9 @@ const todayISO = () => new Date().toISOString().split("T")[0];
 
   fs.writeFileSync(OUT_PATH, xml);
   console.log("✅  sitemap.xml created in /build");
+  console.log(
+    `📊  Generated ${staticUrls.length} static URLs (excluded ${
+      routes.length - staticRoutes.length
+    } dynamic routes)`
+  );
 })();
