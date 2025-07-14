@@ -1,10 +1,3 @@
-/* scripts/generate-sitemap.js
-    --------------------------------------------------------------
-    Build-time sitemap generator for Vaultopolis.
-    Generates a sitemap for all static routes, includes <lastmod> 
-    and <priority> for every entry.
-    -------------------------------------------------------------- */
-
 require("@babel/register")({
   presets: ["@babel/preset-env", "@babel/preset-react"],
 });
@@ -21,18 +14,22 @@ const PRIORITY = "0.7";
 
 /* ───────── helpers ───────── */
 const isStaticRoute = (path) => {
-  // Check if the route contains dynamic parameters (colons)
   return !path.includes(":");
 };
 
-const normalize = (p) => (p || "").replace(/\/+$/, "") || "/"; // Only remove trailing slashes, don't strip dynamic params
+const normalize = (p) => (p || "").replace(/\/+$/, "") || "/";
 
 const todayISO = () => new Date().toISOString().split("T")[0];
 
 /* ───────── main ───────── */
 (async function buildSiteMap() {
-  /* 1) static routes only - exclude dynamic routes */
-  const staticRoutes = routes.filter((r) => isStaticRoute(r.path));
+  // --- START OF FIX ---
+  // We now filter for static routes AND explicitly exclude the '/profile' path.
+  const staticRoutes = routes.filter(
+    (r) => isStaticRoute(r.path) && r.path !== "/profile"
+  );
+  // --- END OF FIX ---
+
   const staticUrls = staticRoutes.map((r) => ({
     loc: `${BASE_URL}${r.path === "/" ? "" : r.path}`,
     lastmod: todayISO(),
