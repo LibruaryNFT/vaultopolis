@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Loader2, AlertTriangle, RefreshCw, LockIcon } from "lucide-react";
 import MomentCard, { tierStyles } from "./MomentCard";
+import { UserDataContext } from "../context/UserContext";
 
 /* ---------- constants ---------- */
 const TIER_OPTIONS = [
@@ -123,6 +124,8 @@ const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
 };
 
 function TSHOTVault({ onSummaryUpdate }) {
+  const { flowPricePerNFT } = useContext(UserDataContext);
+  
   /* Server/API Data */
   const [vaultData, setVaultData] = useState([]);
   const [queryTotal, setQueryTotal] = useState(0);
@@ -447,6 +450,7 @@ function TSHOTVault({ onSummaryUpdate }) {
                   nft={nft}
                   isVault
                   disableHover
+                  flowPricePerNFT={flowPricePerNFT}
                 />
               ))}
             </div>

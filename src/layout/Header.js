@@ -1,7 +1,7 @@
 /* src/layout/Header.jsx */
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
+import { FaUserCircle, FaBars, FaTimes, FaChevronDown } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
@@ -13,15 +13,17 @@ const Header = () => {
   /* ───────── local state ───────── */
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
+  const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
   const buttonRef = useRef(null);
   const mobileMenuRef = useRef(null);
+  const productsDropdownRef = useRef(null);
+  const toolsDropdownRef = useRef(null);
   const location = useLocation();
 
   /* ───────── helpers ───────── */
   // 1) Profile must *always* go to the parent
   const parentAddress = accountData?.parentAddress || user?.addr || "";
-  const profilePath = `/profile/${parentAddress}`;
-  const profileActive = location.pathname.startsWith(profilePath);
 
   // 2) User-button shows whichever account is active for swapping
   const userButtonAddr = selectedAccount || parentAddress;
@@ -42,6 +44,20 @@ const Header = () => {
     if (isMobileMenuOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [isMobileMenuOpen]);
+
+  /* close dropdowns on outside click */
+  useEffect(() => {
+    const handler = (e) => {
+      if (productsDropdownRef.current && !productsDropdownRef.current.contains(e.target)) {
+        setIsProductsDropdownOpen(false);
+      }
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target)) {
+        setIsToolsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   /* ───────── render ───────── */
   return (
@@ -69,20 +85,93 @@ const Header = () => {
 
         {/* ── Desktop nav ── */}
         <nav className="hidden md:flex items-center space-x-4 flex-grow justify-center">
-          <NavLink to="/" isActive={isHome}>
+          <NavLink 
+            to="/" 
+            isActive={isHome}
+            onMouseEnter={() => {
+              setIsProductsDropdownOpen(false);
+              setIsToolsDropdownOpen(false);
+            }}
+          >
             Swap
           </NavLink>
-          <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
-            TSHOT
+          
+          {/* Products Dropdown */}
+          <div className="relative" ref={productsDropdownRef}>
+            <button
+              onMouseEnter={() => {
+                setIsToolsDropdownOpen(false);
+                setIsProductsDropdownOpen(true);
+              }}
+              className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
+            >
+              Products <FaChevronDown size={12} className="ml-1" />
+            </button>
+            {isProductsDropdownOpen && (
+              <div
+                onMouseLeave={() => setIsProductsDropdownOpen(false)}
+                className="absolute top-full left-0 mt-1 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out"
+              >
+                <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
+                  TSHOT
+                </NavLink>
+              </div>
+            )}
+          </div>
+
+          {/* Tools Dropdown */}
+          <div className="relative" ref={toolsDropdownRef}>
+            <button
+              onMouseEnter={() => {
+                setIsProductsDropdownOpen(false);
+                setIsToolsDropdownOpen(true);
+              }}
+              className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
+            >
+              Tools <FaChevronDown size={12} className="ml-1" />
+            </button>
+            {isToolsDropdownOpen && (
+              <div
+                onMouseLeave={() => setIsToolsDropdownOpen(false)}
+                className="absolute top-full left-0 mt-1 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out"
+              >
+                                 <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
+                   Transfer Hub
+                 </NavLink>
+              </div>
+            )}
+          </div>
+
+          <NavLink 
+            to="/analytics" 
+            isActive={location.pathname === "/analytics"}
+            onMouseEnter={() => {
+              setIsProductsDropdownOpen(false);
+              setIsToolsDropdownOpen(false);
+            }}
+          >
+            Analytics
           </NavLink>
-          <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
-            Bulk Transfer
+          <NavLink 
+            to="/guides" 
+            isActive={location.pathname.startsWith("/guides")}
+            onMouseEnter={() => {
+              setIsProductsDropdownOpen(false);
+              setIsToolsDropdownOpen(false);
+            }}
+          >
+            Guides
           </NavLink>
-          {user.loggedIn && (
-            <NavLink to={profilePath} isActive={profileActive}>
-              Profile
-            </NavLink>
-          )}
+          <NavLink 
+            to="/about" 
+            isActive={location.pathname === "/about"}
+            onMouseEnter={() => {
+              setIsProductsDropdownOpen(false);
+              setIsToolsDropdownOpen(false);
+            }}
+          >
+            About
+          </NavLink>
         </nav>
 
         {/* ── Right: connect / account ── */}
@@ -133,29 +222,54 @@ const Header = () => {
               >
                 Swap
               </MobileNavLink>
+              
+              {/* Products Section */}
+              <div className="py-2 px-4 text-brand-text/70 text-sm font-medium">
+                Products
+              </div>
               <MobileNavLink
                 to="/tshot"
                 isActive={location.pathname === "/tshot"}
                 onClick={toggleMobileMenu}
+                className="pl-8"
               >
                 TSHOT
               </MobileNavLink>
+              
+              {/* Tools Section */}
+              <div className="py-2 px-4 text-brand-text/70 text-sm font-medium">
+                Tools
+              </div>
+                             <MobileNavLink
+                 to="/transfer"
+                 isActive={location.pathname === "/transfer"}
+                 onClick={toggleMobileMenu}
+                 className="pl-8"
+               >
+                 Transfer Hub
+               </MobileNavLink>
+              
               <MobileNavLink
-                to="/transfer"
-                isActive={location.pathname === "/transfer"}
+                to="/analytics"
+                isActive={location.pathname === "/analytics"}
                 onClick={toggleMobileMenu}
               >
-                Bulk Transfer
+                Analytics
               </MobileNavLink>
-              {user.loggedIn && (
-                <MobileNavLink
-                  to={profilePath}
-                  isActive={profileActive}
-                  onClick={toggleMobileMenu}
-                >
-                  Profile
-                </MobileNavLink>
-              )}
+              <MobileNavLink
+                to="/guides"
+                isActive={location.pathname.startsWith("/guides")}
+                onClick={toggleMobileMenu}
+              >
+                Guides
+              </MobileNavLink>
+              <MobileNavLink
+                to="/about"
+                isActive={location.pathname === "/about"}
+                onClick={toggleMobileMenu}
+              >
+                About
+              </MobileNavLink>
             </div>
           </div>
         </>
@@ -166,25 +280,25 @@ const Header = () => {
 
 /* ── helper components ── */
 
-const NavLink = ({ to, isActive, children }) => (
+const NavLink = ({ to, isActive, children, className = "" }) => (
   <Link
     to={to}
     className={`
       py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none
-      text-brand-text ${isActive ? "font-bold" : ""}
+      text-brand-text ${isActive ? "font-bold" : ""} ${className}
     `}
   >
     {children}
   </Link>
 );
 
-const MobileNavLink = ({ to, isActive, children, onClick }) => (
+const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
   <Link
     to={to}
     onClick={onClick}
     className={`
       w-full text-center py-4 hover:opacity-80 select-none
-      text-brand-text ${isActive ? "font-bold" : ""}
+      text-brand-text ${isActive ? "font-bold" : ""} ${className}
     `}
   >
     {children}

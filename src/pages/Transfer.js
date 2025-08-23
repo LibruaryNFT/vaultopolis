@@ -394,7 +394,7 @@ const Transfer = () => {
       <div className="max-w-md mx-auto mt-2 mb-2">
         <div className="bg-brand-primary shadow-md shadow-black/30 rounded-lg p-3 min-h-[180px]">
           <label className="block mb-1 text-brand font-semibold">
-            Transfer Destination:
+            Select Tool:
           </label>
           <div className="flex items-center space-x-4">
             <label className="flex items-center">
@@ -409,7 +409,7 @@ const Transfer = () => {
                   setRecipient("0x");
                 }}
               />
-              <span className="ml-2">Cadence</span>
+              <span className="ml-2">Bulk Transfer</span>
             </label>
 
             <label className="flex items-center">
@@ -424,7 +424,7 @@ const Transfer = () => {
                   setRecipient("0x");
                 }}
               />
-              <span className="ml-2">Flow EVM</span>
+              <span className="ml-2">EVM Bridge</span>
             </label>
           </div>
 
