@@ -5,28 +5,60 @@ import TSHOTInfo from "../components/TSHOTInfo";
 
 function TSHOT() {
   const [vaultSummary, setVaultSummary] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchVaultSummary = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch("https://api.vaultopolis.com/tshot-vault");
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        const [vaultResponse, analyticsResponse] = await Promise.all([
+          fetch("https://api.vaultopolis.com/tshot-vault"),
+          fetch("https://api.vaultopolis.com/wallet-leaderboard?limit=3000")
+        ]);
+        
+        if (!vaultResponse.ok) {
+          throw new Error(`Vault API error! status: ${vaultResponse.status}`);
         }
-        const data = await response.json();
-        setVaultSummary(data);
+        if (!analyticsResponse.ok) {
+          throw new Error(`Analytics API error! status: ${analyticsResponse.status}`);
+        }
+        
+        const vaultData = await vaultResponse.json();
+        const leaderboardData = await analyticsResponse.json();
+        
+        console.log("Raw leaderboard data:", leaderboardData);
+        
+        // Process analytics data similar to TSHOTAnalytics component
+        const items = leaderboardData.items || [];
+        console.log("Leaderboard items:", items);
+        
+        const totalDeposits = items.reduce((sum, user) => sum + (user.NFTToTSHOTSwapCompleted || 0), 0);
+        const totalWithdrawals = items.reduce((sum, user) => sum + (user.TSHOTToNFTSwapCompleted || 0), 0);
+        const totalMomentsExchanged = totalDeposits + totalWithdrawals;
+        const totalUniqueWallets = items.length;
+        
+        console.log("Calculated totals:", { totalDeposits, totalWithdrawals, totalMomentsExchanged, totalUniqueWallets });
+        
+        const processedAnalyticsData = {
+          totalMomentsExchanged,
+          totalUniqueWallets,
+          totalDeposits,
+          totalWithdrawals
+        };
+        
+        setVaultSummary(vaultData);
+        setAnalyticsData(processedAnalyticsData);
       } catch (err) {
-        console.error("Failed to fetch vault summary:", err);
+        console.error("Failed to fetch data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVaultSummary();
+    fetchData();
   }, []);
 
   return (
@@ -74,7 +106,7 @@ function TSHOT() {
       {/* ─── PAGE BODY ─── */}
       {/* space-y-2 = one uniform vertical gap between every major section */}
       <div className="w-full text-white space-y-2 mb-2">
-        <TSHOTInfo vaultSummary={vaultSummary} loading={loading} error={error} />
+        <TSHOTInfo vaultSummary={vaultSummary} analyticsData={analyticsData} loading={loading} error={error} />
       </div>
     </>
   );

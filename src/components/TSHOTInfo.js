@@ -9,7 +9,6 @@ import {
   Network,
   BarChart,
   GitFork,
-  ArrowDown,
   Replace,
   BookLock,
 } from "lucide-react";
@@ -51,7 +50,7 @@ const DesktopSection = ({ icon: Icon, title, children }) => (
 );
 
 /* ---------- main component ---------- */
-function TSHOTInfo({ vaultSummary, loading, error }) {
+function TSHOTInfo({ vaultSummary, analyticsData, loading, error }) {
   /* Grids */
 
   const userJourneyGrid = (
@@ -398,7 +397,17 @@ function TSHOTInfo({ vaultSummary, loading, error }) {
             <p className="text-xs text-brand-text/80">Launch Date</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-brand-text">4M+</p>
+            <p className="text-lg font-bold text-brand-text">
+              {loading ? (
+                <span className="text-brand-text/60">Loading...</span>
+              ) : error ? (
+                <span className="text-red-400">Error</span>
+              ) : analyticsData?.totalMomentsExchanged ? (
+                analyticsData.totalMomentsExchanged.toLocaleString()
+              ) : (
+                "..."
+              )}
+            </p>
             <p className="text-xs text-brand-text/80">Moments Exchanged</p>
           </div>
           <div className="text-center">
@@ -416,7 +425,17 @@ function TSHOTInfo({ vaultSummary, loading, error }) {
             <p className="text-xs text-brand-text/80">Moments in Vault</p>
           </div>
           <div className="text-center">
-            <p className="text-lg font-bold text-brand-text">300+</p>
+            <p className="text-lg font-bold text-brand-text">
+              {loading ? (
+                <span className="text-brand-text/60">Loading...</span>
+              ) : error ? (
+                <span className="text-red-400">Error</span>
+              ) : analyticsData?.totalUniqueWallets ? (
+                analyticsData.totalUniqueWallets.toLocaleString()
+              ) : (
+                "..."
+              )}
+            </p>
             <p className="text-xs text-brand-text/80">Active Users</p>
           </div>
         </div>
