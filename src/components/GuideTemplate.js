@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FaArrowLeft, FaExclamationTriangle, FaSpinner, FaCheckCircle, FaHome, FaQuestionCircle } from "react-icons/fa";
+import { FaExclamationTriangle, FaSpinner, FaCheckCircle, FaHome, FaQuestionCircle } from "react-icons/fa";
 
 // Extracted Step component for cleaner code
 function Step({ step }) {
@@ -301,19 +301,7 @@ function GuideTemplate({
               </ol>
             </nav>
             
-            {/* Back to Guides - REFINED */}
-            <div className="max-w-4xl mx-auto px-4 pt-4">
-              <Link 
-                to="/guides" 
-                className="inline-flex items-center px-4 py-2 rounded bg-brand-accent text-white hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2 focus:ring-offset-brand-primary"
-                aria-label="Return to all guides"
-                role="button"
-                tabIndex={0}
-              >
-                <FaArrowLeft className="mr-3 text-lg" aria-hidden="true" />
-                <span className="font-medium">Back to All Guides</span>
-              </Link>
-            </div>
+
 
             {/* Header Section - REFINED */}
             <header id="main-content" className="text-center space-y-4 max-w-4xl mx-auto px-4">

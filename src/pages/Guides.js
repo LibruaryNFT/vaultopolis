@@ -187,10 +187,10 @@ function Guides() {
                       </div>
                     </div>
                     
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-brand-text mb-4 text-center flex-shrink-0">
-                      {guide.title}
-                    </h3>
+                                          {/* Title */}
+                      <h3 className="text-xl font-bold text-brand-text mb-4 flex-shrink-0 select-none guide-title">
+                        {guide.title}
+                      </h3>
                     
                     {/* Description */}
                     <p className="text-brand-text/80 mb-6 text-sm leading-relaxed text-center flex-grow">
@@ -228,7 +228,7 @@ function Guides() {
                       </div>
                       
                       {/* Title */}
-                      <h3 className="text-xl font-bold text-brand-text mb-4 group-hover:text-brand-accent transition-colors text-center flex-shrink-0">
+                      <h3 className="text-xl font-bold text-brand-text mb-4 group-hover:text-brand-accent transition-colors flex-shrink-0 select-none guide-title">
                         {guide.title}
                       </h3>
                       
