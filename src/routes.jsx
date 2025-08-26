@@ -12,6 +12,7 @@ import Profile          from "./pages/Profile";
 import TermsAndPrivacy  from "./pages/TermsAndPrivacy";
 import ComingSoon       from "./pages/ComingSoon";
 import Guides           from "./pages/Guides";
+import About            from "./pages/About";
 import DapperWalletGuide  from "./pages/guides/DapperWalletGuide";
 import FlowWalletGuide     from "./pages/guides/FlowWalletGuide";
 import AccountLinkingGuide from "./pages/guides/AccountLinkingGuide";
@@ -39,6 +40,7 @@ const routes = [
   { path: "/guides/earning-rewards", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/bridging-to-fevm", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/bridging-from-fevm", element: <Layout><DapperWalletGuide /></Layout> },
+  { path: "/about",       element: <Layout><About /></Layout> },
   { path: "/terms",       element: <Layout><TermsAndPrivacy /></Layout> },
   { path: "/comingsoon",  element: <ComingSoon /> },
 ];

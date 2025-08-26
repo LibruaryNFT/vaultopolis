@@ -49,7 +49,7 @@ const QuickStartGuide = ({ variant = "full" }) => {
     {
       number: 1,
       title: "Get a Flow Wallet (Required)",
-      description: "You need a self-custody Flow wallet like Lilico or Blocto to interact with Vaultopolis and trade on DEXs. This is the essential first step.",
+      description: "You need the official Flow wallet to interact with Vaultopolis and trade on DEXs. This is the essential first step.",
       guideLink: "/guides/flow-wallet",
       guideText: "Follow the guide: Make a Flow Wallet",
       externalLink: null,
@@ -154,16 +154,14 @@ const QuickStartGuide = ({ variant = "full" }) => {
   return (
     <div className="bg-gradient-to-br from-brand-primary/10 to-brand-secondary/10 border border-brand-border rounded-xl p-6">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-accent/20 rounded-full mb-4">
-          <BookOpen className="w-8 h-8 text-brand-accent" />
+        <div className="flex justify-center mb-4">
+          <BookOpen className="text-6xl text-brand-accent" />
         </div>
         <h2 className="text-2xl font-bold text-brand-text mb-2">
           Quick Start: From Zero to TSHOT
         </h2>
         <p className="text-brand-text/80 max-w-2xl mx-auto">
-          Welcome to Vaultopolis! This guide provides a simple 5-step path for new users to get their first TSHOT tokens. 
-          We'll start with the essential Flow wallet setup, then show you optional steps for Top Shot integration, 
-          and finally guide you through getting and using TSHOT. Just follow the steps below.
+          Get your first TSHOT tokens in 5 simple steps. Start with Flow wallet setup, then optionally integrate Top Shot, and learn to use TSHOT.
         </p>
       </div>
 

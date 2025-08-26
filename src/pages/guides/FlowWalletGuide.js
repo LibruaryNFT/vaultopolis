@@ -173,7 +173,40 @@ function FlowWalletGuide() {
         )
       }
     ],
-    
+    faq: [
+      {
+        question: "How long does it take to set up a Flow wallet?",
+        answer: "The entire setup process typically takes 3-5 minutes. This includes downloading the app, creating your wallet, writing down your recovery phrase, and setting up your password."
+      },
+      {
+        question: "What if I lose my recovery phrase?",
+        answer: "If you lose your recovery phrase, you'll lose access to your wallet permanently. There's no way to recover it. This is why it's crucial to write it down and store it securely in multiple safe locations."
+      },
+      {
+        question: "Is Google Drive backup safe?",
+        answer: "Google Drive backup adds an extra layer of security, but it's optional. If you enable it, make sure your Google account is also secured with 2FA. The backup is encrypted and only accessible with your wallet password."
+      },
+      {
+        question: "Can I use the same wallet on multiple devices?",
+        answer: "Yes, you can import your Flow wallet on multiple devices using your recovery phrase. This is useful for accessing your wallet from different devices while maintaining the same account."
+      },
+      {
+        question: "What's the difference between Flow Wallet and Dapper Wallet?",
+        answer: "Flow Wallet is a non-custodial wallet where you manage your own private keys and have full control over your assets. Dapper Wallet is a custodial wallet where Dapper Labs holds your private keys and manages your assets on your behalf. You can use both - Flow Wallet for general Flow interactions and Dapper for Top Shot Moments."
+      },
+      {
+        question: "How do I get FLOW tokens to start?",
+        answer: "You can purchase FLOW tokens from cryptocurrency exchanges like Coinbase, Binance, or Kraken, then transfer them to your Flow wallet. You'll need FLOW for gas fees and trading on Vaultopolis."
+      },
+      {
+        question: "What if I forget my wallet password?",
+        answer: "If you forget your password, you can reset it using your recovery phrase. This will restore access to your wallet, but you'll need to set a new password."
+      },
+      {
+        question: "Is the Flow Wallet free to use?",
+        answer: "Yes, the Flow Wallet app is completely free to download and use. You only pay for gas fees when making transactions on the Flow blockchain."
+      }
+    ]
   };
 
   return <GuideTemplate {...guideData} />;

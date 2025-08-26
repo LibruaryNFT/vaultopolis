@@ -15,6 +15,7 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
+  const [dropdownCloseTimeout, setDropdownCloseTimeout] = useState(null);
   const buttonRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const productsDropdownRef = useRef(null);
@@ -33,6 +34,24 @@ const Header = () => {
   const toggleMenu = () => setIsMenuOpen((p) => !p);
   const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
   const connectWallet = () => fcl.authenticate();
+
+  /* ───────── dropdown helpers ───────── */
+  const closeDropdownWithDelay = (setter) => {
+    if (dropdownCloseTimeout) {
+      clearTimeout(dropdownCloseTimeout);
+    }
+    const timeout = setTimeout(() => setter(false), 150);
+    setDropdownCloseTimeout(timeout);
+  };
+
+  const openDropdown = (setter, closeOther) => {
+    if (dropdownCloseTimeout) {
+      clearTimeout(dropdownCloseTimeout);
+      setDropdownCloseTimeout(null);
+    }
+    closeOther(false);
+    setter(true);
+  };
 
   /* close mobile drawer on outside click */
   useEffect(() => {
@@ -59,6 +78,15 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  /* cleanup timeouts on unmount */
+  useEffect(() => {
+    return () => {
+      if (dropdownCloseTimeout) {
+        clearTimeout(dropdownCloseTimeout);
+      }
+    };
+  }, [dropdownCloseTimeout]);
+
   /* ───────── render ───────── */
   return (
     <header className="w-full relative z-50 shadow-md shadow-black/30 bg-brand-primary text-brand-text">
@@ -84,7 +112,13 @@ const Header = () => {
         </div>
 
         {/* ── Desktop nav ── */}
-        <nav className="hidden md:flex items-center space-x-4 flex-grow justify-center">
+        <nav 
+          className="hidden md:flex items-center space-x-4 flex-grow justify-center"
+          onMouseLeave={() => {
+            closeDropdownWithDelay(setIsProductsDropdownOpen);
+            closeDropdownWithDelay(setIsToolsDropdownOpen);
+          }}
+        >
           <NavLink 
             to="/" 
             isActive={isHome}
@@ -97,19 +131,19 @@ const Header = () => {
           </NavLink>
           
           {/* Products Dropdown */}
-          <div className="relative" ref={productsDropdownRef}>
+          <div 
+            className="relative" 
+            ref={productsDropdownRef}
+            onMouseEnter={() => openDropdown(setIsProductsDropdownOpen, setIsToolsDropdownOpen)}
+            onMouseLeave={() => closeDropdownWithDelay(setIsProductsDropdownOpen)}
+          >
             <button
-              onMouseEnter={() => {
-                setIsToolsDropdownOpen(false);
-                setIsProductsDropdownOpen(true);
-              }}
               className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
             >
               Products <FaChevronDown size={12} className="ml-1" />
             </button>
             {isProductsDropdownOpen && (
               <div
-                onMouseLeave={() => setIsProductsDropdownOpen(false)}
                 className="absolute top-full left-0 mt-1 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out"
               >
                 <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
@@ -120,24 +154,24 @@ const Header = () => {
           </div>
 
           {/* Tools Dropdown */}
-          <div className="relative" ref={toolsDropdownRef}>
+          <div 
+            className="relative" 
+            ref={toolsDropdownRef}
+            onMouseEnter={() => openDropdown(setIsToolsDropdownOpen, setIsProductsDropdownOpen)}
+            onMouseLeave={() => closeDropdownWithDelay(setIsToolsDropdownOpen)}
+          >
             <button
-              onMouseEnter={() => {
-                setIsProductsDropdownOpen(false);
-                setIsToolsDropdownOpen(true);
-              }}
               className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
             >
               Tools <FaChevronDown size={12} className="ml-1" />
             </button>
             {isToolsDropdownOpen && (
               <div
-                onMouseLeave={() => setIsToolsDropdownOpen(false)}
                 className="absolute top-full left-0 mt-1 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out"
               >
-                                 <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
-                   Transfer Hub
-                 </NavLink>
+                <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
+                  Transfer Hub
+                </NavLink>
               </div>
             )}
           </div>

@@ -137,17 +137,40 @@ function DapperWalletGuide() {
         Check out the available packs to get your first NBA Top Shot Moments.
       </>
     ),
-    officialDocs: [
+    faq: [
       {
-        title: "Start Your Collection (Opening Your Account)",
-        url: "https://support.nbatopshot.com/hc/en-us/articles/4404371846291-Start-Your-Collection-Opening-Your-Account"
+        question: "How long does it take to create a Top Shot account?",
+        answer: "The entire signup process typically takes 2-3 minutes. This includes account creation, profile setup, and identity verification. You'll be able to start collecting immediately after verification."
+      },
+      {
+        question: "Do I need to provide my real name and information?",
+        answer: "Yes, NBA Top Shot requires accurate personal information for identity verification and compliance purposes. This helps ensure account security and prevents fraud."
+      },
+      {
+        question: "Can I create multiple Top Shot accounts?",
+        answer: "No, NBA Top Shot limits users to one account per collector. This policy helps maintain fair access to drops and prevents market manipulation."
+      },
+      {
+        question: "What if I'm not in a supported country or state?",
+        answer: "NBA Top Shot has specific geographic restrictions. If you're not in a supported location, you may need to wait for expansion to your region or consider alternative NFT platforms."
+      },
+      {
+        question: "Is the Dapper Wallet automatically created?",
+        answer: "Yes! When you create a Top Shot account, a Dapper Wallet is automatically generated and linked to your account. You don't need to set up a separate wallet."
+      },
+      {
+        question: "What happens if I lose access to my account?",
+        answer: "Contact NBA Top Shot support immediately. They can help you recover your account through the verification process. Make sure to keep your login credentials secure."
+      },
+      {
+        question: "Can I change my email or phone number later?",
+        answer: "Yes, you can update your contact information in your account settings. However, you'll need to verify any changes through the verification process."
+      },
+      {
+        question: "Are there any fees for creating a Top Shot account?",
+        answer: "No, creating a Top Shot account is completely free. You only pay for the Moments you purchase or the packs you open."
       }
-    ],
-    videoEmbed: {
-      title: "NBA Top Shot 101 Video:",
-      src: "https://www.youtube.com/embed/L7wkzeb1iY4",
-      description: "Complete walkthrough of the NBA Top Shot signup process"
-    }
+    ]
   };
 
   return <GuideTemplate {...guideData} />;

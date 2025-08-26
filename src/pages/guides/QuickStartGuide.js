@@ -1,5 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
+import { Link } from "react-router-dom";
+import { FaArrowLeft, FaHome } from "react-icons/fa";
 import QuickStartGuide from "../../components/QuickStartGuide";
 
 function QuickStartGuidePage() {
@@ -28,19 +30,45 @@ function QuickStartGuidePage() {
       </Helmet>
 
       {/* ─── PAGE BODY ─── */}
-      <div className="w-full text-white space-y-6 mb-6">
-        {/* Header Section */}
-        <div className="text-center space-y-6 max-w-4xl mx-auto px-4 pt-8">
-          <h1 className="text-5xl font-bold text-brand-text">
-            Quick Start Guide
-          </h1>
-          <p className="text-xl text-brand-text/80 max-w-2xl mx-auto leading-relaxed">
-            From Zero to TSHOT in 5 Simple Steps
-          </p>
+      <div className="w-full text-white mb-6">
+        {/* Breadcrumb Navigation */}
+        <nav className="max-w-4xl mx-auto px-4 pt-4" aria-label="Breadcrumb">
+          <ol className="flex items-center space-x-2 text-sm text-brand-text/70">
+            <li>
+              <Link to="/" className="hover:text-brand-accent transition-colors flex items-center">
+                <FaHome className="mr-1" size={14} />
+                Home
+              </Link>
+            </li>
+            <li className="flex items-center">
+              <span className="mx-2">/</span>
+              <Link to="/guides" className="hover:text-brand-accent transition-colors">
+                Guides
+              </Link>
+            </li>
+            <li className="flex items-center">
+              <span className="mx-2">/</span>
+              <span className="text-brand-text">Quick Start</span>
+            </li>
+          </ol>
+        </nav>
+        
+        {/* Back to Guides Button */}
+        <div className="max-w-4xl mx-auto px-4 pt-4">
+          <Link 
+            to="/guides" 
+            className="inline-flex items-center px-4 py-2 rounded bg-brand-accent text-white hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-brand-accent focus:ring-offset-2 focus:ring-offset-brand-primary"
+            aria-label="Return to all guides"
+            role="button"
+            tabIndex={0}
+          >
+            <FaArrowLeft className="mr-3 text-lg" aria-hidden="true" />
+            <span className="font-medium">Back to All Guides</span>
+          </Link>
         </div>
 
         {/* Quick Start Guide Component */}
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-4 pt-8">
           <QuickStartGuide variant="full" />
         </div>
       </div>

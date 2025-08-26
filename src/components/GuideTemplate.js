@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import PropTypes from "prop-types";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FaArrowLeft, FaExclamationTriangle, FaSpinner, FaCheckCircle } from "react-icons/fa";
+import { FaArrowLeft, FaExclamationTriangle, FaSpinner, FaCheckCircle, FaHome, FaQuestionCircle } from "react-icons/fa";
 
 // Extracted Step component for cleaner code
 function Step({ step }) {
@@ -39,6 +39,52 @@ Step.propTypes = {
     title: PropTypes.string.isRequired,
     content: PropTypes.node.isRequired
   }).isRequired
+ };
+
+// FAQ Component for better SEO
+function FAQ({ faq }) {
+  if (!faq || faq.length === 0) return null;
+
+  return (
+    <div className="max-w-4xl mx-auto px-4">
+      <div className="bg-brand-primary rounded-xl p-6 border-2 border-brand-border shadow-lg">
+        <div className="text-center mb-6">
+          <div className="bg-brand-accent text-brand-primary rounded-full w-12 h-12 flex items-center justify-center font-bold text-xl mx-auto shadow-lg border-2 border-brand-accent/20">
+            <FaQuestionCircle />
+          </div>
+          <h3 className="text-xl font-semibold text-brand-text mt-3">
+            Frequently Asked Questions
+          </h3>
+        </div>
+        <div className="space-y-4">
+          {faq.map((item, index) => (
+            <details key={index} className="group">
+              <summary className="cursor-pointer list-none">
+                <div className="flex items-center justify-between p-4 bg-brand-secondary rounded-lg hover:bg-brand-secondary/80 transition-colors">
+                  <h4 className="font-semibold text-brand-text group-open:text-brand-accent">
+                    {item.question}
+                  </h4>
+                  <span className="text-brand-accent group-open:rotate-180 transition-transform">
+                    ▼
+                  </span>
+                </div>
+              </summary>
+              <div className="p-4 bg-brand-secondary/50 rounded-b-lg border-t border-brand-border">
+                <p className="text-brand-text/90">{item.answer}</p>
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+FAQ.propTypes = {
+  faq: PropTypes.arrayOf(PropTypes.shape({
+    question: PropTypes.string.isRequired,
+    answer: PropTypes.string.isRequired
+  }))
 };
 
 function GuideTemplate({ 
@@ -56,7 +102,8 @@ function GuideTemplate({
   successMessage, 
   officialDocs, 
   videoEmbed,
-  lastUpdated 
+  lastUpdated,
+  faq
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError] = useState(false);
@@ -102,11 +149,63 @@ function GuideTemplate({
     }
   }, [isLoading, hasError]);
 
+  // Enhanced structured data for HowTo content
+  const howToStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": title,
+    "description": description,
+    "url": canonicalUrl,
+    "image": "https://vaultopolis.com/guide-hero.jpg",
+    "estimatedCost": {
+      "@type": "MonetaryAmount",
+      "currency": "USD",
+      "value": "0"
+    },
+    "timeRequired": estimatedTime,
+    "difficultyLevel": difficulty,
+    "step": steps.map((step, index) => ({
+      "@type": "HowToStep",
+      "position": step.id,
+      "name": step.title,
+      "text": typeof step.content === 'string' ? step.content : `Step ${step.id}: ${step.title}`,
+      "url": `${canonicalUrl}#step-${step.id}`
+    })),
+    "supply": [
+      {
+        "@type": "HowToSupply",
+        "name": "Flow Wallet",
+        "url": "https://wallet.flow.com"
+      }
+    ],
+    "tool": [
+      {
+        "@type": "HowToTool",
+        "name": "Vaultopolis Platform",
+        "url": "https://vaultopolis.com"
+      }
+    ]
+  };
+
+  // FAQ structured data if available
+  const faqStructuredData = faq && faq.length > 0 ? {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faq.map(item => ({
+      "@type": "Question",
+      "name": item.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": item.answer
+      }
+    }))
+  } : null;
+
   return (
     <>
       {/* ─── SEO ─── */}
       <Helmet>
-        <title>{title} | Flow Blockchain Guides | Vaultopolis</title>
+        <title>{title} | Vaultopolis Guides</title>
         <meta name="description" content={description} />
         <meta name="keywords" content={keywords} />
         <link rel="canonical" href={canonicalUrl} />
@@ -121,6 +220,16 @@ function GuideTemplate({
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={ogTitle} />
         <meta name="twitter:description" content={ogDescription} />
+        
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(howToStructuredData)}
+        </script>
+        {faqStructuredData && (
+          <script type="application/ld+json">
+            {JSON.stringify(faqStructuredData)}
+          </script>
+        )}
       </Helmet>
 
       {/* ─── PAGE BODY ─── */}
@@ -169,6 +278,28 @@ function GuideTemplate({
             >
               Skip to main content
             </a>
+            
+            {/* Breadcrumb Navigation */}
+            <nav className="max-w-4xl mx-auto px-4 pt-4" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2 text-sm text-brand-text/70">
+                <li>
+                  <Link to="/" className="hover:text-brand-accent transition-colors flex items-center">
+                    <FaHome className="mr-1" size={14} />
+                    Home
+                  </Link>
+                </li>
+                <li className="flex items-center">
+                  <span className="mx-2">/</span>
+                  <Link to="/guides" className="hover:text-brand-accent transition-colors">
+                    Guides
+                  </Link>
+                </li>
+                <li className="flex items-center">
+                  <span className="mx-2">/</span>
+                  <span className="text-brand-text">{title}</span>
+                </li>
+              </ol>
+            </nav>
             
             {/* Back to Guides - REFINED */}
             <div className="max-w-4xl mx-auto px-4 pt-4">
@@ -230,6 +361,9 @@ function GuideTemplate({
                 ))}
               </div>
             </div>
+
+            {/* FAQ Section - NEW */}
+            <FAQ faq={faq} />
 
             {/* --- NEW: Success & Further Reading --- */}
             <div className="max-w-4xl mx-auto px-4 space-y-6">
@@ -317,7 +451,11 @@ GuideTemplate.propTypes = {
     src: PropTypes.string.isRequired,
     description: PropTypes.string.isRequired
   }),
-  lastUpdated: PropTypes.string
+  lastUpdated: PropTypes.string,
+  faq: PropTypes.arrayOf(PropTypes.shape({
+    question: PropTypes.string.isRequired,
+    answer: PropTypes.string.isRequired
+  }))
 };
 
 export default GuideTemplate; 

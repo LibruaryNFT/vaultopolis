@@ -148,10 +148,38 @@ function AccountLinkingGuide() {
         )
       }
     ],
-    officialDocs: [
+    faq: [
       {
-        title: "Official Account Linking Documentation",
-        url: "https://support.meetdapper.com/hc/en-us/articles/20744347884819-Account-Linking-and-FAQ"
+        question: "How long does account linking take?",
+        answer: "The account linking process typically takes 3-5 minutes. Most of this time is spent waiting for the 'Publishing your Dapper account' step to complete. The actual setup steps only take about 1-2 minutes."
+      },
+      {
+        question: "Is it safe to link my accounts?",
+        answer: "Yes, account linking is completely safe. It creates a read-only connection that allows Vaultopolis to see your Top Shot Moments without transferring ownership. Your Moments remain in your Dapper wallet at all times."
+      },
+      {
+        question: "Can I unlink my accounts later?",
+        answer: "Yes, you can unlink your accounts at any time through the Dapper Wallet interface. Go to the Account Linking section and remove the linked Flow wallet. This will disconnect the accounts but won't affect your Moments or FLOW tokens."
+      },
+      {
+        question: "What if the linking process fails?",
+        answer: "If linking fails, try refreshing the page and starting over. Make sure both wallets are properly set up and you have a stable internet connection. If problems persist, check that your Flow wallet is fully synced."
+      },
+      {
+        question: "Do I need to link all collections?",
+        answer: "While you can select specific collections, we recommend linking all collections for the best experience. This ensures Vaultopolis can see all your Top Shot Moments and provide the full range of services."
+      },
+      {
+        question: "Can I link multiple Flow wallets to one Dapper account?",
+        answer: "No, you can only link one Flow wallet to one Dapper account at a time. If you need to change which Flow wallet is linked, you'll need to unlink the current one first."
+      },
+      {
+        question: "What happens to my linked accounts if I reset my Flow wallet?",
+        answer: "If you reset your Flow wallet, you'll need to re-link your accounts. The linking information is stored in your Dapper wallet, so you can easily re-establish the connection with your new Flow wallet."
+      },
+      {
+        question: "Will linking affect my existing Top Shot Moments?",
+        answer: "No, linking has no effect on your existing Moments. They remain exactly where they are in your Dapper wallet. Linking only creates a connection that allows Vaultopolis to see what you own."
       }
     ]
   };

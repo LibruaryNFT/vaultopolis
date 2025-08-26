@@ -1,4 +1,34 @@
+# Vaultopolis Robots.txt
 # https://www.robotstxt.org/robotstxt.html
+
 User-agent: *
-Disallow:
+Allow: /
+
+# Sitemap location
 Sitemap: https://vaultopolis.com/sitemap.xml
+
+# Crawl delay (be respectful to servers)
+Crawl-delay: 1
+
+# Disallow admin or private areas if they exist
+Disallow: /admin/
+Disallow: /private/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+
+# Allow important directories
+Allow: /guides/
+Allow: /about/
+Allow: /swap/
+Allow: /tshot/
+Allow: /stats/
+Allow: /transfer/
+
+# Specific allow rules for SEO
+Allow: /guides/quick-start
+Allow: /guides/dapper-wallet
+Allow: /guides/flow-wallet
+Allow: /guides/account-linking
+Allow: /guides/nft-to-tshot
+Allow: /guides/tshot-to-nft

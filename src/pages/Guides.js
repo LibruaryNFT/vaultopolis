@@ -1,7 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FaWallet, FaExchangeAlt, FaCoins } from "react-icons/fa";
+import { FaWallet, FaExchangeAlt, FaHome } from "react-icons/fa";
 import { BookOpen } from "lucide-react";
 
 
@@ -14,7 +14,8 @@ function Guides() {
             icon: <BookOpen className="text-3xl text-brand-accent" />,
             difficulty: "Beginner",
             estimatedTime: "10-15 minutes",
-            path: "/guides/quick-start"
+            path: "/guides/quick-start",
+            lastUpdated: "August 19, 2025"
           },
           {
             id: "nba-topshot-account",
@@ -23,7 +24,8 @@ function Guides() {
             icon: <FaWallet className="text-3xl text-brand-accent" />,
             difficulty: "Beginner",
             estimatedTime: "2-3 minutes",
-            path: "/guides/dapper-wallet"
+            path: "/guides/dapper-wallet",
+            lastUpdated: "August 19, 2025"
           },
       {
         id: "flow-wallet",
@@ -32,7 +34,8 @@ function Guides() {
         icon: <FaWallet className="text-3xl text-brand-accent" />,
         difficulty: "Beginner",
         estimatedTime: "3-5 minutes",
-        path: "/guides/flow-wallet"
+        path: "/guides/flow-wallet",
+        lastUpdated: "August 19, 2025"
       },
      {
        id: "account-linking",
@@ -41,18 +44,10 @@ function Guides() {
        icon: <FaWallet className="text-3xl text-brand-accent" />,
        difficulty: "Beginner",
        estimatedTime: "3-5 minutes",
-       path: "/guides/account-linking"
+       path: "/guides/account-linking",
+       lastUpdated: "August 19, 2025"
      },
-     {
-       id: "buying-nfts",
-       title: "Buying NFTs",
-       description: "Official Top Shot marketplace, Opensea, Flowty, price and authenticity considerations",
-       icon: <FaWallet className="text-3xl text-brand-accent" />,
-       difficulty: "Beginner",
-       estimatedTime: "2-3 minutes",
-       path: null,
-       comingSoon: true
-     },
+
      {
        id: "nft-to-tshot",
        title: "Swapping NFT for TSHOT",
@@ -60,7 +55,8 @@ function Guides() {
        icon: <FaExchangeAlt className="text-3xl text-brand-accent" />,
        difficulty: "Beginner",
        estimatedTime: "2-3 minutes",
-       path: "/guides/nft-to-tshot"
+       path: "/guides/nft-to-tshot",
+       lastUpdated: "August 19, 2025"
      },
      {
        id: "tshot-to-nft",
@@ -69,76 +65,99 @@ function Guides() {
        icon: <FaExchangeAlt className="text-3xl text-brand-accent" />,
        difficulty: "Beginner",
        estimatedTime: "2-3 minutes",
-       path: "/guides/tshot-to-nft"
+       path: "/guides/tshot-to-nft",
+       lastUpdated: "August 19, 2025"
      },
-     {
-       id: "earning-rewards",
-       title: "Earning Flow Rewards with TSHOT",
-       description: "Staking rewards, liquidity mining, governance rights, maximizing returns",
-       icon: <FaCoins className="text-3xl text-brand-accent" />,
-       difficulty: "Intermediate",
-       estimatedTime: "2-3 minutes",
-       path: null,
-       comingSoon: true
-     },
-     {
-       id: "bridging-to-fevm",
-       title: "Bridging NFTs to FEVM",
-       description: "Cross-chain bridge process, Filecoin ecosystem benefits, gas fee considerations",
-       icon: <FaExchangeAlt className="text-3xl text-brand-accent" />,
-       difficulty: "Intermediate",
-       estimatedTime: "2-3 minutes",
-       path: null,
-       comingSoon: true
-     },
-     {
-       id: "bridging-from-fevm",
-       title: "Bridging NFTs from FEVM to Cadence",
-       description: "Return bridge process, Flow ecosystem benefits, Top Shot reintegration",
-       icon: <FaExchangeAlt className="text-3xl text-brand-accent" />,
-       difficulty: "Intermediate",
-       estimatedTime: "2-3 minutes",
-       path: null,
-       comingSoon: true
-     }
+
    ];
+
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Vaultopolis Guides",
+    "description": "Complete step-by-step guides for the Vaultopolis ecosystem including NBA Top Shot account creation, Dapper Wallet setup, and TSHOT token swaps.",
+    "url": "https://vaultopolis.com/guides",
+    "numberOfItems": guides.length,
+    "itemListElement": guides.map((guide, index) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "HowTo",
+        "name": guide.title,
+        "description": guide.description,
+        "url": `https://vaultopolis.com${guide.path}`,
+        "estimatedCost": {
+          "@type": "MonetaryAmount",
+          "currency": "USD",
+          "value": "0"
+        },
+        "timeRequired": guide.estimatedTime,
+        "difficultyLevel": guide.difficulty
+      }
+    }))
+  };
 
   return (
     <>
       {/* ─── SEO ─── */}
       <Helmet>
-                         <title>Guides | Vaultopolis</title>
+        <title>Vaultopolis Guides - Complete Tutorials for NBA Top Shot & TSHOT | Step-by-Step Instructions</title>
         <meta
           name="description"
-          content="Step-by-step guides for the Vaultopolis ecosystem including NBA Top Shot account creation and Dapper Wallet setup."
+          content="Master the Vaultopolis ecosystem with our comprehensive guides. Learn NBA Top Shot account setup, Dapper Wallet configuration, TSHOT token swaps, and Flow blockchain integration. Perfect for beginners and collectors."
         />
-        <meta name="keywords" content="vaultopolis guides, nba top shot account, dapper wallet setup, flow blockchain tutorial" />
+        <meta name="keywords" content="vaultopolis guides, nba top shot tutorial, dapper wallet setup, flow blockchain guide, tshot token swap, nft liquidity, vaultopolis tutorial, flow wallet setup" />
         <link rel="canonical" href="https://vaultopolis.com/guides" />
         
-                {/* Open Graph Tags */}
-                  <meta property="og:title" content="Guides | Vaultopolis" />
-          <meta property="og:description" content="Step-by-step guides for the Vaultopolis ecosystem including NBA Top Shot account creation and Dapper Wallet setup." />
+        {/* Open Graph Tags */}
+        <meta property="og:title" content="Vaultopolis Guides - Complete Tutorials for NBA Top Shot & TSHOT" />
+        <meta property="og:description" content="Master the Vaultopolis ecosystem with our comprehensive guides. Learn NBA Top Shot account setup, Dapper Wallet configuration, and TSHOT token swaps." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://vaultopolis.com/guides" />
         
-                {/* Twitter Card Tags */}
-         <meta name="twitter:card" content="summary_large_image" />
-                  <meta name="twitter:title" content="Guides | Vaultopolis" />
-          <meta name="twitter:description" content="Step-by-step guides for the Vaultopolis ecosystem including NBA Top Shot account creation and Dapper Wallet setup." />
+        {/* Twitter Card Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Vaultopolis Guides - Complete Tutorials for NBA Top Shot & TSHOT" />
+        <meta name="twitter:description" content="Master the Vaultopolis ecosystem with our comprehensive guides. Learn NBA Top Shot account setup, Dapper Wallet configuration, and TSHOT token swaps." />
+        
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
       </Helmet>
 
       {/* ─── PAGE BODY ─── */}
       <div className="w-full text-white space-y-6 mb-6">
+        {/* Breadcrumb Navigation */}
+        <nav className="max-w-4xl mx-auto px-4 pt-4" aria-label="Breadcrumb">
+          <ol className="flex items-center space-x-2 text-sm text-brand-text/70">
+            <li>
+              <Link to="/" className="hover:text-brand-accent transition-colors flex items-center">
+                <FaHome className="mr-1" size={14} />
+                Home
+              </Link>
+            </li>
+            <li className="flex items-center">
+              <span className="mx-2">/</span>
+              <span className="text-brand-text">Guides</span>
+            </li>
+          </ol>
+        </nav>
+
         {/* Header Section */}
         <div className="text-center space-y-6 max-w-4xl mx-auto px-4 pt-8">
           <div className="flex justify-center">
             <FaWallet className="text-6xl text-brand-accent" />
           </div>
           <h1 className="text-5xl font-bold text-brand-text">
-            Guides
+            Vaultopolis Guides
           </h1>
           <p className="text-xl text-brand-text/80 max-w-2xl mx-auto leading-relaxed">
-            Step-by-step guides for the Vaultopolis ecosystem
+            Master the Vaultopolis ecosystem with our comprehensive step-by-step tutorials
+          </p>
+          <p className="text-sm text-brand-text/60">
+            From beginner wallet setup to advanced TSHOT token swaps - everything you need to succeed
           </p>
         </div>
 
@@ -227,6 +246,15 @@ function Guides() {
                           ⏱ {guide.estimatedTime}
                         </span>
                       </div>
+                      
+                      {/* Last Updated Info */}
+                      {guide.lastUpdated && guide.lastUpdated !== "Coming Soon" && (
+                        <div className="text-center mt-3">
+                          <span className="text-xs text-brand-text/50">
+                            Last updated: {guide.lastUpdated}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Hover effect overlay */}
@@ -237,8 +265,6 @@ function Guides() {
             </div>
           ))}
         </div>
-
-
       </div>
     </>
   );
