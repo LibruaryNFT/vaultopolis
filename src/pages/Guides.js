@@ -10,7 +10,7 @@ function Guides() {
       id: "quick-start",
       title: "Quick Start: From Zero to TSHOT",
       description: "Complete step-by-step guide to get your first TSHOT tokens. Covers wallet setup, account linking, and two paths to acquire TSHOT.",
-      icon: <BookOpen className="text-3xl text-brand-accent" />,
+      icon: <BookOpen className="text-3xl" />,
       difficulty: "Beginner",
       estimatedTime: "10-15 minutes",
       path: "/guides/quick-start",
@@ -159,7 +159,9 @@ function Guides() {
                         {/* Icon with enhanced background */}
                         <div className="flex justify-center mb-6">
                           <div className="bg-white/20 p-4 rounded-full border border-white/30 group-hover:bg-white/30 group-hover:border-white/50 transition-all duration-300">
-                            {guide.icon}
+                            <div className="text-white">
+                              {guide.icon}
+                            </div>
                           </div>
                         </div>
                         

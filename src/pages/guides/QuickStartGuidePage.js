@@ -2,6 +2,7 @@ import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { BookOpen, ExternalLink } from "lucide-react";
+import { FaHome } from "react-icons/fa";
 
 function QuickStartGuidePage() {
   return (
@@ -27,14 +28,27 @@ function QuickStartGuidePage() {
         {/* Header */}
         <div className="pt-20 pb-8">
           <div className="max-w-4xl mx-auto px-4">
-            {/* Breadcrumb */}
-            <div className="flex items-center space-x-2 text-brand-text/70 mb-8">
-              <Link to="/" className="hover:text-brand-text transition-colors">Home</Link>
-              <span>/</span>
-              <Link to="/guides" className="hover:text-brand-text transition-colors">Guides</Link>
-              <span>/</span>
-              <span className="text-brand-text">Quick Start</span>
-            </div>
+            {/* Breadcrumb Navigation */}
+            <nav className="max-w-4xl mx-auto px-4 pt-4" aria-label="Breadcrumb">
+              <ol className="flex items-center space-x-2 text-sm text-brand-text/70 mb-8">
+                <li>
+                  <Link to="/" className="hover:text-brand-accent transition-colors flex items-center">
+                    <FaHome className="mr-1" size={14} />
+                    Home
+                  </Link>
+                </li>
+                <li className="flex items-center">
+                  <span className="mx-2">/</span>
+                  <Link to="/guides" className="hover:text-brand-accent transition-colors">
+                    Guides
+                  </Link>
+                </li>
+                <li className="flex items-center">
+                  <span className="mx-2">/</span>
+                  <span className="text-brand-text">Quick Start</span>
+                </li>
+              </ol>
+            </nav>
 
             {/* Title and Description */}
             <div className="text-center mb-12">
