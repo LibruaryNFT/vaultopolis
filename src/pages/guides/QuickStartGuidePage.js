@@ -1,7 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { BookOpen, ArrowRight, ExternalLink } from "lucide-react";
+import { BookOpen, ExternalLink } from "lucide-react";
 
 function QuickStartGuidePage() {
   return (
@@ -28,22 +28,13 @@ function QuickStartGuidePage() {
         <div className="pt-20 pb-8">
           <div className="max-w-4xl mx-auto px-4">
             {/* Breadcrumb */}
-            <div className="flex items-center space-x-2 text-brand-text/70 mb-6">
+            <div className="flex items-center space-x-2 text-brand-text/70 mb-8">
               <Link to="/" className="hover:text-brand-text transition-colors">Home</Link>
               <span>/</span>
               <Link to="/guides" className="hover:text-brand-text transition-colors">Guides</Link>
               <span>/</span>
               <span className="text-brand-text">Quick Start</span>
             </div>
-            
-            {/* Back Button */}
-            <Link 
-              to="/guides" 
-              className="inline-flex items-center space-x-2 text-brand-accent hover:text-brand-accent/80 transition-colors mb-8"
-            >
-              <span>←</span>
-              <span>Back to All Guides</span>
-            </Link>
 
             {/* Title and Description */}
             <div className="text-center mb-12">
