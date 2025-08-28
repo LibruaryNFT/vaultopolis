@@ -7,6 +7,7 @@ import Layout           from "./layout/Layout";
 import Swap             from "./pages/Swap";
 import TSHOT            from "./pages/TSHOT";
 import Analytics        from "./pages/Stats";
+import VaultContents    from "./pages/VaultContents";
 import Transfer         from "./pages/Transfer";
 import Profile          from "./pages/Profile";
 import TermsAndPrivacy  from "./pages/TermsAndPrivacy";
@@ -28,6 +29,7 @@ const routes = [
   { path: "/swap",        element: <Layout><Swap /></Layout> },
   { path: "/tshot",       element: <Layout><TSHOT /></Layout> },
   { path: "/analytics",   element: <Layout><Analytics /></Layout> },
+  { path: "/vault-contents", element: <Layout><VaultContents /></Layout> },
   { path: "/transfer",    element: <Layout><Transfer /></Layout> },
   { path: "/profile",     element: <Layout><Profile /></Layout> },
   { path: "/profile/:address?", element: <Layout><Profile /></Layout> },

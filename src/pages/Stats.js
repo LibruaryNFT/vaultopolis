@@ -1,12 +1,10 @@
 import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
 
-import TSHOTVault from "../components/TSHOTVault";
 import TSHOTAnalytics from "../components/TSHOTAnalytics";
 
 function Analytics() {
   const [activeTab, setActiveTab] = useState("tshot");
-  const [isVaultExpanded, setIsVaultExpanded] = useState(false);
 
   // Token configuration - easy to add new tokens here
   const tokens = [
@@ -30,44 +28,8 @@ function Analytics() {
       case "tshot":
         return (
           <>
-            {/* Analytics First - Always Visible */}
+            {/* Analytics Only - Vault Contents moved to dedicated page */}
             <TSHOTAnalytics />
-            
-            {/* Collapsible Vault Contents */}
-            <div className="px-2 md:px-3">
-              <div className="max-w-6xl mx-auto">
-                <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
-                  <button
-                    onClick={() => setIsVaultExpanded(!isVaultExpanded)}
-                    className="w-full flex items-center justify-between p-4 text-left hover:bg-brand-primary/80 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">🔒</span>
-                      <div>
-                        <span className="font-semibold text-brand-text">Vault Contents</span>
-                        <p className="text-sm text-brand-text/70">Browse the moments backing TSHOT</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-brand-text/70">
-                        {isVaultExpanded ? 'Collapse' : 'Expand'}
-                      </span>
-                      <span className={`text-lg transition-transform duration-200 ${
-                        isVaultExpanded ? 'rotate-90' : ''
-                      }`}>
-                        ▶
-                      </span>
-                    </div>
-                  </button>
-                  
-                  {isVaultExpanded && (
-                    <div className="border-t border-brand-border">
-                      <TSHOTVault />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
           </>
         );
       // Future cases for other tokens:

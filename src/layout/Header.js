@@ -159,6 +159,18 @@ const Header = () => {
           >
             Swap
           </NavLink>
+
+          <NavLink 
+            to="/vault-contents" 
+            isActive={location.pathname === "/vault-contents"}
+            onMouseEnter={() => {
+              setIsProductsDropdownOpen(false);
+              setIsToolsDropdownOpen(false);
+              setIsResourcesDropdownOpen(false);
+            }}
+          >
+            Explore the Vault
+          </NavLink>
           
           {/* Products Dropdown */}
           <div 
@@ -227,7 +239,7 @@ const Header = () => {
               setIsResourcesDropdownOpen(false);
             }}
           >
-            Analytics
+            Protocol Stats
           </NavLink>
           {/* Resources Dropdown */}
           <div 
@@ -325,6 +337,14 @@ const Header = () => {
                 Swap
               </MobileNavLink>
               
+              <MobileNavLink
+                to="/vault-contents"
+                isActive={location.pathname === "/vault-contents"}
+                onClick={closeMobileMenu}
+              >
+                Explore the Vault
+              </MobileNavLink>
+              
               {/* Products Section */}
               <MobileSection
                 title="Products"
@@ -361,7 +381,7 @@ const Header = () => {
                   onClick={closeMobileMenu}
                   className="pl-8"
                 >
-                  Analytics
+                  Protocol Stats
                 </MobileNavLink>
               </MobileSection>
               
