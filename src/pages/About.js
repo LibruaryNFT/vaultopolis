@@ -226,9 +226,9 @@ const About = () => {
                   <div className="flex-grow text-center lg:text-left">
                     <h3 className="text-2xl font-bold text-brand-text mb-4">Justin (Libruary)</h3>
                     <p className="text-lg text-brand-text/70 mb-4">Founder & Lead Developer</p>
-                    <p className="text-lg text-brand-text/80 leading-relaxed mb-8">
-                      Vaultopolis wasn't born in a boardroom; it was forged from a collector's frustration. Our founder, Justin (Libruary), a passionate Top Shot collector with a career in FinTech and cybersecurity, grew tired of the slow, expensive process of managing his Moments. He envisioned a tool that could provide instant liquidity and unlock DeFi opportunities for his own collection—and then he built it for the entire community.
-                    </p>
+                                         <p className="text-lg text-brand-text/80 leading-relaxed mb-8">
+                       Vaultopolis wasn't born in a boardroom; it was forged from a collector's frustration. Our founder, Justin (Libruary), a passionate Top Shot collector with a career in FinTech and cybersecurity, was frustrated by the slow and manual process required for bulk trading, a bottleneck that made it impossible to achieve true liquidity. He envisioned a tool that could solve this for his own collection—and then he built it for the entire community.
+                     </p>
                     <div className="flex flex-col sm:flex-row justify-center lg:justify-start space-y-3 sm:space-y-0 sm:space-x-4">
                       <a
                         href="https://x.com/Libruary_NFT"
