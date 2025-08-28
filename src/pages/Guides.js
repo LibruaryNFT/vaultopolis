@@ -182,6 +182,15 @@ function Guides() {
                             ⏱ {guide.estimatedTime}
                           </span>
                         </div>
+                        
+                        {/* Last Updated Info */}
+                        {guide.lastUpdated && guide.lastUpdated !== "Coming Soon" && (
+                          <div className="text-center mt-3">
+                            <span className="text-xs text-white/50">
+                              Last updated: {guide.lastUpdated}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Link>
