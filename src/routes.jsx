@@ -18,7 +18,9 @@ import FlowWalletGuide     from "./pages/guides/FlowWalletGuide";
 import AccountLinkingGuide from "./pages/guides/AccountLinkingGuide";
 import NFTToTSHOTGuide     from "./pages/guides/NFTToTSHOTGuide";
 import TSHOTToNFTGuide     from "./pages/guides/TSHOTToNFTGuide";
-import QuickStartGuidePage from "./pages/guides/QuickStartGuide";
+import QuickStartGuidePage from "./pages/guides/QuickStartGuidePage";
+import FAQ from "./pages/guides/FAQ";
+
 
 /** Export the route object array (React Router v6 friendly) */
 const routes = [
@@ -30,10 +32,12 @@ const routes = [
   { path: "/profile",     element: <Layout><Profile /></Layout> },
   { path: "/profile/:address?", element: <Layout><Profile /></Layout> },
   { path: "/guides",      element: <Layout><Guides /></Layout> },
+  { path: "/guides/faq",  element: <Layout><FAQ /></Layout> },
   { path: "/guides/quick-start", element: <Layout><QuickStartGuidePage /></Layout> },
-                 { path: "/guides/dapper-wallet", element: <Layout><DapperWalletGuide /></Layout> },
-               { path: "/guides/flow-wallet", element: <Layout><FlowWalletGuide /></Layout> },
-               { path: "/guides/account-linking", element: <Layout><AccountLinkingGuide /></Layout> },
+
+  { path: "/guides/dapper-wallet", element: <Layout><DapperWalletGuide /></Layout> },
+  { path: "/guides/flow-wallet", element: <Layout><FlowWalletGuide /></Layout> },
+  { path: "/guides/account-linking", element: <Layout><AccountLinkingGuide /></Layout> },
   { path: "/guides/buying-nfts", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/nft-to-tshot", element: <Layout><NFTToTSHOTGuide /></Layout> },
   { path: "/guides/tshot-to-nft", element: <Layout><TSHOTToNFTGuide /></Layout> },

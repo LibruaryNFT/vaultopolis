@@ -15,11 +15,18 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
-  const [dropdownCloseTimeout, setDropdownCloseTimeout] = useState(null);
+  const [isResourcesDropdownOpen, setIsResourcesDropdownOpen] = useState(false);
+  const [productsTimeout, setProductsTimeout] = useState(null);
+  const [toolsTimeout, setToolsTimeout] = useState(null);
+  const [resourcesTimeout, setResourcesTimeout] = useState(null);
+  const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
+  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
+  const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
   const buttonRef = useRef(null);
   const mobileMenuRef = useRef(null);
   const productsDropdownRef = useRef(null);
   const toolsDropdownRef = useRef(null);
+  const resourcesDropdownRef = useRef(null);
   const location = useLocation();
 
   /* ───────── helpers ───────── */
@@ -32,24 +39,42 @@ const Header = () => {
   const isHome = location.pathname === "/";
 
   const toggleMenu = () => setIsMenuOpen((p) => !p);
-  const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
+  const toggleMobileMenu = () => {
+    const newState = !isMobileMenuOpen;
+    setIsMobileMenuOpen(newState);
+    
+    // Reset all collapsible sections when opening menu
+    if (newState) {
+      setMobileProductsOpen(false);
+      setMobileToolsOpen(false);
+      setMobileResourcesOpen(false);
+    }
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+    setMobileProductsOpen(false);
+    setMobileToolsOpen(false);
+    setMobileResourcesOpen(false);
+  };
   const connectWallet = () => fcl.authenticate();
 
   /* ───────── dropdown helpers ───────── */
-  const closeDropdownWithDelay = (setter) => {
-    if (dropdownCloseTimeout) {
-      clearTimeout(dropdownCloseTimeout);
+  const closeDropdownWithDelay = (setter, timeoutSetter, timeoutValue) => {
+    if (timeoutValue) {
+      clearTimeout(timeoutValue);
     }
-    const timeout = setTimeout(() => setter(false), 150);
-    setDropdownCloseTimeout(timeout);
+    const timeout = setTimeout(() => setter(false), 300);
+    timeoutSetter(timeout);
   };
 
-  const openDropdown = (setter, closeOther) => {
-    if (dropdownCloseTimeout) {
-      clearTimeout(dropdownCloseTimeout);
-      setDropdownCloseTimeout(null);
-    }
-    closeOther(false);
+  const openDropdown = (setter, closeOther1, closeOther2, timeoutSetter1, timeoutSetter2) => {
+    // Clear any pending timeouts for other dropdowns
+    if (timeoutSetter1) timeoutSetter1(null);
+    if (timeoutSetter2) timeoutSetter2(null);
+    
+    closeOther1(false);
+    closeOther2(false);
     setter(true);
   };
 
@@ -73,6 +98,9 @@ const Header = () => {
       if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target)) {
         setIsToolsDropdownOpen(false);
       }
+      if (resourcesDropdownRef.current && !resourcesDropdownRef.current.contains(e.target)) {
+        setIsResourcesDropdownOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -81,11 +109,11 @@ const Header = () => {
   /* cleanup timeouts on unmount */
   useEffect(() => {
     return () => {
-      if (dropdownCloseTimeout) {
-        clearTimeout(dropdownCloseTimeout);
-      }
+      if (productsTimeout) clearTimeout(productsTimeout);
+      if (toolsTimeout) clearTimeout(toolsTimeout);
+      if (resourcesTimeout) clearTimeout(resourcesTimeout);
     };
-  }, [dropdownCloseTimeout]);
+  }, [productsTimeout, toolsTimeout, resourcesTimeout]);
 
   /* ───────── render ───────── */
   return (
@@ -115,8 +143,9 @@ const Header = () => {
         <nav 
           className="hidden md:flex items-center space-x-4 flex-grow justify-center"
           onMouseLeave={() => {
-            closeDropdownWithDelay(setIsProductsDropdownOpen);
-            closeDropdownWithDelay(setIsToolsDropdownOpen);
+            closeDropdownWithDelay(setIsProductsDropdownOpen, setProductsTimeout, productsTimeout);
+            closeDropdownWithDelay(setIsToolsDropdownOpen, setToolsTimeout, toolsTimeout);
+            closeDropdownWithDelay(setIsResourcesDropdownOpen, setResourcesTimeout, resourcesTimeout);
           }}
         >
           <NavLink 
@@ -125,6 +154,7 @@ const Header = () => {
             onMouseEnter={() => {
               setIsProductsDropdownOpen(false);
               setIsToolsDropdownOpen(false);
+              setIsResourcesDropdownOpen(false);
             }}
           >
             Swap
@@ -134,8 +164,8 @@ const Header = () => {
           <div 
             className="relative" 
             ref={productsDropdownRef}
-            onMouseEnter={() => openDropdown(setIsProductsDropdownOpen, setIsToolsDropdownOpen)}
-            onMouseLeave={() => closeDropdownWithDelay(setIsProductsDropdownOpen)}
+            onMouseEnter={() => openDropdown(setIsProductsDropdownOpen, setIsToolsDropdownOpen, setIsResourcesDropdownOpen, setToolsTimeout, setResourcesTimeout)}
+            onMouseLeave={() => closeDropdownWithDelay(setIsProductsDropdownOpen, setProductsTimeout, productsTimeout)}
           >
             <button
               className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
@@ -143,13 +173,19 @@ const Header = () => {
               Products <FaChevronDown size={12} className="ml-1" />
             </button>
             {isProductsDropdownOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out"
-              >
-                <NavLink to="/tshot" isActive={location.pathname === "/tshot"}>
-                  TSHOT
-                </NavLink>
-              </div>
+              <>
+                {/* Invisible bridge to prevent menu from closing */}
+                <div className="absolute top-full left-0 w-48 h-1 bg-transparent" />
+                <div
+                  className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out overflow-hidden"
+                  onMouseEnter={() => setIsProductsDropdownOpen(true)}
+                  onMouseLeave={() => closeDropdownWithDelay(setIsProductsDropdownOpen, setProductsTimeout, productsTimeout)}
+                >
+                  <DropdownItem to="/tshot" isActive={location.pathname === "/tshot"}>
+                    TSHOT
+                  </DropdownItem>
+                </div>
+              </>
             )}
           </div>
 
@@ -157,8 +193,8 @@ const Header = () => {
           <div 
             className="relative" 
             ref={toolsDropdownRef}
-            onMouseEnter={() => openDropdown(setIsToolsDropdownOpen, setIsProductsDropdownOpen)}
-            onMouseLeave={() => closeDropdownWithDelay(setIsToolsDropdownOpen)}
+            onMouseEnter={() => openDropdown(setIsToolsDropdownOpen, setIsProductsDropdownOpen, setIsResourcesDropdownOpen, setProductsTimeout, setResourcesTimeout)}
+            onMouseLeave={() => closeDropdownWithDelay(setIsToolsDropdownOpen, setToolsTimeout, toolsTimeout)}
           >
             <button
               className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
@@ -166,13 +202,19 @@ const Header = () => {
               Tools <FaChevronDown size={12} className="ml-1" />
             </button>
             {isToolsDropdownOpen && (
-              <div
-                className="absolute top-full left-0 mt-1 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out"
-              >
-                <NavLink to="/transfer" isActive={location.pathname === "/transfer"}>
-                  Transfer Hub
-                </NavLink>
-              </div>
+              <>
+                {/* Invisible bridge to prevent menu from closing */}
+                <div className="absolute top-full left-0 w-48 h-1 bg-transparent" />
+                <div
+                  className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out overflow-hidden"
+                  onMouseEnter={() => setIsToolsDropdownOpen(true)}
+                  onMouseLeave={() => closeDropdownWithDelay(setIsToolsDropdownOpen, setToolsTimeout, toolsTimeout)}
+                >
+                  <DropdownItem to="/transfer" isActive={location.pathname === "/transfer"}>
+                    Transfer Hub
+                  </DropdownItem>
+                </div>
+              </>
             )}
           </div>
 
@@ -182,26 +224,52 @@ const Header = () => {
             onMouseEnter={() => {
               setIsProductsDropdownOpen(false);
               setIsToolsDropdownOpen(false);
+              setIsResourcesDropdownOpen(false);
             }}
           >
             Analytics
           </NavLink>
-          <NavLink 
-            to="/guides" 
-            isActive={location.pathname.startsWith("/guides")}
-            onMouseEnter={() => {
-              setIsProductsDropdownOpen(false);
-              setIsToolsDropdownOpen(false);
-            }}
+          {/* Resources Dropdown */}
+          <div 
+            className="relative" 
+            ref={resourcesDropdownRef}
+            onMouseEnter={() => openDropdown(setIsResourcesDropdownOpen, setIsProductsDropdownOpen, setIsToolsDropdownOpen, setProductsTimeout, setToolsTimeout)}
+            onMouseLeave={() => closeDropdownWithDelay(setIsResourcesDropdownOpen, setResourcesTimeout, resourcesTimeout)}
           >
-            Guides
-          </NavLink>
+            <button
+              className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
+            >
+              Resources <FaChevronDown size={12} className="ml-1" />
+            </button>
+            {isResourcesDropdownOpen && (
+              <>
+                {/* Invisible bridge to prevent menu from closing */}
+                <div className="absolute top-full left-0 w-48 h-1 bg-transparent" />
+                <div
+                  className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out overflow-hidden"
+                  onMouseEnter={() => setIsResourcesDropdownOpen(true)}
+                  onMouseLeave={() => closeDropdownWithDelay(setIsResourcesDropdownOpen, setResourcesTimeout, resourcesTimeout)}
+                >
+                  <DropdownItem to="/guides" isActive={location.pathname === "/guides"}>
+                    All Guides
+                  </DropdownItem>
+                  <DropdownItem to="/guides/faq" isActive={location.pathname === "/guides/faq"}>
+                    FAQ
+                  </DropdownItem>
+                  <DropdownItem to="/guides/quick-start" isActive={location.pathname === "/guides/quick-start"}>
+                    Quick Start Guide
+                  </DropdownItem>
+                </div>
+              </>
+            )}
+          </div>
           <NavLink 
             to="/about" 
             isActive={location.pathname === "/about"}
             onMouseEnter={() => {
               setIsProductsDropdownOpen(false);
               setIsToolsDropdownOpen(false);
+              setIsResourcesDropdownOpen(false);
             }}
           >
             About
@@ -248,7 +316,7 @@ const Header = () => {
               shadow-md shadow-black/50
             "
           >
-            <div className="flex flex-col divide-y divide-brand-border">
+            <div className="flex flex-col">
               <MobileNavLink
                 to="/"
                 isActive={isHome}
@@ -258,49 +326,81 @@ const Header = () => {
               </MobileNavLink>
               
               {/* Products Section */}
-              <div className="py-2 px-4 text-brand-text/70 text-sm font-medium">
-                Products
-              </div>
-              <MobileNavLink
-                to="/tshot"
-                isActive={location.pathname === "/tshot"}
-                onClick={toggleMobileMenu}
-                className="pl-8"
+              <MobileSection
+                title="Products"
+                isOpen={mobileProductsOpen}
+                onToggle={() => setMobileProductsOpen(!mobileProductsOpen)}
               >
-                TSHOT
-              </MobileNavLink>
+                <MobileNavLink
+                  to="/tshot"
+                  isActive={location.pathname === "/tshot"}
+                  onClick={closeMobileMenu}
+                  className="pl-8"
+                >
+                  TSHOT
+                </MobileNavLink>
+              </MobileSection>
               
               {/* Tools Section */}
-              <div className="py-2 px-4 text-brand-text/70 text-sm font-medium">
-                Tools
-              </div>
-                             <MobileNavLink
-                 to="/transfer"
-                 isActive={location.pathname === "/transfer"}
-                 onClick={toggleMobileMenu}
-                 className="pl-8"
-               >
-                 Transfer Hub
-               </MobileNavLink>
+              <MobileSection
+                title="Tools"
+                isOpen={mobileToolsOpen}
+                onToggle={() => setMobileToolsOpen(!mobileToolsOpen)}
+              >
+                <MobileNavLink
+                  to="/transfer"
+                  isActive={location.pathname === "/transfer"}
+                  onClick={closeMobileMenu}
+                  className="pl-8"
+                >
+                  Transfer Hub
+                </MobileNavLink>
+                <MobileNavLink
+                  to="/analytics"
+                  isActive={location.pathname === "/analytics"}
+                  onClick={closeMobileMenu}
+                  className="pl-8"
+                >
+                  Analytics
+                </MobileNavLink>
+              </MobileSection>
               
-              <MobileNavLink
-                to="/analytics"
-                isActive={location.pathname === "/analytics"}
-                onClick={toggleMobileMenu}
+              {/* Resources Section */}
+              <MobileSection
+                title="Resources"
+                isOpen={mobileResourcesOpen}
+                onToggle={() => setMobileResourcesOpen(!mobileResourcesOpen)}
               >
-                Analytics
-              </MobileNavLink>
-              <MobileNavLink
-                to="/guides"
-                isActive={location.pathname.startsWith("/guides")}
-                onClick={toggleMobileMenu}
-              >
-                Guides
-              </MobileNavLink>
+                <MobileNavLink
+                  to="/guides"
+                  isActive={location.pathname === "/guides"}
+                  onClick={closeMobileMenu}
+                  className="pl-8"
+                >
+                  All Guides
+                </MobileNavLink>
+                <MobileNavLink
+                  to="/guides/faq"
+                  isActive={location.pathname === "/guides/faq"}
+                  onClick={closeMobileMenu}
+                  className="pl-8"
+                >
+                  FAQ
+                </MobileNavLink>
+                <MobileNavLink
+                  to="/guides/quick-start"
+                  isActive={location.pathname === "/guides/quick-start"}
+                  onClick={closeMobileMenu}
+                  className="pl-8"
+                >
+                  Quick Start Guide
+                </MobileNavLink>
+              </MobileSection>
+              
               <MobileNavLink
                 to="/about"
                 isActive={location.pathname === "/about"}
-                onClick={toggleMobileMenu}
+                onClick={closeMobileMenu}
               >
                 About
               </MobileNavLink>
@@ -326,6 +426,18 @@ const NavLink = ({ to, isActive, children, className = "" }) => (
   </Link>
 );
 
+const DropdownItem = ({ to, isActive, children, className = "" }) => (
+  <Link
+    to={to}
+    className={`
+      block w-full py-3 px-4 text-brand-text hover:bg-brand-primary/20 hover:text-brand-accent transition-all duration-200 border-b border-brand-border/30 last:border-b-0 first:rounded-t-md last:rounded-b-md
+      ${isActive ? "bg-brand-primary/30 text-brand-accent font-semibold" : ""} ${className}
+    `}
+  >
+    {children}
+  </Link>
+);
+
 const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
   <Link
     to={to}
@@ -338,6 +450,26 @@ const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
     {children}
   </Link>
 );
+
+const MobileSection = ({ title, isOpen, onToggle, children }) => (
+  <div className="border-b border-brand-border/30">
+    <button
+      onClick={onToggle}
+      className="w-full relative py-4 px-4 text-brand-text hover:bg-brand-primary/20 transition-colors"
+    >
+      <span className="font-medium text-center block">{title}</span>
+      <FaChevronDown 
+        size={16} 
+        className={`absolute right-4 top-1/2 -translate-y-1/2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+      />
+    </button>
+    {isOpen && (
+      <div className="bg-brand-primary/10">
+        {children}
+      </div>
+    )}
+  </div>
+ );
 
 const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button

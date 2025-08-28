@@ -1,5 +1,4 @@
 import React from "react";
-import { Helmet } from "react-helmet-async";
 import GuideTemplate from "../../components/GuideTemplate";
 import { BookOpen } from "lucide-react";
 
