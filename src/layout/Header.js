@@ -13,12 +13,8 @@ const Header = () => {
   /* ───────── local state ───────── */
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
-  const [isToolsDropdownOpen, setIsToolsDropdownOpen] = useState(false);
-  const [isResourcesDropdownOpen, setIsResourcesDropdownOpen] = useState(false);
-  const [productsTimeout, setProductsTimeout] = useState(null);
-  const [toolsTimeout, setToolsTimeout] = useState(null);
-  const [resourcesTimeout, setResourcesTimeout] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [dropdownTimeout, setDropdownTimeout] = useState(null);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
@@ -60,22 +56,15 @@ const Header = () => {
   const connectWallet = () => fcl.authenticate();
 
   /* ───────── dropdown helpers ───────── */
-  const closeDropdownWithDelay = (setter, timeoutSetter, timeoutValue) => {
-    if (timeoutValue) {
-      clearTimeout(timeoutValue);
-    }
-    const timeout = setTimeout(() => setter(false), 300);
-    timeoutSetter(timeout);
+  const closeDropdownWithDelay = () => {
+    clearTimeout(dropdownTimeout); // Clear any pending timeout
+    const timeout = setTimeout(() => setActiveDropdown(null), 300);
+    setDropdownTimeout(timeout);
   };
 
-  const openDropdown = (setter, closeOther1, closeOther2, timeoutSetter1, timeoutSetter2) => {
-    // Clear any pending timeouts for other dropdowns
-    if (timeoutSetter1) timeoutSetter1(null);
-    if (timeoutSetter2) timeoutSetter2(null);
-    
-    closeOther1(false);
-    closeOther2(false);
-    setter(true);
+  const openDropdown = (dropdownName) => {
+    clearTimeout(dropdownTimeout); // Immediately clear timeout when opening a new menu
+    setActiveDropdown(dropdownName);
   };
 
   /* close mobile drawer on outside click */
@@ -89,31 +78,37 @@ const Header = () => {
     return () => document.removeEventListener("mousedown", handler);
   }, [isMobileMenuOpen]);
 
+  /* close mobile menu when resizing to desktop */
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+        setMobileProductsOpen(false);
+        setMobileToolsOpen(false);
+        setMobileResourcesOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isMobileMenuOpen]);
+
   /* close dropdowns on outside click */
   useEffect(() => {
     const handler = (e) => {
-      if (productsDropdownRef.current && !productsDropdownRef.current.contains(e.target)) {
-        setIsProductsDropdownOpen(false);
-      }
-      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target)) {
-        setIsToolsDropdownOpen(false);
-      }
-      if (resourcesDropdownRef.current && !resourcesDropdownRef.current.contains(e.target)) {
-        setIsResourcesDropdownOpen(false);
+      const dropdownRefs = [productsDropdownRef, toolsDropdownRef, resourcesDropdownRef];
+      // Check if the click was inside ANY of the dropdowns or their triggers
+      const isClickInside = dropdownRefs.some(ref => ref.current && ref.current.contains(e.target));
+      
+      if (!isClickInside) {
+        setActiveDropdown(null);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, []); // Empty dependency array is correct here
 
-  /* cleanup timeouts on unmount */
-  useEffect(() => {
-    return () => {
-      if (productsTimeout) clearTimeout(productsTimeout);
-      if (toolsTimeout) clearTimeout(toolsTimeout);
-      if (resourcesTimeout) clearTimeout(resourcesTimeout);
-    };
-  }, [productsTimeout, toolsTimeout, resourcesTimeout]);
+
 
   /* ───────── render ───────── */
   return (
@@ -121,7 +116,7 @@ const Header = () => {
       <div className="border-b border-brand-border px-3 py-4 flex items-center justify-between">
         {/* ── Left: logo + hamburger ── */}
         <div className="flex items-center">
-          <button onClick={toggleMobileMenu} className="md:hidden">
+          <button onClick={toggleMobileMenu} className="lg:hidden">
             {isMobileMenuOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
           </button>
 
@@ -129,69 +124,69 @@ const Header = () => {
             <img
               src="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png"
               alt="Vaultopolis Icon"
-              className="w-8 h-8 max-[375px]:block hidden object-contain"
+              className="w-8 h-8 block sm:hidden object-contain"
             />
             <img
               src="https://storage.googleapis.com/vaultopolis/Vaultopolis.png"
               alt="Vaultopolis Logo"
-              className="w-44 object-contain max-[375px]:hidden block"
+              className="w-44 object-contain hidden sm:block"
             />
           </Link>
         </div>
 
         {/* ── Desktop nav ── */}
         <nav 
-          className="hidden md:flex items-center space-x-4 flex-grow justify-center"
+          className="hidden lg:flex items-center space-x-0 flex-grow justify-center"
           onMouseLeave={() => {
-            closeDropdownWithDelay(setIsProductsDropdownOpen, setProductsTimeout, productsTimeout);
-            closeDropdownWithDelay(setIsToolsDropdownOpen, setToolsTimeout, toolsTimeout);
-            closeDropdownWithDelay(setIsResourcesDropdownOpen, setResourcesTimeout, resourcesTimeout);
+            closeDropdownWithDelay();
           }}
         >
           <NavLink 
             to="/" 
             isActive={isHome}
             onMouseEnter={() => {
-              setIsProductsDropdownOpen(false);
-              setIsToolsDropdownOpen(false);
-              setIsResourcesDropdownOpen(false);
+              setActiveDropdown(null);
             }}
           >
             Swap
           </NavLink>
 
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/20 mx-2" />
+
           <NavLink 
             to="/vault-contents" 
             isActive={location.pathname === "/vault-contents"}
             onMouseEnter={() => {
-              setIsProductsDropdownOpen(false);
-              setIsToolsDropdownOpen(false);
-              setIsResourcesDropdownOpen(false);
+              setActiveDropdown(null);
             }}
           >
             Explore the Vault
           </NavLink>
+
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/20 mx-2" />
           
           {/* Products Dropdown */}
           <div 
             className="relative" 
             ref={productsDropdownRef}
-            onMouseEnter={() => openDropdown(setIsProductsDropdownOpen, setIsToolsDropdownOpen, setIsResourcesDropdownOpen, setToolsTimeout, setResourcesTimeout)}
-            onMouseLeave={() => closeDropdownWithDelay(setIsProductsDropdownOpen, setProductsTimeout, productsTimeout)}
+            onMouseEnter={() => openDropdown('products')}
+            onMouseLeave={() => closeDropdownWithDelay()}
           >
             <button
               className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
             >
               Products <FaChevronDown size={12} className="ml-1" />
             </button>
-            {isProductsDropdownOpen && (
+            {activeDropdown === 'products' && (
               <>
                 {/* Invisible bridge to prevent menu from closing */}
                 <div className="absolute top-full left-0 w-48 h-1 bg-transparent" />
                 <div
                   className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out overflow-hidden"
-                  onMouseEnter={() => setIsProductsDropdownOpen(true)}
-                  onMouseLeave={() => closeDropdownWithDelay(setIsProductsDropdownOpen, setProductsTimeout, productsTimeout)}
+                  onMouseEnter={() => setActiveDropdown('products')}
+                  onMouseLeave={() => closeDropdownWithDelay()}
                 >
                   <DropdownItem to="/tshot" isActive={location.pathname === "/tshot"}>
                     TSHOT
@@ -201,26 +196,29 @@ const Header = () => {
             )}
           </div>
 
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/20 mx-2" />
+
           {/* Tools Dropdown */}
           <div 
             className="relative" 
             ref={toolsDropdownRef}
-            onMouseEnter={() => openDropdown(setIsToolsDropdownOpen, setIsProductsDropdownOpen, setIsResourcesDropdownOpen, setProductsTimeout, setResourcesTimeout)}
-            onMouseLeave={() => closeDropdownWithDelay(setIsToolsDropdownOpen, setToolsTimeout, toolsTimeout)}
+            onMouseEnter={() => openDropdown('tools')}
+            onMouseLeave={() => closeDropdownWithDelay()}
           >
             <button
               className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
             >
               Tools <FaChevronDown size={12} className="ml-1" />
             </button>
-            {isToolsDropdownOpen && (
+            {activeDropdown === 'tools' && (
               <>
                 {/* Invisible bridge to prevent menu from closing */}
                 <div className="absolute top-full left-0 w-48 h-1 bg-transparent" />
                 <div
                   className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out overflow-hidden"
-                  onMouseEnter={() => setIsToolsDropdownOpen(true)}
-                  onMouseLeave={() => closeDropdownWithDelay(setIsToolsDropdownOpen, setToolsTimeout, toolsTimeout)}
+                  onMouseEnter={() => setActiveDropdown('tools')}
+                  onMouseLeave={() => closeDropdownWithDelay()}
                 >
                   <DropdownItem to="/transfer" isActive={location.pathname === "/transfer"}>
                     Transfer Hub
@@ -230,37 +228,42 @@ const Header = () => {
             )}
           </div>
 
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/20 mx-2" />
+
           <NavLink 
             to="/analytics" 
             isActive={location.pathname === "/analytics"}
             onMouseEnter={() => {
-              setIsProductsDropdownOpen(false);
-              setIsToolsDropdownOpen(false);
-              setIsResourcesDropdownOpen(false);
+              setActiveDropdown(null);
             }}
           >
             Protocol Stats
           </NavLink>
+
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/20 mx-2" />
+
           {/* Resources Dropdown */}
           <div 
             className="relative" 
             ref={resourcesDropdownRef}
-            onMouseEnter={() => openDropdown(setIsResourcesDropdownOpen, setIsProductsDropdownOpen, setIsToolsDropdownOpen, setProductsTimeout, setToolsTimeout)}
-            onMouseLeave={() => closeDropdownWithDelay(setIsResourcesDropdownOpen, setResourcesTimeout, resourcesTimeout)}
+            onMouseEnter={() => openDropdown('resources')}
+            onMouseLeave={() => closeDropdownWithDelay()}
           >
             <button
               className="flex items-center py-2 px-4 rounded-md whitespace-nowrap hover:opacity-80 select-none text-brand-text"
             >
               Resources <FaChevronDown size={12} className="ml-1" />
             </button>
-            {isResourcesDropdownOpen && (
+            {activeDropdown === 'resources' && (
               <>
                 {/* Invisible bridge to prevent menu from closing */}
                 <div className="absolute top-full left-0 w-48 h-1 bg-transparent" />
                 <div
                   className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border transition-all duration-200 ease-in-out overflow-hidden"
-                  onMouseEnter={() => setIsResourcesDropdownOpen(true)}
-                  onMouseLeave={() => closeDropdownWithDelay(setIsResourcesDropdownOpen, setResourcesTimeout, resourcesTimeout)}
+                  onMouseEnter={() => setActiveDropdown('resources')}
+                  onMouseLeave={() => closeDropdownWithDelay()}
                 >
                   <DropdownItem to="/guides" isActive={location.pathname === "/guides"}>
                     All Guides
@@ -275,13 +278,15 @@ const Header = () => {
               </>
             )}
           </div>
+
+          {/* Separator */}
+          <div className="w-px h-6 bg-white/20 mx-2" />
+
           <NavLink 
             to="/about" 
             isActive={location.pathname === "/about"}
             onMouseEnter={() => {
-              setIsProductsDropdownOpen(false);
-              setIsToolsDropdownOpen(false);
-              setIsResourcesDropdownOpen(false);
+              setActiveDropdown(null);
             }}
           >
             About
@@ -323,7 +328,7 @@ const Header = () => {
           <div
             ref={mobileMenuRef}
             className="
-              absolute top-[68px] left-0 w-full md:hidden
+              absolute top-[68px] left-0 w-full lg:hidden
               bg-brand-secondary text-brand-text
               shadow-md shadow-black/50
             "
@@ -336,6 +341,9 @@ const Header = () => {
               >
                 Swap
               </MobileNavLink>
+
+              {/* Mobile Separator */}
+              <div className="w-full h-px bg-white/20" />
               
               <MobileNavLink
                 to="/vault-contents"
@@ -344,6 +352,9 @@ const Header = () => {
               >
                 Explore the Vault
               </MobileNavLink>
+
+              {/* Mobile Separator */}
+              <div className="w-full h-px bg-white/20" />
               
               {/* Products Section */}
               <MobileSection
@@ -360,6 +371,9 @@ const Header = () => {
                   TSHOT
                 </MobileNavLink>
               </MobileSection>
+
+              {/* Mobile Separator */}
+              <div className="w-full h-px bg-white/20" />
               
               {/* Tools Section */}
               <MobileSection
@@ -375,15 +389,21 @@ const Header = () => {
                 >
                   Transfer Hub
                 </MobileNavLink>
-                <MobileNavLink
-                  to="/analytics"
-                  isActive={location.pathname === "/analytics"}
-                  onClick={closeMobileMenu}
-                  className="pl-8"
-                >
-                  Protocol Stats
-                </MobileNavLink>
               </MobileSection>
+
+              {/* Mobile Separator */}
+              <div className="w-full h-px bg-white/20" />
+              
+              <MobileNavLink
+                to="/analytics"
+                isActive={location.pathname === "/analytics"}
+                onClick={closeMobileMenu}
+              >
+                Protocol Stats
+              </MobileNavLink>
+
+              {/* Mobile Separator */}
+              <div className="w-full h-px bg-white/20" />
               
               {/* Resources Section */}
               <MobileSection
@@ -416,6 +436,9 @@ const Header = () => {
                   Quick Start Guide
                 </MobileNavLink>
               </MobileSection>
+
+              {/* Mobile Separator */}
+              <div className="w-full h-px bg-white/20" />
               
               <MobileNavLink
                 to="/about"
@@ -472,7 +495,7 @@ const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
 );
 
 const MobileSection = ({ title, isOpen, onToggle, children }) => (
-  <div className="border-b border-brand-border/30">
+  <div>
     <button
       onClick={onToggle}
       className="w-full relative py-4 px-4 text-brand-text hover:bg-brand-primary/20 transition-colors"
@@ -489,7 +512,8 @@ const MobileSection = ({ title, isOpen, onToggle, children }) => (
       </div>
     )}
   </div>
- );
+);
+
 
 const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button
