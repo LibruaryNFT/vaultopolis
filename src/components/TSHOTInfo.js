@@ -20,7 +20,11 @@ import {
 
 
 /* ---------- main component ---------- */
-function TSHOTInfo({ vaultSummary, analyticsData, loading, error }) {
+function TSHOTInfo({ vaultSummary, analyticsData, loading, error, onConnectWallet }) {
+  // Default wallet connection function if not provided
+  const handleConnectWallet = onConnectWallet || (() => {
+    console.warn("onConnectWallet not provided to TSHOTInfo component");
+  });
   
   // 1. HERO SECTION - What TSHOT is and why it's cool
   const HeroSection = () => (
@@ -43,8 +47,8 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error }) {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <a
-            href="/"
+          <button
+            onClick={handleConnectWallet}
             className="bg-opolis hover:bg-opolis-dark text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-3"
               >
                 <img
@@ -54,7 +58,7 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error }) {
             />
             Get Started Now
             <ArrowRight className="h-5 w-5" />
-          </a>
+          </button>
 
             </div>
           </div>
@@ -772,8 +776,8 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error }) {
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <a
-            href="/"
+          <button
+            onClick={handleConnectWallet}
             className="bg-opolis hover:bg-opolis-dark text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-3"
           >
             <img
@@ -783,7 +787,7 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error }) {
             />
             Get Started Now
             <ArrowRight className="h-5 w-5" />
-          </a>
+          </button>
           <a
             href="/guides/quick-start"
             className="text-white/90 hover:text-white px-8 py-4 rounded-xl text-lg font-medium transition-colors border-2 border-white/20 hover:border-white/40 inline-flex items-center gap-2"

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import * as fcl from "@onflow/fcl";
 
 import TSHOTInfo from "../components/TSHOTInfo";
 
@@ -8,6 +9,17 @@ function TSHOT() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Wallet connection function
+  const handleConnectWallet = async () => {
+    try {
+      await fcl.authenticate();
+      // After successful authentication, redirect to the main app
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -106,7 +118,13 @@ function TSHOT() {
       {/* ─── PAGE BODY ─── */}
       {/* space-y-2 = one uniform vertical gap between every major section */}
       <div className="w-full text-white space-y-2 mb-2">
-        <TSHOTInfo vaultSummary={vaultSummary} analyticsData={analyticsData} loading={loading} error={error} />
+        <TSHOTInfo 
+          vaultSummary={vaultSummary} 
+          analyticsData={analyticsData} 
+          loading={loading} 
+          error={error}
+          onConnectWallet={handleConnectWallet}
+        />
       </div>
     </>
   );
