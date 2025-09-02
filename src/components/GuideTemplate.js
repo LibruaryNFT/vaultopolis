@@ -142,12 +142,12 @@ function GuideTemplate({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [steps.length]);
 
-  // Focus management for accessibility
-  useEffect(() => {
-    if (!isLoading && !hasError && headingRef.current) {
-      headingRef.current.focus();
-    }
-  }, [isLoading, hasError]);
+  // Focus management for accessibility - removed auto-focus to prevent unwanted text selection
+  // useEffect(() => {
+  //   if (!isLoading && !hasError && headingRef.current) {
+  //     headingRef.current.focus();
+  //   }
+  // }, [isLoading, hasError]);
 
   // Enhanced structured data for HowTo content
   const howToStructuredData = {
@@ -308,7 +308,7 @@ function GuideTemplate({
               <div className="flex justify-center">
                 <Icon className="text-6xl text-brand-accent" aria-hidden="true" />
               </div>
-              <h1 className="text-4xl font-bold text-brand-text" tabIndex="-1" ref={headingRef}>
+              <h1 className="text-4xl font-bold text-brand-text" ref={headingRef}>
                 {title}
               </h1>
               <p className="text-xl text-brand-text/80">{description}</p>
