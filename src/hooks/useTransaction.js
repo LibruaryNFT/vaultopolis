@@ -38,6 +38,29 @@ const useTransaction = () => {
       onUpdate?.({ status: "Pending", txId: transactionId, error: null });
 
       // Subscribe to updates
+      let stuckTimerId = null;
+      const startStuckTimer = (label) => {
+        if (stuckTimerId) return;
+        stuckTimerId = setTimeout(() => {
+          console.warn(
+            `[useTransaction] Transaction appears stuck after 20s`,
+            {
+              txId: transactionId,
+              lastStatus: label,
+              at: new Date().toISOString(),
+            }
+          );
+        }, 20_000);
+      };
+      const clearStuckTimer = () => {
+        if (stuckTimerId) {
+          clearTimeout(stuckTimerId);
+          stuckTimerId = null;
+        }
+      };
+
+      startStuckTimer("Pending");
+
       fcl.tx(transactionId).subscribe((transaction) => {
         const statusMap = {
           0: "Pending",
@@ -50,6 +73,14 @@ const useTransaction = () => {
         const newStatus = statusMap[transaction.status] || "Pending";
         setStatus(newStatus);
         onUpdate?.({ status: newStatus, txId: transactionId, error: null });
+
+        // Reset timer on each status transition; stop on terminal statuses
+        if (newStatus === "Sealed" || newStatus === "Expired") {
+          clearStuckTimer();
+        } else {
+          clearStuckTimer();
+          startStuckTimer(newStatus);
+        }
       });
     } catch (err) {
       const errorMsg = err.message || String(err);

@@ -191,6 +191,26 @@ export default function TSHOTToNFTPanel({
         swapType: "TSHOT_TO_NFT",
       });
 
+      let stuckTimerId = null;
+      const startStuckTimer = (label) => {
+        if (stuckTimerId) return;
+        stuckTimerId = setTimeout(() => {
+          console.warn("[TSHOTToNFTPanel][deposit] Tx appears stuck after 20s", {
+            txId,
+            lastStatus: label,
+            at: new Date().toISOString(),
+          });
+        }, 20_000);
+      };
+      const clearStuckTimer = () => {
+        if (stuckTimerId) {
+          clearTimeout(stuckTimerId);
+          stuckTimerId = null;
+        }
+      };
+
+      startStuckTimer("Pending");
+
       const unsub = fcl.tx(txId).subscribe((s) => {
         const map = {
           PENDING: "Pending",
@@ -206,6 +226,13 @@ export default function TSHOTToNFTPanel({
           transactionAction: "COMMIT_SWAP",
           swapType: "TSHOT_TO_NFT",
         });
+        const label = map[s.statusString] || "Processing…";
+        if (label === "Sealed") {
+          clearStuckTimer();
+        } else {
+          clearStuckTimer();
+          startStuckTimer(label);
+        }
         if (s.status === 4) unsub();
       });
 
@@ -259,6 +286,26 @@ export default function TSHOTToNFTPanel({
       });
 
       /* live updates */
+      let stuckTimerId2 = null;
+      const startStuckTimer2 = (label) => {
+        if (stuckTimerId2) return;
+        stuckTimerId2 = setTimeout(() => {
+          console.warn("[TSHOTToNFTPanel][reveal] Tx appears stuck after 20s", {
+            txId,
+            lastStatus: label,
+            at: new Date().toISOString(),
+          });
+        }, 20_000);
+      };
+      const clearStuckTimer2 = () => {
+        if (stuckTimerId2) {
+          clearTimeout(stuckTimerId2);
+          stuckTimerId2 = null;
+        }
+      };
+
+      startStuckTimer2("Pending");
+
       const unsub = fcl.tx(txId).subscribe((s) => {
         const map = {
           PENDING: "Pending",
@@ -274,6 +321,13 @@ export default function TSHOTToNFTPanel({
           transactionAction: "REVEAL_SWAP",
           swapType: "TSHOT_TO_NFT",
         });
+        const label = map[s.statusString] || "Processing…";
+        if (label === "Sealed") {
+          clearStuckTimer2();
+        } else {
+          clearStuckTimer2();
+          startStuckTimer2(label);
+        }
         if (s.status === 4) unsub();
       });
 

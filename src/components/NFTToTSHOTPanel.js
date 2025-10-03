@@ -89,6 +89,26 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
       });
 
       /* 2. live status updates */
+      let stuckTimerId = null;
+      const startStuckTimer = (label) => {
+        if (stuckTimerId) return;
+        stuckTimerId = setTimeout(() => {
+          console.warn("[NFTToTSHOTPanel] Tx appears stuck after 20s", {
+            txId,
+            lastStatus: label,
+            at: new Date().toISOString(),
+          });
+        }, 20_000);
+      };
+      const clearStuckTimer = () => {
+        if (stuckTimerId) {
+          clearTimeout(stuckTimerId);
+          stuckTimerId = null;
+        }
+      };
+
+      startStuckTimer("Pending");
+
       const unsub = fcl.tx(txId).subscribe((tx) => {
         const map = {
           PENDING: "Pending",
@@ -105,6 +125,13 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
           swapType: "NFT_TO_TSHOT",
           nftIds,
         });
+        const label = map[tx.statusString] || "Processing…";
+        if (label === "Sealed") {
+          clearStuckTimer();
+        } else {
+          clearStuckTimer();
+          startStuckTimer(label);
+        }
         if (tx.status === 4) unsub(); // Sealed
       });
 

@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@onflow/fcl": "^1.18.0",
-    "@onflow/fcl-wc": "^5.5.5",
-    "@walletconnect/utils": "^2.19.0",
+    "@onflow/fcl": "^1.20.1",
+    "@onflow/fcl-wc": "^6.0.6",
+    "@walletconnect/utils": "^2.21.10",
     "axios": "^1.9.0",
     "framer-motion": "^11.11.17",
     "localforage": "^1.10.0",

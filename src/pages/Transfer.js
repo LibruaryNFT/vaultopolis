@@ -194,6 +194,28 @@ const Transfer = () => {
           : "Transferring Moments..."
       );
 
+      let stuckTimerId = null;
+      const startStuckTimer = (label) => {
+        if (stuckTimerId) return;
+        stuckTimerId = setTimeout(() => {
+          console.warn("[Transfer] Tx appears stuck after 20s", {
+            txId: tx,
+            lastStatus: label,
+            at: new Date().toISOString(),
+            destinationType,
+            selectedCount: selectedNftsInAccount.length,
+          });
+        }, 20_000);
+      };
+      const clearStuckTimer = () => {
+        if (stuckTimerId) {
+          clearTimeout(stuckTimerId);
+          stuckTimerId = null;
+        }
+      };
+
+      startStuckTimer("Pending");
+
       const unsub = fcl.tx(tx).subscribe((txStatusUpdate) => {
         let newStatus = "Processing...";
         switch (txStatusUpdate.statusString) {
@@ -215,6 +237,12 @@ const Transfer = () => {
         }
 
         setTxStatus(newStatus);
+        if (newStatus === "Sealed") {
+          clearStuckTimer();
+        } else {
+          clearStuckTimer();
+          startStuckTimer(newStatus);
+        }
         if (txStatusUpdate.errorMessage?.length) {
           setTxMsg(txStatusUpdate.errorMessage);
         } else if (newStatus === "Sealed") {
@@ -232,6 +260,7 @@ const Transfer = () => {
               ...selectedNftsInAccount.map(String),
             ]);
           }
+          clearStuckTimer();
           unsub();
         }
       });
