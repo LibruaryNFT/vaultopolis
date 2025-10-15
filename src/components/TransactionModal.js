@@ -42,6 +42,9 @@ const TransactionModal = ({
   onClose,
   revealedNFTDetails,
   recipient,
+  momentDetails,
+  offerDetails,
+  usdAmount,
 }) => {
   /* collapse noisy statuses */
   const effectiveStatus =
@@ -84,6 +87,16 @@ const TransactionModal = ({
 
   let txMsg = "";
   switch (transactionAction) {
+    case "OFFERS_ACCEPT": {
+      const flowAmt = parseFloat(tshotAmount || 0).toFixed(2);
+      const base = `${flowAmt} FLOW`;
+      const usdText = usdAmount ? ` (~$${usdAmount.toFixed(2)} USD)` : '';
+      txMsg = past(
+        `Accepting offer · ${base}${usdText}`,
+        `Accepted offer · ${base}${usdText}`
+      );
+      break;
+    }
     case "COMMIT_SWAP":
       txMsg = past(
         `Depositing ${parseInt(tshotAmount || 0, 10)} TSHOT`,
@@ -210,8 +223,30 @@ const TransactionModal = ({
           </button>
         </div>
 
-        {/* reveal grid */}
-        {revealedCount > 0 && (
+        {/* Moment being sold for OFFERS_ACCEPT */}
+        {transactionAction === "OFFERS_ACCEPT" && momentDetails && (
+          <div className="-mx-4 px-4 mt-4 pb-2 border-t border-brand-border">
+            <h3 className="font-bold text-sm mb-2">
+              Selling Moment:
+            </h3>
+            <div className="flex justify-center">
+              <MomentCard nft={momentDetails} disableHover />
+            </div>
+            {offerDetails && (
+              <div className="mt-2 text-center text-sm text-brand-text/70">
+                <p>Offer ID: {offerDetails.offerId}</p>
+                <p>Set {momentDetails.setID}, Play {momentDetails.playID}</p>
+                <p className="mt-1 font-semibold text-green-400">
+                  You will receive: {parseFloat(offerDetails.offerAmount).toFixed(2)} FLOW
+                  {usdAmount && ` (~$${usdAmount.toFixed(2)} USD)`}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* reveal grid - only show for non-OFFERS_ACCEPT transactions */}
+        {revealedCount > 0 && transactionAction !== "OFFERS_ACCEPT" && (
           <div className="-mx-4 px-4 mt-4 pb-2 border-t border-brand-border">
             <div className="flex items-center justify-between my-2">
               <h3 className="font-bold text-sm">

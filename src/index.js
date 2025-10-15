@@ -9,18 +9,11 @@ import "./index.css";
 /* ──────────────────────────────────────────── */
 /* 1)  Dark-mode shim – unchanged              */
 /* ──────────────────────────────────────────── */
-(function applyThemeImmediately() {
-  let storedMode = localStorage.getItem("themeMode");
-  if (!storedMode) {
-    storedMode = "dark";
+(function forceDarkTheme() {
+  try {
     localStorage.setItem("themeMode", "dark");
-  }
-  if (storedMode === "system") {
-    const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    document.documentElement.classList.toggle("dark", dark);
-  } else {
-    document.documentElement.classList.toggle("dark", storedMode === "dark");
-  }
+  } catch {}
+  document.documentElement.classList.add("dark");
 })();
 
 /* ──────────────────────────────────────────── */

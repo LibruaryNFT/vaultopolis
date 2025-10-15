@@ -48,20 +48,7 @@ const bump = (obj, key, inc = 1) => {
 const fixed = (n, d = 2) => (Number.isFinite(+n) ? (+n).toFixed(d) : "0");
 
 /* ───────── minimal UI helpers ───────── */
-const Skeleton = ({ w = "w-16", h = "h-7" }) => (
-  <div className={`${w} ${h} rounded bg-brand-secondary animate-pulse`} />
-);
 
-const Tile = ({ title, value, loading }) => (
-  <div className="flex flex-col items-center justify-center w-full min-h-[90px] rounded-lg shadow bg-brand-primary text-brand-text px-4 py-3">
-    <span className="text-xs opacity-80 mb-1 text-center">{title}</span>
-    {loading ? (
-      <Skeleton />
-    ) : (
-      <span className="text-lg font-semibold">{value}</span>
-    )}
-  </div>
-);
 
 /* ───────── tier-only metadata cache for Profile page ───────── */
 let profilePageTopshotMeta = null;
@@ -387,42 +374,84 @@ const MiniStat = ({ label, value }) => (
   </div>
 );
 
-const AccountCard = ({ acc, idx, hasCollProp }) => {
+const AccountCard = ({ acc, idx, hasCollProp, userContextData }) => {
   const hasCollectionStatus = hasCollProp;
+  const isParent = idx === 0;
+  const isChild = idx > 0;
+  
+  // Get display name for child accounts
+  const displayName = isChild && userContextData?.accountData?.childrenData?.find(
+    (c) => c.addr === acc.addr
+  )?.displayName;
+
+  const primaryText = isParent ? null : (displayName || `Child ${idx}`);
+  const hasPrimary = !!primaryText;
 
   return (
-    <div className="rounded-lg shadow border border-brand-primary">
-      <div className="flex justify-between bg-brand-secondary px-3 py-1.5 rounded-t-lg">
-        <h3 className="text-sm font-semibold m-0">
-          {idx === 0 ? "Parent" : `Child ${idx}`}
-        </h3>
-        <button
-          onClick={() => navigator.clipboard.writeText(acc.addr)}
-          className="truncate max-w-[200px] text-xs hover:opacity-80 select-none"
-        >
-          {acc.addr}
-        </button>
+    <div className="shadow border border-brand-primary">
+      <div className="bg-brand-secondary px-3 py-2 relative">
+        {/* Single line: role badge + wallet icon + address/username */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 flex-1 min-w-0">
+            <span className="px-1.5 py-0.5 text-[10px] rounded bg-brand-primary/60 text-brand-text font-semibold whitespace-nowrap border border-brand-border/50">
+              {isParent ? "PARENT" : "CHILD"}
+            </span>
+            <div className="flex items-center space-x-1 min-w-0 flex-1">
+              {isParent ? (
+                <img
+                  src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
+                  alt="Flow Wallet"
+                  className="w-3 h-3 shrink-0"
+                />
+              ) : (displayName ? (
+                <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 shrink-0" aria-label="Dapper Wallet">
+                  <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
+                    <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
+                    <g>
+                      <path fill="#FF5A9D" d="M45.92 22.847c0-4.049-1.191-19.768-16.434-22.15-13.545-2.116-24.77 2.144-27.628 15.72-2.859 13.576-.239 26.199 9.765 27.39 10.004 1.19 12.861.714 23.341.238 10.48-.477 10.956-17.149 10.956-21.198" transform="translate(3.2 5.333)"></path>
+                      <path fill="#FFF" d="M32.763 11.307c-4.457 0-8.255 2.82-9.709 6.772-1.453-3.953-5.252-6.772-9.709-6.772-5.712 0-10.342 4.63-10.342 10.342 0 5.712 4.63 10.342 10.342 10.342 4.457 0 8.256-2.82 9.71-6.772 1.453 3.952 5.251 6.772 9.708 6.772 5.712 0 10.342-4.63 10.342-10.342 0-5.712-4.63-10.342-10.342-10.342" transform="translate(3.2 5.333)"></path>
+                      <path fill="#7320D3" d="M13.556 14.364c-3.73 0-6.753 3.023-6.753 6.754 0 3.73 3.023 6.753 6.753 6.753s6.754-3.023 6.754-6.753-3.023-6.754-6.754-6.754M32.552 14.364c-3.73 0-6.754 3.023-6.754 6.754 0 3.73 3.024 6.753 6.754 6.753 3.73 0 6.754-3.023 6.754-6.753s-3.024-6.754-6.754-6.754" transform="translate(3.2 5.333)"></path>
+                      <path fill="#FFF" d="M19.427 16.27c0 1.64-1.33 2.968-2.969 2.968-1.639 0-2.968-1.329-2.968-2.968s1.33-2.968 2.968-2.968c1.64 0 2.969 1.33 2.969 2.968M39.214 16.27c0 1.64-1.33 2.968-2.968 2.968-1.64 0-2.968-1.329-2.968-2.968s1.328-2.968 2.968-2.968c1.638 0 2.968 1.33 2.968 2.968" transform="translate(3.2 5.333)"></path>
+                    </g>
+                  </g>
+                </svg>
+              ) : (
+                <img
+                  src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
+                  alt="Flow Wallet"
+                  className="w-3 h-3 shrink-0"
+                />
+              ))}
+              <span className="text-[11px] leading-snug text-brand-text/80 font-mono break-all select-none truncate">
+                {isChild && displayName ? displayName : acc.addr}
+              </span>
       </div>
+          </div>
+        </div>
+      </div>
+      
       <div className="grid grid-cols-3 bg-brand-primary text-center text-xs">
         <MiniStat label="Flow" value={fixed(acc.flow)} />
         <MiniStat label="Moments" value={acc.moments} />
         <MiniStat label="TSHOT" value={fixed(acc.tshot, 1)} />
       </div>
-      <div className="bg-brand-primary px-3 py-2 rounded-b-lg">
+      <div className="bg-brand-primary px-3 py-2">
         {hasCollectionStatus === false ? (
           <p className="italic text-xs">No TopShot collection.</p>
         ) : TIER_ORDER.some((t) => acc.tiers && acc.tiers[t]) ? (
-          TIER_ORDER.map(
+          <div className="space-y-1">
+            {TIER_ORDER.map(
             (t) =>
               acc.tiers[t] && (
-                <div key={t} className="flex justify-between text-xs py-0.5">
-                  <span className={tierColour[t]}>
+                  <div key={t} className="flex items-center text-xs">
+                    <span className={tierColour[t]} style={{ minWidth: '60px' }}>
                     {t[0].toUpperCase() + t.slice(1)}
                   </span>
-                  <span>{acc.tiers[t]}</span>
+                    <span className="ml-2">{acc.tiers[t]}</span>
                 </div>
               )
-          )
+            )}
+          </div>
         ) : (
           <p className="italic text-xs">
             Collection has no moments or tiers with available data.
@@ -602,15 +631,7 @@ function Profile() {
         </script>
       </Helmet>
 
-      <div className="p-6 sm:p-10 max-w-7xl mx-auto text-brand-text">
-        <h1 className="text-2xl font-bold mb-6">
-          Profile
-          {walletAddr && (
-            <span className="block text-sm mt-1 text-brand-accent break-all">
-              {walletAddr}
-            </span>
-          )}
-        </h1>
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto text-brand-text">
 
         {/* Handle cases where walletAddr is not yet determined or user needs to connect */}
         {!walletAddr && renderPreContent()}
@@ -618,94 +639,194 @@ function Profile() {
         {/* Always render the main structure if walletAddr is present, sections handle their own loading */}
         {walletAddr && (
           <>
-            {/* Headline Tiles: Uses loadingProfile state */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-              <Tile
-                title="Total Flow"
-                value={fixed(aggregate.flow)}
-                loading={loadingProfile}
-              />
-              <Tile
-                title="Total Moments"
-                value={aggregate.moments}
-                loading={loadingProfile}
-              />
-              <Tile
-                title="Total TSHOT"
-                value={fixed(aggregate.tshot, 1)}
-                loading={loadingProfile}
-              />
+            {/* Portfolio Summary Table */}
+            <div className="rounded-lg shadow border border-brand-primary mb-6">
+              <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold m-0 text-brand-text">Portfolio Summary</h3>
+                  <div className="flex items-center space-x-2 text-[11px] leading-snug text-brand-text/80">
+                    {/* Parent Account */}
+                    <div className="flex items-center space-x-1">
+                      <img 
+                        src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png" 
+                        alt="Flow" 
+                        className="w-3 h-3"
+                      />
+                      <span className="text-brand-text/80 font-mono break-all select-none">
+                        {walletAddr || '--'}
+                      </span>
+                    </div>
+                    {/* Plus Sign */}
+                    <span className="text-brand-text/60 font-bold">+</span>
+                    {/* Child Account */}
+                    {userDataCtx?.accountData?.childrenData?.length > 0 && (
+                      <div className="flex items-center space-x-1">
+                        {userDataCtx.accountData.childrenData[0].displayName ? (
+                          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" aria-label="Dapper Wallet">
+                            <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
+                              <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
+                              <g>
+                                <path fill="#FF5A9D" d="M45.92 22.847c0-4.049-1.191-19.768-16.434-22.15-13.545-2.116-24.77 2.144-27.628 15.72-2.859 13.576-.239 26.199 9.765 27.39 10.004 1.19 12.861.714 23.341.238 10.48-.477 10.956-17.149 10.956-21.198" transform="translate(3.2 5.333)"></path>
+                                <path fill="#FFF" d="M32.763 11.307c-4.457 0-8.255 2.82-9.709 6.772-1.453-3.953-5.252-6.772-9.709-6.772-5.712 0-10.342 4.63-10.342 10.342 0 5.712 4.63 10.342 10.342 10.342 4.457 0 8.256-2.82 9.71-6.772 1.453 3.952 5.251 6.772 9.708 6.772 5.712 0 10.342-4.63 10.342-10.342 0-5.712-4.63-10.342-10.342-10.342" transform="translate(3.2 5.333)"></path>
+                                <path fill="#7320D3" d="M13.556 14.364c-3.73 0-6.753 3.023-6.753 6.754 0 3.73 3.023 6.753 6.753 6.753s6.754-3.023 6.754-6.753-3.023-6.754-6.754-6.754M32.552 14.364c-3.73 0-6.754 3.023-6.754 6.754 0 3.73 3.024 6.753 6.754 6.753 3.73 0 6.754-3.023 6.754-6.753s-3.024-6.754-6.754-6.754" transform="translate(3.2 5.333)"></path>
+                              </g>
+                            </g>
+                          </svg>
+                        ) : (
+                          <img 
+                            src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png" 
+                            alt="Flow" 
+                            className="w-3 h-3"
+                          />
+                        )}
+                        <span className="text-brand-text/80 font-mono break-all select-none">
+                          {userDataCtx.accountData.childrenData[0].displayName || userDataCtx.accountData.childrenData[0].addr}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="bg-brand-primary rounded-b-lg p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">Total Flow</div>
+                    <div className="text-sm font-semibold">
+                      {loadingProfile ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        fixed(aggregate.flow)
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">Total Moments</div>
+                    <div className="text-sm font-semibold">
+                      {loadingProfile ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        aggregate.moments
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">Total TSHOT</div>
+                    <div className="text-sm font-semibold">
+                      {loadingProfile ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        fixed(aggregate.tshot, 1)
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">Deposits (NFT → TSHOT)</div>
+                    <div className="text-sm font-semibold">
+                      {swapLoading ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        swapStats?.NFTToTSHOTSwapCompleted ?? 0
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">Withdrawals (TSHOT → NFT)</div>
+                    <div className="text-sm font-semibold">
+                      {swapLoading ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        swapStats?.TSHOTToNFTSwapCompleted ?? 0
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">Net (Deposits – Withdrawals)</div>
+                    <div className="text-sm font-semibold">
+                      {swapLoading ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        swapStats?.net ?? "--"
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Accounts Breakdown: Conditional on loadingProfile and accountsData */}
             {loadingProfile && (
-              <p className="text-brand-text/70 my-8">
+              <p className="text-brand-text/70 mb-4">
                 Loading account details...
               </p>
             )}
             {!loadingProfile && accountsData.length > 0 && (
-              <>
-                <h2 className="text-xl font-bold mt-10 mb-4">
-                  Accounts Breakdown
-                </h2>
-                <div className="space-y-6 mb-12">
-                  {accountsData.map((a, i) => (
-                    <AccountCard
-                      key={a.addr}
-                      acc={a}
-                      idx={i}
-                      hasCollProp={a.hasCollection}
-                    />
-                  ))}
+              <div className="rounded-lg shadow border border-brand-primary mb-6">
+                <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
+                  <h3 className="text-sm font-semibold m-0 text-brand-text">Accounts Breakdown</h3>
                 </div>
-              </>
+                <div className="bg-brand-primary rounded-b-lg overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2">
+                    {/* Parent Account */}
+                    {accountsData[0] && (
+                      <div className="border-r border-brand-border">
+                    <AccountCard
+                          key={accountsData[0].addr}
+                          acc={accountsData[0]}
+                          idx={0}
+                          hasCollProp={accountsData[0].hasCollection}
+                          userContextData={userDataCtx}
+                        />
+                </div>
+                    )}
+                    {/* Child Account */}
+                    {accountsData[1] && (
+                      <div>
+                        <AccountCard
+                          key={accountsData[1].addr}
+                          acc={accountsData[1]}
+                          idx={1}
+                          hasCollProp={accountsData[1].hasCollection}
+                          userContextData={userDataCtx}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             )}
             {!loadingProfile && accountsData.length === 0 && walletAddr && (
-              <p className="my-8">
+              <p className="mb-6">
                 No account data or child accounts found for this profile.
               </p>
             )}
 
-            {/* Vault Activity: Uses swapLoading state */}
-            <h2 className="text-xl font-bold mt-10 mb-4">Vault Activity</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Tile
-                title="Deposits (NFT → TSHOT)"
-                value={swapStats?.NFTToTSHOTSwapCompleted ?? 0}
-                loading={swapLoading}
-              />
-              <Tile
-                title="Withdrawals (TSHOT → NFT)"
-                value={swapStats?.TSHOTToNFTSwapCompleted ?? 0}
-                loading={swapLoading}
-              />
-              <Tile
-                title="Net (Deposits – Withdrawals)"
-                value={swapStats?.net ?? "--"}
-                loading={swapLoading}
-              />
+            {/* User Activity: Swap History */}
+            <div className="rounded-lg shadow border border-brand-primary mb-6">
+              <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
+                <h3 className="text-sm font-semibold m-0 text-brand-text">User Activity</h3>
             </div>
-            <p className="text-xs text-brand-text/60 mt-2 mb-8">
+                <div className="bg-brand-primary rounded-b-lg p-4">
+                  <p className="text-xs text-brand-text/60 mb-4">
               Vault-activity data counted from{" "}
               <strong>May&nbsp;1&nbsp;2025</strong>.
             </p>
 
-            {/* Swap History: Uses eventsLoading state */}
-            <div className="mb-12">
-              <h2 className="text-lg font-semibold mb-3">Swap History</h2>
+                  {/* Swap History */}
+                  <div className="mb-6">
               {eventsLoading ? (
-                <p className="text-brand-text/70">Loading events…</p>
+                      <p className="text-brand-text/70 mb-8">Loading events…</p>
               ) : !events.length ? (
-                <p className="italic text-sm">No swap events.</p>
+                      <p className="italic text-sm mb-8">No swap events.</p>
               ) : (
                 <>
-                  <table className="w-full text-sm">
+                        <div className="overflow-x-auto mb-8">
+                          <table className="w-full text-sm min-w-[600px]">
                     <thead>
                       <tr className="text-left border-b border-brand-border">
-                        <th className="py-1 pr-2">When</th>
-                        <th className="py-1 pr-2">Type</th>
-                        <th className="py-1 pr-2"># NFTs/TSHOT</th>
-                        <th className="py-1">Tx ↗</th>
+                                <th className="py-2 pr-2">When</th>
+                                <th className="py-2 pr-2">Type</th>
+                                <th className="py-2 pr-2"># NFTs/TSHOT</th>
+                                <th className="py-2">Tx ↗</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -714,20 +835,20 @@ function Profile() {
                           key={ev.transactionId}
                           className="border-b border-brand-border/30"
                         >
-                          <td className="py-1 pr-2">
+                                  <td className="py-2 pr-2">
                             {new Date(ev.blockTimestamp).toLocaleString()}
                           </td>
-                          <td className="py-1 pr-2">
+                          <td className="py-2 pr-2">
                             {ev.type.includes("NFTToTSHOT")
                               ? "Deposit (NFT → TSHOT)"
                               : "Withdrawal (TSHOT → NFT)"}
                           </td>
-                          <td className="py-1 pr-2">
+                          <td className="py-2 pr-2">
                             {ev.data?.numNFTs ??
                               parseFloat(ev.data?.betAmount || 0).toFixed(1) ??
                               ""}
                           </td>
-                          <td className="py-1">
+                          <td className="py-2">
                             <a
                               href={`https://flowscan.io/transaction/${ev.transactionId}`}
                               target="_blank"
@@ -741,6 +862,7 @@ function Profile() {
                       ))}
                     </tbody>
                   </table>
+                      </div>
                   {totalPagesHistory > 1 && (
                     <div className="flex justify-center mt-4 gap-1">
                       {Array.from(
@@ -779,6 +901,8 @@ function Profile() {
                   )}
                 </>
               )}
+                </div>
+              </div>
             </div>
           </>
         )}

@@ -145,8 +145,8 @@ function Guides() {
                   >
                     <div className="relative overflow-hidden bg-gradient-to-br from-brand-accent to-brand-accent/80 rounded-xl p-6 border border-brand-accent/30 hover:border-brand-accent/50 transition-all duration-300 hover:shadow-2xl hover:shadow-brand-accent/30 group-hover:scale-[1.02] group-hover:-translate-y-1 h-full flex flex-col">
                       {/* Featured Badge */}
-                      <div className="absolute top-4 right-4">
-                        <span className="px-3 py-1 bg-white text-brand-accent font-bold text-xs rounded-full">
+                      <div className="absolute top-2 right-2 z-20">
+                        <span className="px-2 py-1 bg-white text-brand-accent font-bold text-xs rounded-full shadow-lg">
                           FEATURED
                         </span>
                       </div>

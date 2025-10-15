@@ -133,6 +133,16 @@ const Header = () => {
 
           <div className="w-px h-6 bg-white/20 mx-2" />
           
+          <NavLink 
+            to="/treasury-bids" 
+            isActive={location.pathname === "/treasury-bids" || location.pathname === "/offers"}
+            onMouseEnter={() => setActiveDropdown(null)}
+          >
+            Treasury Bids
+          </NavLink>
+
+          <div className="w-px h-6 bg-white/20 mx-2" />
+
           {/* Products Dropdown */}
           <div 
             className="relative" 
@@ -262,6 +272,10 @@ const Header = () => {
                 Explore the Vault
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/treasury-bids" isActive={location.pathname === "/treasury-bids" || location.pathname === "/offers"} onClick={closeMobileMenu}>
+                Treasury Bids
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
               <MobileSection title="Products" isOpen={mobileProductsOpen} onToggle={() => setMobileProductsOpen(!mobileProductsOpen)}>
                 <MobileNavLink to="/tshot" isActive={location.pathname === "/tshot"} onClick={closeMobileMenu} className="pl-8">
                   TSHOT
@@ -357,9 +371,11 @@ const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
     ref={ref}
     onClick={onClick}
     className="flex items-center px-3 py-2 rounded bg-brand-secondary text-brand-text text-sm shadow-md shadow-black/30 hover:shadow-lg hover:shadow-black/50"
+    title={activeAddress || "Profile"}
+    aria-label="Open profile menu"
   >
     <FaUserCircle size={18} className="mr-2" />
-    <span className="truncate max-w-[80px]">{activeAddress}</span>
+    <span>Profile</span>
   </button>
 ));
 

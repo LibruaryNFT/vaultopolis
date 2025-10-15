@@ -34,7 +34,7 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error, onConnectWalle
           <img
             src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
             alt="TSHOT Token"
-            className="w-24 h-24 mx-auto mb-6"
+            className="w-24 h-24 sm:w-32 sm:h-32 mx-auto mb-6 object-contain"
           />
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
             The Liquid Token for Your
@@ -54,14 +54,13 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error, onConnectWalle
                 <img
                   src="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png"
                   alt="Vaultopolis"
-              className="h-6 w-6"
-            />
+                  className="h-8 w-8"
+                />
             Get Started Now
             <ArrowRight className="h-5 w-5" />
           </button>
-
-            </div>
-          </div>
+        </div>
+      </div>
     </div>
   );
 

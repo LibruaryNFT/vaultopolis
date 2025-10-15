@@ -1,28 +1,10 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSignOutAlt, FaSpinner, FaSun, FaMoon } from "react-icons/fa";
+import { FaSignOutAlt, FaCopy, FaUser } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
-import { getFLOWBalance } from "../flow/getFLOWBalance";
-import { getTSHOTBalance } from "../flow/getTSHOTBalance";
-import { getTopShotCollectionLength } from "../flow/getTopShotCollectionLength";
-import { getChildren } from "../flow/getChildren";
 
-/* ------------ helper ------------ */
-const ValueOrSkeleton = ({
-  value,
-  className = "",
-  skeletonWidth = "w-20",
-  skeletonHeight = "h-6",
-}) =>
-  value !== undefined && value !== null ? (
-    <span className={className}>{value}</span>
-  ) : (
-    <div
-      className={`${skeletonWidth} ${skeletonHeight} bg-brand-secondary animate-pulse rounded`}
-    />
-  );
 
 /* ------------ component ------------ */
 const DropdownMenu = ({ closeMenu, buttonRef }) => {
@@ -30,81 +12,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
   const { user, dispatch, accountData } = useContext(UserDataContext);
 
   const parentAddr = accountData.parentAddress || user?.addr;
-  const loggedIn = !!parentAddr;
+  const childrenAccounts = accountData.childrenData || [];
 
-  /* quick totals ---------------------------------------------------- */
-  const [stats, setStats] = useState({
-    loading: true,
-    flow: 0,
-    tshot: 0,
-    moments: 0,
-  });
 
-  useEffect(() => {
-    if (!loggedIn) return;
-    let mounted = true;
-
-    (async () => {
-      try {
-        let childAddrs = [];
-        try {
-          childAddrs = await fcl.query({
-            cadence: getChildren,
-            args: (arg, t) => [arg(parentAddr, t.Address)],
-          });
-        } catch {
-          childAddrs = [];
-        }
-
-        const addresses = [parentAddr, ...childAddrs];
-
-        const per = await Promise.all(
-          addresses.map(async (addr) => {
-            const [flow, tshot, moms] = await Promise.all([
-              fcl.query({
-                cadence: getFLOWBalance,
-                args: (arg, t) => [arg(addr, t.Address)],
-              }),
-              fcl.query({
-                cadence: getTSHOTBalance,
-                args: (arg, t) => [arg(addr, t.Address)],
-              }),
-              fcl.query({
-                cadence: getTopShotCollectionLength,
-                args: (arg, t) => [arg(addr, t.Address)],
-              }),
-            ]);
-            return { flow: +flow, tshot: +tshot, moments: +moms };
-          })
-        );
-
-        const totals = per.reduce(
-          (a, c) => ({
-            flow: a.flow + c.flow,
-            tshot: a.tshot + c.tshot,
-            moments: a.moments + c.moments,
-          }),
-          { flow: 0, tshot: 0, moments: 0 }
-        );
-
-        mounted && setStats({ loading: false, ...totals });
-      } catch (e) {
-        console.error("quick-stats:", e);
-        mounted && setStats({ loading: false, flow: 0, tshot: 0, moments: 0 });
-      }
-    })();
-
-    return () => (mounted = false);
-  }, [loggedIn, parentAddr]);
-
-  /* theme toggle ---------------------------------------------------- */
-  const [theme, setTheme] = useState(
-    () => localStorage.getItem("themeMode") || "dark"
-  );
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
-    localStorage.setItem("themeMode", theme);
-  }, [theme]);
 
   /* click-outside to close ----------------------------------------- */
   const popRef = useRef(null);
@@ -130,9 +40,11 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
     closeMenu();
   };
 
-  const openProfile = () => {
+
+
+  const navigateTo = (path) => {
     closeMenu();
-    navigate(loggedIn ? `/profile/${parentAddr}` : "/profile");
+    navigate(path);
   };
 
   /* render --------------------------------------------------------- */
@@ -148,81 +60,107 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         bg-brand-secondary text-brand-text z-60
       "
     >
-      {/* header row */}
-      <div className="flex justify-between items-center px-4 py-2 bg-brand-primary border-b border-brand-border">
-        {/* theme toggle */}
-        <div className="flex items-center space-x-2">
-          <span className="font-medium">Theme:</span>
-          <button
-            onClick={() => setTheme("light")}
-            className={`p-1 rounded text-sm ${
-              theme === "light"
-                ? "bg-brand-accent text-white"
-                : "hover:opacity-80"
-            }`}
-            title="Light mode"
-          >
-            <FaSun />
-          </button>
-          <button
-            onClick={() => setTheme("dark")}
-            className={`p-1 rounded text-sm ${
-              theme === "dark"
-                ? "bg-brand-accent text-white"
-                : "hover:opacity-80"
-            }`}
-            title="Dark mode"
-          >
-            <FaMoon />
-          </button>
+      {/* Tier 1: Identity & Status Header */}
+      <div className="px-4 py-3 bg-brand-primary border-b border-brand-border">
+        {/* Parent Account */}
+        <div className="flex items-center space-x-3 mb-2">
+          <div className="flex-shrink-0">
+            <img
+              src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
+              alt="Flow Wallet"
+              className="w-8 h-8"
+            />
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium truncate">
+                {parentAddr.slice(0, 6)}...{parentAddr.slice(-4)}
+              </span>
+              <button
+                onClick={() => navigator.clipboard.writeText(parentAddr)}
+                className="p-1 hover:bg-white/10 rounded transition-colors"
+                title="Copy address"
+              >
+                <FaCopy className="text-xs" />
+              </button>
+            </div>
+            <div className="flex items-center space-x-2 mt-1">
+              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-xs text-green-400">Connected</span>
+            </div>
+          </div>
         </div>
 
-        {/* spinner + logout */}
-        <div className="flex items-center space-x-3">
-          {stats.loading && <FaSpinner className="animate-spin" size={16} />}
-          <button
-            onClick={logout}
-            title="Disconnect"
-            className="p-1 rounded text-red-500 hover:text-white hover:bg-red-600"
-          >
-            <FaSignOutAlt size={16} />
-          </button>
-        </div>
+        {/* Child Account (if exists) */}
+        {childrenAccounts.length > 0 && (
+          <div className="flex items-center space-x-3">
+            <div className="flex-shrink-0">
+              {childrenAccounts[0].displayName ? (
+                <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" aria-label="Dapper Wallet">
+                  <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
+                    <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
+                    <g>
+                      <path fill="#FF5A9D" d="M45.92 22.847c0-4.049-1.191-19.768-16.434-22.15-13.545-2.116-24.77 2.144-27.628 15.72-2.859 13.576-.239 26.199 9.765 27.39 10.004 1.19 12.861.714 23.341.238 10.48-.477 10.956-17.149 10.956-21.198" transform="translate(3.2 5.333)"></path>
+                      <path fill="#FFF" d="M32.763 11.307c-4.457 0-8.255 2.82-9.709 6.772-1.453-3.953-5.252-6.772-9.709-6.772-5.712 0-10.342 4.63-10.342 10.342 0 5.712 4.63 10.342 10.342 10.342 4.457 0 8.256-2.82 9.71-6.772 1.453 3.952 5.251 6.772 9.708 6.772 5.712 0 10.342-4.63 10.342-10.342 0-5.712-4.63-10.342-10.342-10.342" transform="translate(3.2 5.333)"></path>
+                      <path fill="#7320D3" d="M13.556 14.364c-3.73 0-6.753 3.023-6.753 6.754 0 3.73 3.023 6.753 6.753 6.753s6.754-3.023 6.754-6.753-3.023-6.754-6.754-6.754M32.552 14.364c-3.73 0-6.754 3.023-6.754 6.754 0 3.73 3.024 6.753 6.754 6.753 3.73 0 6.754-3.023 6.754-6.753s-3.024-6.754-6.754-6.754" transform="translate(3.2 5.333)"></path>
+                      <path fill="#FFF" d="M19.427 16.27c0 1.64-1.33 2.968-2.969 2.968-1.639 0-2.968-1.329-2.968-2.968s1.33-2.968 2.968-2.968c1.64 0 2.969 1.33 2.969 2.968M39.214 16.27c0 1.64-1.33 2.968-2.968 2.968-1.64 0-2.968-1.329-2.968-2.968s1.328-2.968 2.968-2.968c1.638 0 2.968 1.33 2.968 2.968" transform="translate(3.2 5.333)"></path>
+                    </g>
+                  </g>
+                </svg>
+              ) : (
+                <img
+                  src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
+                  alt="Flow Wallet"
+                  className="w-8 h-8"
+                />
+              )}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium truncate">
+                  {childrenAccounts[0].addr.slice(0, 6)}...{childrenAccounts[0].addr.slice(-4)}
+                </span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(childrenAccounts[0].addr)}
+                  className="p-1 hover:bg-white/10 rounded transition-colors"
+                  title="Copy address"
+                >
+                  <FaCopy className="text-xs" />
+                </button>
+              </div>
+              <div className="flex items-center space-x-2 mt-1">
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                <span className="text-xs text-green-400">Connected</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* portfolio */}
-      <div className="px-4 py-4">
-        <h4 className="text-lg font-semibold mb-3">Portfolio</h4>
-        <div className="flex justify-around items-center">
-          <div className="text-center">
-            <p className="text-sm m-0">Flow</p>
-            <ValueOrSkeleton
-              value={stats.loading ? undefined : stats.flow.toFixed(2)}
-              className="text-xl font-semibold"
-            />
-          </div>
-          <div className="text-center">
-            <p className="text-sm m-0">Moments</p>
-            <ValueOrSkeleton
-              value={stats.loading ? undefined : stats.moments}
-              className="text-xl font-semibold"
-            />
-          </div>
-          <div className="text-center">
-            <p className="text-sm m-0">TSHOT</p>
-            <ValueOrSkeleton
-              value={stats.loading ? undefined : stats.tshot.toFixed(1)}
-              className="text-xl font-semibold"
-            />
-          </div>
-        </div>
-
+      {/* Tier 2: Primary Navigation */}
+      <div className="py-2">
         <button
-          onClick={openProfile}
-          className="w-full mt-5 py-2 rounded text-sm font-medium
-                     bg-brand-accent text-white hover:opacity-90"
+          onClick={() => navigateTo('/profile')}
+          className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center space-x-3"
         >
-          View full profile →
+          <FaUser className="text-brand-accent" />
+          <span>My Profile</span>
+        </button>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-brand-border"></div>
+
+      {/* Tier 3: Account & Wallet Management */}
+      <div className="py-2">
+        <button
+          onClick={logout}
+          className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center space-x-3"
+        >
+          <FaSignOutAlt className="text-red-400" />
+          <span className="text-red-400">Disconnect</span>
         </button>
       </div>
     </div>

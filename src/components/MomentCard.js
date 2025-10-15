@@ -84,13 +84,13 @@ const MomentCard = ({
   const [imageUrl, setImageUrl] = useState("");
   const [triedFallback, setTriedFallback] = useState(false); // State to prevent infinite loops
 
-  const transparentBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/transparent/image?width=250&quality=80`;
-  const fallbackBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/image?width=250&quality=80`;
+  const nonTransparentBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/image?width=250&quality=80`;
+  const fallbackBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/transparent/image?width=250&quality=80`;
 
   useEffect(() => {
     if (nft?.id) {
-      // Always try the transparent URL first when NFT changes
-      setImageUrl(transparentBaseUrl);
+      // Always try the non-transparent URL first when NFT changes
+      setImageUrl(nonTransparentBaseUrl);
       setTriedFallback(false); // Reset fallback flag for the new NFT
     } else {
       // Clear image if no nft or id
@@ -98,21 +98,21 @@ const MomentCard = ({
       setTriedFallback(false);
     }
     // Depend on the base URLs to reset when nft.id changes
-  }, [nft?.id, transparentBaseUrl]); // Include base URLs in dependency array
+  }, [nft?.id, nonTransparentBaseUrl]); // Include base URLs in dependency array
 
   // Use useCallback to memoize the error handler function
   const handleImageError = useCallback(() => {
     // Only try the fallback if we haven't already tried it for this NFT
-    // and the current URL is the transparent one that failed
-    if (!triedFallback && imageUrl === transparentBaseUrl) {
-      console.warn(`Transparent image failed for ${nft?.id}, trying fallback.`);
+    // and the current URL is the non-transparent one that failed
+    if (!triedFallback && imageUrl === nonTransparentBaseUrl) {
+      console.warn(`Non-transparent image failed for ${nft?.id}, trying fallback.`);
       setImageUrl(fallbackBaseUrl);
       setTriedFallback(true); // Mark that we've attempted the fallback
     }
     // If the fallback also fails, the onError will trigger again, but
     // triedFallback will be true, so we won't set state again, preventing loops.
     // A broken image icon will be shown, which is the expected behavior if both fail.
-  }, [imageUrl, triedFallback, fallbackBaseUrl, transparentBaseUrl, nft?.id]); // Add dependencies
+  }, [imageUrl, triedFallback, fallbackBaseUrl, nonTransparentBaseUrl, nft?.id]); // Add dependencies
 
   const playerName = getDisplayedName(nft);
   const seriesText = nft?.series !== undefined ? String(nft.series) : "?";
@@ -147,7 +147,7 @@ const MomentCard = ({
     pb-0
     border
     border-brand-text/40
-    bg-brand-secondary
+    bg-black
     text-brand-text
     select-none
   `;

@@ -48,6 +48,33 @@ const SUBEDITIONS = {
 const LIMIT_FCL = pLimit(10);
 const BATCH_SIZE_FCL = 250;
 
+/* ───────── Dapper username cache ───────── */
+const DAPPER_USERNAME_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const dapperUsernameCache = new Map(); // addr -> { name, ts }
+
+async function fetchDapperDisplayName(address) {
+  const addr = (address || "").toLowerCase();
+  if (!addr) return null;
+  const cached = dapperUsernameCache.get(addr);
+  const now = Date.now();
+  if (cached && now - cached.ts < DAPPER_USERNAME_TTL_MS) return cached.name;
+  try {
+    const res = await fetch(`https://api.vaultopolis.com/api/dapper-profile?address=${addr}`);
+    if (!res.ok) {
+      dapperUsernameCache.set(addr, { name: null, ts: now });
+      return null;
+    }
+    const data = await res.json();
+    const name = (data && typeof data.displayName === "string") ? data.displayName : null;
+    const finalName = name && name.toLowerCase() !== addr ? name : null;
+    dapperUsernameCache.set(addr, { name: finalName, ts: now });
+    return finalName;
+  } catch {
+    dapperUsernameCache.set(addr, { name: null, ts: now });
+    return null;
+  }
+}
+
 /* ───────── initial state ───────── */
 const initialState = {
   user: { loggedIn: null, addr: "" },
@@ -596,6 +623,11 @@ function UserDataProvider({ children }) {
             fetchCollection(a, dispatch, state, options),
             fetchReceipt(a),
           ]);
+          // Fetch Dapper displayName best-effort (children only)
+          let displayName = null;
+          try {
+            displayName = await fetchDapperDisplayName(a);
+          } catch {}
           return {
             addr: a,
             flowBalance: flow,
@@ -605,6 +637,7 @@ function UserDataProvider({ children }) {
             tierCounts: colData.tierCounts,
             receiptDetails: receipt,
             hasReceipt: receipt?.betAmount > 0,
+            displayName,
           };
         });
         const out = await Promise.all(childrenPromises);
