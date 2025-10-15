@@ -276,9 +276,10 @@ const SwapApplication = ({
                     hasCollection: accountCollections[accountData?.parentAddress],
                   }}
                   childrenAddresses={childAddresses}
-          selectedAccount={selectedAccount}
+                  childrenAccounts={accountData?.childrenData || []}
+                  selectedAccount={selectedAccount}
                   onSelectAccount={handleSelectAccount}
-          isLoadingChildren={isLoadingChildren}
+                  isLoadingChildren={isLoadingChildren}
                   requireCollection={true}
                   onSetupTopShotCollection={async (address) => {
                     try {

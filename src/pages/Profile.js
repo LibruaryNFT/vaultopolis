@@ -11,19 +11,8 @@ import { useParams, Navigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import * as fcl from "@onflow/fcl";
 import axios from "axios";
-import pLimit from "p-limit";
-import { metaStore } from "../utils/metaStore";
 import { UserDataContext } from "../context/UserContext";
-import { fclQueryWithRetry } from "../utils/fclUtils";
 
-/* ───────── cadence scripts ───────── */
-import { getFLOWBalance } from "../flow/getFLOWBalance";
-import { getTSHOTBalance } from "../flow/getTSHOTBalance";
-import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
-import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
-import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
-import { hasChildren as hasChildrenCadence } from "../flow/hasChildren";
-import { getChildren } from "../flow/getChildren";
 
 /* ───────── constants ───────── */
 const TIER_ORDER = ["common", "fandom", "rare", "legendary", "ultimate"];
@@ -35,336 +24,16 @@ const tierColour = {
   ultimate: "text-pink-500",
 };
 
-const LIMIT_PROFILE_FETCH = pLimit(10);
-const BATCH_PROFILE_FETCH = 1000;
-const FIVE_MIN = 5 * 60_000;
-const PROFILE_PAGE_SNAP_KEY = (addr) => `profileViewSnap:${addr.toLowerCase()}`;
 
 /* ───────── helpers ───────── */
-const bump = (obj, key, inc = 1) => {
-  obj[key] = (obj[key] || 0) + inc;
-  return obj;
-};
 const fixed = (n, d = 2) => (Number.isFinite(+n) ? (+n).toFixed(d) : "0");
 
 /* ───────── minimal UI helpers ───────── */
 
 
-/* ───────── tier-only metadata cache for Profile page ───────── */
-let profilePageTopshotMeta = null;
-async function loadProfilePageTopShotMeta() {
-  if (profilePageTopshotMeta) return profilePageTopshotMeta;
-  const KEY = "profilePage_topshotTier_v1";
 
-  try {
-    const cached = await metaStore.getItem(KEY);
-    if (cached) {
-      profilePageTopshotMeta = cached;
-      return cached;
-    }
-  } catch (e) {
-    console.warn(
-      "[Profile.jsx - meta] IDB read failed for profile tier meta:",
-      e
-    );
-  }
 
-  try {
-    const ls = localStorage.getItem(KEY);
-    if (ls) {
-      const parsed = JSON.parse(ls);
-      await metaStore.setItem(KEY, parsed);
-      localStorage.removeItem(KEY);
-      profilePageTopshotMeta = parsed;
-      return parsed;
-    }
-  } catch (_) {
-    /* ignore */
-  }
 
-  try {
-    console.log(
-      "[Profile.jsx - meta] Fetching fresh tier metadata for profile page..."
-    );
-    const resp = await fetch("https://api.vaultopolis.com/topshot-data");
-    if (!resp.ok)
-      throw new Error(`Vaultopolis API for tiers failed: ${resp.status}`);
-    const arr = await resp.json();
-    profilePageTopshotMeta = arr.reduce((acc, r) => {
-      acc[`${r.setID}-${r.playID}`] = r.tier?.toLowerCase?.() || null;
-      return acc;
-    }, {});
-    await metaStore.setItem(KEY, profilePageTopshotMeta);
-    console.log("[Profile.jsx - meta] Fresh tier metadata fetched and cached.");
-    return profilePageTopshotMeta;
-  } catch (err) {
-    console.error("[Profile.jsx - meta] Fetching tier metadata failed:", err);
-    return {};
-  }
-}
-
-/* ───────── cheap balance fetches (now using retry) ───────── */
-const fetchFlowFast = async (addr) => {
-  try {
-    return await fclQueryWithRetry(
-      {
-        cadence: getFLOWBalance,
-        args: (arg, t) => [arg(addr, t.Address)],
-      },
-      2,
-      500
-    );
-  } catch (e) {
-    console.warn(`[Profile.jsx - fetchFlowFast] Failed for ${addr}:`, e);
-    return 0;
-  }
-};
-const fetchTshotFast = async (addr) => {
-  try {
-    return await fclQueryWithRetry(
-      {
-        cadence: getTSHOTBalance,
-        args: (arg, t) => [arg(addr, t.Address)],
-      },
-      2,
-      500
-    );
-  } catch (e) {
-    console.warn(`[Profile.jsx - fetchTshotFast] Failed for ${addr}:`, e);
-    return 0;
-  }
-};
-
-/* ───────── Account fetch for Profile page ───────── */
-async function fetchProfileAccountData(addr, userContextData) {
-  const isCurrentUserParent =
-    userContextData?.accountData?.parentAddress === addr;
-  const currentUserChildData = userContextData?.accountData?.childrenData?.find(
-    (c) => c.addr === addr
-  );
-
-  if (
-    isCurrentUserParent &&
-    userContextData.accountData.nftDetails &&
-    typeof userContextData.accountData.tierCounts === "object"
-  ) {
-    console.log(`[Profile.jsx] Using UserContext data for parent: ${addr}`);
-    return {
-      addr,
-      flow: parseFloat(userContextData.accountData.flowBalance || 0),
-      tshot: parseFloat(userContextData.accountData.tshotBalance || 0),
-      moments: userContextData.accountData.nftDetails.length,
-      tiers: userContextData.accountData.tierCounts,
-      hasCollection: userContextData.accountData.hasCollection,
-    };
-  }
-  if (
-    currentUserChildData &&
-    currentUserChildData.nftDetails &&
-    typeof currentUserChildData.tierCounts === "object"
-  ) {
-    console.log(`[Profile.jsx] Using UserContext data for child: ${addr}`);
-    return {
-      addr,
-      flow: parseFloat(currentUserChildData.flowBalance || 0),
-      tshot: parseFloat(currentUserChildData.tshotBalance || 0),
-      moments: currentUserChildData.nftDetails.length,
-      tiers: currentUserChildData.tierCounts,
-      hasCollection: currentUserChildData.hasCollection,
-    };
-  }
-
-  console.log(
-    `[Profile.jsx] Performing independent fetch for profile: ${addr}`
-  );
-  const snapKey = PROFILE_PAGE_SNAP_KEY(addr);
-  let snap = null;
-  try {
-    snap = await metaStore.getItem(snapKey);
-  } catch (e) {
-    console.warn(
-      `[Profile.jsx] Failed to read profile snapshot for ${addr}:`,
-      e
-    );
-  }
-
-  const [flow, tshot] = await Promise.all([
-    fetchFlowFast(addr),
-    fetchTshotFast(addr),
-  ]);
-
-  if (snap && Date.now() - snap.ts < FIVE_MIN) {
-    console.log(`[Profile.jsx] Using own profile snapshot for ${addr}`);
-    return {
-      addr,
-      flow: +flow,
-      tshot: +tshot,
-      moments: snap.ids?.length || 0,
-      tiers: snap.tiers || {},
-      hasCollection: snap.hasOwnProperty("hasCollection")
-        ? snap.hasCollection
-        : (snap.ids?.length || 0) > 0 ||
-          (snap.ids && snap.ids.length === 0 && snap.hasOwnProperty("ts")),
-    };
-  }
-
-  let hasColl = false;
-  try {
-    hasColl = await fclQueryWithRetry({
-      cadence: verifyTopShotCollection,
-      args: (arg, t) => [arg(addr, t.Address)],
-    });
-  } catch (e) {
-    console.error(
-      `[Profile.jsx] verifyTopShotCollection failed for ${addr}`,
-      e
-    );
-  }
-
-  if (!hasColl) {
-    await metaStore.setItem(snapKey, {
-      ts: Date.now(),
-      ids: [],
-      tiers: {},
-      hasCollection: false,
-    });
-    return {
-      addr,
-      flow: +flow,
-      tshot: +tshot,
-      moments: 0,
-      tiers: {},
-      hasCollection: false,
-    };
-  }
-
-  let idArr = [];
-  try {
-    const ids = await fclQueryWithRetry({
-      cadence: getTopShotCollectionIDs,
-      args: (arg, t) => [arg(addr, t.Address)],
-    });
-    idArr = Array.from(ids || []).map(String);
-  } catch (e) {
-    console.error(
-      `[Profile.jsx] getTopShotCollectionIDs failed for ${addr}`,
-      e
-    );
-    await metaStore.setItem(snapKey, {
-      ts: Date.now(),
-      ids: [],
-      tiers: {},
-      hasCollection: true,
-    });
-    return {
-      addr,
-      flow: +flow,
-      tshot: +tshot,
-      moments: 0,
-      tiers: {},
-      hasCollection: true,
-    };
-  }
-
-  const tiers = {};
-  if (idArr.length > 0) {
-    const meta = await loadProfilePageTopShotMeta();
-    const batches = [];
-    for (let i = 0; i < idArr.length; i += BATCH_PROFILE_FETCH) {
-      batches.push(idArr.slice(i, i + BATCH_PROFILE_FETCH));
-    }
-    try {
-      await Promise.all(
-        batches.map((chunk) =>
-          LIMIT_PROFILE_FETCH(async () => {
-            const details = await fclQueryWithRetry({
-              cadence: getTopShotCollectionBatched,
-              args: (arg, t) => [
-                arg(addr, t.Address),
-                arg(
-                  chunk.map((id) => String(id)),
-                  t.Array(t.UInt64)
-                ),
-              ],
-            });
-            (details || []).forEach((nft) => {
-              const tier = meta[`${nft.setID}-${nft.playID}`];
-              if (tier) bump(tiers, tier);
-            });
-          })
-        )
-      );
-    } catch (e) {
-      console.error(
-        `[Profile.jsx] Error fetching batched details for tier calculation for ${addr}:`,
-        e
-      );
-    }
-  }
-
-  await metaStore.setItem(snapKey, {
-    ts: Date.now(),
-    ids: idArr,
-    tiers,
-    hasCollection: true,
-  });
-  return {
-    addr,
-    flow: +flow,
-    tshot: +tshot,
-    moments: idArr.length,
-    tiers,
-    hasCollection: true,
-  };
-}
-
-async function loadFamily(profileAddr, userContextData) {
-  const parent = await fetchProfileAccountData(profileAddr, userContextData);
-  let kidsData = [];
-  let childrenAddressesToFetch = [];
-
-  if (
-    userContextData?.accountData?.parentAddress === profileAddr &&
-    userContextData.accountData.hasChildren
-  ) {
-    childrenAddressesToFetch =
-      userContextData.accountData.childrenAddresses || [];
-    console.log(
-      `[Profile.jsx] Using UserContext children addresses for ${profileAddr}`
-    );
-  } else if (
-    parent.hasCollection !== false ||
-    typeof parent.hasCollection === "undefined"
-  ) {
-    try {
-      const hasKids = await fclQueryWithRetry({
-        cadence: hasChildrenCadence,
-        args: (arg, t) => [arg(profileAddr, t.Address)],
-      });
-      if (hasKids) {
-        childrenAddressesToFetch = await fclQueryWithRetry({
-          cadence: getChildren,
-          args: (arg, t) => [arg(profileAddr, t.Address)],
-        });
-      }
-    } catch (e) {
-      console.error(
-        `[Profile.jsx - loadFamily-children check] for ${profileAddr}:`,
-        e
-      );
-    }
-  }
-
-  if (childrenAddressesToFetch.length > 0) {
-    kidsData = await Promise.all(
-      childrenAddressesToFetch.map((kidAddr) =>
-        fetchProfileAccountData(kidAddr, userContextData)
-      )
-    );
-  }
-
-  return [parent, ...kidsData];
-}
 
 // MiniStat is defined before AccountCard
 const MiniStat = ({ label, value }) => (
@@ -383,9 +52,6 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData }) => {
   const displayName = isChild && userContextData?.accountData?.childrenData?.find(
     (c) => c.addr === acc.addr
   )?.displayName;
-
-  const primaryText = isParent ? null : (displayName || `Child ${idx}`);
-  const hasPrimary = !!primaryText;
 
   return (
     <div className="shadow border border-brand-primary">
@@ -465,6 +131,7 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData }) => {
 function Profile() {
   const { address: paramAddr } = useParams();
   const userDataCtx = useContext(UserDataContext);
+  const { accountData, isRefreshing } = userDataCtx;
 
   const [viewer, setViewer] = useState(null);
   const [viewerReady, setViewerReady] = useState(false);
@@ -479,45 +146,36 @@ function Profile() {
 
   const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
 
-  const [accountsData, setAccountsData] = useState([]);
-  const [loadingProfile, setLoadingProfile] = useState(true); // For primary account data (balances, moment counts, tiers)
-
-  useEffect(() => {
-    if (!walletAddr) {
-      setLoadingProfile(false);
-      setAccountsData([]);
-      return;
-    }
-    let alive = true;
-    (async () => {
-      setLoadingProfile(true);
-      try {
-        const fam = await loadFamily(walletAddr, userDataCtx);
-        if (alive) setAccountsData(fam);
-      } catch (e) {
-        console.error("[profile-load]", e);
-        if (alive) setAccountsData([]);
-      } finally {
-        if (alive) setLoadingProfile(false);
-      }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [walletAddr, userDataCtx]);
+  // Profile data is automatically loaded by UserContext when user logs in
+  // No need for additional useEffect here
 
   const aggregate = useMemo(() => {
     const out = { flow: 0, tshot: 0, moments: 0, tiers: {} };
-    (accountsData || []).forEach((a) => {
-      out.flow += +(a?.flow || 0);
-      out.tshot += +(a?.tshot || 0);
-      out.moments += a?.moments || 0;
-      if (a?.tiers) {
-        Object.entries(a.tiers).forEach(([t, c]) => bump(out.tiers, t, c));
-      }
-    });
+    
+    // Add parent data
+    if (accountData?.parentAddress) {
+      out.flow += +(accountData.flowBalance || 0);
+      out.tshot += +(accountData.tshotBalance || 0);
+      out.moments += Array.isArray(accountData.nftDetails) ? accountData.nftDetails.length : 0;
+      Object.entries(accountData.tierCounts || {}).forEach(([tier, count]) => {
+        out.tiers[tier] = (out.tiers[tier] || 0) + count;
+      });
+    }
+    
+    // Add children data
+    if (Array.isArray(accountData?.childrenData)) {
+      accountData.childrenData.forEach((child) => {
+        out.flow += +(child.flowBalance || 0);
+        out.tshot += +(child.tshotBalance || 0);
+        out.moments += Array.isArray(child.nftDetails) ? child.nftDetails.length : 0;
+        Object.entries(child.tierCounts || {}).forEach(([tier, count]) => {
+          out.tiers[tier] = (out.tiers[tier] || 0) + count;
+        });
+      });
+    }
+    
     return out;
-  }, [accountsData]);
+  }, [accountData]);
 
   // Separate loading states for async data not tied to main profile load
   const [swapStats, setSwapStats] = useState(null);
@@ -582,6 +240,11 @@ function Profile() {
   // Redirect if necessary
   if (redirectTarget) {
     return <Navigate to={redirectTarget} replace />;
+  }
+
+  // Redirect to home if user is not logged in
+  if (viewerReady && !viewer?.loggedIn) {
+    return <Navigate to="/" replace />;
   }
 
   // Content to show if no walletAddr but viewer is being determined or not logged in
@@ -692,7 +355,7 @@ function Profile() {
                   <div className="text-center">
                     <div className="text-xs text-brand-text/60 mb-1">Total Flow</div>
                     <div className="text-sm font-semibold">
-                      {loadingProfile ? (
+                      {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
                         fixed(aggregate.flow)
@@ -702,7 +365,7 @@ function Profile() {
                   <div className="text-center">
                     <div className="text-xs text-brand-text/60 mb-1">Total Moments</div>
                     <div className="text-sm font-semibold">
-                      {loadingProfile ? (
+                      {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
                         aggregate.moments
@@ -712,7 +375,7 @@ function Profile() {
                   <div className="text-center">
                     <div className="text-xs text-brand-text/60 mb-1">Total TSHOT</div>
                     <div className="text-sm font-semibold">
-                      {loadingProfile ? (
+                      {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
                         fixed(aggregate.tshot, 1)
@@ -753,13 +416,13 @@ function Profile() {
               </div>
             </div>
 
-            {/* Accounts Breakdown: Conditional on loadingProfile and accountsData */}
-            {loadingProfile && (
+            {/* Accounts Breakdown: Conditional on isRefreshing and accountData */}
+            {isRefreshing && (
               <p className="text-brand-text/70 mb-4">
                 Loading account details...
               </p>
             )}
-            {!loadingProfile && accountsData.length > 0 && (
+            {!isRefreshing && accountData?.parentAddress && (
               <div className="rounded-lg shadow border border-brand-primary mb-6">
                 <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                   <h3 className="text-sm font-semibold m-0 text-brand-text">Accounts Breakdown</h3>
@@ -767,25 +430,38 @@ function Profile() {
                 <div className="bg-brand-primary rounded-b-lg overflow-hidden">
                   <div className="grid grid-cols-1 md:grid-cols-2">
                     {/* Parent Account */}
-                    {accountsData[0] && (
-                      <div className="border-r border-brand-border">
-                    <AccountCard
-                          key={accountsData[0].addr}
-                          acc={accountsData[0]}
-                          idx={0}
-                          hasCollProp={accountsData[0].hasCollection}
-                          userContextData={userDataCtx}
-                        />
-                </div>
-                    )}
+                    <div className="border-r border-brand-border">
+                      <AccountCard
+                        key={accountData.parentAddress}
+                        acc={{
+                          addr: accountData.parentAddress,
+                          flow: accountData.flowBalance,
+                          tshot: accountData.tshotBalance,
+                          moments: Array.isArray(accountData.nftDetails) ? accountData.nftDetails.length : 0,
+                          tiers: accountData.tierCounts || {},
+                          hasCollection: accountData.hasCollection,
+                        }}
+                        idx={0}
+                        hasCollProp={accountData.hasCollection}
+                        userContextData={userDataCtx}
+                      />
+                    </div>
                     {/* Child Account */}
-                    {accountsData[1] && (
+                    {accountData.childrenData?.[0] && (
                       <div>
-                        <AccountCard
-                          key={accountsData[1].addr}
-                          acc={accountsData[1]}
+                    <AccountCard
+                          key={accountData.childrenData[0].addr}
+                          acc={{
+                            addr: accountData.childrenData[0].addr,
+                            flow: accountData.childrenData[0].flowBalance,
+                            tshot: accountData.childrenData[0].tshotBalance,
+                            moments: Array.isArray(accountData.childrenData[0].nftDetails) ? accountData.childrenData[0].nftDetails.length : 0,
+                            tiers: accountData.childrenData[0].tierCounts || {},
+                            hasCollection: accountData.childrenData[0].hasCollection,
+                            displayName: accountData.childrenData[0].displayName,
+                          }}
                           idx={1}
-                          hasCollProp={accountsData[1].hasCollection}
+                          hasCollProp={accountData.childrenData[0].hasCollection}
                           userContextData={userDataCtx}
                         />
                       </div>
@@ -794,7 +470,7 @@ function Profile() {
                 </div>
               </div>
             )}
-            {!loadingProfile && accountsData.length === 0 && walletAddr && (
+            {!isRefreshing && !accountData?.parentAddress && walletAddr && (
               <p className="mb-6">
                 No account data or child accounts found for this profile.
               </p>

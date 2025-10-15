@@ -74,8 +74,11 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium truncate">
+              <span className="text-sm font-medium truncate font-mono">
                 {parentAddr.slice(0, 6)}...{parentAddr.slice(-4)}
+              </span>
+              <span className="px-1.5 py-0.5 text-[10px] rounded bg-brand-primary/60 text-brand-text font-semibold whitespace-nowrap border border-brand-border/50">
+                PARENT
               </span>
               <button
                 onClick={() => navigator.clipboard.writeText(parentAddr)}
@@ -120,7 +123,10 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2">
                 <span className="text-sm font-medium truncate">
-                  {childrenAccounts[0].addr.slice(0, 6)}...{childrenAccounts[0].addr.slice(-4)}
+                  {childrenAccounts[0].displayName || childrenAccounts[0].addr.slice(0, 6) + "..." + childrenAccounts[0].addr.slice(-4)}
+                </span>
+                <span className="px-1.5 py-0.5 text-[10px] rounded bg-brand-primary/60 text-brand-text font-semibold whitespace-nowrap border border-brand-border/50">
+                  CHILD
                 </span>
                 <button
                   onClick={() => navigator.clipboard.writeText(childrenAccounts[0].addr)}
@@ -131,6 +137,9 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                 </button>
               </div>
               <div className="flex items-center space-x-2 mt-1">
+                <span className="text-xs text-brand-text/80 font-mono">
+                  {childrenAccounts[0].addr.slice(0, 6)}...{childrenAccounts[0].addr.slice(-4)}
+                </span>
                 <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span className="text-xs text-green-400">Connected</span>
               </div>
