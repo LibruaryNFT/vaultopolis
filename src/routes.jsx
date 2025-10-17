@@ -12,7 +12,7 @@ import TSHOTVaultPage   from "./pages/vaults/TSHOTVault";
 import TreasuryVaultPage from "./pages/vaults/TreasuryVault";
 import Transfer         from "./pages/Transfer";
 import Profile          from "./pages/Profile";
-import TreasuryBids     from "./pages/TreasuryBids";
+import Bounties     from "./pages/Bounties";
 import TermsAndPrivacy  from "./pages/TermsAndPrivacy";
 import ComingSoon       from "./pages/ComingSoon";
 import Guides           from "./pages/Guides";
@@ -39,8 +39,7 @@ const routes = [
   { path: "/transfer",    element: <Layout><Transfer /></Layout> },
   { path: "/profile",     element: <Layout><Profile /></Layout> },
   { path: "/profile/:address?", element: <Layout><Profile /></Layout> },
-  { path: "/offers",         element: <Layout><TreasuryBids /></Layout> },
-  { path: "/treasury-bids",  element: <Layout><TreasuryBids /></Layout> },
+  { path: "/bounties",  element: <Layout><Bounties /></Layout> },
   { path: "/guides",      element: <Layout><Guides /></Layout> },
   { path: "/guides/faq",  element: <Layout><FAQ /></Layout> },
   { path: "/guides/quick-start", element: <Layout><QuickStartGuidePage /></Layout> },

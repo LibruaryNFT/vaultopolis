@@ -6,11 +6,11 @@ import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import { getTopShotCollectionBatched } from "../flow/getTopShotCollectionBatched";
 import { UserDataContext } from "../context/UserContext";
 
-// Reuse the same treasury/offer owner address as used on Treasury Bids
+// Reuse the same treasury/offer owner address as used on Grail Bounties
 const TREASURY_ADDRESS = "0xd69b6ce48815d4ad";
 const PAGE_SIZE = 48;
 
-function TopShotTreasury() {
+function GrailBountiesVault() {
   const { metadataCache } = useContext(UserDataContext);
   const [localMeta, setLocalMeta] = useState(null);
   // eslint-disable-next-line no-unused-vars
@@ -150,7 +150,7 @@ function TopShotTreasury() {
             <div className="flex items-center gap-3">
               <span className="text-2xl sm:text-3xl" aria-hidden="true">🏛️</span>
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold m-0">Treasury</h2>
+                <h2 className="text-lg sm:text-xl font-semibold m-0">Grail Bounties Vault</h2>
                 <p className="text-xs sm:text-sm text-brand-text/70 m-0">
                   Treasury-held NBA Top Shot Moments
                   {loadingIds ? " (Loading…)" : ` (${momentIds.length.toLocaleString()} total)`}
@@ -158,10 +158,10 @@ function TopShotTreasury() {
               </div>
             </div>
             <Link 
-              to="/treasury-bids" 
+              to="/bounties" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-brand-accent text-white text-base font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center"
             >
-              💰 View Treasury Bids
+              💰 View Grail Bounties
             </Link>
           </div>
         </div>
@@ -204,6 +204,6 @@ function TopShotTreasury() {
   );
 }
 
-export default TopShotTreasury;
+export default GrailBountiesVault;
 
 

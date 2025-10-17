@@ -13,7 +13,7 @@ import AccountSelection from "../components/AccountSelection";
 import { tierStyles } from "../components/MomentCard";
 import { convertFlowToUSD, convertFlowToUSDSync, formatUSD, getFlowPrice } from "../utils/flowPrice";
 
-export default function TreasuryBids() {
+export default function Bounties() {
   const {
     accountData,
     selectedAccount,
@@ -32,7 +32,6 @@ export default function TreasuryBids() {
   const { sendTransaction, status: txStatus, txId } = useTransaction();
   const [matchesPage, setMatchesPage] = useState(1);
   const [usdAmounts, setUsdAmounts] = useState({});
-  const [treasuryBalance, setTreasuryBalance] = useState(0);
   const [flowPrice, setFlowPrice] = useState(null);
   const MATCHES_PER_PAGE = 24;
 
@@ -398,17 +397,6 @@ export default function TreasuryBids() {
     try { await fetchOffers(); } catch {}
   };
 
-  const fetchTreasuryBalance = async () => {
-    try {
-      const balance = await fcl.query({
-        cadence: getFLOWBalance,
-        args: (arg, t) => [arg(OFFER_OWNER_ADDRESS, t.Address)],
-      });
-      setTreasuryBalance(parseFloat(balance));
-    } catch {
-      setTreasuryBalance(0);
-    }
-  };
 
   const fetchFlowPrice = async () => {
     try {
@@ -424,7 +412,6 @@ export default function TreasuryBids() {
     (async () => {
       if (!cancelled) {
         await fetchOffers();
-        await fetchTreasuryBalance();
         await fetchFlowPrice();
       }
     })();
@@ -443,7 +430,7 @@ export default function TreasuryBids() {
   return (
     <div className="w-full px-4 space-y-2">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold mb-3">Treasury Bids</h1>
+        <h1 className="text-2xl font-bold mb-3">Grail Bounties</h1>
         <p className="text-brand-text/70 text-sm max-w-2xl mx-auto leading-relaxed">
           We are actively acquiring higher-end grails and culturally significant moments to add to our treasury for future innovative products and community initiatives.
         </p>
@@ -452,12 +439,12 @@ export default function TreasuryBids() {
       {!loading && !error && displayedOffers.length > 0 && (
         <div className="bg-brand-primary p-3 sm:p-4 rounded-lg shadow-md shadow-black/30">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-brand-text">Treasury Overview</h2>
+            <h2 className="text-lg font-semibold text-brand-text">Grail Bounties Overview</h2>
             <Link 
               to="/vaults/treasury" 
               className="text-sm text-brand-accent hover:text-brand-accent/80 transition-colors"
             >
-              🏛️ View Treasury Collection
+              🏛️ View Grail Bounties Vault
             </Link>
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -467,7 +454,7 @@ export default function TreasuryBids() {
                 {displayedOffers.length}
               </div>
               <div className="text-xs sm:text-sm text-brand-text/70">
-                Active Offer{displayedOffers.length !== 1 ? 's' : ''}
+                Active Grail Bount{displayedOffers.length !== 1 ? 'ies' : 'y'}
               </div>
             </div>
 
@@ -504,20 +491,20 @@ export default function TreasuryBids() {
 
       <section className="bg-brand-primary p-4 rounded-lg shadow-lg shadow-black/40 border border-brand-border/20">
         <div className="mb-4">
-          <h2 className="text-xl font-bold text-brand-text mb-2">💰 Active Treasury Offers</h2>
-          <p className="text-sm text-brand-text/70">Browse available offers for NBA Top Shot moments</p>
+          <h2 className="text-xl font-bold text-brand-text mb-2">💰 Active Grail Bounties</h2>
+          <p className="text-sm text-brand-text/70">Browse available bounties for NBA Top Shot grails</p>
         </div>
         
-        {loading && <p className="text-sm text-brand-text/70">Loading offers…</p>}
+        {loading && <p className="text-sm text-brand-text/70">Loading bounties…</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
         {!loading && !error && offers.length === 0 && (
-          <p className="text-sm text-brand-text/70">No active offers found for {OFFER_OWNER_ADDRESS}.</p>
+          <p className="text-sm text-brand-text/70">No active bounties found for {OFFER_OWNER_ADDRESS}.</p>
         )}
         {!loading && !error && displayedOffers.length > 0 && (
           <div>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 text-sm text-brand-text/70 gap-1">
-              <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} offers</p>
-              </div>
+              <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} bounties</p>
+            </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3 justify-items-center">
               {displayedOffers.map((o) => (
                 <EditionOfferCard key={o.offerId} offer={o} />

@@ -107,11 +107,11 @@ const Header = () => {
           <div className="w-px h-6 bg-white/20 mx-2" />
 
           <NavLink 
-            to="/treasury-bids" 
-            isActive={location.pathname === "/treasury-bids" || location.pathname === "/offers"}
+            to="/bounties" 
+            isActive={location.pathname === "/bounties" || location.pathname === "/offers"}
             onMouseEnter={() => setActiveDropdown(null)}
           >
-            Treasury Bids
+            Grail Bounties
           </NavLink>
 
           <div className="w-px h-6 bg-white/20 mx-2" />
@@ -206,8 +206,8 @@ const Header = () => {
                 Swap
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/treasury-bids" isActive={location.pathname === "/treasury-bids" || location.pathname === "/offers"} onClick={closeMobileMenu}>
-                Treasury Bids
+              <MobileNavLink to="/bounties" isActive={location.pathname === "/bounties" || location.pathname === "/offers"} onClick={closeMobileMenu}>
+                Grail Bounties
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/vaults/tshot" isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury"} onClick={closeMobileMenu}>

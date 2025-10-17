@@ -57,8 +57,8 @@ function TSHOTVaultPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue"
             >
               <span aria-hidden="true" className="text-xl sm:text-2xl">🏛️</span>
-              <span className="hidden sm:inline text-sm sm:text-base">Treasury</span>
-              <span className="sm:hidden text-sm">Treasury</span>
+              <span className="hidden sm:inline text-sm sm:text-base">Grail Bounties</span>
+              <span className="sm:hidden text-sm">Grail Bounties</span>
             </Link>
           </div>
         </div>
