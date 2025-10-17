@@ -1,5 +1,6 @@
 // Migrate implementation from Offers.js: import and re-export default
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { UserDataContext } from "../context/UserContext";
 import * as fcl from "@onflow/fcl";
 import TransactionModal from "../components/TransactionModal";
@@ -10,7 +11,7 @@ import { getAllOfferDetails } from "../flow/offers/getAllOfferDetails";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import AccountSelection from "../components/AccountSelection";
 import MomentCard, { tierStyles } from "../components/MomentCard";
-import { convertFlowToUSD, formatUSD } from "../utils/flowPrice";
+import { convertFlowToUSD, convertFlowToUSDSync, formatUSD, getFlowPrice } from "../utils/flowPrice";
 
 export default function TreasuryBids() {
   const {
@@ -30,11 +31,10 @@ export default function TreasuryBids() {
   const [txModal, setTxModal] = useState({ open: false, status: null, txId: null, context: null });
   const { sendTransaction, status: txStatus, txId } = useTransaction();
   const [matchesPage, setMatchesPage] = useState(1);
-  const [offersPage, setOffersPage] = useState(1);
   const [usdAmounts, setUsdAmounts] = useState({});
   const [treasuryBalance, setTreasuryBalance] = useState(0);
+  const [flowPrice, setFlowPrice] = useState(null);
   const MATCHES_PER_PAGE = 24;
-  const OFFERS_PER_PAGE = 16;
 
   const EditionOfferCard = ({ offer }) => {
     const setId = offer.__setId;
@@ -222,19 +222,8 @@ export default function TreasuryBids() {
 
   useEffect(() => {
     setMatchesPage(1);
-    setOffersPage(1);
   }, [selectedAccount, selectedAccountType, activeAccountData?.parentAddress, displayedOffers.length]);
 
-  const paginatedOffers = useMemo(() => {
-    const start = (offersPage - 1) * OFFERS_PER_PAGE;
-    const end = start + OFFERS_PER_PAGE;
-    return displayedOffers.slice(start, end);
-  }, [displayedOffers, offersPage]);
-
-  const offersPageCount = useMemo(
-    () => Math.max(1, Math.ceil(displayedOffers.length / OFFERS_PER_PAGE)),
-    [displayedOffers.length]
-  );
 
   const matchCounts = useMemo(() => {
     try {
@@ -419,12 +408,22 @@ export default function TreasuryBids() {
     }
   };
 
+  const fetchFlowPrice = async () => {
+    try {
+      const price = await getFlowPrice();
+      setFlowPrice(price);
+    } catch {
+      setFlowPrice(null);
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!cancelled) {
         await fetchOffers();
         await fetchTreasuryBalance();
+        await fetchFlowPrice();
       }
     })();
     return () => { cancelled = true; };
@@ -443,26 +442,71 @@ export default function TreasuryBids() {
     <div className="w-full px-4 space-y-2">
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-2">Treasury Bids</h1>
-        <p className="text-brand-text/70 text-sm">Acquiring a curated collection of NBA Top Shot's most culturally significant assets.</p>
+        <p className="text-brand-text/70 text-sm mb-3">Acquiring a curated collection of NBA Top Shot's most culturally significant assets.</p>
+        <Link 
+          to="/vaults/treasury" 
+          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-accent text-white text-sm font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors"
+        >
+          🏛️ View Treasury Collection
+        </Link>
       </div>
 
       {!loading && !error && displayedOffers.length > 0 && (
-        <div className="bg-brand-primary p-3 rounded-lg shadow-md shadow-black/30">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h2 className="text-lg font-semibold">TopShot Treasury Bids</h2>
-              <p className="text-sm text-brand-text/70">{displayedOffers.length} active offer{displayedOffers.length !== 1 ? 's' : ''}</p>
-            </div>
-            <div className="text-sm text-brand-text/60">
-              <div className="block sm:hidden">
-                <div>Total Active Edition Offers:</div>
-                <div>~{displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0).toFixed(2)} FLOW</div>
-                <div>Treasury: {treasuryBalance.toFixed(2)} FLOW</div>
+        <div className="bg-brand-primary p-4 rounded-lg shadow-md shadow-black/30">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Active Offers Count */}
+            <div className="text-center">
+              <div className="text-2xl font-bold text-brand-text">
+                {displayedOffers.length}
               </div>
-              <div className="hidden sm:block">
-                Total Active Edition Offers: ~{displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0).toFixed(2)} FLOW
-                <span className="ml-2 text-brand-text/50">•</span>
-                <span className="ml-2">Treasury: {treasuryBalance.toFixed(2)} FLOW</span>
+              <div className="text-sm text-brand-text/70">
+                Active Offer{displayedOffers.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+
+            {/* Total Active Offers Value */}
+            <div className="text-center">
+              <div className="text-lg font-semibold text-brand-text">
+                ~{displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0).toFixed(2)} FLOW
+              </div>
+              <div className="text-sm text-brand-text/70">
+                Total Active Offers
+                {(() => {
+                  const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
+                  return usdAmount ? (
+                    <div className="text-xs text-brand-text/60 mt-1">
+                      {formatUSD(usdAmount)} USD
+                    </div>
+                  ) : '';
+                })()}
+              </div>
+            </div>
+
+            {/* Treasury Balance */}
+            <div className="text-center">
+              <div className="text-lg font-semibold text-brand-text">
+                {treasuryBalance.toFixed(2)} FLOW
+              </div>
+              <div className="text-sm text-brand-text/70">
+                Treasury Balance
+                {(() => {
+                  const usdAmount = convertFlowToUSDSync(treasuryBalance);
+                  return usdAmount ? (
+                    <div className="text-xs text-brand-text/60 mt-1">
+                      {formatUSD(usdAmount)} USD
+                    </div>
+                  ) : '';
+                })()}
+              </div>
+            </div>
+
+            {/* Current FLOW Price */}
+            <div className="text-center">
+              <div className="text-lg font-semibold text-brand-text">
+                {flowPrice ? `$${flowPrice.toFixed(2)}` : '--'}
+              </div>
+              <div className="text-sm text-brand-text/70">
+                FLOW Price
               </div>
             </div>
           </div>
@@ -477,24 +521,14 @@ export default function TreasuryBids() {
         )}
         {!loading && !error && displayedOffers.length > 0 && (
           <div>
-            {offersPageCount > 1 && (
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 text-sm text-brand-text/70 gap-1">
-                <p className="text-center sm:text-left">Showing {paginatedOffers.length} of {displayedOffers.length.toLocaleString()} offers</p>
-                <p className="text-center sm:text-right">Page {offersPage} of {offersPageCount}</p>
-              </div>
-            )}
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 text-sm text-brand-text/70 gap-1">
+              <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} offers</p>
+            </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1.5 sm:gap-2 justify-items-center">
-              {paginatedOffers.map((o) => (
+              {displayedOffers.map((o) => (
                 <EditionOfferCard key={o.offerId} offer={o} />
               ))}
             </div>
-            {offersPageCount > 1 && (
-              <div className="flex justify-center items-center gap-3 mt-2">
-                <button onClick={() => setOffersPage(Math.max(1, offersPage - 1))} disabled={offersPage === 1} className="px-3 py-1 rounded bg-brand-secondary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Prev</button>
-                <span className="text-sm text-brand-text/70 min-w-[100px] text-center">Page {offersPage} of {offersPageCount}</span>
-                <button onClick={() => setOffersPage(Math.min(offersPageCount, offersPage + 1))} disabled={offersPage === offersPageCount} className="px-3 py-1 rounded bg-brand-secondary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Next</button>
-              </div>
-            )}
           </div>
         )}
       </section>
@@ -514,7 +548,6 @@ export default function TreasuryBids() {
           <div>
             <AccountSelection
               parentAccount={{ addr: accountData?.parentAddress, hasCollection: accountData?.hasCollection, ...accountData }}
-              matchCounts={matchCounts}
               childrenAddresses={accountData?.childrenAddresses}
               childrenAccounts={accountData?.childrenData}
               selectedAccount={selectedAccount}
@@ -522,8 +555,6 @@ export default function TreasuryBids() {
                 const isChild = accountData?.childrenAddresses?.includes(addr);
                 dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
               }}
-              onRefresh={() => {}}
-              isRefreshing={false}
               isLoadingChildren={false}
             />
           </div>

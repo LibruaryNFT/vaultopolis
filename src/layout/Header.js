@@ -13,8 +13,6 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
-  const [mobileToolsOpen, setMobileToolsOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
   
   // Refs for UI elements
@@ -38,16 +36,12 @@ const Header = () => {
     const newState = !isMobileMenuOpen;
     setIsMobileMenuOpen(newState);
     if (newState) {
-      setMobileProductsOpen(false);
-      setMobileToolsOpen(false);
       setMobileResourcesOpen(false);
     }
   };
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
-    setMobileProductsOpen(false);
-    setMobileToolsOpen(false);
     setMobileResourcesOpen(false);
   };
 
@@ -124,16 +118,6 @@ const Header = () => {
           <div className="w-px h-6 bg-white/20 mx-2" />
 
           <NavLink 
-            to="/vault-contents" 
-            isActive={location.pathname === "/vault-contents"}
-            onMouseEnter={() => setActiveDropdown(null)}
-          >
-            Explore the Vault
-          </NavLink>
-
-          <div className="w-px h-6 bg-white/20 mx-2" />
-          
-          <NavLink 
             to="/treasury-bids" 
             isActive={location.pathname === "/treasury-bids" || location.pathname === "/offers"}
             onMouseEnter={() => setActiveDropdown(null)}
@@ -143,89 +127,54 @@ const Header = () => {
 
           <div className="w-px h-6 bg-white/20 mx-2" />
 
-          {/* Products Dropdown */}
-          <div 
-            className="relative" 
-            onMouseEnter={() => handleDropdownEnter('products')}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button className="flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text opacity-70 hover:opacity-100 transition-all duration-200 min-w-[80px] h-10 justify-center">
-              Products <FaChevronDown size={12} className="ml-1" />
-            </button>
-            {activeDropdown === 'products' && (
-              <div className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
-                <DropdownItem to="/tshot" isActive={location.pathname === "/tshot"}>
-                  TSHOT
-                </DropdownItem>
-              </div>
-            )}
-          </div>
-
-          <div className="w-px h-6 bg-white/20 mx-2" />
-
-          {/* Tools Dropdown */}
-          <div 
-            className="relative" 
-            onMouseEnter={() => handleDropdownEnter('tools')}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button className="flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text opacity-70 hover:opacity-100 transition-all duration-200 min-w-[80px] h-10 justify-center">
-              Tools <FaChevronDown size={12} className="ml-1" />
-            </button>
-            {activeDropdown === 'tools' && (
-              <div className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
-                <DropdownItem to="/transfer" isActive={location.pathname === "/transfer"}>
-                  Transfer Hub
-                </DropdownItem>
-              </div>
-            )}
-          </div>
-
-          <div className="w-px h-6 bg-white/20 mx-2" />
-
           <NavLink 
-            to="/analytics" 
-            isActive={location.pathname === "/analytics"}
+            to="/vaults/tshot" 
+            isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury"}
             onMouseEnter={() => setActiveDropdown(null)}
           >
-            Protocol Stats
+            Vaults
           </NavLink>
 
           <div className="w-px h-6 bg-white/20 mx-2" />
 
-          {/* Resources Dropdown */}
+          <NavLink 
+            to="/tshot" 
+            isActive={location.pathname === "/tshot"}
+            onMouseEnter={() => setActiveDropdown(null)}
+          >
+            TSHOT
+          </NavLink>
+
+          <div className="w-px h-6 bg-white/20 mx-2" />
+          {/* More Dropdown */}
           <div 
             className="relative" 
-            onMouseEnter={() => handleDropdownEnter('resources')}
+            onMouseEnter={() => handleDropdownEnter('more')}
             onMouseLeave={handleDropdownLeave}
           >
             <button className="flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text opacity-70 hover:opacity-100 transition-all duration-200 min-w-[90px] h-10 justify-center">
-              Resources <FaChevronDown size={12} className="ml-1" />
+              More <FaChevronDown size={12} className="ml-1" />
             </button>
-            {activeDropdown === 'resources' && (
-              <div className="absolute top-full left-0 w-48 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
+            {activeDropdown === 'more' && (
+              <div className="absolute top-full left-0 w-56 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
+                <DropdownItem to="/analytics" isActive={location.pathname === "/analytics"}>
+                  Protocol Stats
+                </DropdownItem>
+                <DropdownItem to="/transfer" isActive={location.pathname === "/transfer"}>
+                  Transfer Hub
+                </DropdownItem>
                 <DropdownItem to="/guides" isActive={location.pathname === "/guides"}>
-                  All Guides
+                  Guides
                 </DropdownItem>
                 <DropdownItem to="/guides/faq" isActive={location.pathname === "/guides/faq"}>
                   FAQ
                 </DropdownItem>
-                <DropdownItem to="/guides/quick-start" isActive={location.pathname === "/guides/quick-start"}>
-                  Quick Start Guide
+                <DropdownItem to="/about" isActive={location.pathname === "/about"}>
+                  About
                 </DropdownItem>
               </div>
             )}
           </div>
-
-          <div className="w-px h-6 bg-white/20 mx-2" />
-
-          <NavLink 
-            to="/about" 
-            isActive={location.pathname === "/about"}
-            onMouseEnter={() => setActiveDropdown(null)}
-          >
-            About
-          </NavLink>
         </nav>
 
         {/* ── Right: connect / account ── */}
@@ -268,45 +217,35 @@ const Header = () => {
                 Swap
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/vault-contents" isActive={location.pathname === "/vault-contents"} onClick={closeMobileMenu}>
-                Explore the Vault
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/treasury-bids" isActive={location.pathname === "/treasury-bids" || location.pathname === "/offers"} onClick={closeMobileMenu}>
                 Treasury Bids
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileSection title="Products" isOpen={mobileProductsOpen} onToggle={() => setMobileProductsOpen(!mobileProductsOpen)}>
-                <MobileNavLink to="/tshot" isActive={location.pathname === "/tshot"} onClick={closeMobileMenu} className="pl-8">
-                  TSHOT
-                </MobileNavLink>
-              </MobileSection>
+              <MobileNavLink to="/vaults/tshot" isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury"} onClick={closeMobileMenu}>
+                Vaults
+              </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileSection title="Tools" isOpen={mobileToolsOpen} onToggle={() => setMobileToolsOpen(!mobileToolsOpen)}>
+              <MobileNavLink to="/tshot" isActive={location.pathname === "/tshot"} onClick={closeMobileMenu}>
+                TSHOT
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileSection title="More" isOpen={mobileResourcesOpen} onToggle={() => setMobileResourcesOpen(!mobileResourcesOpen)}>
+                <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu} className="pl-8">
+                  Protocol Stats
+                </MobileNavLink>
                 <MobileNavLink to="/transfer" isActive={location.pathname === "/transfer"} onClick={closeMobileMenu} className="pl-8">
                   Transfer Hub
                 </MobileNavLink>
-              </MobileSection>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu}>
-                Protocol Stats
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
-              <MobileSection title="Resources" isOpen={mobileResourcesOpen} onToggle={() => setMobileResourcesOpen(!mobileResourcesOpen)}>
                 <MobileNavLink to="/guides" isActive={location.pathname === "/guides"} onClick={closeMobileMenu} className="pl-8">
-                  All Guides
+                  Guides
                 </MobileNavLink>
                 <MobileNavLink to="/guides/faq" isActive={location.pathname === "/guides/faq"} onClick={closeMobileMenu} className="pl-8">
                   FAQ
                 </MobileNavLink>
-                <MobileNavLink to="/guides/quick-start" isActive={location.pathname === "/guides/quick-start"} onClick={closeMobileMenu} className="pl-8">
-                  Quick Start Guide
+                <MobileNavLink to="/about" isActive={location.pathname === "/about"} onClick={closeMobileMenu} className="pl-8">
+                  About
                 </MobileNavLink>
               </MobileSection>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/about" isActive={location.pathname === "/about"} onClick={closeMobileMenu}>
-                About
-              </MobileNavLink>
             </div>
           </div>
         </>

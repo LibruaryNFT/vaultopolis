@@ -6,6 +6,7 @@ import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import NFTToTSHOTPanel from "../components/NFTToTSHOTPanel";
 import TSHOTToNFTPanel from "../components/TSHOTToNFTPanel";
 import TransactionModal from "../components/TransactionModal";
+import AccountSelection from "../components/AccountSelection";
 import { AnimatePresence } from "framer-motion";
 
 import { Helmet } from "react-helmet-async";
@@ -453,96 +454,20 @@ const Swap = () => {
           />
           {/* If we have a deposit receipt, let user choose which account receives minted NFTs */}
           {hasReceipt && (
-            <div className="mt-2 bg-brand-primary p-2 rounded-lg">
-              <div className="text-center">
-                <h3 className="text-brand-text text-sm font-bold mb-2">
-                  Select Receiving Account
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Parent Account */}
-                  {accountData?.parentAddress && (
-                    <div
-                      onClick={() =>
-                        handleSelectAccount(accountData.parentAddress)
-                      }
-                      className={`
-                        p-2 rounded-lg border-2 transition-all
-                        ${
-                          selectedAccount === accountData.parentAddress
-                            ? "border-opolis"
-                            : "border-brand-border"
-                        }
-                        ${
-                          accountCollections[accountData.parentAddress] ===
-                          false
-                            ? "opacity-50 cursor-not-allowed"
-                            : "bg-brand-secondary hover:bg-brand-blue cursor-pointer"
-                        }
-                      `}
-                      title={
-                        accountCollections[accountData.parentAddress] === false
-                          ? "This account has no TopShot collection"
-                          : ""
-                      }
-                    >
-                      <h4
-                        className={`text-sm font-semibold select-none ${
-                          selectedAccount === accountData.parentAddress
-                            ? "text-opolis"
-                            : "text-brand-text"
-                        }`}
-                      >
-                        Parent Account
-                      </h4>
-                      <p className="text-[11px] leading-snug text-brand-text/70 break-all select-none">
-                        {accountData.parentAddress}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Child Accounts */}
-                  {childAddresses.map((childAddr) => (
-                    <div
-                      key={childAddr}
-                      onClick={() =>
-                        accountCollections[childAddr] !== false &&
-                        handleSelectAccount(childAddr)
-                      }
-                      className={`
-                        p-2 rounded-lg border-2 transition-all
-                        ${
-                          selectedAccount === childAddr
-                            ? "border-opolis"
-                            : "border-brand-border"
-                        }
-                        ${
-                          accountCollections[childAddr] === false
-                            ? "opacity-50 cursor-not-allowed"
-                            : "bg-brand-secondary hover:bg-brand-blue cursor-pointer"
-                        }
-                      `}
-                      title={
-                        accountCollections[childAddr] === false
-                          ? "This account has no TopShot collection"
-                          : ""
-                      }
-                    >
-                      <h4
-                        className={`text-sm font-semibold select-none ${
-                          selectedAccount === childAddr
-                            ? "text-opolis"
-                            : "text-brand-text"
-                        }`}
-                      >
-                        Child Account
-                      </h4>
-                      <p className="text-[11px] leading-snug text-brand-text/70 break-all select-none">
-                        {childAddr}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="mt-2">
+              <AccountSelection
+                parentAccount={{
+                  addr: accountData?.parentAddress,
+                  hasCollection: accountCollections[accountData?.parentAddress],
+                }}
+                childrenAddresses={childAddresses}
+                childrenAccounts={accountData?.childrenData || []}
+                selectedAccount={selectedAccount}
+                onSelectAccount={handleSelectAccount}
+                isLoadingChildren={isLoadingChildren}
+                requireCollection={true}
+                title="Select Receiving Account"
+              />
             </div>
           )}
         </>

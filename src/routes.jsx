@@ -8,6 +8,8 @@ import Swap             from "./pages/Swap";
 import TSHOT            from "./pages/TSHOT";
 import Analytics        from "./pages/Stats";
 import VaultContents    from "./pages/VaultContents";
+import TSHOTVaultPage   from "./pages/vaults/TSHOTVault";
+import TreasuryVaultPage from "./pages/vaults/TreasuryVault";
 import Transfer         from "./pages/Transfer";
 import Profile          from "./pages/Profile";
 import TreasuryBids     from "./pages/TreasuryBids";
@@ -20,6 +22,7 @@ import FlowWalletGuide     from "./pages/guides/FlowWalletGuide";
 import AccountLinkingGuide from "./pages/guides/AccountLinkingGuide";
 import NFTToTSHOTGuide     from "./pages/guides/NFTToTSHOTGuide";
 import TSHOTToNFTGuide     from "./pages/guides/TSHOTToNFTGuide";
+import TSHOTBridgingGuide   from "./pages/guides/TSHOTBridgingGuide";
 import QuickStartGuidePage from "./pages/guides/QuickStartGuidePage";
 import FAQ from "./pages/guides/FAQ";
 
@@ -31,6 +34,8 @@ const routes = [
   { path: "/tshot",       element: <Layout><TSHOT /></Layout> },
   { path: "/analytics",   element: <Layout><Analytics /></Layout> },
   { path: "/vault-contents", element: <Layout><VaultContents /></Layout> },
+  { path: "/vaults/tshot", element: <Layout><TSHOTVaultPage /></Layout> },
+  { path: "/vaults/treasury", element: <Layout><TreasuryVaultPage /></Layout> },
   { path: "/transfer",    element: <Layout><Transfer /></Layout> },
   { path: "/profile",     element: <Layout><Profile /></Layout> },
   { path: "/profile/:address?", element: <Layout><Profile /></Layout> },
@@ -46,6 +51,7 @@ const routes = [
   { path: "/guides/buying-nfts", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/nft-to-tshot", element: <Layout><NFTToTSHOTGuide /></Layout> },
   { path: "/guides/tshot-to-nft", element: <Layout><TSHOTToNFTGuide /></Layout> },
+  { path: "/guides/tshot-bridging", element: <Layout><TSHOTBridgingGuide /></Layout> },
   { path: "/guides/earning-rewards", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/bridging-to-fevm", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/bridging-from-fevm", element: <Layout><DapperWalletGuide /></Layout> },

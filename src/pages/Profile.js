@@ -89,7 +89,7 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData }) => {
                 />
               ))}
               <span className="text-[11px] leading-snug text-brand-text/80 font-mono break-all select-none truncate">
-                {isChild && displayName ? displayName : acc.addr}
+                {acc.addr}
               </span>
       </div>
           </div>

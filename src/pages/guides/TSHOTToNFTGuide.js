@@ -1,5 +1,5 @@
 import React from "react";
-import { FaExchangeAlt } from "react-icons/fa";
+import { FaExchangeAlt, FaWallet } from "react-icons/fa";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function TSHOTToNFTGuide() {
@@ -16,35 +16,17 @@ function TSHOTToNFTGuide() {
     lastUpdated: "August 19, 2025",
     prerequisites: (
       <div className="space-y-3">
-        <p className="text-center mb-4">
-          Before you can swap TSHOT for NFTs, you need to have the following set up:
-        </p>
-        <div className="space-y-3">
-          <div className="flex items-center space-x-3">
-            <span className="text-brand-accent font-semibold">1.</span>
-            <a 
-              href="/guides/flow-wallet" 
-              className="text-brand-accent hover:underline font-medium"
-            >
-              Flow Wallet Setup
-            </a>
-            <span className="text-brand-text/60">- Required for all swaps</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-brand-accent font-semibold">2.</span>
-            <a 
-              href="/guides/account-linking" 
-              className="text-brand-accent hover:underline font-medium"
-            >
-              Account Linking
-            </a>
-            <span className="text-brand-text/60">- Optional, but recommended for enhanced functionality</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <span className="text-brand-accent font-semibold">3.</span>
-            <span className="text-brand-text/80">TSHOT Tokens</span>
-            <span className="text-brand-text/60">- You need TSHOT tokens in your wallet to swap</span>
-          </div>
+        <div className="flex items-center gap-3">
+          <FaWallet className="text-brand-accent" size={20} />
+          <span className="text-brand-text/80">Flow Wallet Setup - Required for all swaps</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <FaWallet className="text-brand-accent" size={20} />
+          <span className="text-brand-text/80">Account Linking - Optional, but recommended</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <FaWallet className="text-brand-accent" size={20} />
+          <span className="text-brand-text/80">TSHOT Tokens in your wallet</span>
         </div>
       </div>
     ),

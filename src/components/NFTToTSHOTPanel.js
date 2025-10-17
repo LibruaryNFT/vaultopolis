@@ -2,6 +2,7 @@
 import React, { useContext } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserDataContext } from "../context/UserContext";
+import Button from "./Button";
 // Removed import of metaStore as direct snapshot removal is handled by UserContext options
 
 /* ─── Cadence transactions ─── */
@@ -186,30 +187,27 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
 
   if (!isLoggedIn) {
     return (
-      <button
+      <Button
         onClick={() => fcl.authenticate()}
-        className="w-full text-lg font-bold rounded-lg p-2 bg-opolis text-white hover:bg-opolis-dark transition-colors duration-200"
+        variant="opolis"
+        size="lg"
+        className="w-full"
       >
         Connect Wallet
-      </button>
+      </Button>
     );
   }
 
   return (
-    <button
+    <Button
       onClick={handleSwap}
       disabled={disabled}
-      className={`
-        w-full p-4 text-lg font-bold rounded-lg transition-colors duration-200 shadow-md shadow-black/40 select-none
-        ${
-          disabled
-            ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
-            : "bg-opolis text-white hover:bg-opolis-dark"
-        }
-      `}
+      variant={disabled ? "secondary" : "opolis"}
+      size="lg"
+      className="w-full"
     >
       {buttonLabel}
-    </button>
+    </Button>
   );
 }
 

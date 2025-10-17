@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
   FaTwitter, FaMedium, FaUsers,
@@ -42,6 +42,57 @@ const StatCard = ({ icon, value, label, link }) => {
 // --- Main Page Component ---
 
 const About = () => {
+  // eslint-disable-next-line no-unused-vars
+  const [vaultSummary, setVaultSummary] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [vaultResponse, analyticsResponse] = await Promise.all([
+          fetch("https://api.vaultopolis.com/tshot-vault"),
+          fetch("https://api.vaultopolis.com/wallet-leaderboard?limit=3000")
+        ]);
+        
+        if (!vaultResponse.ok) {
+          throw new Error(`Vault API error! status: ${vaultResponse.status}`);
+        }
+        if (!analyticsResponse.ok) {
+          throw new Error(`Analytics API error! status: ${analyticsResponse.status}`);
+        }
+        
+        const vaultData = await vaultResponse.json();
+        const leaderboardData = await analyticsResponse.json();
+        
+        // Process analytics data similar to TSHOTAnalytics component
+        const items = leaderboardData.items || [];
+        
+        const totalDeposits = items.reduce((sum, user) => sum + (user.NFTToTSHOTSwapCompleted || 0), 0);
+        const totalWithdrawals = items.reduce((sum, user) => sum + (user.TSHOTToNFTSwapCompleted || 0), 0);
+        const totalMomentsExchanged = totalDeposits + totalWithdrawals;
+        const totalUniqueWallets = items.length;
+        
+        const processedAnalyticsData = {
+          totalMomentsExchanged,
+          totalUniqueWallets,
+          totalDeposits,
+          totalWithdrawals
+        };
+        
+        setVaultSummary(vaultData);
+        setAnalyticsData(processedAnalyticsData);
+      } catch (err) {
+        console.error("Failed to fetch data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // Structured data for SEO
   const structuredData = {
     "@context": "https://schema.org",
@@ -168,8 +219,16 @@ const About = () => {
               <div className="mb-12">
                 <h3 className="text-2xl font-bold text-brand-text text-center mb-8">Live Platform Traction</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                    <StatCard icon={<FaCubes size={32} />} value="5.7M+" label={`Moments Exchanged (as of ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric'})})`} />
-                    <StatCard icon={<FaUsers size={32} />} value="199" label="Active Users" />
+                    <StatCard 
+                      icon={<FaCubes size={32} />} 
+                      value={loading ? "..." : analyticsData?.totalMomentsExchanged ? `${(analyticsData.totalMomentsExchanged / 1000000).toFixed(1)}M+` : "..."} 
+                      label="Moments Exchanged" 
+                    />
+                    <StatCard 
+                      icon={<FaUsers size={32} />} 
+                      value={loading ? "..." : analyticsData?.totalUniqueWallets ? analyticsData.totalUniqueWallets.toLocaleString() : "..."} 
+                      label="Active Users" 
+                    />
                     <StatCard icon={<FaRocket size={32} />} value="April 17, 2025" label="Project Launched" />
                 </div>
               </div>

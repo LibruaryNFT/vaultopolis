@@ -61,12 +61,23 @@ export async function convertFlowToUSD(flowAmount) {
 }
 
 /**
+ * Synchronously converts FLOW amount to USD using cached price
+ * @param {number} flowAmount - FLOW amount to convert
+ * @returns {number|null} USD amount, or null if no cached price available
+ */
+export function convertFlowToUSDSync(flowAmount) {
+  if (cachedPrice === null || typeof cachedPrice !== 'number' || typeof flowAmount !== 'number') return null;
+  const result = flowAmount * cachedPrice;
+  return typeof result === 'number' && !isNaN(result) ? result : null;
+}
+
+/**
  * Formats USD amount for display
  * @param {number} usdAmount - USD amount
  * @returns {string} Formatted USD string (e.g., "$1.23")
  */
 export function formatUSD(usdAmount) {
-  if (usdAmount === null || usdAmount === undefined) return '';
+  if (usdAmount === null || usdAmount === undefined || typeof usdAmount !== 'number') return '';
   return `$${usdAmount.toFixed(2)}`;
 }
 

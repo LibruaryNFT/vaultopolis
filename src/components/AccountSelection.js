@@ -241,7 +241,7 @@ const AccountSelection = ({
           address={childAddr}
           isSelected={normSel === childAddr.toLowerCase()}
           onClick={onSelectAccount}
-          isDisabled={false}
+          isDisabled={requireCollection && !childObj?.hasCollection}
           matchCount={matchCounts[childAddr?.toLowerCase?.()]}
           role="CHILD"
           displayName={name || null}
@@ -269,7 +269,7 @@ const AccountSelection = ({
   return (
     <div className="bg-brand-primary text-brand-text p-1 rounded w-full">
       <h4 className="text-brand-text text-sm mb-2">Select Account:</h4>
-      <div className="flex flex-wrap justify-center gap-2">{allBoxes}</div>
+      <div className="flex flex-wrap justify-start gap-2">{allBoxes}</div>
     </div>
   );
 };

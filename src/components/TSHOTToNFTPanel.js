@@ -3,6 +3,7 @@ import React, { useContext, useState, useEffect } from "react";
 import * as fcl from "@onflow/fcl";
 import { UserDataContext } from "../context/UserContext";
 import { metaStore } from "../utils/metaStore";
+import Button from "./Button";
 
 /* ──────────── Cadence ──────────── */
 import { commitSwap } from "../flow/commitSwap";
@@ -414,15 +415,14 @@ export default function TSHOTToNFTPanel({
    * ───────────────────────────────────────────────────────*/
   if (!loggedIn) {
     return (
-      <button
+      <Button
         onClick={() => fcl.authenticate()}
-        className="
-          w-full p-4 text-lg font-bold rounded-lg
-          bg-opolis text-white hover:bg-opolis-dark
-        "
+        variant="opolis"
+        size="lg"
+        className="w-full px-4 py-4"
       >
         Connect Wallet
-      </button>
+      </Button>
     );
   }
 
@@ -434,20 +434,15 @@ export default function TSHOTToNFTPanel({
       label = "(Step 1 of 2) Insufficient TSHOT";
 
     return (
-      <button
+      <Button
         onClick={handleDeposit}
         disabled={btnDisabledDeposit}
-        className={`
-          w-full p-4 text-lg font-bold rounded-lg shadow-md shadow-black/40
-          ${
-            btnDisabledDeposit
-              ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
-              : "bg-opolis text-white hover:bg-opolis-dark"
-          }
-        `}
+        variant={btnDisabledDeposit ? "secondary" : "opolis"}
+        size="lg"
+        className="w-full px-4 py-4 shadow-md shadow-black/40"
       >
         {label}
-      </button>
+      </Button>
     );
   }
 
@@ -456,22 +451,17 @@ export default function TSHOTToNFTPanel({
     const disabled = checkingCol || !hasCollection;
     return (
       <div className="space-y-4">
-        <button
+        <Button
           onClick={handleReveal}
           disabled={disabled}
-          className={`
-            w-full p-4 text-lg font-bold rounded-lg shadow-md shadow-black/40 select-none
-            ${
-              disabled
-                ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
-                : "bg-opolis text-white hover:bg-opolis-dark"
-            }
-          `}
+          variant={disabled ? "secondary" : "opolis"}
+          size="lg"
+          className="w-full px-4 py-4 shadow-md shadow-black/40 select-none"
         >
           {checkingCol
             ? "Checking collection..."
             : "(Step 2 of 2) Receive Random Moments"}
-        </button>
+        </Button>
 
         {disabled && !checkingCol && (
           <p className="text-red-400 text-sm">
@@ -485,14 +475,13 @@ export default function TSHOTToNFTPanel({
 
   /* fallback */
   return (
-    <button
+    <Button
       disabled
-      className="
-        w-full p-4 text-lg font-bold rounded-lg select-none
-        cursor-not-allowed bg-brand-primary text-brand-text/50
-      "
+      variant="secondary"
+      size="lg"
+      className="w-full px-4 py-4 select-none"
     >
       Loading…
-    </button>
+    </Button>
   );
 }

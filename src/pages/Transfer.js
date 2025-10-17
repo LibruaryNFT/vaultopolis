@@ -14,6 +14,7 @@ import TransactionModal from "../components/TransactionModal";
 import { Helmet } from "react-helmet-async";
 import MomentCard from "../components/MomentCard";
 import { Info } from "lucide-react"; // Re-add for info modal
+import Button from "../components/Button";
 
 const MAX_FLOW_TRANSFER_COUNT = 500; // Flow → Flow
 const MAX_EVM_BRIDGE_COUNT = 9; // Flow → EVM
@@ -498,22 +499,16 @@ const Transfer = () => {
         </div>
 
         {/* Action button */}
-        <div className="mt-2 shadow-md shadow-black/30 rounded-lg p-0">
-          <button
+        <div className="mt-2">
+          <Button
             onClick={handleTransfer}
             disabled={transferDisabled}
-            className={`
-              w-full p-4 text-lg rounded-lg font-bold transition-colors select-none
-              shadow-md shadow-black/40
-              ${
-                transferDisabled
-                  ? "cursor-not-allowed bg-brand-primary text-brand-text/50"
-                  : "bg-opolis text-white hover:bg-opolis-dark"
-              }
-            `}
+            variant={transferDisabled ? "secondary" : "opolis"}
+            size="lg"
+            className="w-full"
           >
             {transferButtonLabel}
-          </button>
+          </Button>
         </div>
       </div>
 
