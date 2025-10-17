@@ -10,7 +10,7 @@ import { acceptTopShotOffer_child } from "../flow/offers/acceptTopShotOffer_chil
 import { getAllOfferDetails } from "../flow/offers/getAllOfferDetails";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import AccountSelection from "../components/AccountSelection";
-import MomentCard, { tierStyles } from "../components/MomentCard";
+import { tierStyles } from "../components/MomentCard";
 import { convertFlowToUSD, convertFlowToUSDSync, formatUSD, getFlowPrice } from "../utils/flowPrice";
 
 export default function TreasuryBids() {
@@ -77,7 +77,7 @@ export default function TreasuryBids() {
           className="w-[140px] sm:w-40 rounded overflow-hidden flex flex-col pt-2 px-1 border border-brand-text/40 bg-black text-brand-text select-none"
           style={{ height: '320px' }}
         >
-          <div className="relative overflow-hidden rounded mx-auto mb-2 flex-shrink-0 p-1" style={{ height: '150px', width: '100%' }}>
+          <div className="relative overflow-hidden rounded mx-auto mb-2 flex-shrink-0 p-1" style={{ height: '140px', width: '100%' }}>
             <img
               src={imageUrl}
               alt={`${player} moment`}
@@ -124,16 +124,18 @@ export default function TreasuryBids() {
               </p>
             </div>
             <div>
-              <p className="text-center text-[10px] sm:text-xs font-semibold text-green-400 truncate leading-tight mb-0 mt-1">
-                {parseFloat(offer.offerAmount).toFixed(2)} {String(offer.currency || 'FLOW').toUpperCase()}
-              </p>
-              {usdAmounts[offer.offerId] && (
-                <p className="text-center text-[10px] sm:text-xs font-semibold text-green-400 truncate leading-tight mb-0">
-                  ~{formatUSD(usdAmounts[offer.offerId])} USD
+              <div className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-2">
+                <p className="text-center text-[11px] sm:text-xs font-bold text-green-400 truncate leading-tight mb-0">
+                  {parseFloat(offer.offerAmount).toFixed(2)} {String(offer.currency || 'FLOW').toUpperCase()}
                 </p>
-              )}
+                {usdAmounts[offer.offerId] && (
+                  <p className="text-center text-[10px] sm:text-xs font-semibold text-green-400/80 truncate leading-tight mb-0">
+                    ~{formatUSD(usdAmounts[offer.offerId])} USD
+                  </p>
+                )}
+              </div>
               <p 
-                className="text-center text-[8px] sm:text[9px] text-brand-text/40 truncate leading-tight mb-0 mt-1 cursor-pointer hover:text-brand-text/60 transition-colors"
+                className="text-center text-[8px] sm:text-[9px] text-brand-text/50 truncate leading-tight mb-0 cursor-pointer hover:text-brand-text/70 transition-colors"
                 onClick={() => {
                   navigator.clipboard.writeText(offer.offerId);
                 }}
@@ -442,39 +444,41 @@ export default function TreasuryBids() {
     <div className="w-full px-4 space-y-2">
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-2">Treasury Bids</h1>
-        <p className="text-brand-text/70 text-sm mb-3">Acquiring a curated collection of NBA Top Shot's most culturally significant assets.</p>
-        <Link 
-          to="/vaults/treasury" 
-          className="inline-flex items-center gap-2 px-4 py-2 bg-brand-accent text-white text-sm font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors"
-        >
-          🏛️ View Treasury Collection
-        </Link>
       </div>
 
       {!loading && !error && displayedOffers.length > 0 && (
-        <div className="bg-brand-primary p-4 rounded-lg shadow-md shadow-black/30">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-brand-primary p-3 sm:p-4 rounded-lg shadow-md shadow-black/30">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold text-brand-text">Treasury Overview</h2>
+            <Link 
+              to="/vaults/treasury" 
+              className="text-sm text-brand-accent hover:text-brand-accent/80 transition-colors"
+            >
+              🏛️ View Treasury Collection
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Active Offers Count */}
             <div className="text-center">
-              <div className="text-2xl font-bold text-brand-text">
+              <div className="text-xl sm:text-2xl font-bold text-brand-text">
                 {displayedOffers.length}
               </div>
-              <div className="text-sm text-brand-text/70">
+              <div className="text-xs sm:text-sm text-brand-text/70">
                 Active Offer{displayedOffers.length !== 1 ? 's' : ''}
               </div>
             </div>
 
             {/* Total Active Offers Value */}
             <div className="text-center">
-              <div className="text-lg font-semibold text-brand-text">
+              <div className="text-sm sm:text-lg font-semibold text-brand-text">
                 ~{displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0).toFixed(2)} FLOW
               </div>
-              <div className="text-sm text-brand-text/70">
-                Total Active Offers
+              <div className="text-xs sm:text-sm text-brand-text/70">
+                Total Value
                 {(() => {
                   const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
                   return usdAmount ? (
-                    <div className="text-xs text-brand-text/60 mt-1">
+                    <div className="text-xs text-brand-text/60">
                       {formatUSD(usdAmount)} USD
                     </div>
                   ) : '';
@@ -484,15 +488,15 @@ export default function TreasuryBids() {
 
             {/* Treasury Balance */}
             <div className="text-center">
-              <div className="text-lg font-semibold text-brand-text">
+              <div className="text-sm sm:text-lg font-semibold text-brand-text">
                 {treasuryBalance.toFixed(2)} FLOW
               </div>
-              <div className="text-sm text-brand-text/70">
+              <div className="text-xs sm:text-sm text-brand-text/70">
                 Treasury Balance
                 {(() => {
                   const usdAmount = convertFlowToUSDSync(treasuryBalance);
                   return usdAmount ? (
-                    <div className="text-xs text-brand-text/60 mt-1">
+                    <div className="text-xs text-brand-text/60">
                       {formatUSD(usdAmount)} USD
                     </div>
                   ) : '';
@@ -502,10 +506,10 @@ export default function TreasuryBids() {
 
             {/* Current FLOW Price */}
             <div className="text-center">
-              <div className="text-lg font-semibold text-brand-text">
+              <div className="text-sm sm:text-lg font-semibold text-brand-text">
                 {flowPrice ? `$${flowPrice.toFixed(2)}` : '--'}
               </div>
-              <div className="text-sm text-brand-text/70">
+              <div className="text-xs sm:text-sm text-brand-text/70">
                 FLOW Price
               </div>
             </div>
@@ -513,7 +517,12 @@ export default function TreasuryBids() {
         </div>
       )}
 
-      <section className="bg-brand-primary p-2 rounded-lg shadow-md shadow-black/30">
+      <section className="bg-brand-primary p-4 rounded-lg shadow-lg shadow-black/40 border border-brand-border/20">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-brand-text mb-2">💰 Active Treasury Offers</h2>
+          <p className="text-sm text-brand-text/70">Browse available offers for NBA Top Shot moments</p>
+        </div>
+        
         {loading && <p className="text-sm text-brand-text/70">Loading offers…</p>}
         {error && <p className="text-sm text-red-400">{error}</p>}
         {!loading && !error && offers.length === 0 && (
@@ -521,10 +530,10 @@ export default function TreasuryBids() {
         )}
         {!loading && !error && displayedOffers.length > 0 && (
           <div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 text-sm text-brand-text/70 gap-1">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 text-sm text-brand-text/70 gap-1">
               <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} offers</p>
             </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-1.5 sm:gap-2 justify-items-center">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3 justify-items-center">
               {displayedOffers.map((o) => (
                 <EditionOfferCard key={o.offerId} offer={o} />
               ))}
@@ -533,32 +542,46 @@ export default function TreasuryBids() {
         )}
       </section>
 
-      <section className="bg-brand-primary p-2 rounded-lg shadow-md shadow-black/30">
-        {(() => {
-          const parentAddr = accountData?.parentAddress?.toLowerCase?.();
-          const parentCount = (parentAddr && matchCounts[parentAddr]) || 0;
-          const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
-          const childrenTotal = childAddrs.reduce((sum, a) => sum + (matchCounts[a] || 0), 0);
-          const total = parentCount + childrenTotal;
-          return (<h2 className="text-lg font-semibold mb-1">Matching Moments ({total})</h2>);
-        })()}
+      <section className="bg-brand-primary p-4 rounded-lg shadow-lg shadow-black/40 border border-brand-border/20">
+        <div className="mb-4">
+          {(() => {
+            const parentAddr = accountData?.parentAddress?.toLowerCase?.();
+            const parentCount = (parentAddr && matchCounts[parentAddr]) || 0;
+            const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
+            const childrenTotal = childAddrs.reduce((sum, a) => sum + (matchCounts[a] || 0), 0);
+            const total = parentCount + childrenTotal;
+            return (
+              <>
+                <h2 className="text-xl font-bold text-brand-text mb-2">🎯 Your Matching Moments ({total})</h2>
+                <p className="text-sm text-brand-text/70">Moments from your collection that match active offers</p>
+              </>
+            );
+          })()}
+        </div>
 
-        {/* Account Selection (left-aligned) */}
-        <div className="mb-1 flex flex-col sm:flex-row sm:items-center gap-2">
-          <div>
-            <AccountSelection
-              parentAccount={{ addr: accountData?.parentAddress, hasCollection: accountData?.hasCollection, ...accountData }}
-              childrenAddresses={accountData?.childrenAddresses}
-              childrenAccounts={accountData?.childrenData}
-              selectedAccount={selectedAccount}
-              onSelectAccount={(addr) => {
-                const isChild = accountData?.childrenAddresses?.includes(addr);
-                dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
-              }}
-              isLoadingChildren={false}
-            />
-          </div>
-          <button onClick={handleRefresh} disabled={loading} className="px-2 py-1 text-xs bg-brand-secondary text-brand-text/80 hover:opacity-80 disabled:opacity-50 rounded flex-shrink-0">{loading ? 'Refreshing...' : 'Refresh'}</button>
+        {/* Account Selection with Refresh Button */}
+        <div className="mb-1 flex items-center gap-2">
+          <AccountSelection
+            parentAccount={{ addr: accountData?.parentAddress, hasCollection: accountData?.hasCollection, ...accountData }}
+            childrenAddresses={accountData?.childrenAddresses}
+            childrenAccounts={accountData?.childrenData}
+            selectedAccount={selectedAccount}
+            onSelectAccount={(addr) => {
+              const isChild = accountData?.childrenAddresses?.includes(addr);
+              dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
+            }}
+            isLoadingChildren={false}
+          />
+          <button 
+            onClick={handleRefresh} 
+            disabled={loading} 
+            className="px-3 py-2 text-sm bg-brand-secondary text-brand-text/80 hover:bg-brand-secondary/80 disabled:opacity-50 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {loading ? 'Refreshing...' : 'Refresh'}
+          </button>
         </div>
 
         {!userHasCollection ? (
@@ -573,19 +596,73 @@ export default function TreasuryBids() {
                 <p className="text-center sm:text-right">Page {matchesPage} of {matchesPageCount}</p>
               </div>
             )}
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1 sm:gap-1.5 justify-items-center">
-              {paginatedMatches.map((match, index) => (
-                <div key={index} className="group relative flex flex-col items-center transition-all duration-150 ease-in-out hover:shadow-lg hover:-translate-y-0.5">
-                  <MomentCard nft={match.moment} disableHover />
-                  <div className="mt-0 flex flex-col gap-0">
-                    <button className="w-[80px] sm:w-28 bg-opolis text-white text-[11px] rounded-b hover:bg-opolis-dark -mt-px h-[40px] flex flex-col items-center justify-center text-center leading-tight px-2 group-hover:bg-opolis/90" aria-label={`Accept offer for Moment #${match.moment.id} (Set ${match.moment.setID}, Play ${match.moment.playID})`} title={`Accept offer for Moment #${match.moment.id}`} onClick={() => onAcceptOffer(match)}>
-                      <span className="font-semibold">Accept Offer</span>
-                      <span className="font-semibold">{parseFloat(match.offer.offerAmount).toFixed(2)} {String(match.offer.currency || 'FLOW').toUpperCase()}{usdAmounts[match.offer.offerId] && ` ~${formatUSD(usdAmounts[match.offer.offerId])} USD`}</span>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3 justify-items-center">
+              {paginatedMatches.map((match, index) => {
+                const moment = match.moment;
+                const setId = moment.setID;
+                const playId = moment.playID;
+                const metaKey = setId && playId ? `${setId}-${playId}` : null;
+                const meta = metaKey && metadataCache ? metadataCache[metaKey] : null;
+                const player = meta?.FullName || meta?.name || "Unknown Player";
+                const setName = meta?.name || "Unknown Set";
+                const series = meta?.series !== undefined ? String(meta.series) : "?";
+                const tier = meta?.tier || "";
+                const totalMinted = meta?.momentCount || meta?.subeditionMaxMint || "?";
+                const editionKey = `${setId}_${playId}`;
+                const imageUrl = `https://storage.googleapis.com/flowconnect/topshot/images_small/${editionKey}.jpg`;
+                const tierClass = tier ? tierStyles[tier.toLowerCase()] || "text-gray-400" : "text-gray-400";
+
+                return (
+                  <div key={index} className="group relative flex flex-col items-center transition-all duration-200 ease-in-out hover:shadow-xl hover:shadow-black/60 hover:-translate-y-1">
+                    <div className="w-[140px] sm:w-40 rounded overflow-hidden flex flex-col pt-2 px-1 border border-brand-text/40 bg-black text-brand-text select-none transition-all duration-200 hover:border-brand-accent/60 hover:shadow-lg hover:shadow-black/40" style={{ height: '280px' }}>
+                      <div className="relative overflow-hidden rounded mx-auto mb-2 flex-shrink-0 p-1" style={{ height: '140px', width: '100%' }}>
+                        <img
+                          src={imageUrl}
+                          alt={`${player} moment`}
+                          loading="lazy"
+                          decoding="async"
+                          className="object-cover w-full h-full transform scale-[1.4]"
+                          style={{ objectPosition: "center 20%" }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="hidden absolute inset-0 w-full h-full bg-gray-700 items-center justify-center">
+                          <div className="text-gray-400 text-xs text-center">No Image</div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 flex flex-col justify-between pb-1">
+                        <div>
+                          <h3 className="text-center font-semibold leading-tight h-[24px] sm:h-[28px] flex items-center justify-center text-[10px] sm:text-xs">
+                            {player}
+                          </h3>
+                          <p className="text-center text-[10px] sm:text-xs text-brand-text/60 leading-tight h-[12px] sm:h-[14px] flex items-center justify-center">
+                            Series {series}
+                          </p>
+                          <p className={`text-center text-[10px] sm:text-xs truncate leading-tight ${tierClass} h-[12px] sm:h-[14px] flex items-center justify-center`}>
+                            {tier ? tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase() : ""}
+                          </p>
+                          <p className="text-center text-brand-text/50 leading-tight min-h-[24px] sm:min-h-[28px] flex items-center justify-center text-[10px] sm:text-xs">
+                            {setName}
+                          </p>
+                          <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight h-[12px] sm:h-[14px] flex items-center justify-center">
+                            {moment.serialNumber} / {totalMinted}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <button className="w-[140px] sm:w-40 bg-opolis text-white text-xs rounded-b hover:bg-opolis-dark hover:shadow-lg hover:shadow-opolis/30 -mt-px h-[50px] flex flex-col items-center justify-center text-center leading-tight px-2 transition-all duration-200 group-hover:bg-opolis/90 group-hover:scale-105" aria-label={`Accept offer for Moment #${match.moment.id} (Set ${match.moment.setID}, Play ${match.moment.playID})`} title={`Accept offer for Moment #${match.moment.id}`} onClick={() => onAcceptOffer(match)}>
+                      <span className="font-semibold text-xs">Accept</span>
+                      <span className="font-semibold text-xs">{parseFloat(match.offer.offerAmount).toFixed(2)} FLOW</span>
+                      {usdAmounts[match.offer.offerId] && (
+                        <span className="font-semibold text-xs">~{formatUSD(usdAmounts[match.offer.offerId])}</span>
+                      )}
                     </button>
                   </div>
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 top-[72%] sm:top-[74%] rounded-lg bg-black/5 ring-1 ring-inset ring-white/10 opacity-0 transition-opacity duration-150 group-hover:opacity-100"></div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {matchesPageCount > 1 && (
               <div className="flex justify-center items-center gap-3 mt-3">

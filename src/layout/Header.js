@@ -13,7 +13,6 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
   
   // Refs for UI elements
   const buttonRef = useRef(null);
@@ -32,18 +31,8 @@ const Header = () => {
   const connectWallet = () => fcl.authenticate();
   
   /* ─── Mobile Menu Logic ─── */
-  const toggleMobileMenu = () => {
-    const newState = !isMobileMenuOpen;
-    setIsMobileMenuOpen(newState);
-    if (newState) {
-      setMobileResourcesOpen(false);
-    }
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
-    setMobileResourcesOpen(false);
-  };
+  const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   /* ───────── Desktop Dropdown Helpers ───────── */
   const handleDropdownEnter = (dropdownName) => {
@@ -156,7 +145,7 @@ const Header = () => {
               More <FaChevronDown size={12} className="ml-1" />
             </button>
             {activeDropdown === 'more' && (
-              <div className="absolute top-full left-0 w-56 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
+              <div className="absolute top-full left-0 w-72 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
                 <DropdownItem to="/analytics" isActive={location.pathname === "/analytics"}>
                   Protocol Stats
                 </DropdownItem>
@@ -229,23 +218,25 @@ const Header = () => {
                 TSHOT
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileSection title="More" isOpen={mobileResourcesOpen} onToggle={() => setMobileResourcesOpen(!mobileResourcesOpen)}>
-                <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu} className="pl-8">
-                  Protocol Stats
-                </MobileNavLink>
-                <MobileNavLink to="/transfer" isActive={location.pathname === "/transfer"} onClick={closeMobileMenu} className="pl-8">
-                  Transfer Hub
-                </MobileNavLink>
-                <MobileNavLink to="/guides" isActive={location.pathname === "/guides"} onClick={closeMobileMenu} className="pl-8">
-                  Guides
-                </MobileNavLink>
-                <MobileNavLink to="/guides/faq" isActive={location.pathname === "/guides/faq"} onClick={closeMobileMenu} className="pl-8">
-                  FAQ
-                </MobileNavLink>
-                <MobileNavLink to="/about" isActive={location.pathname === "/about"} onClick={closeMobileMenu} className="pl-8">
-                  About
-                </MobileNavLink>
-              </MobileSection>
+              <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu}>
+                Protocol Stats
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/transfer" isActive={location.pathname === "/transfer"} onClick={closeMobileMenu}>
+                Transfer Hub
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/guides" isActive={location.pathname === "/guides"} onClick={closeMobileMenu}>
+                Guides
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/guides/faq" isActive={location.pathname === "/guides/faq"} onClick={closeMobileMenu}>
+                FAQ
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/about" isActive={location.pathname === "/about"} onClick={closeMobileMenu}>
+                About
+              </MobileNavLink>
             </div>
           </div>
         </>
@@ -269,7 +260,7 @@ const NavLink = ({ to, isActive, children, className = "", onMouseEnter }) => (
 const DropdownItem = ({ to, isActive, children, className = "" }) => (
   <Link
     to={to}
-    className={`block w-full py-3 px-4 font-semibold text-brand-text hover:bg-brand-primary/20 hover:text-brand-accent transition-all duration-200 border-b border-brand-border/30 last:border-b-0 first:rounded-t-md last:rounded-b-md ${isActive ? "bg-brand-primary/30 text-brand-accent" : ""} ${className}`}
+    className={`flex w-full py-5 px-8 font-semibold text-brand-text hover:bg-brand-primary/20 hover:text-brand-accent transition-all duration-200 border-b border-brand-border/30 last:border-b-0 first:rounded-t-md last:rounded-b-md items-center justify-center min-h-[60px] ${isActive ? "bg-brand-primary/30 text-brand-accent" : ""} ${className}`}
   >
     {children}
   </Link>
@@ -279,31 +270,12 @@ const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
   <Link
     to={to}
     onClick={onClick}
-    className={`w-full text-center py-4 hover:opacity-80 select-none text-brand-text ${isActive ? "font-bold" : ""} ${className}`}
+    className={`w-full py-4 hover:opacity-80 select-none text-brand-text flex items-center justify-center ${isActive ? "font-bold" : ""} ${className}`}
   >
     {children}
   </Link>
 );
 
-const MobileSection = ({ title, isOpen, onToggle, children }) => (
-  <div>
-    <button
-      onClick={onToggle}
-      className="w-full relative py-4 px-4 text-brand-text hover:bg-brand-primary/20 transition-colors"
-    >
-      <span className="font-medium text-center block">{title}</span>
-      <FaChevronDown 
-        size={16} 
-        className={`absolute right-4 top-1/2 -translate-y-1/2 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-      />
-    </button>
-    {isOpen && (
-      <div className="bg-brand-primary/10">
-        {children}
-      </div>
-    )}
-  </div>
-);
 
 const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
   <button

@@ -217,6 +217,9 @@ const MomentCard = ({
         >
           Series {seriesText}
         </p>
+        <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight mb-0">
+          {nft?.name || "Unknown Set"}
+        </p>
         <p
           className={`text-center text-[10px] sm:text-xs truncate leading-tight ${tierClass} mb-0`}
         >
@@ -224,9 +227,6 @@ const MomentCard = ({
         </p>
         <p className="text-center text-[10px] sm:text-xs text-brand-text/60 truncate leading-tight mb-0">
           {serialNumber} / {mintCount}
-        </p>
-        <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight mb-0">
-          {nft?.name || "Unknown Set"}
         </p>
       </div>
     </div>
