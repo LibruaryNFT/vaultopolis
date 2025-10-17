@@ -442,8 +442,11 @@ export default function TreasuryBids() {
 
   return (
     <div className="w-full px-4 space-y-2">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold mb-2">Treasury Bids</h1>
+      <div className="text-center mb-6">
+        <h1 className="text-2xl font-bold mb-3">Treasury Bids</h1>
+        <p className="text-brand-text/70 text-sm max-w-2xl mx-auto leading-relaxed">
+          We are actively acquiring higher-end grails and culturally significant moments to add to our treasury for future innovative products and community initiatives.
+        </p>
       </div>
 
       {!loading && !error && displayedOffers.length > 0 && (
@@ -457,7 +460,7 @@ export default function TreasuryBids() {
               🏛️ View Treasury Collection
             </Link>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {/* Active Offers Count */}
             <div className="text-center">
               <div className="text-xl sm:text-2xl font-bold text-brand-text">
@@ -468,40 +471,22 @@ export default function TreasuryBids() {
               </div>
             </div>
 
-            {/* Total Active Offers Value */}
+            {/* Sum of Bids */}
             <div className="text-center">
               <div className="text-sm sm:text-lg font-semibold text-brand-text">
                 ~{displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0).toFixed(2)} FLOW
               </div>
               <div className="text-xs sm:text-sm text-brand-text/70">
-                Total Value
-                  {(() => {
-                    const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
+                Sum of Bids
+                {(() => {
+                  const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
                   return usdAmount ? (
                     <div className="text-xs text-brand-text/60">
                       {formatUSD(usdAmount)} USD
                     </div>
                   ) : '';
-                  })()}
-                </div>
-            </div>
-
-            {/* Treasury Balance */}
-            <div className="text-center">
-              <div className="text-sm sm:text-lg font-semibold text-brand-text">
-                {treasuryBalance.toFixed(2)} FLOW
+                })()}
               </div>
-              <div className="text-xs sm:text-sm text-brand-text/70">
-                Treasury Balance
-                  {(() => {
-                    const usdAmount = convertFlowToUSDSync(treasuryBalance);
-                  return usdAmount ? (
-                    <div className="text-xs text-brand-text/60">
-                      {formatUSD(usdAmount)} USD
-                    </div>
-                  ) : '';
-                  })()}
-                </div>
             </div>
 
             {/* Current FLOW Price */}
