@@ -126,13 +126,13 @@ export default function TreasuryBids() {
             <div>
               <div className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-2">
                 <p className="text-center text-[11px] sm:text-xs font-bold text-green-400 truncate leading-tight mb-0">
-                  {parseFloat(offer.offerAmount).toFixed(2)} {String(offer.currency || 'FLOW').toUpperCase()}
-                </p>
-                {usdAmounts[offer.offerId] && (
+                {parseFloat(offer.offerAmount).toFixed(2)} {String(offer.currency || 'FLOW').toUpperCase()}
+              </p>
+              {usdAmounts[offer.offerId] && (
                   <p className="text-center text-[10px] sm:text-xs font-semibold text-green-400/80 truncate leading-tight mb-0">
-                    ~{formatUSD(usdAmounts[offer.offerId])} USD
-                  </p>
-                )}
+                  ~{formatUSD(usdAmounts[offer.offerId])} USD
+                </p>
+              )}
               </div>
               <p 
                 className="text-center text-[8px] sm:text-[9px] text-brand-text/50 truncate leading-tight mb-0 cursor-pointer hover:text-brand-text/70 transition-colors"
@@ -475,15 +475,15 @@ export default function TreasuryBids() {
               </div>
               <div className="text-xs sm:text-sm text-brand-text/70">
                 Total Value
-                {(() => {
-                  const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
+                  {(() => {
+                    const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
                   return usdAmount ? (
                     <div className="text-xs text-brand-text/60">
                       {formatUSD(usdAmount)} USD
                     </div>
                   ) : '';
-                })()}
-              </div>
+                  })()}
+                </div>
             </div>
 
             {/* Treasury Balance */}
@@ -493,15 +493,15 @@ export default function TreasuryBids() {
               </div>
               <div className="text-xs sm:text-sm text-brand-text/70">
                 Treasury Balance
-                {(() => {
-                  const usdAmount = convertFlowToUSDSync(treasuryBalance);
+                  {(() => {
+                    const usdAmount = convertFlowToUSDSync(treasuryBalance);
                   return usdAmount ? (
                     <div className="text-xs text-brand-text/60">
                       {formatUSD(usdAmount)} USD
                     </div>
                   ) : '';
-                })()}
-              </div>
+                  })()}
+                </div>
             </div>
 
             {/* Current FLOW Price */}
@@ -532,7 +532,7 @@ export default function TreasuryBids() {
           <div>
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 text-sm text-brand-text/70 gap-1">
               <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} offers</p>
-            </div>
+              </div>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3 justify-items-center">
               {displayedOffers.map((o) => (
                 <EditionOfferCard key={o.offerId} offer={o} />
@@ -544,47 +544,53 @@ export default function TreasuryBids() {
 
       <section className="bg-brand-primary p-4 rounded-lg shadow-lg shadow-black/40 border border-brand-border/20">
         <div className="mb-4">
-          {(() => {
-            const parentAddr = accountData?.parentAddress?.toLowerCase?.();
-            const parentCount = (parentAddr && matchCounts[parentAddr]) || 0;
-            const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
-            const childrenTotal = childAddrs.reduce((sum, a) => sum + (matchCounts[a] || 0), 0);
-            const total = parentCount + childrenTotal;
+        {(() => {
+          const parentAddr = accountData?.parentAddress?.toLowerCase?.();
+          const parentCount = (parentAddr && matchCounts[parentAddr]) || 0;
+          const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
+          const childrenTotal = childAddrs.reduce((sum, a) => sum + (matchCounts[a] || 0), 0);
+          const total = parentCount + childrenTotal;
             return (
               <>
                 <h2 className="text-xl font-bold text-brand-text mb-2">🎯 Your Matching Moments ({total})</h2>
                 <p className="text-sm text-brand-text/70">Moments from your collection that match active offers</p>
               </>
             );
-          })()}
+        })()}
         </div>
 
         {/* Account Selection with Refresh Button */}
-        <div className="mb-1 flex items-center gap-2">
-          <AccountSelection
-            parentAccount={{ addr: accountData?.parentAddress, hasCollection: accountData?.hasCollection, ...accountData }}
-            childrenAddresses={accountData?.childrenAddresses}
-            childrenAccounts={accountData?.childrenData}
-            selectedAccount={selectedAccount}
-            onSelectAccount={(addr) => {
-              const isChild = accountData?.childrenAddresses?.includes(addr);
-              dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
-            }}
-            isLoadingChildren={false}
-          />
-          <button 
-            onClick={handleRefresh} 
-            disabled={loading} 
-            className="px-3 py-2 text-sm bg-brand-secondary text-brand-text/80 hover:bg-brand-secondary/80 disabled:opacity-50 rounded-lg flex items-center gap-2 transition-colors"
-          >
-            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            {loading ? 'Refreshing...' : 'Refresh'}
-          </button>
-        </div>
+        {accountData && accountData.parentAddress && (
+          <div className="mb-1 flex items-center gap-2">
+            <AccountSelection
+              parentAccount={{ addr: accountData?.parentAddress, hasCollection: accountData?.hasCollection, ...accountData }}
+              childrenAddresses={accountData?.childrenAddresses}
+              childrenAccounts={accountData?.childrenData}
+              selectedAccount={selectedAccount}
+              onSelectAccount={(addr) => {
+                const isChild = accountData?.childrenAddresses?.includes(addr);
+                dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
+              }}
+              isLoadingChildren={false}
+            />
+            <button 
+              onClick={handleRefresh} 
+              disabled={loading} 
+              className="px-3 py-2 text-sm bg-brand-secondary text-brand-text/80 hover:bg-brand-secondary/80 disabled:opacity-50 rounded-lg flex items-center gap-2 transition-colors"
+            >
+              <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {loading ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+        )}
 
-        {!userHasCollection ? (
+        {!accountData || !accountData.parentAddress ? (
+          <div className="text-center py-8">
+            <p className="text-brand-text/70">Connect your wallet to view your matching moments</p>
+        </div>
+        ) : !userHasCollection ? (
           <p className="text-sm text-brand-text/70">Connect your wallet to view eligible Moments.</p>
         ) : matchingMoments.length === 0 ? (
           <p className="text-sm text-brand-text/70">No matching Moments found for the selected account.</p>
