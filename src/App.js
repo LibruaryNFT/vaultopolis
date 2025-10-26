@@ -1,6 +1,8 @@
 import React from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import UserContext from "./context/UserContext";
+import UserDataProvider from "./context/UserContext";
+import { AllDayProvider } from "./context/AllDayContext";
+import { AnnouncementProvider } from "./context/AnnouncementContext";
 import routes from "./routes";
 import MaintenancePage from "./pages/Maintenance";
 import ComingSoon from "./pages/ComingSoon";
@@ -16,13 +18,17 @@ function App() {
   if (comingSoonMode) return <ComingSoon />;
 
   return (
-    <UserContext>
-      <div className="w-full min-h-screen bg-brand-secondary text-brand-text">
-        <div className="relative min-h-screen">
-          <RouterProvider router={router} />
-        </div>
-      </div>
-    </UserContext>
+    <UserDataProvider>
+      <AllDayProvider>
+        <AnnouncementProvider>
+          <div className="w-full min-h-screen bg-brand-secondary text-brand-text">
+            <div className="relative min-h-screen">
+              <RouterProvider router={router} />
+            </div>
+          </div>
+        </AnnouncementProvider>
+      </AllDayProvider>
+    </UserDataProvider>
   );
 }
 

@@ -26,7 +26,7 @@ function TSHOTBridgingGuide() {
         <meta name="twitter:description" content="Learn how to bridge TSHOT tokens from Cadence (Flow) to EVM networks." />
       </Helmet>
 
-      <div>
+      <div className="w-full">
         {/* Breadcrumb Navigation */}
         <PageWrapper padding="sm">
           <nav aria-label="Breadcrumb">

@@ -110,9 +110,10 @@ function Guides() {
         </script>
       </Helmet>
 
-      <div>
+      <div className="w-full">
         {/* Guides Grid */}
-        <PageWrapper maxWidth="lg" padding="md">
+        <div className="mx-2 sm:mx-4">
+          <div className="max-w-6xl mx-auto">
           <ContentPanel title="Complete Guides & Tutorials" subtitle="Step-by-step tutorials to get you started with TSHOT, from wallet setup to your first swap.">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {guides.map((guide) => (
@@ -197,10 +198,12 @@ function Guides() {
               ))}
             </div>
           </ContentPanel>
-        </PageWrapper>
+          </div>
+        </div>
 
         {/* FAQ Link Section */}
-        <PageWrapper padding="md">
+        <div className="mx-2 sm:mx-4">
+          <div className="max-w-6xl mx-auto">
           <ContentPanel>
             <div className="text-center">
               <h2 className="text-2xl font-bold text-white mb-4">
@@ -215,7 +218,8 @@ function Guides() {
               </Button>
             </div>
           </ContentPanel>
-        </PageWrapper>
+          </div>
+        </div>
       </div>
     </>
   );

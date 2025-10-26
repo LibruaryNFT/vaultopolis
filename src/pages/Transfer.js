@@ -52,7 +52,7 @@ const Transfer = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="max-w-md mx-auto mt-8">
+      <div className="w-full max-w-md mx-auto mt-8">
         <button
           onClick={() => fcl.authenticate()}
           className="w-full p-4 text-lg font-bold rounded-lg bg-opolis text-white hover:bg-opolis-dark"
@@ -421,7 +421,7 @@ const Transfer = () => {
       </Helmet>
 
       {/* 1) Top panel */}
-      <div className="max-w-md mx-auto mt-2 mb-2">
+      <div className="w-full max-w-md mx-auto mt-2 mb-2">
         <div className="bg-brand-primary shadow-md shadow-black/30 rounded-lg p-3 min-h-[180px]">
           <label className="block mb-1 text-brand font-semibold">
             Select Tool:

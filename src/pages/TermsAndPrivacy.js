@@ -35,7 +35,7 @@ const TermsAndPrivacy = () => {
         </script>
       </Helmet>
       
-      <div className="max-w-4xl mx-auto m-4 p-8 bg-brand-secondary text-brand-text rounded-lg shadow-xl">
+      <div className="w-full max-w-4xl mx-auto m-4 p-8 bg-brand-secondary text-brand-text rounded-lg shadow-xl">
         <h1 className="text-3xl font-bold mb-8">
           Vaultopolis Terms of Service and Privacy Policy
         </h1>

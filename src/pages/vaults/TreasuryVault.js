@@ -41,8 +41,8 @@ function TreasuryVaultPage() {
       </Helmet>
 
       {/* Vault Navigation */}
-      <div className="px-2 md:px-3 mt-4 mb-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="w-full mt-4 mb-4">
+        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
           <div className="flex items-center gap-2 bg-brand-primary rounded-lg p-2" role="tablist" aria-label="Vault sections">
             <Link
               to="/vaults/tshot"
@@ -65,10 +65,8 @@ function TreasuryVaultPage() {
       </div>
 
       {/* Grail Bounties Vault Contents */}
-      <div className="px-2 md:px-3">
-        <div className="max-w-6xl mx-auto">
-          <GrailBountiesVault />
-        </div>
+      <div className="w-full">
+        <GrailBountiesVault />
       </div>
     </>
   );

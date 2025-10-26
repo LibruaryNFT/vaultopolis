@@ -161,7 +161,7 @@ const About = () => {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-brand-background text-brand-text">
+      <div className="w-full min-h-screen bg-brand-background text-brand-text">
         {/* Container for main content with consistent horizontal padding */}
         <div className="max-w-4xl mx-auto px-4">
 
@@ -226,7 +226,7 @@ const About = () => {
                     />
                     <StatCard 
                       icon={<FaUsers size={32} />} 
-                      value={loading ? "..." : analyticsData?.totalUniqueWallets ? analyticsData.totalUniqueWallets.toLocaleString() : "..."} 
+                      value="500+" 
                       label="Active Users" 
                     />
                     <StatCard icon={<FaRocket size={32} />} value="April 17, 2025" label="Project Launched" />

@@ -114,7 +114,7 @@ export default function TSHOTReceiptPanel() {
   }
 
   return (
-    <div className="p-4 bg-gray-800 rounded space-y-3">
+    <div className="w-full p-4 bg-gray-800 rounded space-y-3">
       <h2 className="text-xl font-bold text-white">TSHOT Receipt Panel</h2>
 
       {loading && <p className="text-gray-300">Loading receipt info...</p>}

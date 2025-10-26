@@ -1,14 +1,14 @@
-// src/components/MomentCard.jsx
+// src/components/AllDayMomentCard.jsx
 
 import React, { useEffect, useState, useCallback } from "react";
 import { FaLock } from "react-icons/fa";
 import { getAllDayImageUrlConsistent } from "../utils/allDayImages";
 
-// Export tierStyles so other components can use them if needed.
-export const tierStyles = {
+// Export tierStyles for AllDay (different from TopShot)
+export const allDayTierStyles = {
   common: "text-gray-400",
+  uncommon: "text-lime-400", // Add UNCOMMON tier color
   rare: "text-blue-500",
-  fandom: "text-lime-400",
   legendary: "text-orange-500",
   ultimate: "text-pink-500",
 };
@@ -46,15 +46,12 @@ function formatNumber(num, isMintCount = false) {
 }
 
 /**
- * Returns the display name for an NFT.
- * - If the FullName is known and not "Unknown Player", use it.
- * - Otherwise, use the team name if available.
- * - If there's no team name, use playerName if available.
- * - Finally, default to "Unknown Player".
+ * Returns the display name for an AllDay NFT.
+ * Uses AllDay-specific field names from the metadata API
  */
 function getDisplayedName(nft) {
   const forcedUnknowns = ["Unknown Player", "unknown player", "Unknown"];
-  let candidate = nft?.FullName || nft?.fullName;
+  let candidate = nft?.playerName;
 
   // If candidate is "Unknown Player" or similar, force it to null
   if (
@@ -64,96 +61,70 @@ function getDisplayedName(nft) {
     candidate = null;
   }
 
-  // Check for TeamAtMoment first (fall back to teamAtMoment for case variations)
-  const teamName = nft?.TeamAtMoment || nft?.teamAtMoment;
+  // Check for teamName (AllDay field)
+  const teamName = nft?.teamName;
 
-  // Fallback chain: candidate -> teamName -> playerName -> "Unknown Player"
-  return candidate || teamName || nft?.playerName || "Unknown Player";
+  // Fallback chain: candidate -> teamName -> "Unknown Player"
+  return candidate || teamName || "Unknown Player";
 }
 
 /**
- * A unified MomentCard component.
- *
- * Props:
- * - nft: NFT object
- * - handleNFTSelection: function to call on click (if applicable)
- * - isSelected: applies a highlight border if true (only for interactive contexts)
- * - disableHover: if true, disables hover effects (for static displays)
- * - collectionType: 'topshot' or 'allday' - determines image source and data structure
+ * AllDay-specific MomentCard component.
+ * Uses AllDay data structure and field names
  */
-const MomentCard = ({
+const AllDayMomentCard = ({
   nft,
   handleNFTSelection,
   isSelected,
   disableHover = false,
-  collectionType = 'topshot',
 }) => {
   const [imageUrl, setImageUrl] = useState("");
-  const [triedFallback, setTriedFallback] = useState(false); // State to prevent infinite loops
 
-  // Image URL generation based on collection type
+  // AllDay image URL generation
   const getImageUrls = () => {
-    if (collectionType === 'allday') {
-      // AllDay uses editionID for image URLs
-      const baseUrl = getAllDayImageUrlConsistent(nft?.editionID);
-      return { primary: baseUrl, fallback: baseUrl }; // AllDay doesn't have fallback variants
-    } else {
-      // TopShot uses NFT ID for image URLs
-      const nonTransparentBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/image?width=250&quality=80`;
-      const fallbackBaseUrl = `https://assets.nbatopshot.com/media/${nft?.id}/transparent/image?width=250&quality=80`;
-      return { primary: nonTransparentBaseUrl, fallback: fallbackBaseUrl };
-    }
+    const baseUrl = getAllDayImageUrlConsistent(nft?.editionID);
+    return { primary: baseUrl }; // AllDay doesn't have fallback variants
   };
 
-  const { primary: primaryImageUrl, fallback: fallbackImageUrl } = getImageUrls();
+  const { primary: primaryImageUrl } = getImageUrls();
 
   useEffect(() => {
-    // Check for valid NFT identifier based on collection type
-    const hasValidId = collectionType === 'allday' ? nft?.editionID : nft?.id;
+    // Check for valid AllDay NFT identifier
+    const hasValidId = nft?.editionID;
     
     if (hasValidId) {
       // Always try the primary URL first when NFT changes
       setImageUrl(primaryImageUrl);
-      setTriedFallback(false); // Reset fallback flag for the new NFT
     } else {
       // Clear image if no valid identifier
       setImageUrl("");
-      setTriedFallback(false);
     }
     // Depend on the image URLs to reset when NFT changes
-  }, [nft?.id, nft?.editionID, primaryImageUrl, collectionType]);
+  }, [nft?.editionID, primaryImageUrl]);
 
   // Use useCallback to memoize the error handler function
   const handleImageError = useCallback(() => {
-    // Only try the fallback if we haven't already tried it for this NFT
-    // and the current URL is the primary one that failed
-    if (!triedFallback && imageUrl === primaryImageUrl && collectionType === 'topshot') {
-      console.warn(`Primary image failed for ${nft?.id}, trying fallback.`);
-      setImageUrl(fallbackImageUrl);
-      setTriedFallback(true); // Mark that we've attempted the fallback
-    }
     // For AllDay, we don't have fallback URLs, so just log the error
-    if (collectionType === 'allday') {
-      console.warn(`AllDay image failed for edition ${nft?.editionID}`);
-    }
-    // If the fallback also fails, the onError will trigger again, but
-    // triedFallback will be true, so we won't set state again, preventing loops.
-    // A broken image icon will be shown, which is the expected behavior if both fail.
-  }, [imageUrl, triedFallback, primaryImageUrl, fallbackImageUrl, collectionType, nft?.id, nft?.editionID]);
+    console.warn(`AllDay image failed for edition ${nft?.editionID}`);
+  }, [nft?.editionID]);
 
   const playerName = getDisplayedName(nft);
+  
+  // AllDay-specific field mapping from metadata API
   const seriesText = nft?.series !== undefined ? String(nft.series) : "?";
-  const finalMintCount = nft?.subeditionID
-    ? nft?.subeditionMaxMint
-    : nft?.momentCount;
+  const setName = nft?.setName || "Unknown Set";
+  
+  // AllDay maxMintSize comes from the Edition, not the NFT directly
+  // If not available from metadata, show "?" 
+  const mintCount = nft?.maxMintSize || "?";
 
   // Format the serial numbers for display
   const serialNumber = formatNumber(nft?.serialNumber, false);
-  const mintCount = formatNumber(finalMintCount, true);
+  const mintCountFormatted = formatNumber(mintCount, true);
 
-  // Tier color classes from tierStyles, fallback "text-gray-400"
+  // Tier color classes from allDayTierStyles, fallback "text-gray-400"
   const tierClass = nft?.tier
-    ? tierStyles[nft.tier.toLowerCase()] || "text-gray-400"
+    ? allDayTierStyles[nft.tier.toLowerCase()] || "text-gray-400"
     : "text-gray-400";
 
   const tierLabel = nft?.tier
@@ -182,19 +153,15 @@ const MomentCard = ({
   // If hover is enabled and card is selected, highlight; else if hover is enabled, show a pointer/hover effect
   const hoverClasses = disableHover
     ? ""
-    : `cursor-pointer transition-colors duration-200 hover:border-2 hover:border-opolis ${
+    : `cursor-pointer transition-colors duration-200 hover:border-2 hover:border-opalis ${
         isSelected ? "border-2 border-green-500" : ""
       }`;
 
   const cardClasses = `${baseCardClasses} ${hoverClasses}`;
 
   const handleClick = () => {
-    if (!disableHover && handleNFTSelection) {
-      // Use appropriate ID based on collection type
-      const nftId = collectionType === 'allday' ? nft?.editionID : nft?.id;
-      if (nftId) {
-        handleNFTSelection(nftId);
-      }
+    if (!disableHover && handleNFTSelection && nft?.editionID) {
+      handleNFTSelection(nft.editionID);
     }
   };
 
@@ -213,13 +180,13 @@ const MomentCard = ({
           />
           {/* Lock icon overlay for locked moments */}
           {nft?.isLocked && (
-            <div className="absolute top-1 right-1 bg-red-600 rounded-full p-1.5 shadow-lg border border-red-400">
-              <FaLock size={10} className="text-white" />
+            <div className="absolute top-0.5 right-0.5 bg-red-500 rounded-full p-0.5 shadow-md">
+              <FaLock size={6} className="text-white" />
             </div>
           )}
         </div>
       )}
-      {/* Placeholder if no image URL (e.g., missing nft.id) */}
+      {/* Placeholder if no image URL (e.g., missing nft.editionID) */}
       {!imageUrl && (
         <div className="relative overflow-hidden rounded mx-auto w-full aspect-square bg-gray-700">
           {/* Optional: Add an icon or text here */}
@@ -254,7 +221,7 @@ const MomentCard = ({
           Series {seriesText}
         </p>
         <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight mb-0">
-          {nft?.name || "Unknown Set"}
+          {setName}
         </p>
         <p
           className={`text-center text-[10px] sm:text-xs truncate leading-tight ${tierClass} mb-0`}
@@ -262,11 +229,11 @@ const MomentCard = ({
           {tierLabel}
         </p>
         <p className="text-center text-[10px] sm:text-xs text-brand-text/60 truncate leading-tight mb-0">
-          {serialNumber} / {mintCount}
+          {serialNumber} / {mintCountFormatted}
         </p>
       </div>
     </div>
   );
 };
 
-export default MomentCard;
+export default AllDayMomentCard;

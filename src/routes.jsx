@@ -3,6 +3,7 @@
    Central route tree – pure data, NO browser APIs.
    -------------------------------------------------------------------- */
 import React from "react";
+import { Navigate } from "react-router-dom";
 import Layout           from "./layout/Layout";
 import Swap             from "./pages/Swap";
 import TSHOT            from "./pages/TSHOT";
@@ -12,7 +13,10 @@ import TSHOTVaultPage   from "./pages/vaults/TSHOTVault";
 import TreasuryVaultPage from "./pages/vaults/TreasuryVault";
 import Transfer         from "./pages/Transfer";
 import Profile          from "./pages/Profile";
-import Bounties     from "./pages/Bounties";
+import MyCollection     from "./pages/MyCollection";
+import BountiesTopShot from "./pages/BountiesTopShot";
+import BountiesAllDay from "./pages/BountiesAllDay";
+import Announcements from "./pages/Announcements";
 import TermsAndPrivacy  from "./pages/TermsAndPrivacy";
 import ComingSoon       from "./pages/ComingSoon";
 import Guides           from "./pages/Guides";
@@ -39,10 +43,14 @@ const routes = [
   { path: "/transfer",    element: <Layout><Transfer /></Layout> },
   { path: "/profile",     element: <Layout><Profile /></Layout> },
   { path: "/profile/:address?", element: <Layout><Profile /></Layout> },
-  { path: "/bounties",  element: <Layout><Bounties /></Layout> },
+  { path: "/my-collection", element: <Layout><MyCollection /></Layout> },
+  { path: "/bounties",  element: <Navigate to="/bounties/topshot" replace /> },
+  { path: "/bounties/topshot", element: <Layout><BountiesTopShot /></Layout> },
+  { path: "/bounties/allday", element: <Layout><BountiesAllDay /></Layout> },
   { path: "/guides",      element: <Layout><Guides /></Layout> },
   { path: "/guides/faq",  element: <Layout><FAQ /></Layout> },
   { path: "/guides/quick-start", element: <Layout><QuickStartGuidePage /></Layout> },
+  { path: "/news", element: <Layout><Announcements /></Layout> },
 
   { path: "/guides/dapper-wallet", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/flow-wallet", element: <Layout><FlowWalletGuide /></Layout> },

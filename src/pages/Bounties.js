@@ -1,19 +1,23 @@
 // Migrate implementation from Offers.js: import and re-export default
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { UserDataContext } from "../context/UserContext";
+import { useAllDayContext } from "../context/AllDayContext";
 import * as fcl from "@onflow/fcl";
 import TransactionModal from "../components/TransactionModal";
 import useTransaction from "../hooks/useTransaction";
 import { acceptTopShotOffer } from "../flow/offers/acceptTopShotOffer";
 import { acceptTopShotOffer_child } from "../flow/offers/acceptTopShotOffer_child";
 import { getAllOfferDetails } from "../flow/offers/getAllOfferDetails";
-import { getFLOWBalance } from "../flow/getFLOWBalance";
+import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import AccountSelection from "../components/AccountSelection";
 import { tierStyles } from "../components/MomentCard";
 import { convertFlowToUSD, convertFlowToUSDSync, formatUSD, getFlowPrice } from "../utils/flowPrice";
+import { FaLock } from "react-icons/fa";
 
-export default function Bounties() {
+export default function Bounties({ collectionType = 'topshot' }) {
+  const navigate = useNavigate();
+  
   const {
     accountData,
     selectedAccount,
@@ -22,7 +26,33 @@ export default function Bounties() {
     metadataCache,
     smartRefreshUserData,
   } = React.useContext(UserDataContext);
+  
+  const { allDayMetadataCache, allDayCollectionData, fetchAllDayCollection, fetchAllDayCollectionDetails, setAllDayCollectionData } = useAllDayContext();
   const OFFER_OWNER_ADDRESS = "0xd69b6ce48815d4ad";
+
+  // Load AllDay collection data when on AllDay bounties page
+  useEffect(() => {
+    if (collectionType === 'allday') {
+      const currentAddress = selectedAccount || accountData?.parentAddress;
+      if (currentAddress && !allDayCollectionData[currentAddress]) {
+        const loadAllDayData = async () => {
+          try {
+            const ids = await fetchAllDayCollection(currentAddress);
+            if (ids.length > 0) {
+              const details = await fetchAllDayCollectionDetails(currentAddress, ids);
+              setAllDayCollectionData(prev => ({
+                ...prev,
+                [currentAddress]: { nftDetails: details }
+              }));
+            }
+          } catch (error) {
+            console.error('Failed to load AllDay collection:', error);
+          }
+        };
+        loadAllDayData();
+      }
+    }
+  }, [collectionType, selectedAccount, accountData?.parentAddress, allDayCollectionData, fetchAllDayCollection, fetchAllDayCollectionDetails, setAllDayCollectionData]);
   const [loading, setLoading] = useState(false);
   const isFetchingOffersRef = useRef(false);
   const sealedHandledRef = useRef(false);
@@ -33,21 +63,62 @@ export default function Bounties() {
   const [matchesPage, setMatchesPage] = useState(1);
   const [usdAmounts, setUsdAmounts] = useState({});
   const [flowPrice, setFlowPrice] = useState(null);
+  const [treasuryGrailsCount, setTreasuryGrailsCount] = useState(0);
   const MATCHES_PER_PAGE = 24;
+
+  // Fetch treasury grails count
+  useEffect(() => {
+    const fetchTreasuryGrailsCount = async () => {
+      try {
+        const ids = await fcl.query({
+          cadence: getTopShotCollectionIDs,
+          args: (arg, t) => [arg("0xd69b6ce48815d4ad", t.Address)],
+        });
+        const normalized = Array.isArray(ids) ? ids.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [];
+        setTreasuryGrailsCount(normalized.length);
+      } catch (e) {
+        console.error("Failed to fetch treasury grails count:", e);
+        setTreasuryGrailsCount(0);
+      }
+    };
+    
+    fetchTreasuryGrailsCount();
+  }, []);
 
   const EditionOfferCard = ({ offer }) => {
     const setId = offer.__setId;
     const playId = offer.__playId;
-    const metaKey = setId && playId ? `${setId}-${playId}` : null;
-    const meta = metaKey && metadataCache ? metadataCache[metaKey] : null;
-    const player = meta?.FullName || meta?.name || "Unknown Player";
-    const setName = meta?.name || "Unknown Set";
+    
+    // Use appropriate metadata cache and key based on collection type
+    const isAllDayOffer = collectionType === 'allday';
+    let meta = null;
+    let editionId = null;
+    
+    if (isAllDayOffer) {
+      // AllDay offers use editionID directly from offerParamsString
+      editionId = offer.offerParamsString?.editionId || offer.offerParamsString?.editionID;
+      meta = editionId && allDayMetadataCache ? allDayMetadataCache[editionId] : null;
+    } else {
+      // TopShot uses setId-playId as key
+      const metaKey = setId && playId ? `${setId}-${playId}` : null;
+      meta = metaKey && metadataCache ? metadataCache[metaKey] : null;
+    }
+    
+    // Use AllDay-specific field names for AllDay offers
+    const player = isAllDayOffer 
+      ? (meta?.playerName || meta?.FullName || "Unknown Player")
+      : (meta?.FullName || meta?.name || "Unknown Player");
+    const setName = isAllDayOffer 
+      ? (meta?.setName || meta?.name || "Unknown Set")
+      : (meta?.name || "Unknown Set");
     const series = meta?.series !== undefined ? String(meta.series) : "?";
     const tier = meta?.tier || "";
-    const totalMinted = meta?.momentCount || meta?.subeditionMaxMint || "?";
+    const totalMinted = meta?.momentCount || meta?.subeditionMaxMint || meta?.maxMintSize || "?";
 
-    const editionKey = `${setId}_${playId}`;
-    const imageUrl = `https://storage.googleapis.com/flowconnect/topshot/images_small/${editionKey}.jpg`;
+    // Use correct image URL format based on collection type
+    const imageUrl = isAllDayOffer 
+      ? null // Disable AllDay images for now
+      : `https://storage.googleapis.com/flowconnect/topshot/images_small/${setId}_${playId}.jpg`;
 
     const tierClass = tier ? tierStyles[tier.toLowerCase()] || "text-gray-400" : "text-gray-400";
 
@@ -179,12 +250,42 @@ export default function Bounties() {
         __resolver: resolver,
         __editionKey: editionKey,
       };
+    }).filter((offer) => {
+      // Filter offers based on collection type
+      if (collectionType === 'topshot') {
+        // TopShot offers - exclude NFL AllDay offers
+        const resolver = String(offer.__resolver || '').toLowerCase();
+        const nftTypeId = String(offer.nftType?.typeID || '').toLowerCase();
+        const offerTypeId = String(offer.offerParamsString?.typeId || '').toLowerCase();
+        const isAllDay = resolver.includes('allday') || resolver.includes('nfl') || nftTypeId.includes('allday') || offerTypeId.includes('allday');
+        
+        return !isAllDay;
+      } else if (collectionType === 'allday') {
+        // AllDay offers - check multiple possible fields for AllDay identification
+        const resolver = String(offer.__resolver || '').toLowerCase();
+        const nftTypeId = String(offer.nftType?.typeID || '').toLowerCase();
+        const offerTypeId = String(offer.offerParamsString?.typeId || '').toLowerCase();
+        const offerParamsString = String(offer.offerParamsString || '').toLowerCase();
+        
+        // Check if this is an AllDay offer using multiple criteria
+        const isAllDay = resolver.includes('allday') || resolver.includes('nfl') || 
+                        nftTypeId.includes('allday') || nftTypeId.includes('nfl') ||
+                        offerTypeId.includes('allday') || offerTypeId.includes('nfl') ||
+                        offerParamsString.includes('allday') || offerParamsString.includes('nfl') ||
+                        // Check if offer has editionId (AllDay specific)
+                        (offer.offerParamsString && (offer.offerParamsString.editionId || offer.offerParamsString.editionID));
+        
+        return isAllDay;
+      }
+      return true; // Default to showing all if collectionType is not recognized
     }).sort((a, b) => {
       const amountA = parseFloat(a.offerAmount || 0);
       const amountB = parseFloat(b.offerAmount || 0);
       return amountB - amountA;
     });
-  }, [offers]);
+  }, [offers, collectionType]);
+
+
 
   const activeAccountData = useMemo(() => {
     if (selectedAccountType === "child") {
@@ -199,20 +300,62 @@ export default function Bounties() {
   );
 
   const matchingMoments = useMemo(() => {
-    if (!userHasCollection || !displayedOffers.length) return [];
+    if (!displayedOffers.length) return [];
     const matches = [];
     const offerMap = new Map();
+    
+    // Build offer map based on collection type
     displayedOffers.forEach(offer => {
-      if (offer.__editionKey) offerMap.set(offer.__editionKey, offer);
-    });
-    activeAccountData.nftDetails.forEach(moment => {
-      const editionKey = `${moment.setID}_${moment.playID}`;
-      if (offerMap.has(editionKey)) {
-        matches.push({ moment, offer: offerMap.get(editionKey) });
+      if (collectionType === 'allday') {
+        // AllDay offers use editionId directly (convert to string for consistent matching)
+        const editionId = offer.offerParamsString?.editionId || offer.offerParamsString?.editionID;
+        if (editionId) {
+          const key = String(editionId);
+          offerMap.set(key, offer);
+        }
+      } else {
+        // TopShot offers use editionKey format
+        if (offer.__editionKey) offerMap.set(offer.__editionKey, offer);
       }
     });
+    
+    // Get moments based on collection type
+    let momentsToCheck = [];
+    if (collectionType === 'allday') {
+      // Use AllDay moments from AllDay context
+      const currentAddress = selectedAccount || accountData?.parentAddress;
+      const addressData = allDayCollectionData[currentAddress];
+      momentsToCheck = addressData?.nftDetails || [];
+      
+    } else {
+      // Use TopShot moments from user context
+      momentsToCheck = activeAccountData?.nftDetails || [];
+    }
+    
+    // Check moments for matches
+    momentsToCheck.forEach(moment => {
+      let matchKey = null;
+      
+      if (collectionType === 'allday') {
+        // AllDay moments use editionID directly (convert to string for consistent matching)
+        matchKey = String(moment.editionID);
+      } else {
+        // TopShot moments use setId-playId format
+        matchKey = `${moment.setID}_${moment.playID}`;
+      }
+      
+      if (matchKey && offerMap.has(matchKey)) {
+        const isLocked = moment.isLocked || false;
+        matches.push({ 
+          moment, 
+          offer: offerMap.get(matchKey),
+          isLocked: isLocked
+        });
+      }
+    });
+    
     return matches;
-  }, [userHasCollection, displayedOffers, activeAccountData?.nftDetails]);
+  }, [displayedOffers, activeAccountData?.nftDetails, collectionType, selectedAccount, accountData?.parentAddress, allDayCollectionData]);
 
   const sortedMatches = useMemo(() => {
     if (!Array.isArray(matchingMoments)) return [];
@@ -428,229 +571,312 @@ export default function Bounties() {
   }, [txStatus, smartRefreshUserData, fetchOffers]);
 
   return (
-    <div className="w-full px-4 space-y-2">
-      <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold mb-3">Grail Bounties</h1>
-        <p className="text-brand-text/70 text-sm max-w-2xl mx-auto leading-relaxed">
-          We are actively acquiring higher-end grails and culturally significant moments to add to our treasury for future innovative products and community initiatives.
-        </p>
+    <div className="w-full space-y-2">
+      {/* Project Tabs */}
+      <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4">
+        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
+          <div className="flex items-center gap-2" role="tablist" aria-label="Project sections">
+            <button
+              onClick={() => navigate('/bounties/topshot')}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
+                collectionType === 'topshot'
+                  ? 'border-brand-accent text-brand-accent bg-brand-secondary'
+                  : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
+              }`}
+            >
+              <span className="text-sm sm:text-base">Top Shot</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {!loading && !error && displayedOffers.length > 0 && (
-        <div className="bg-brand-primary p-3 sm:p-4 rounded-lg shadow-md shadow-black/30">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold text-brand-text">Grail Bounties Overview</h2>
-            <Link 
-              to="/vaults/treasury" 
-              className="text-sm text-brand-accent hover:text-brand-accent/80 transition-colors"
-            >
-              🏛️ View Grail Bounties Vault
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {/* Active Offers Count */}
-            <div className="text-center">
-              <div className="text-xl sm:text-2xl font-bold text-brand-text">
-                {displayedOffers.length}
-              </div>
-              <div className="text-xs sm:text-sm text-brand-text/70">
-                Active Grail Bount{displayedOffers.length !== 1 ? 'ies' : 'y'}
-              </div>
+        <div className="bg-brand-primary p-3 sm:p-4 rounded-lg">
+          <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
+            <div className="mb-3">
+              <h2 className="text-lg font-semibold text-brand-text mb-2">
+                Overview
+              </h2>
+              <p className="text-brand-text/70 text-sm mb-4 leading-relaxed">
+                We are actively acquiring higher-end grails and culturally significant moments to add to our treasury for future innovative products and community initiatives.
+              </p>
             </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Active Offers Count */}
+              <div className="text-center bg-brand-secondary rounded-lg p-3 flex flex-col justify-center min-h-[80px]">
+                <div className="text-xl sm:text-2xl font-bold text-brand-text">
+                  {displayedOffers.length}
+                </div>
+                <div className="text-xs sm:text-sm text-brand-text/70">
+                  Active Grail Bount{displayedOffers.length !== 1 ? 'ies' : 'y'}
+                </div>
+              </div>
 
-            {/* Sum of Bids */}
-            <div className="text-center">
-              <div className="text-sm sm:text-lg font-semibold text-brand-text">
-                ~{displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0).toFixed(2)} FLOW
+              {/* Treasury Grails Acquired */}
+              <div className="text-center bg-brand-secondary rounded-lg p-3 flex flex-col justify-center min-h-[80px]">
+                <Link 
+                  to="/vaults/treasury" 
+                  className="block hover:bg-brand-secondary/80 rounded-lg p-2 transition-colors flex flex-col justify-center h-full"
+                >
+                  <div className="text-xl sm:text-2xl font-bold text-brand-text">
+                    {treasuryGrailsCount.toLocaleString()}
+                  </div>
+                  <div className="text-xs sm:text-sm text-brand-text/70">
+                    Treasury Grails Acquired
+                  </div>
+                  <div className="text-xs text-brand-accent mt-1">
+                    View Vault →
+                  </div>
+                </Link>
               </div>
-              <div className="text-xs sm:text-sm text-brand-text/70">
-                Sum of Bids
-                {(() => {
-                  const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
-                  return usdAmount ? (
-                    <div className="text-xs text-brand-text/60">
-                      {formatUSD(usdAmount)} USD
-                    </div>
-                  ) : '';
-                })()}
-              </div>
-            </div>
 
-            {/* Current FLOW Price */}
-            <div className="text-center">
-              <div className="text-sm sm:text-lg font-semibold text-brand-text">
-                {flowPrice ? `$${flowPrice.toFixed(2)}` : '--'}
+              {/* Sum of Bids */}
+              <div className="text-center bg-brand-secondary rounded-lg p-3 flex flex-col justify-center min-h-[80px]">
+                <div className="text-sm sm:text-lg font-semibold text-brand-text">
+                  ~{Math.round(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0)).toLocaleString()} FLOW
+                </div>
+                <div className="text-xs sm:text-sm text-brand-text/70">
+                  Sum of Bids
+                  {(() => {
+                    const usdAmount = convertFlowToUSDSync(displayedOffers.reduce((sum, offer) => sum + parseFloat(offer.offerAmount), 0));
+                    return usdAmount ? (
+                      <div className="text-xs text-brand-text/60">
+                        ${Math.round(usdAmount).toLocaleString()} USD
+                      </div>
+                    ) : '';
+                  })()}
+                </div>
               </div>
-              <div className="text-xs sm:text-sm text-brand-text/70">
-                FLOW Price
+
+              {/* Current FLOW Price */}
+              <div className="text-center bg-brand-secondary rounded-lg p-3 flex flex-col justify-center min-h-[80px]">
+                <div className="text-sm sm:text-lg font-semibold text-brand-text">
+                  {flowPrice ? `$${flowPrice.toFixed(2)}` : '--'}
+                </div>
+                <div className="text-xs sm:text-sm text-brand-text/70">
+                  FLOW Price
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      <section className="bg-brand-primary p-4 rounded-lg shadow-lg shadow-black/40 border border-brand-border/20">
-        <div className="mb-4">
-          <h2 className="text-xl font-bold text-brand-text mb-2">💰 Active Grail Bounties</h2>
-          <p className="text-sm text-brand-text/70">Browse available bounties for NBA Top Shot grails</p>
-        </div>
-        
-        {loading && <p className="text-sm text-brand-text/70">Loading bounties…</p>}
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        {!loading && !error && offers.length === 0 && (
-          <p className="text-sm text-brand-text/70">No active bounties found for {OFFER_OWNER_ADDRESS}.</p>
-        )}
-        {!loading && !error && displayedOffers.length > 0 && (
-          <div>
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 text-sm text-brand-text/70 gap-1">
-              <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} bounties</p>
-            </div>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3 justify-items-center">
-              {displayedOffers.map((o) => (
-                <EditionOfferCard key={o.offerId} offer={o} />
-              ))}
-            </div>
+      {/* Matching Moments Section - Moved Above Bounties */}
+      {accountData && accountData.parentAddress && (
+        <section className="bg-brand-primary p-4 rounded-lg">
+          <div className="mb-4">
+            {(() => {
+              const parentAddr = accountData?.parentAddress?.toLowerCase?.();
+              const parentCount = (parentAddr && matchCounts[parentAddr]) || 0;
+              const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
+              const childrenTotal = childAddrs.reduce((sum, a) => sum + (matchCounts[a] || 0), 0);
+              const total = parentCount + childrenTotal;
+              return (
+                <>
+                  <h2 className="text-xl font-bold text-brand-text mb-2">
+                    Your Matching Moments ({total})
+                  </h2>
+                  <p className="text-sm text-brand-text/70">
+                    Moments from your collection that match active offers
+                  </p>
+                </>
+              );
+            })()}
           </div>
-        )}
-      </section>
 
-      <section className="bg-brand-primary p-4 rounded-lg shadow-lg shadow-black/40 border border-brand-border/20">
-        <div className="mb-4">
-        {(() => {
-          const parentAddr = accountData?.parentAddress?.toLowerCase?.();
-          const parentCount = (parentAddr && matchCounts[parentAddr]) || 0;
-          const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
-          const childrenTotal = childAddrs.reduce((sum, a) => sum + (matchCounts[a] || 0), 0);
-          const total = parentCount + childrenTotal;
-            return (
-              <>
-                <h2 className="text-xl font-bold text-brand-text mb-2">🎯 Your Matching Moments ({total})</h2>
-                <p className="text-sm text-brand-text/70">Moments from your collection that match active offers</p>
-              </>
-            );
-        })()}
-        </div>
+          {/* Account Selection with Refresh Button */}
+          {accountData && accountData.parentAddress && (
+            <div className="mb-1 flex items-center gap-2">
+              <AccountSelection
+                parentAccount={{ addr: accountData?.parentAddress, hasCollection: accountData?.hasCollection, ...accountData }}
+                childrenAddresses={accountData?.childrenAddresses}
+                childrenAccounts={accountData?.childrenData}
+                selectedAccount={selectedAccount}
+                onSelectAccount={(addr) => {
+                  const isChild = accountData?.childrenAddresses?.includes(addr);
+                  dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
+                }}
+                isLoadingChildren={false}
+              />
+              <button 
+                onClick={handleRefresh} 
+                disabled={loading} 
+                className="px-3 py-2 text-sm bg-brand-secondary text-brand-text/80 hover:bg-brand-secondary/80 disabled:opacity-50 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {loading ? 'Refreshing...' : 'Refresh'}
+              </button>
+            </div>
+          )}
 
-        {/* Account Selection with Refresh Button */}
-        {accountData && accountData.parentAddress && (
-          <div className="mb-1 flex items-center gap-2">
-            <AccountSelection
-              parentAccount={{ addr: accountData?.parentAddress, hasCollection: accountData?.hasCollection, ...accountData }}
-              childrenAddresses={accountData?.childrenAddresses}
-              childrenAccounts={accountData?.childrenData}
-              selectedAccount={selectedAccount}
-              onSelectAccount={(addr) => {
-                const isChild = accountData?.childrenAddresses?.includes(addr);
-                dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
-              }}
-              isLoadingChildren={false}
-            />
-            <button 
-              onClick={handleRefresh} 
-              disabled={loading} 
-              className="px-3 py-2 text-sm bg-brand-secondary text-brand-text/80 hover:bg-brand-secondary/80 disabled:opacity-50 rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              {loading ? 'Refreshing...' : 'Refresh'}
-            </button>
-          </div>
-        )}
+          {!accountData || !accountData.parentAddress ? (
+            <div className="text-center py-8">
+              <p className="text-brand-text/70">Connect your wallet to view your matching moments</p>
+            </div>
+          ) : !userHasCollection ? (
+            <p className="text-sm text-brand-text/70">Connect your wallet to view eligible Moments.</p>
+          ) : matchingMoments.length === 0 ? (
+            <p className="text-sm text-brand-text/70">No matching Moments found for the selected account.</p>
+          ) : (
+            <div className="space-y-2">
+              {matchesPageCount > 1 && (
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 text-sm text-brand-text/70 gap-1">
+                  <p className="text-center sm:text-left">Showing {paginatedMatches.length} of {matchingMoments.length.toLocaleString()} matches</p>
+                  <p className="text-center sm:text-right">Page {matchesPage} of {matchesPageCount}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,140px))] sm:grid-cols-[repeat(auto-fit,minmax(160px,160px))] gap-1.5 justify-items-center">
+                {paginatedMatches.map((match, index) => {
+                  const moment = match.moment;
+                  const setId = moment.setID;
+                  const playId = moment.playID;
+                  
+                  // Use appropriate metadata cache and key based on collection type
+                  const isAllDayMoment = collectionType === 'allday';
+                  let meta = null;
+                  
+                  if (isAllDayMoment) {
+                    // AllDay moments use editionID directly
+                    const editionId = moment.editionID;
+                    meta = editionId && allDayMetadataCache ? allDayMetadataCache[editionId] : null;
+                  } else {
+                    // TopShot uses setId-playId as key
+                    const metaKey = setId && playId ? `${setId}-${playId}` : null;
+                    meta = metaKey && metadataCache ? metadataCache[metaKey] : null;
+                  }
+                  
+                  // Use AllDay-specific field names for AllDay moments
+                  const player = isAllDayMoment 
+                    ? (meta?.playerName || meta?.FullName || "Unknown Player")
+                    : (meta?.FullName || meta?.name || "Unknown Player");
+                  const setName = isAllDayMoment 
+                    ? (meta?.setName || meta?.name || "Unknown Set")
+                    : (meta?.name || "Unknown Set");
+                  const series = meta?.series !== undefined ? String(meta.series) : "?";
+                  const tier = meta?.tier || "";
+                  const totalMinted = meta?.momentCount || meta?.subeditionMaxMint || meta?.maxMintSize || "?";
+                  // Use correct image URL format based on collection type
+                  const imageUrl = isAllDayMoment 
+                    ? null // Disable AllDay images for now
+                    : `https://storage.googleapis.com/flowconnect/topshot/images_small/${setId}_${playId}.jpg`;
+                  const tierClass = tier ? tierStyles[tier.toLowerCase()] || "text-gray-400" : "text-gray-400";
 
-        {!accountData || !accountData.parentAddress ? (
-          <div className="text-center py-8">
-            <p className="text-brand-text/70">Connect your wallet to view your matching moments</p>
-        </div>
-        ) : !userHasCollection ? (
-          <p className="text-sm text-brand-text/70">Connect your wallet to view eligible Moments.</p>
-        ) : matchingMoments.length === 0 ? (
-          <p className="text-sm text-brand-text/70">No matching Moments found for the selected account.</p>
-        ) : (
-          <div className="space-y-2">
-            {matchesPageCount > 1 && (
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 text-sm text-brand-text/70 gap-1">
-                <p className="text-center sm:text-left">Showing {paginatedMatches.length} of {matchingMoments.length.toLocaleString()} matches</p>
-                <p className="text-center sm:text-right">Page {matchesPage} of {matchesPageCount}</p>
-              </div>
-            )}
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2 sm:gap-3 justify-items-center">
-              {paginatedMatches.map((match, index) => {
-                const moment = match.moment;
-                const setId = moment.setID;
-                const playId = moment.playID;
-                const metaKey = setId && playId ? `${setId}-${playId}` : null;
-                const meta = metaKey && metadataCache ? metadataCache[metaKey] : null;
-                const player = meta?.FullName || meta?.name || "Unknown Player";
-                const setName = meta?.name || "Unknown Set";
-                const series = meta?.series !== undefined ? String(meta.series) : "?";
-                const tier = meta?.tier || "";
-                const totalMinted = meta?.momentCount || meta?.subeditionMaxMint || "?";
-                const editionKey = `${setId}_${playId}`;
-                const imageUrl = `https://storage.googleapis.com/flowconnect/topshot/images_small/${editionKey}.jpg`;
-                const tierClass = tier ? tierStyles[tier.toLowerCase()] || "text-gray-400" : "text-gray-400";
+                  const isLocked = match.isLocked;
+                  
+                  return (
+                    <div key={index} className={`group relative flex flex-col items-center transition-all duration-200 ease-in-out ${isLocked ? '' : 'hover:shadow-xl hover:shadow-black/60 hover:-translate-y-1'}`}>
+                      <div className={`w-[140px] sm:w-40 rounded overflow-hidden flex flex-col pt-2 px-1 border text-brand-text select-none transition-all duration-200 ${isLocked ? 'border-brand-text/40 bg-black' : 'border-brand-text/40 bg-black hover:shadow-lg hover:shadow-black/40 hover:border-brand-accent/60'}`} style={{ height: '280px' }}>
+                        <div className="relative overflow-hidden rounded mx-auto w-full aspect-square">
+                          <img
+                            src={imageUrl}
+                            alt={`${player} moment`}
+                            loading="lazy"
+                            decoding="async"
+                            className={`object-cover w-full h-full transform scale-150 ${isLocked ? 'opacity-60' : ''}`}
+                            style={{ objectPosition: "center 20%" }}
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="hidden absolute inset-0 w-full h-full bg-gray-700 items-center justify-center">
+                            <div className="text-gray-400 text-xs text-center">No Image</div>
+                          </div>
+                          {/* Lock icon overlay for locked moments */}
+                          {isLocked && (
+                            <div className="absolute top-1 right-1 bg-red-600 rounded-full p-1.5 shadow-lg border border-red-400">
+                              <FaLock size={10} className="text-white" />
+                            </div>
+                          )}
+                        </div>
 
-                return (
-                  <div key={index} className="group relative flex flex-col items-center transition-all duration-200 ease-in-out hover:shadow-xl hover:shadow-black/60 hover:-translate-y-1">
-                    <div className="w-[140px] sm:w-40 rounded overflow-hidden flex flex-col pt-2 px-1 border border-brand-text/40 bg-black text-brand-text select-none transition-all duration-200 hover:border-brand-accent/60 hover:shadow-lg hover:shadow-black/40" style={{ height: '280px' }}>
-                      <div className="relative overflow-hidden rounded mx-auto mb-2 flex-shrink-0 p-1" style={{ height: '140px', width: '100%' }}>
-                        <img
-                          src={imageUrl}
-                          alt={`${player} moment`}
-                          loading="lazy"
-                          decoding="async"
-                          className="object-cover w-full h-full transform scale-[1.4]"
-                          style={{ objectPosition: "center 20%" }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="hidden absolute inset-0 w-full h-full bg-gray-700 items-center justify-center">
-                          <div className="text-gray-400 text-xs text-center">No Image</div>
+                        <div className="flex-1 flex flex-col justify-between pb-1">
+                          <div>
+                            <h3 className="text-center font-semibold leading-tight h-[24px] sm:h-[28px] flex items-center justify-center text-[10px] sm:text-xs">
+                              {player}
+                            </h3>
+                            <p className="text-center text-[10px] sm:text-xs text-brand-text/60 leading-tight h-[12px] sm:h-[14px] flex items-center justify-center">
+                              Series {series}
+                            </p>
+                            <p className={`text-center text-[10px] sm:text-xs truncate leading-tight ${tierClass} h-[12px] sm:h-[14px] flex items-center justify-center`}>
+                              {tier ? tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase() : ""}
+                            </p>
+                            <p className="text-center text-brand-text/50 leading-tight min-h-[24px] sm:min-h-[28px] flex items-center justify-center text-[10px] sm:text-xs">
+                              {setName}
+                            </p>
+                            <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight h-[12px] sm:h-[14px] flex items-center justify-center">
+                              {moment.serialNumber} / {totalMinted}
+                            </p>
+                          </div>
                         </div>
                       </div>
-
-                      <div className="flex-1 flex flex-col justify-between pb-1">
-                        <div>
-                          <h3 className="text-center font-semibold leading-tight h-[24px] sm:h-[28px] flex items-center justify-center text-[10px] sm:text-xs">
-                            {player}
-                          </h3>
-                          <p className="text-center text-[10px] sm:text-xs text-brand-text/60 leading-tight h-[12px] sm:h-[14px] flex items-center justify-center">
-                            Series {series}
-                          </p>
-                          <p className={`text-center text-[10px] sm:text-xs truncate leading-tight ${tierClass} h-[12px] sm:h-[14px] flex items-center justify-center`}>
-                            {tier ? tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase() : ""}
-                          </p>
-                          <p className="text-center text-brand-text/50 leading-tight min-h-[24px] sm:min-h-[28px] flex items-center justify-center text-[10px] sm:text-xs">
-                            {setName}
-                          </p>
-                          <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight h-[12px] sm:h-[14px] flex items-center justify-center">
-                            {moment.serialNumber} / {totalMinted}
-                          </p>
-                        </div>
-                      </div>
+                      
+                      {/* Accept Button - Disabled for locked moments */}
+                      <button 
+                        className={`w-[140px] sm:w-40 text-white text-xs rounded-b h-[50px] flex flex-col items-center justify-center text-center leading-tight px-2 transition-all duration-200 ${
+                          isLocked 
+                            ? 'bg-gray-500 cursor-not-allowed opacity-60' 
+                            : 'bg-opolis hover:bg-opolis-dark hover:shadow-lg hover:shadow-opolis/30 group-hover:bg-opolis/90 group-hover:scale-105'
+                        } -mt-px`}
+                        aria-label={isLocked ? `Locked Moment #${match.moment.id} - Cannot accept offer` : `Accept offer for Moment #${match.moment.id} (Set ${match.moment.setID}, Play ${match.moment.playID})`}
+                        title={isLocked ? `Locked Moment - Cannot accept offer` : `Accept offer for Moment #${match.moment.id}`}
+                        onClick={isLocked ? undefined : () => onAcceptOffer(match)}
+                        disabled={isLocked}
+                      >
+                        <span className="font-semibold text-xs">{isLocked ? 'Locked' : 'Accept'}</span>
+                        <span className="font-semibold text-xs">{parseFloat(match.offer.offerAmount).toFixed(2)} FLOW</span>
+                        {usdAmounts[match.offer.offerId] && (
+                          <span className="font-semibold text-xs">~{formatUSD(usdAmounts[match.offer.offerId])}</span>
+                        )}
+                      </button>
                     </div>
-                    <button className="w-[140px] sm:w-40 bg-opolis text-white text-xs rounded-b hover:bg-opolis-dark hover:shadow-lg hover:shadow-opolis/30 -mt-px h-[50px] flex flex-col items-center justify-center text-center leading-tight px-2 transition-all duration-200 group-hover:bg-opolis/90 group-hover:scale-105" aria-label={`Accept offer for Moment #${match.moment.id} (Set ${match.moment.setID}, Play ${match.moment.playID})`} title={`Accept offer for Moment #${match.moment.id}`} onClick={() => onAcceptOffer(match)}>
-                      <span className="font-semibold text-xs">Accept</span>
-                      <span className="font-semibold text-xs">{parseFloat(match.offer.offerAmount).toFixed(2)} FLOW</span>
-                      {usdAmounts[match.offer.offerId] && (
-                        <span className="font-semibold text-xs">~{formatUSD(usdAmounts[match.offer.offerId])}</span>
-                      )}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            {matchesPageCount > 1 && (
-              <div className="flex justify-center items-center gap-3 mt-3">
-                <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Prev</button>
-                <span className="text-sm text-brand-text/70 min-w-[100px] text-center">Page {matchesPage} of {matchesPageCount}</span>
-                <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Next</button>
+                  );
+                })}
               </div>
-            )}
+              {matchesPageCount > 1 && (
+                <div className="flex justify-center items-center gap-3 mt-3">
+                  <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Prev</button>
+                  <span className="text-sm text-brand-text/70 min-w-[100px] text-center">Page {matchesPage} of {matchesPageCount}</span>
+                  <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Next</button>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      <section className="bg-brand-primary p-4 rounded-lg">
+        <div>
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-brand-text mb-2">
+              Active Grail Bounties
+            </h2>
+            <p className="text-sm text-brand-text/70">
+              Browse available bounties
+            </p>
           </div>
-        )}
+          
+          {loading && <p className="text-sm text-brand-text/70">Loading bounties…</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {!loading && !error && offers.length === 0 && (
+            <p className="text-sm text-brand-text/70">No active bounties found for {OFFER_OWNER_ADDRESS}.</p>
+          )}
+          {!loading && !error && displayedOffers.length > 0 && (
+            <div>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 text-sm text-brand-text/70 gap-1">
+                <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} bounties</p>
+              </div>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,130px))] sm:grid-cols-[repeat(auto-fit,minmax(150px,150px))] md:grid-cols-[repeat(auto-fit,minmax(140px,140px))] lg:grid-cols-[repeat(auto-fit,minmax(160px,160px))] gap-1.5 justify-items-center">
+                {displayedOffers.map((o) => (
+                  <EditionOfferCard key={o.offerId} offer={o} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
       {txModal.open && (
@@ -671,6 +897,4 @@ export default function Bounties() {
     </div>
   );
 }
-
-
 

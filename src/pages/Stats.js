@@ -122,8 +122,8 @@ function Analytics() {
       {/* ─── PAGE BODY ─── */}
       <div className="w-full text-white space-y-2 mb-2">
         {/* Token Tabs */}
-        <div className="px-2 md:px-3">
-          <div className="max-w-6xl mx-auto">
+        <div>
+          <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
             <div className="flex items-center space-x-1 bg-brand-primary rounded-lg p-1">
               {tokens.map((token) => (
                 <button

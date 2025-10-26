@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import { UserDataContext } from "../context/UserContext";
+import { useAnnouncement } from "../context/AnnouncementContext";
 import * as fcl from "@onflow/fcl";
 import { getChildren } from "../flow/getChildren";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
@@ -69,6 +70,9 @@ const Swap = () => {
   } = useContext(UserDataContext);
 
   const isLoggedIn = Boolean(user?.loggedIn);
+  
+  // Announcement context
+  const { featuredAnnouncement, shouldShowFeaturedBanner, dismissBanner } = useAnnouncement();
 
   // Initial direction: from NFT => TSHOT
   const [fromAsset, setFromAsset] = useState("TopShot Common / Fandom");
@@ -552,7 +556,7 @@ const Swap = () => {
                     alt="TSHOT"
                     width="24"
                     height="24"
-                    className="w-6 h-6"
+                    className="w-5 h-5"
                   />
                   <h3 className="text-lg font-semibold text-brand-text">
                     TSHOT Info
@@ -634,17 +638,54 @@ const Swap = () => {
                     </div>
                   </li>
                 </ul>
-                <a
-                  href="/tshot"
-                  className="block text-sm text-brand hover:text-flow-light text-center font-medium mt-4 bg-brand-secondary py-2 px-4 rounded hover:bg-opolis hover:text-white transition-colors"
-                >
-                  More Info →
-                </a>
+                <div className="flex gap-3 mt-4">
+                  <a
+                    href="/tshot"
+                    className="flex-1 text-sm text-brand hover:text-flow-light text-center font-medium bg-brand-secondary py-2 px-4 rounded hover:bg-opolis hover:text-white transition-colors"
+                  >
+                    More Info →
+                  </a>
+                  <a
+                    href="/tshot#rewards"
+                    className="flex-1 text-sm text-yellow-500 hover:text-yellow-400 text-center font-medium bg-yellow-500/10 hover:bg-yellow-500/20 py-2 px-4 rounded border border-yellow-500/30 transition-colors"
+                  >
+                    💰 Rewards
+                  </a>
+                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Featured Announcement Banner */}
+      {shouldShowFeaturedBanner && featuredAnnouncement && (
+        <div className="w-full bg-gradient-to-r from-brand-accent to-brand-blue text-white py-3 px-4 relative">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-xl">{featuredAnnouncement.title.split(' ')[0]}</span>
+              <p className="text-sm sm:text-base font-medium flex-1">
+                {featuredAnnouncement.snippet}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={featuredAnnouncement.link}
+                className="px-4 py-2 bg-white text-brand-accent font-semibold rounded-lg hover:bg-white/90 transition-colors text-sm whitespace-nowrap"
+              >
+                View Details
+              </a>
+              <button
+                onClick={() => dismissBanner(featuredAnnouncement.id)}
+                className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                aria-label="Dismiss"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content - Conditional Rendering */}
       {isLoggedIn ? (

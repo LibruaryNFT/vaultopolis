@@ -123,7 +123,7 @@ function GrailBountiesVault() {
     const metaSource = (metadataCache && Object.keys(metadataCache).length > 0)
       ? metadataCache
       : (localMeta || {});
-    return pageIds.map((id) => {
+    const mapped = pageIds.map((id) => {
       const base = detailsCache[id] || { id };
       const setId = base?.setID;
       const playId = base?.playID;
@@ -139,6 +139,12 @@ function GrailBountiesVault() {
         teamAtMoment: meta.TeamAtMoment ?? base.teamAtMoment,
         momentCount: meta.momentCount ?? base.momentCount,
       };
+    });
+    // Sort by serial number (lowest first)
+    return mapped.sort((a, b) => {
+      const serialA = a.serialNumber || 999999;
+      const serialB = b.serialNumber || 999999;
+      return serialA - serialB;
     });
   }, [pageIds, detailsCache, metadataCache, localMeta]);
 
@@ -158,7 +164,7 @@ function GrailBountiesVault() {
               </div>
             </div>
             <Link 
-              to="/bounties" 
+              to="/bounties/topshot" 
               className="inline-flex items-center gap-2 px-6 py-3 bg-brand-accent text-white text-base font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center"
             >
               💰 View Grail Bounties

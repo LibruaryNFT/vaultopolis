@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
+import { useLocation } from "react-router-dom";
 import * as fcl from "@onflow/fcl";
 
 import TSHOTInfo from "../components/TSHOTInfo";
 
 function TSHOT() {
+  const location = useLocation();
   const [vaultSummary, setVaultSummary] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,22 @@ function TSHOT() {
 
     fetchData();
   }, []);
+
+  // Handle scroll parameter after navigation
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const scrollTo = params.get('scroll');
+    
+    if (scrollTo) {
+      // Wait a bit to ensure content is rendered
+      setTimeout(() => {
+        const element = document.getElementById(scrollTo);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    }
+  }, [location.search]);
 
   return (
     <>

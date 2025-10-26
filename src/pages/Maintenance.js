@@ -5,6 +5,7 @@ const Maintenance = () => {
   return (
     <div
       className="
+        w-full
         flex flex-col items-center justify-center
         min-h-screen
         bg-brand-primary

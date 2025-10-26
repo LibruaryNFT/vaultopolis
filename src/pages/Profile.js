@@ -12,6 +12,7 @@ import { Helmet } from "react-helmet-async";
 import * as fcl from "@onflow/fcl";
 import axios from "axios";
 import { UserDataContext } from "../context/UserContext";
+import { useAllDayContext } from "../context/AllDayContext";
 
 
 /* ───────── constants ───────── */
@@ -28,6 +29,50 @@ const tierColour = {
 /* ───────── helpers ───────── */
 const fixed = (n, d = 2) => (Number.isFinite(+n) ? (+n).toFixed(d) : "0");
 
+// Calculate tier breakdown from NFT details
+const calculateTierBreakdown = (nftDetails) => {
+  const breakdown = {
+    common: 0,
+    fandom: 0,
+    rare: 0,
+    legendary: 0,
+    ultimate: 0
+  };
+  
+  if (nftDetails && Array.isArray(nftDetails)) {
+    nftDetails.forEach(nft => {
+      const tier = (nft.tier || "").toLowerCase();
+      if (breakdown.hasOwnProperty(tier)) {
+        breakdown[tier]++;
+      }
+    });
+  }
+  
+  return breakdown;
+};
+
+// Calculate AllDay tier breakdown from NFT details
+const calculateAllDayTierBreakdown = (nftDetails) => {
+  const breakdown = {
+    common: 0,
+    uncommon: 0,
+    rare: 0,
+    legendary: 0,
+    ultimate: 0
+  };
+  
+  if (nftDetails && Array.isArray(nftDetails)) {
+    nftDetails.forEach(nft => {
+      const tier = (nft.tier || "").toLowerCase();
+      if (breakdown.hasOwnProperty(tier)) {
+        breakdown[tier]++;
+      }
+    });
+  }
+  
+  return breakdown;
+};
+
 /* ───────── minimal UI helpers ───────── */
 
 
@@ -43,15 +88,15 @@ const MiniStat = ({ label, value }) => (
   </div>
 );
 
-const AccountCard = ({ acc, idx, hasCollProp, userContextData }) => {
+const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => {
   const hasCollectionStatus = hasCollProp;
   const isParent = idx === 0;
   const isChild = idx > 0;
   
   // Get display name for child accounts
-  const displayName = isChild && userContextData?.accountData?.childrenData?.find(
+  const displayName = isChild && (acc.displayName || userContextData?.accountData?.childrenData?.find(
     (c) => c.addr === acc.addr
-  )?.displayName;
+  )?.displayName);
 
   return (
     <div className="shadow border border-brand-primary">
@@ -67,10 +112,10 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData }) => {
                 <img
                   src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
                   alt="Flow Wallet"
-                  className="w-3 h-3 shrink-0"
+                  className="w-5 h-5 shrink-0"
                 />
               ) : (displayName ? (
-                <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 shrink-0" aria-label="Dapper Wallet">
+                <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 shrink-0" aria-label="Dapper Wallet">
                   <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
                     <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
                     <g>
@@ -85,43 +130,75 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData }) => {
                 <img
                   src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
                   alt="Flow Wallet"
-                  className="w-3 h-3 shrink-0"
+                  className="w-5 h-5 shrink-0"
                 />
               ))}
-              <span className="text-[11px] leading-snug text-brand-text/80 font-mono break-all select-none truncate">
-                {acc.addr}
-              </span>
+              <div className="min-w-0 flex-1">
+                {displayName && isChild ? (
+                  <div className="flex flex-col">
+                    <span className="text-[11px] leading-snug text-brand-text font-semibold truncate">
+                      {displayName}
+                    </span>
+                    <span className="text-[10px] leading-snug text-brand-text/60 font-mono break-all select-none truncate">
+                      {acc.addr}
+                    </span>
+                  </div>
+                ) : (
+                  <span className="text-[11px] leading-snug text-brand-text/80 font-mono break-all select-none truncate">
+                    {acc.addr}
+                  </span>
+                )}
+              </div>
       </div>
           </div>
         </div>
       </div>
       
-      <div className="grid grid-cols-3 bg-brand-primary text-center text-xs">
+      <div className={`grid ${isParent ? 'grid-cols-4' : 'grid-cols-3'} bg-brand-primary text-center text-xs`}>
         <MiniStat label="Flow" value={fixed(acc.flow)} />
-        <MiniStat label="Moments" value={acc.moments} />
-        <MiniStat label="TSHOT" value={fixed(acc.tshot, 1)} />
+        <MiniStat label="Total Moments" value={acc.moments + (allDayData?.moments || 0)} />
+        <MiniStat label="Total TopShot" value={acc.moments} />
+        <MiniStat label="Total AllDay" value={allDayData?.moments || 0} />
+        {isParent && <MiniStat label="TSHOT" value={fixed(acc.tshot, 1)} />}
       </div>
       <div className="bg-brand-primary px-3 py-2">
-        {hasCollectionStatus === false ? (
-          <p className="italic text-xs">No TopShot collection.</p>
-        ) : TIER_ORDER.some((t) => acc.tiers && acc.tiers[t]) ? (
-          <div className="space-y-1">
-            {TIER_ORDER.map(
-            (t) =>
-              acc.tiers[t] && (
-                  <div key={t} className="flex items-center text-xs">
-                    <span className={tierColour[t]} style={{ minWidth: '60px' }}>
-                    {t[0].toUpperCase() + t.slice(1)}
-                  </span>
-                    <span className="ml-2">{acc.tiers[t]}</span>
-                </div>
-              )
-            )}
-          </div>
+        {hasCollectionStatus === false && !allDayData?.moments ? (
+          <p className="italic text-xs">No collections found.</p>
         ) : (
-          <p className="italic text-xs">
-            Collection has no moments or tiers with available data.
-          </p>
+          <div className="space-y-1">
+            {/* Combined Tier Breakdown */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* TopShot Column */}
+              <div>
+                <h4 className="text-xs font-semibold text-brand-text/80 mb-1">TopShot</h4>
+                <div className="space-y-1">
+                  {TIER_ORDER.map((t) => (
+                    <div key={t} className="flex items-center text-xs">
+                      <span className={tierColour[t]} style={{ minWidth: '60px' }}>
+                        {t[0].toUpperCase() + t.slice(1)}
+                      </span>
+                      <span className="ml-2">{acc.tiers[t] || 0}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* AllDay Column */}
+              <div>
+                <h4 className="text-xs font-semibold text-brand-text/80 mb-1">AllDay</h4>
+                <div className="space-y-1">
+                  {['common', 'uncommon', 'rare', 'legendary', 'ultimate'].map((t) => (
+                    <div key={t} className="flex items-center text-xs">
+                      <span className={tierColour[t] || (t === 'uncommon' ? tierColour.fandom : tierColour[t])} style={{ minWidth: '60px' }}>
+                        {t[0].toUpperCase() + t.slice(1)}
+                      </span>
+                      <span className="ml-2">{allDayData?.tiers[t] || 0}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -132,6 +209,14 @@ function Profile() {
   const { address: paramAddr } = useParams();
   const userDataCtx = useContext(UserDataContext);
   const { accountData, isRefreshing } = userDataCtx;
+  
+  // AllDay context
+  const { 
+    allDayCollectionData, 
+    fetchAllDayCollection, 
+    fetchAllDayCollectionDetails,
+    setAllDayCollectionData 
+  } = useAllDayContext();
 
   const [viewer, setViewer] = useState(null);
   const [viewerReady, setViewerReady] = useState(false);
@@ -146,17 +231,69 @@ function Profile() {
 
   const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
 
+  // Load AllDay collection data for the profile address
+  useEffect(() => {
+    if (!walletAddr) return;
+    
+    // Check if we already have AllDay data for this address
+    if (allDayCollectionData[walletAddr]) return;
+    
+    // Load AllDay collection for this address
+    const loadAllDayCollection = async () => {
+      try {
+        const ids = await fetchAllDayCollection(walletAddr);
+        if (ids.length > 0) {
+          const details = await fetchAllDayCollectionDetails(walletAddr, ids);
+          setAllDayCollectionData(prev => ({
+            ...prev,
+            [walletAddr]: {
+              nftDetails: details,
+              isLoading: false,
+              error: null
+            }
+          }));
+        } else {
+          // No AllDay NFTs found
+          setAllDayCollectionData(prev => ({
+            ...prev,
+            [walletAddr]: {
+              nftDetails: [],
+              isLoading: false,
+              error: null
+            }
+          }));
+        }
+      } catch (error) {
+        console.error('Error loading AllDay collection for profile:', error);
+        setAllDayCollectionData(prev => ({
+          ...prev,
+          [walletAddr]: {
+            nftDetails: [],
+            isLoading: false,
+            error: error.message
+          }
+        }));
+      }
+    };
+    
+    loadAllDayCollection();
+  }, [walletAddr, allDayCollectionData, fetchAllDayCollection, fetchAllDayCollectionDetails, setAllDayCollectionData]);
+
   // Profile data is automatically loaded by UserContext when user logs in
   // No need for additional useEffect here
 
   const aggregate = useMemo(() => {
-    const out = { flow: 0, tshot: 0, moments: 0, tiers: {} };
+    const out = { flow: 0, tshot: 0, moments: 0, topshotMoments: 0, alldayMoments: 0, tiers: {} };
     
     // Add parent data
     if (accountData?.parentAddress) {
       out.flow += +(accountData.flowBalance || 0);
       out.tshot += +(accountData.tshotBalance || 0);
-      out.moments += Array.isArray(accountData.nftDetails) ? accountData.nftDetails.length : 0;
+      const parentTopShotMoments = Array.isArray(accountData.nftDetails) ? accountData.nftDetails.length : 0;
+      const parentAllDayMoments = allDayCollectionData[accountData.parentAddress]?.nftDetails?.length || 0;
+      out.topshotMoments += parentTopShotMoments;
+      out.alldayMoments += parentAllDayMoments;
+      out.moments += parentTopShotMoments + parentAllDayMoments;
       Object.entries(accountData.tierCounts || {}).forEach(([tier, count]) => {
         out.tiers[tier] = (out.tiers[tier] || 0) + count;
       });
@@ -166,8 +303,12 @@ function Profile() {
     if (Array.isArray(accountData?.childrenData)) {
       accountData.childrenData.forEach((child) => {
         out.flow += +(child.flowBalance || 0);
-        out.tshot += +(child.tshotBalance || 0);
-        out.moments += Array.isArray(child.nftDetails) ? child.nftDetails.length : 0;
+        // Note: Dapper wallets can't hold TSHOT, so we don't aggregate TSHOT from children
+        const childTopShotMoments = Array.isArray(child.nftDetails) ? child.nftDetails.length : 0;
+        const childAllDayMoments = allDayCollectionData[child.addr]?.nftDetails?.length || 0;
+        out.topshotMoments += childTopShotMoments;
+        out.alldayMoments += childAllDayMoments;
+        out.moments += childTopShotMoments + childAllDayMoments;
         Object.entries(child.tierCounts || {}).forEach(([tier, count]) => {
           out.tiers[tier] = (out.tiers[tier] || 0) + count;
         });
@@ -175,7 +316,7 @@ function Profile() {
     }
     
     return out;
-  }, [accountData]);
+  }, [accountData, allDayCollectionData]);
 
   // Separate loading states for async data not tied to main profile load
   const [swapStats, setSwapStats] = useState(null);
@@ -294,7 +435,7 @@ function Profile() {
         </script>
       </Helmet>
 
-      <div className="p-4 sm:p-6 max-w-7xl mx-auto text-brand-text">
+      <div className="w-full text-brand-text">
 
         {/* Handle cases where walletAddr is not yet determined or user needs to connect */}
         {!walletAddr && renderPreContent()}
@@ -303,7 +444,8 @@ function Profile() {
         {walletAddr && (
           <>
             {/* Portfolio Summary Table */}
-            <div className="rounded-lg shadow border border-brand-primary mb-6">
+            <div className="rounded-lg shadow border border-brand-primary mb-6 mt-4 mx-2 sm:mx-4">
+              <div className="max-w-6xl mx-auto">
               <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold m-0 text-brand-text">Portfolio Summary</h3>
@@ -313,7 +455,7 @@ function Profile() {
                       <img 
                         src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png" 
                         alt="Flow" 
-                        className="w-3 h-3"
+                        className="w-5 h-5"
                       />
                       <span className="text-brand-text/80 font-mono break-all select-none">
                         {walletAddr || '--'}
@@ -325,7 +467,7 @@ function Profile() {
                     {userDataCtx?.accountData?.childrenData?.length > 0 && (
                       <div className="flex items-center space-x-1">
                         {userDataCtx.accountData.childrenData[0].displayName ? (
-                          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" aria-label="Dapper Wallet">
+                          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" aria-label="Dapper Wallet">
                             <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
                               <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
                               <g>
@@ -339,7 +481,7 @@ function Profile() {
                           <img 
                             src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png" 
                             alt="Flow" 
-                            className="w-3 h-3"
+                            className="w-5 h-5"
                           />
                         )}
                         <span className="text-brand-text/80 font-mono break-all select-none">
@@ -351,9 +493,12 @@ function Profile() {
                 </div>
               </div>
               <div className="bg-brand-primary rounded-b-lg p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">Total Flow</div>
+                    <div className="flex items-center justify-center gap-1 text-xs text-brand-text/60 mb-1">
+                      <img src="https://storage.googleapis.com/vaultopolis/FLOW.png" alt="FLOW" className="w-5 h-5" />
+                      Flow Balance
+                    </div>
                     <div className="text-sm font-semibold">
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
@@ -363,22 +508,35 @@ function Profile() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">Total Moments</div>
-                    <div className="text-sm font-semibold">
-                      {isRefreshing ? (
-                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
-                      ) : (
-                        aggregate.moments
-                      )}
+                    <div className="flex items-center justify-center gap-1 text-xs text-brand-text/60 mb-1">
+                      <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-5 h-5" />
+                      TSHOT Balance
                     </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">Total TSHOT</div>
                     <div className="text-sm font-semibold">
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
                         fixed(aggregate.tshot, 1)
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">NBA Top Shot</div>
+                    <div className="text-sm font-semibold">
+                      {isRefreshing ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        aggregate.topshotMoments
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-xs text-brand-text/60 mb-1">NFL All Day</div>
+                    <div className="text-sm font-semibold">
+                      {isRefreshing ? (
+                        <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
+                      ) : (
+                        aggregate.alldayMoments
                       )}
                     </div>
                   </div>
@@ -414,6 +572,7 @@ function Profile() {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
 
             {/* Accounts Breakdown: Conditional on isRefreshing and accountData */}
@@ -423,7 +582,8 @@ function Profile() {
               </p>
             )}
             {!isRefreshing && accountData?.parentAddress && (
-              <div className="rounded-lg shadow border border-brand-primary mb-6">
+              <div className="rounded-lg shadow border border-brand-primary mb-6 mx-2 sm:mx-4">
+                <div className="max-w-6xl mx-auto">
                 <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                   <h3 className="text-sm font-semibold m-0 text-brand-text">Accounts Breakdown</h3>
                 </div>
@@ -438,37 +598,46 @@ function Profile() {
                           flow: accountData.flowBalance,
                           tshot: accountData.tshotBalance,
                           moments: Array.isArray(accountData.nftDetails) ? accountData.nftDetails.length : 0,
-                          tiers: accountData.tierCounts || {},
+                          tiers: calculateTierBreakdown(accountData.nftDetails || []),
                           hasCollection: accountData.hasCollection,
                         }}
                         idx={0}
                         hasCollProp={accountData.hasCollection}
                         userContextData={userDataCtx}
+                        allDayData={{
+                          moments: allDayCollectionData[accountData.parentAddress]?.nftDetails?.length || 0,
+                          tiers: calculateAllDayTierBreakdown(allDayCollectionData[accountData.parentAddress]?.nftDetails || [])
+                        }}
                       />
                     </div>
                     {/* Child Account */}
                     {accountData.childrenData?.[0] && (
                       <div>
-                    <AccountCard
+                        <AccountCard
                           key={accountData.childrenData[0].addr}
                           acc={{
                             addr: accountData.childrenData[0].addr,
                             flow: accountData.childrenData[0].flowBalance,
-                            tshot: accountData.childrenData[0].tshotBalance,
+                            tshot: 0, // Dapper wallets can't hold TSHOT
                             moments: Array.isArray(accountData.childrenData[0].nftDetails) ? accountData.childrenData[0].nftDetails.length : 0,
-                            tiers: accountData.childrenData[0].tierCounts || {},
+                            tiers: calculateTierBreakdown(accountData.childrenData[0].nftDetails || []),
                             hasCollection: accountData.childrenData[0].hasCollection,
                             displayName: accountData.childrenData[0].displayName,
                           }}
                           idx={1}
                           hasCollProp={accountData.childrenData[0].hasCollection}
                           userContextData={userDataCtx}
+                          allDayData={{
+                            moments: allDayCollectionData[accountData.childrenData[0].addr]?.nftDetails?.length || 0,
+                            tiers: calculateAllDayTierBreakdown(allDayCollectionData[accountData.childrenData[0].addr]?.nftDetails || [])
+                          }}
                         />
                       </div>
                     )}
                   </div>
                 </div>
               </div>
+                </div>
             )}
             {!isRefreshing && !accountData?.parentAddress && walletAddr && (
               <p className="mb-6">
@@ -477,7 +646,8 @@ function Profile() {
             )}
 
             {/* User Activity: Swap History */}
-            <div className="rounded-lg shadow border border-brand-primary mb-6">
+            <div className="rounded-lg shadow border border-brand-primary mb-6 mx-2 sm:mx-4">
+              <div className="max-w-6xl mx-auto">
               <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                 <h3 className="text-sm font-semibold m-0 text-brand-text">User Activity</h3>
             </div>
@@ -496,12 +666,12 @@ function Profile() {
               ) : (
                 <>
                         <div className="overflow-x-auto mb-8">
-                          <table className="w-full text-sm min-w-[600px]">
+                          <table className="w-full text-xs sm:text-sm min-w-[500px]">
                     <thead>
                       <tr className="text-left border-b border-brand-border">
-                                <th className="py-2 pr-2">When</th>
-                                <th className="py-2 pr-2">Type</th>
-                                <th className="py-2 pr-2"># NFTs/TSHOT</th>
+                                <th className="py-2 pr-1 sm:pr-2">When</th>
+                                <th className="py-2 pr-1 sm:pr-2">Type</th>
+                                <th className="py-2 pr-1 sm:pr-2"># NFTs/TSHOT</th>
                                 <th className="py-2">Tx ↗</th>
                       </tr>
                     </thead>
@@ -511,15 +681,15 @@ function Profile() {
                           key={ev.transactionId}
                           className="border-b border-brand-border/30"
                         >
-                                  <td className="py-2 pr-2">
-                            {new Date(ev.blockTimestamp).toLocaleString()}
+                                  <td className="py-2 pr-1 sm:pr-2 text-xs">
+                            {new Date(ev.blockTimestamp).toLocaleDateString()}
                           </td>
-                          <td className="py-2 pr-2">
+                          <td className="py-2 pr-1 sm:pr-2 text-xs">
                             {ev.type.includes("NFTToTSHOT")
-                              ? "Deposit (NFT → TSHOT)"
-                              : "Withdrawal (TSHOT → NFT)"}
+                              ? "Deposit"
+                              : "Withdrawal"}
                           </td>
-                          <td className="py-2 pr-2">
+                          <td className="py-2 pr-1 sm:pr-2 text-xs">
                             {ev.data?.numNFTs ??
                               parseFloat(ev.data?.betAmount || 0).toFixed(1) ??
                               ""}
@@ -529,9 +699,9 @@ function Profile() {
                               href={`https://flowscan.io/transaction/${ev.transactionId}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-brand-accent hover:underline"
+                              className="text-brand-accent hover:text-brand-accent/80 underline text-xs"
                             >
-                              view
+                              {ev.transactionId.slice(0, 6)}...
                             </a>
                           </td>
                         </tr>
@@ -578,6 +748,7 @@ function Profile() {
                 </>
               )}
                 </div>
+              </div>
               </div>
             </div>
           </>

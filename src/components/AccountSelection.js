@@ -62,10 +62,10 @@ const AccountBox = ({
           <img
             src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
             alt="Flow Wallet"
-            className="w-3 h-3 mr-1 shrink-0"
+            className="w-5 h-5 mr-1 shrink-0"
           />
         ) : (displayName ? (
-          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 mr-1 shrink-0" aria-label="Dapper Wallet">
+          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1 shrink-0" aria-label="Dapper Wallet">
             <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
               <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
               <g>

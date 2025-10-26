@@ -28,7 +28,7 @@ function QuickStartGuidePage() {
         <meta name="twitter:description" content="Get your first TSHOT tokens in 5 simple steps. Start with Flow wallet setup, then optionally integrate Top Shot, and learn to use TSHOT." />
       </Helmet>
 
-      <div>
+      <div className="w-full">
         {/* Breadcrumb Navigation */}
         <PageWrapper padding="sm">
           <nav aria-label="Breadcrumb">

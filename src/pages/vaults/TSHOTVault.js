@@ -41,8 +41,8 @@ function TSHOTVaultPage() {
       </Helmet>
 
       {/* Vault Navigation */}
-      <div className="px-2 md:px-3 mt-4 mb-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="w-full mt-4 mb-4">
+        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
           <div className="flex items-center gap-2 bg-brand-primary rounded-lg p-2" role="tablist" aria-label="Vault sections">
             <Link
               to="/vaults/tshot"
@@ -65,26 +65,24 @@ function TSHOTVaultPage() {
       </div>
 
       {/* TSHOT Vault Contents */}
-      <div className="px-2 md:px-3">
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
-            <div className="p-4 border-b border-brand-border">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm text-brand-text/70">Browse the moments backing TSHOT</p>
-                </div>
-                <a 
-                  href="/tshot" 
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-brand-accent text-white text-base font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center"
-                >
-                  ℹ️ Learn About TSHOT
-                </a>
+      <div className="w-full">
+        <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
+          <div className="p-4 border-b border-brand-border">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm text-brand-text/70">Browse the moments backing TSHOT</p>
               </div>
+              <a 
+                href="/tshot" 
+                className="inline-flex items-center gap-2 px-6 py-3 bg-brand-accent text-white text-base font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center"
+              >
+                ℹ️ Learn About TSHOT
+              </a>
             </div>
-            
-            <div className="p-4">
-              <TSHOTVault />
-            </div>
+          </div>
+          
+          <div className="p-4">
+            <TSHOTVault />
           </div>
         </div>
       </div>

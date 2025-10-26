@@ -5,7 +5,6 @@ import {
   useEffect,
   useMemo,
   useReducer,
-  useRef,
   useState,
 } from "react";
 
@@ -66,6 +65,9 @@ const FILTER_SCHEMA = {
   selectedSubedition: { def: "All" }, // id (string) | "All"
   excludeSpecialSerials: { def: true },
   excludeLowSerials: { def: true },
+  lockedStatus: { def: "All" }, // "All", "Locked", "Unlocked"
+  specialSerials: { def: "All" }, // "All", "First", "Jersey", "Last", "AllSpecial"
+  sortBy: { def: "lowest-serial" }, // "lowest-serial", "highest-serial"
   currentPage: { def: 1 },
 };
 
@@ -81,12 +83,28 @@ const ensureInOpts = (val, arr) => {
 };
 
 /* ───────── main hook ──────── */
+/**
+ * Custom hook for filtering NBA Top Shot moments
+ * 
+ * USAGE PATTERNS:
+ * - NFT→TSHOT/TSHOT→NFT: allowAllTiers=false, showLockedMoments=false (default)
+ * - My Collection: allowAllTiers=true, showLockedMoments=true
+ * 
+ * @param {Object} params
+ * @param {boolean} params.allowAllTiers - If true, shows rare/legendary/ultimate tiers (My Collection only)
+ * @param {boolean} params.showLockedMoments - If true, includes locked moments (My Collection only)
+ * @param {Array} params.excludeIds - IDs to exclude from filtering
+ * @param {Array} params.nftDetails - Array of NFT objects to filter
+ * @param {Array} params.selectedNFTs - Currently selected NFT IDs
+ * @param {boolean} params.disableBootEffect - Disable initial effect
+ */
 export function useMomentFilters({
   allowAllTiers = false,
   disableBootEffect = false, // <-- ADDED THIS PROP
   excludeIds = [],
   nftDetails = [],
   selectedNFTs = [],
+  showLockedMoments = false, // <-- ADDED THIS PROP
 }) {
   /* ----- tier list ----- */
   const tierOptions = allowAllTiers
@@ -104,7 +122,8 @@ export function useMomentFilters({
 
   const [filter, dispatch] = useReducer(reducer, {
     ...DEFAULT_FILTER,
-    selectedTiers: tierOptions,
+    selectedTiers: allowAllTiers ? [...BASE_TIERS, ...EXTRA_TIERS] : BASE_TIERS,
+    selectedSeries: [], // Will be populated by useEffect
   });
   const setFilter = (p) =>
     dispatch({ type: "SET", payload: p }); /* ----- option arrays ----- */
@@ -118,34 +137,36 @@ export function useMomentFilters({
     return [...s].sort((a, b) => a - b);
   }, [nftDetails]); /* auto-select series on first load */
 
-  const boot = useRef(false);
   useEffect(() => {
-    // Only run this effect if it's NOT disabled
-    if (
-      !disableBootEffect && // <-- MODIFIED THIS CONDITION
-      !boot.current &&
-      seriesOptions.length &&
-      !filter.selectedSeries.length
-    ) {
+    // Force auto-select all series when they become available
+    if (seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
       setFilter({ selectedSeries: [...seriesOptions] });
-      boot.current = true;
     }
-  }, [
-    seriesOptions,
-    filter.selectedSeries.length,
-    disableBootEffect,
-  ]); /* keep tier selection valid */
+  }, [seriesOptions, filter.selectedSeries.length]);
 
   useEffect(() => {
-    setFilter({
-      selectedTiers:
-        filter.selectedTiers.filter((t) => tierOptions.includes(t)) ||
-        tierOptions,
-    });
-  }, [tierOptions.join("")]); /* heavy lists – defer */
+    const newSelectedTiers = allowAllTiers 
+      ? tierOptions // When allowAllTiers is true, always select all tiers
+      : filter.selectedTiers.filter((t) => tierOptions.includes(t)) || tierOptions;
+    
+    // Only update if the tiers actually changed to prevent infinite loops
+    const tiersChanged = JSON.stringify(newSelectedTiers.sort()) !== JSON.stringify(filter.selectedTiers.sort());
+    if (tiersChanged) {
+      setFilter({ selectedTiers: newSelectedTiers });
+    }
+  }, [tierOptions.join(","), allowAllTiers]); /* heavy lists – defer */
 
   const dFilter = useDeferredValue(filter);
   const dDetails = useDeferredValue(nftDetails);
+  
+  // Use immediate filter for selectedTiers to avoid delay issues
+  const immediateFilter = {
+    ...dFilter,
+    selectedTiers: filter.selectedTiers, // Use immediate value, not deferred
+    selectedSeries: seriesOptions.length > 0 && filter.selectedSeries.length === 0 
+      ? [...seriesOptions] // Force all series if none selected
+      : filter.selectedSeries, // Use immediate value, not deferred
+  };
 
   const buildOpts = useCallback(
     (extract, pred = () => true, isPlayerOptions = false) => {
@@ -155,13 +176,13 @@ export function useMomentFilters({
             // For player options, only check if the moment is not locked and matches basic filters
             if (isPlayerOptions) {
               return (
-                !n.isLocked &&
+                (showLockedMoments || !n.isLocked) &&
                 dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
                 dFilter.selectedSeries.includes(Number(n.series))
               );
             }
             // For other options, apply the full predicate
-            return !n.isLocked && pred(n);
+            return (showLockedMoments || !n.isLocked) && pred(n);
           })
           .map(extract)
           .filter(Boolean)
@@ -170,7 +191,7 @@ export function useMomentFilters({
         ("" + a).localeCompare("" + b, undefined, { numeric: true })
       );
     },
-    [dDetails, dFilter.selectedTiers, dFilter.selectedSeries]
+    [dDetails, dFilter.selectedTiers, dFilter.selectedSeries, showLockedMoments]
   );
 
   const leagueOptions = buildOpts(
@@ -222,95 +243,185 @@ export function useMomentFilters({
   );
 
   /* ---------- predicate ---------- */
+  // NFT→TSHOT/TSHOT→NFT filtering logic (restrictive)
   const passes = useCallback(
     (n, omit = null) => {
-      if (excludeIds.includes(String(n.id)) || n.isLocked) return false;
-      if (!dFilter.selectedTiers.includes((n.tier || "").toLowerCase()))
-        return false;
-      if (!dFilter.selectedSeries.includes(Number(n.series))) return false;
+      if (excludeIds.includes(String(n.id))) return false;
+      
+      const tier = (n.tier || "").toLowerCase();
+      const tierPasses = immediateFilter.selectedTiers.includes(tier);
+      
+      if (!tierPasses) return false;
+      
+      // Apply all restrictive filters for NFT→TSHOT/TSHOT→NFT flows
+      if (!immediateFilter.selectedSeries.includes(Number(n.series))) return false;
 
-      if (omit !== "league" && dFilter.selectedLeague !== "All") {
+      if (omit !== "league" && immediateFilter.selectedLeague !== "All") {
         const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
-        if (dFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
+        if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
       }
       if (
         omit !== "set" &&
-        dFilter.selectedSetName !== "All" &&
-        n.name !== dFilter.selectedSetName
+        immediateFilter.selectedSetName !== "All" &&
+        n.name !== immediateFilter.selectedSetName
       )
         return false;
       if (
         omit !== "team" &&
-        dFilter.selectedTeam !== "All" &&
-        n.teamAtMoment !== dFilter.selectedTeam
+        immediateFilter.selectedTeam !== "All" &&
+        n.teamAtMoment !== immediateFilter.selectedTeam
       )
         return false;
       if (
         omit !== "player" &&
-        dFilter.selectedPlayer !== "All" &&
-        n.fullName !== dFilter.selectedPlayer
+        immediateFilter.selectedPlayer !== "All" &&
+        n.fullName !== immediateFilter.selectedPlayer
       )
         return false;
 
-      if (omit !== "subedition" && dFilter.selectedSubedition !== "All") {
-        if (String(dFilter.selectedSubedition) !== String(n.subeditionID))
+      if (omit !== "subedition" && immediateFilter.selectedSubedition !== "All") {
+        if (String(immediateFilter.selectedSubedition) !== String(n.subeditionID))
           return false;
       }
 
       const sn = Number(n.serialNumber);
-      if (dFilter.excludeSpecialSerials) {
+      if (immediateFilter.excludeSpecialSerials) {
         const max = n.subeditionMaxMint
           ? Number(n.subeditionMaxMint)
           : Number(n.momentCount);
         const jersey = n.jerseyNumber ? Number(n.jerseyNumber) : null;
         if (sn === 1 || sn === max || (jersey && jersey === sn)) return false;
       }
-      if (dFilter.excludeLowSerials && sn <= 4000) return false;
+      if (immediateFilter.excludeLowSerials && sn <= 4000) return false;
+      
+      // Locked status filter
+      if (immediateFilter.lockedStatus !== "All") {
+        if (immediateFilter.lockedStatus === "Locked" && !n.isLocked) return false;
+        if (immediateFilter.lockedStatus === "Unlocked" && n.isLocked) return false;
+      }
+      
+      // Special serials filter
+      if (immediateFilter.specialSerials !== "All") {
+        const sn = Number(n.serialNumber);
+        const max = n.subeditionMaxMint
+          ? Number(n.subeditionMaxMint)
+          : Number(n.momentCount);
+        const jersey = n.jerseyNumber ? Number(n.jerseyNumber) : null;
+        const isFirst = sn === 1;
+        const isJersey = jersey && jersey === sn;
+        const isLast = sn === max;
+        
+        if (immediateFilter.specialSerials === "First" && !isFirst) return false;
+        if (immediateFilter.specialSerials === "Jersey" && !isJersey) return false;
+        if (immediateFilter.specialSerials === "Last" && !isLast) return false;
+        if (immediateFilter.specialSerials === "AllSpecial" && !isFirst && !isJersey && !isLast) return false;
+      }
+      
       if (selectedNFTs.includes(n.id)) return false;
       return true;
     },
-    [dFilter, excludeIds, selectedNFTs]
+    [immediateFilter, excludeIds, selectedNFTs]
   ); /* ---------- sub-edition options ---------- */
 
   const subeditionOptions = ensureInOpts(
-    dFilter.selectedSubedition,
+    immediateFilter.selectedSubedition,
     (() => {
       const tally = {};
       dDetails.forEach((n) => {
         if (!n.subeditionID) return;
-        if (!passes(n, "subedition")) return; // respect upstream filters
+        // For sub-edition options, don't filter by locked status
+        // Only apply other filters (tier, series, etc.) but not locked status
+        if (excludeIds.includes(String(n.id))) return;
+        if (!immediateFilter.selectedTiers.includes((n.tier || "").toLowerCase())) return;
+        if (!immediateFilter.selectedSeries.includes(String(n.series))) return;
+        if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) return;
+        if (immediateFilter.selectedLeague !== "All" && n.league !== immediateFilter.selectedLeague) return;
+        if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) return;
+        if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) return;
+        
         tally[n.subeditionID] = (tally[n.subeditionID] || 0) + 1;
       });
 
-      return Object.keys(tally)
+      const result = Object.keys(tally)
         .map(Number)
         .sort((a, b) => (SUB_META[b]?.minted ?? 0) - (SUB_META[a]?.minted ?? 0)) // desc by max-mint
         .map(String); // ensure all entries are strings → unique keys
+      
+      return result;
     })()
   ); /* ---------- derived lists ---------- */
 
+  // Separate filtering logic for My Collection vs NFT→TSHOT flows
+  const myCollectionFilter = useCallback((n) => {
+    // My Collection: Apply all filters but allow all tiers (including rare/legendary/ultimate)
+    
+    // Early return for excluded IDs
+    if (excludeIds.includes(String(n.id))) return false;
+    
+    // Tier filter
+    const tier = (n.tier || "").toLowerCase();
+    if (!immediateFilter.selectedTiers.includes(tier)) return false;
+    
+    // Series filter
+    if (!immediateFilter.selectedSeries.includes(Number(n.series))) return false;
+    
+    // League filter
+    if (immediateFilter.selectedLeague !== "All") {
+      const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
+      if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
+    }
+    
+    // Set filter
+    if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) return false;
+    
+    // Team filter
+    if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) return false;
+    
+    // Player filter
+    if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) return false;
+    
+    // Locked status filter
+    if (immediateFilter.lockedStatus !== "All") {
+      if (immediateFilter.lockedStatus === "Locked" && !n.isLocked) return false;
+      if (immediateFilter.lockedStatus === "Unlocked" && n.isLocked) return false;
+    }
+    
+    return true;
+  }, [immediateFilter, showLockedMoments, excludeIds]);
+
+  const nftToTshotFilter = useCallback((n) => {
+    // NFT→TSHOT/TSHOT→NFT: Apply all restrictive filters
+    if (!passes(n)) return false;
+    if (!showLockedMoments && n.isLocked) return false;
+    
+    const tier = (n.tier || "").toLowerCase();
+    if (tier !== "common" && tier !== "fandom") return false;
+
+    return true;
+  }, [passes, showLockedMoments]);
+
   const eligibleMoments = useMemo(
-    () =>
-      dDetails
+    () => {
+      const result = dDetails
         .filter((n) => {
-          // First apply the passes filter
-          if (!passes(n)) return false;
-
-          // Only enforce common/fandom filter if allowAllTiers is false
-          if (!allowAllTiers) {
-            const tier = (n.tier || "").toLowerCase();
-            if (tier !== "common" && tier !== "fandom") return false;
-          }
-
-          return true;
+          // Use appropriate filter based on context
+          return allowAllTiers ? myCollectionFilter(n) : nftToTshotFilter(n);
         })
         .sort((a, b) => {
-          // Sort by serial number from highest to lowest
+          // Sort by serial number based on sortBy setting
           const serialA = Number(a.serialNumber);
           const serialB = Number(b.serialNumber);
-          return serialB - serialA;
-        }),
-    [dDetails, passes, allowAllTiers]
+          
+          if (immediateFilter.sortBy === "highest-serial") {
+            return serialB - serialA; // Highest first
+          } else {
+            return serialA - serialB; // Lowest first (default)
+          }
+        });
+      
+      return result;
+    },
+    [dDetails, allowAllTiers, myCollectionFilter, nftToTshotFilter, immediateFilter.sortBy]
   );
 
   const baseNoSub = useMemo(

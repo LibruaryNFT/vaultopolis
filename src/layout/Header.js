@@ -5,6 +5,7 @@ import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
 import DropdownMenu from "../components/DropdownMenu";
+import NotificationCenter from "../components/NotificationCenter";
 
 const Header = () => {
   const { user, selectedAccount, accountData } = useContext(UserDataContext);
@@ -107,8 +108,8 @@ const Header = () => {
           <div className="w-px h-6 bg-white/20 mx-2" />
 
           <NavLink 
-            to="/bounties" 
-            isActive={location.pathname === "/bounties" || location.pathname === "/offers"}
+            to="/bounties/topshot" 
+            isActive={location.pathname.startsWith("/bounties")}
             onMouseEnter={() => setActiveDropdown(null)}
           >
             Grail Bounties
@@ -132,6 +133,16 @@ const Header = () => {
             onMouseEnter={() => setActiveDropdown(null)}
           >
             TSHOT
+          </NavLink>
+
+          <div className="w-px h-6 bg-white/20 mx-2" />
+
+          <NavLink 
+            to="/my-collection" 
+            isActive={location.pathname === "/my-collection"}
+            onMouseEnter={() => setActiveDropdown(null)}
+          >
+            My Collection
           </NavLink>
 
           <div className="w-px h-6 bg-white/20 mx-2" />
@@ -166,8 +177,10 @@ const Header = () => {
           </div>
         </nav>
 
-        {/* ── Right: connect / account ── */}
+        {/* ── Right: notifications + connect / account ── */}
         <div className="flex items-center space-x-2">
+          <NotificationCenter />
+          
           {user.loggedIn ? (
             <div className="relative">
               <UserButton
@@ -206,7 +219,7 @@ const Header = () => {
                 Swap
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/bounties" isActive={location.pathname === "/bounties" || location.pathname === "/offers"} onClick={closeMobileMenu}>
+              <MobileNavLink to="/bounties/topshot" isActive={location.pathname.startsWith("/bounties")} onClick={closeMobileMenu}>
                 Grail Bounties
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
@@ -216,6 +229,10 @@ const Header = () => {
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/tshot" isActive={location.pathname === "/tshot"} onClick={closeMobileMenu}>
                 TSHOT
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/my-collection" isActive={location.pathname === "/my-collection"} onClick={closeMobileMenu}>
+                My Collection
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu}>

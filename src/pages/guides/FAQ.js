@@ -60,7 +60,7 @@ function FAQ() {
         </script>
       </Helmet>
 
-      <div>
+      <div className="w-full">
         {/* FAQ Categories */}
         <PageWrapper maxWidth="xl" padding="md">
           <ContentPanel title="Frequently Asked Questions" subtitle="Find quick answers to common questions about TSHOT, Vaultopolis, and NBA Top Shot tokenization.">
