@@ -16,7 +16,7 @@ import MomentCard from "../components/MomentCard";
 import { Info } from "lucide-react"; // Re-add for info modal
 import Button from "../components/Button";
 
-const MAX_FLOW_TRANSFER_COUNT = 500; // Flow → Flow
+const MAX_FLOW_TRANSFER_COUNT = 280; // Flow → Flow
 const MAX_EVM_BRIDGE_COUNT = 9; // Flow → EVM
 
 const Transfer = () => {
