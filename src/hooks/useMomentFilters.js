@@ -406,18 +406,25 @@ export function useMomentFilters({
         .filter((n) => {
           // Use appropriate filter based on context
           return allowAllTiers ? myCollectionFilter(n) : nftToTshotFilter(n);
-        })
-        .sort((a, b) => {
-          // Sort by serial number based on sortBy setting
-          const serialA = Number(a.serialNumber);
-          const serialB = Number(b.serialNumber);
-          
+        });
+      
+      // Apply different sorting based on context
+      result.sort((a, b) => {
+        const serialA = Number(a.serialNumber);
+        const serialB = Number(b.serialNumber);
+        
+        if (allowAllTiers) {
+          // My Collection: Sort by user's preference
           if (immediateFilter.sortBy === "highest-serial") {
             return serialB - serialA; // Highest first
           } else {
             return serialA - serialB; // Lowest first (default)
           }
-        });
+        } else {
+          // NFT→TSHOT/TSHOT→NFT: Always sort highest serial first (descending)
+          return serialB - serialA;
+        }
+      });
       
       return result;
     },
