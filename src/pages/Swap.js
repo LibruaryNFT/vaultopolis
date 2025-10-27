@@ -293,6 +293,18 @@ const Swap = () => {
   const computedTo = isNaN(rawTo) ? 0 : rawTo;
   const formattedTo = computedTo.toFixed(1);
 
+  // Calculate max TSHOT amount (capped at 50)
+  const totalTSHOTBalance = isLoggedIn ? getTotalTSHOTBalance(accountData) : 0;
+  const maxTSHOTAmount = Math.min(Math.floor(totalTSHOTBalance), 50);
+
+  // Handler for Max button click
+  const handleMaxClick = () => {
+    if (maxTSHOTAmount > 0) {
+      setFromInput(maxTSHOTAmount.toString());
+      setToInput(maxTSHOTAmount.toString());
+    }
+  };
+
   // Render balances for the From/To boxes
   const renderFromBalance = () => {
     if (!isLoggedIn) return null;
@@ -718,6 +730,8 @@ const Swap = () => {
           handleSelectAccount={handleSelectAccount}
           setAccountCollections={setAccountCollections}
           dispatch={dispatch}
+          maxTSHOTAmount={maxTSHOTAmount}
+          onMaxClick={handleMaxClick}
         />
       ) : (
         <TSHOTInfo 

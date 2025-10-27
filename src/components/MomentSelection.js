@@ -648,6 +648,13 @@ export default function MomentSelection(props) {
         </div>
       </div>
 
+      {/* Selection limit warning */}
+      {selectedNFTs.length >= 200 && (
+        <div className="mb-2 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded text-sm text-yellow-300 text-center">
+          Max 200 NFTs selected. Deselect some to add more.
+        </div>
+      )}
+
       {/* grid */}
       {pageCount > 1 && (
         <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
@@ -665,9 +672,14 @@ export default function MomentSelection(props) {
           <MomentCard
             key={n.id}
             nft={n}
-            handleNFTSelection={(id) =>
-              appDispatch({ type: "SET_SELECTED_NFTS", payload: id })
-            }
+            handleNFTSelection={(id) => {
+              // Prevent selecting more than 200 for NFT→TSHOT swaps
+              const MAX_SELECTION = 200;
+              if (!selectedNFTs.includes(id) && selectedNFTs.length >= MAX_SELECTION) {
+                return; // Do nothing if already at limit
+              }
+              appDispatch({ type: "SET_SELECTED_NFTS", payload: id });
+            }}
             isSelected={selectedNFTs.includes(n.id)}
           />
         ))}

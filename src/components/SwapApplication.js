@@ -36,7 +36,9 @@ const SwapApplication = ({
   excludedNftIds,
   handleSelectAccount,
   setAccountCollections,
-  dispatch
+  dispatch,
+  maxTSHOTAmount,
+  onMaxClick
 }) => {
   return (
     <div className="w-full text-white space-y-2 mb-2">
@@ -102,6 +104,15 @@ const SwapApplication = ({
                   }`}
                   readOnly={isNFTMode}
                 />
+                {fromAsset === "TSHOT" && !isNFTMode && (
+                  <button
+                    onClick={onMaxClick}
+                    disabled={maxTSHOTAmount <= 0}
+                    className="text-xs bg-brand-accent hover:bg-brand-accent/80 disabled:bg-brand-accent/30 disabled:cursor-not-allowed disabled:opacity-50 text-white px-2 py-1 rounded mt-1 text-center transition-colors"
+                  >
+                    Max
+                  </button>
+                )}
                 {isOverMax && fromAsset === "TSHOT" && (
                   <div className="text-red-400 text-xs mt-1">Max 50 TSHOT</div>
                 )}
@@ -231,7 +242,7 @@ const SwapApplication = ({
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="text-brand-text text-sm">Selected Moments:</h4>
                   <span className="text-brand-text/70 text-sm">
-                    {selectedNFTs.length}/50
+                    {selectedNFTs.length}/200
                   </span>
                 </div>
                 <div className="h-[280px] overflow-y-auto pr-1">

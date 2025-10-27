@@ -355,8 +355,9 @@ export function useMomentFilters({
   const myCollectionFilter = useCallback((n) => {
     // My Collection: Apply all filters but allow all tiers (including rare/legendary/ultimate)
     
-    // Early return for excluded IDs
+    // Early return for excluded IDs and selected NFTs
     if (excludeIds.includes(String(n.id))) return false;
+    if (selectedNFTs.includes(n.id)) return false;
     
     // Tier filter
     const tier = (n.tier || "").toLowerCase();
