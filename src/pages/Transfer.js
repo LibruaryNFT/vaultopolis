@@ -593,6 +593,8 @@ const Transfer = () => {
               allowAllTiers={true}
               restrictToCommonFandom={false}
               excludeIds={excludedNftIds}
+              forceSortOrder="highest-serial"
+              showLockedMoments={false}
             />
           </div>
         </div>

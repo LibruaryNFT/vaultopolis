@@ -350,6 +350,8 @@ export default function MomentSelection(props) {
     nftDetails,
     selectedNFTs,
     allowAllTiers: props.allowAllTiers || false,
+    forceSortOrder: props.forceSortOrder || null,
+    showLockedMoments: props.showLockedMoments !== undefined ? props.showLockedMoments : false,
   });
 
   /* pagination */

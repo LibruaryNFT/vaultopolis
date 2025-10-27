@@ -105,6 +105,7 @@ export function useMomentFilters({
   nftDetails = [],
   selectedNFTs = [],
   showLockedMoments = false, // <-- ADDED THIS PROP
+  forceSortOrder = null, // Force sort order regardless of other settings
 }) {
   /* ----- tier list ----- */
   const tierOptions = allowAllTiers
@@ -359,6 +360,9 @@ export function useMomentFilters({
     if (excludeIds.includes(String(n.id))) return false;
     if (selectedNFTs.includes(n.id)) return false;
     
+    // Filter out locked moments if showLockedMoments is false
+    if (!showLockedMoments && n.isLocked) return false;
+    
     // Tier filter
     const tier = (n.tier || "").toLowerCase();
     if (!immediateFilter.selectedTiers.includes(tier)) return false;
@@ -388,7 +392,7 @@ export function useMomentFilters({
     }
     
     return true;
-  }, [immediateFilter, showLockedMoments, excludeIds]);
+  }, [immediateFilter, showLockedMoments, excludeIds, selectedNFTs]);
 
   const nftToTshotFilter = useCallback((n) => {
     // NFT→TSHOT/TSHOT→NFT: Apply all restrictive filters
@@ -414,6 +418,14 @@ export function useMomentFilters({
         const serialA = Number(a.serialNumber);
         const serialB = Number(b.serialNumber);
         
+        // If forceSortOrder is set, use it regardless of other settings
+        if (forceSortOrder === "highest-serial") {
+          return serialB - serialA; // Highest first
+        }
+        if (forceSortOrder === "lowest-serial") {
+          return serialA - serialB; // Lowest first
+        }
+        
         if (allowAllTiers) {
           // My Collection: Sort by user's preference
           if (immediateFilter.sortBy === "highest-serial") {
@@ -429,7 +441,7 @@ export function useMomentFilters({
       
       return result;
     },
-    [dDetails, allowAllTiers, myCollectionFilter, nftToTshotFilter, immediateFilter.sortBy]
+    [dDetails, allowAllTiers, myCollectionFilter, nftToTshotFilter, immediateFilter.sortBy, forceSortOrder]
   );
 
   const baseNoSub = useMemo(
