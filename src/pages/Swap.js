@@ -279,7 +279,9 @@ const Swap = () => {
   }
   const computedFrom = isNaN(rawFrom) ? 0 : rawFrom;
   const formattedFrom = computedFrom.toFixed(1);
-  const isOverMax = computedFrom > 50;
+  // Only apply 50 cap when fromAsset is TSHOT (TSHOT→NFT). In NFT→TSHOT mode,
+  // the selection limit is enforced separately via isOverNFTLimit (200 cap).
+  const isOverMax = fromAsset === "TSHOT" && computedFrom > 50;
   const isOverNFTLimit = isNFTMode && selectedNFTs.length > 200;
 
   let rawTo;

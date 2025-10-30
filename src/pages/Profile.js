@@ -81,9 +81,12 @@ const calculateAllDayTierBreakdown = (nftDetails) => {
 
 
 // MiniStat is defined before AccountCard
-const MiniStat = ({ label, value }) => (
+const MiniStat = ({ label, value, icon }) => (
   <div className="py-2 border-r border-brand-border last:border-none">
-    <p className="opacity-70 m-0 text-xs">{label}</p>
+    <div className="flex items-center justify-center gap-1 opacity-70">
+      {icon && <img src={icon} alt={label} className="w-4 h-4" />}
+      <p className="m-0 text-xs">{label}</p>
+    </div>
     <p className="font-semibold m-0">{value}</p>
   </div>
 );
@@ -97,6 +100,9 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => 
   const displayName = isChild && (acc.displayName || userContextData?.accountData?.childrenData?.find(
     (c) => c.addr === acc.addr
   )?.displayName);
+  
+  // Determine if this is a Dapper wallet (child accounts with display names are Dapper)
+  const isDapperWallet = isChild && !!displayName;
 
   return (
     <div className="shadow border border-brand-primary">
@@ -154,12 +160,12 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => 
         </div>
       </div>
       
-      <div className={`grid ${isParent ? 'grid-cols-4' : 'grid-cols-3'} bg-brand-primary text-center text-xs`}>
-        <MiniStat label="Flow" value={fixed(acc.flow)} />
-        <MiniStat label="Total Moments" value={acc.moments + (allDayData?.moments || 0)} />
-        <MiniStat label="Total TopShot" value={acc.moments} />
-        <MiniStat label="Total AllDay" value={allDayData?.moments || 0} />
-        {isParent && <MiniStat label="TSHOT" value={fixed(acc.tshot, 1)} />}
+      <div className={`grid ${isParent ? 'grid-cols-4' : (isDapperWallet ? 'grid-cols-3' : 'grid-cols-4')} bg-brand-primary text-center text-xs`}>
+        {!isDapperWallet && <MiniStat label="Flow" value={fixed(acc.flow)} icon="https://storage.googleapis.com/vaultopolis/FLOW.png" />}
+        {isParent && <MiniStat label="TSHOT" value={fixed(acc.tshot, 1)} icon="https://storage.googleapis.com/vaultopolis/TSHOT.png" />}
+        <MiniStat label="Moments" value={acc.moments + (allDayData?.moments || 0)} />
+        <MiniStat label="Top Shot" value={acc.moments} />
+        <MiniStat label="All Day" value={allDayData?.moments || 0} />
       </div>
       <div className="bg-brand-primary px-3 py-2">
         {hasCollectionStatus === false && !allDayData?.moments ? (
@@ -170,7 +176,7 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => 
             <div className="grid grid-cols-2 gap-4">
               {/* TopShot Column */}
               <div>
-                <h4 className="text-xs font-semibold text-brand-text/80 mb-1">TopShot</h4>
+                <h4 className="text-xs font-semibold text-brand-text/80 mb-1">Top Shot</h4>
                 <div className="space-y-1">
                   {TIER_ORDER.map((t) => (
                     <div key={t} className="flex items-center text-xs">
@@ -185,7 +191,7 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => 
               
               {/* AllDay Column */}
               <div>
-                <h4 className="text-xs font-semibold text-brand-text/80 mb-1">AllDay</h4>
+                <h4 className="text-xs font-semibold text-brand-text/80 mb-1">All Day</h4>
                 <div className="space-y-1">
                   {['common', 'uncommon', 'rare', 'legendary', 'ultimate'].map((t) => (
                     <div key={t} className="flex items-center text-xs">
@@ -231,32 +237,30 @@ function Profile() {
 
   const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
 
-  // Load AllDay collection data for the profile address
+  // Load AllDay collection data for all accounts (parent + children)
   useEffect(() => {
-    if (!walletAddr) return;
+    if (!accountData?.parentAddress) return;
     
-    // Check if we already have AllDay data for this address
-    if (allDayCollectionData[walletAddr]) return;
-    
-    // Load AllDay collection for this address
-    const loadAllDayCollection = async () => {
+    const loadAllDayForAccount = async (addr) => {
+      // Skip if already has data
+      if (allDayCollectionData[addr]) return;
+      
       try {
-        const ids = await fetchAllDayCollection(walletAddr);
+        const ids = await fetchAllDayCollection(addr);
         if (ids.length > 0) {
-          const details = await fetchAllDayCollectionDetails(walletAddr, ids);
+          const details = await fetchAllDayCollectionDetails(addr, ids);
           setAllDayCollectionData(prev => ({
             ...prev,
-            [walletAddr]: {
+            [addr]: {
               nftDetails: details,
               isLoading: false,
               error: null
             }
           }));
         } else {
-          // No AllDay NFTs found
           setAllDayCollectionData(prev => ({
             ...prev,
-            [walletAddr]: {
+            [addr]: {
               nftDetails: [],
               isLoading: false,
               error: null
@@ -264,10 +268,10 @@ function Profile() {
           }));
         }
       } catch (error) {
-        console.error('Error loading AllDay collection for profile:', error);
+        console.error(`Error loading AllDay collection for ${addr}:`, error);
         setAllDayCollectionData(prev => ({
           ...prev,
-          [walletAddr]: {
+          [addr]: {
             nftDetails: [],
             isLoading: false,
             error: error.message
@@ -276,8 +280,17 @@ function Profile() {
       }
     };
     
-    loadAllDayCollection();
-  }, [walletAddr, allDayCollectionData, fetchAllDayCollection, fetchAllDayCollectionDetails, setAllDayCollectionData]);
+    // Load AllDay for parent account
+    loadAllDayForAccount(accountData.parentAddress);
+    
+    // Load AllDay for all child accounts
+    if (Array.isArray(accountData.childrenAddresses)) {
+      accountData.childrenAddresses.forEach(childAddr => {
+        loadAllDayForAccount(childAddr);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accountData?.parentAddress, accountData?.childrenAddresses]);
 
   // Profile data is automatically loaded by UserContext when user logs in
   // No need for additional useEffect here
@@ -444,8 +457,8 @@ function Profile() {
         {walletAddr && (
           <>
             {/* Portfolio Summary Table */}
-            <div className="rounded-lg shadow border border-brand-primary mb-6 mt-4 mx-2 sm:mx-4">
-              <div className="max-w-6xl mx-auto">
+            <div className="rounded-lg shadow border border-brand-primary mb-6 mt-4">
+              <div className="">
               <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold m-0 text-brand-text">Portfolio Summary</h3>
@@ -497,7 +510,7 @@ function Profile() {
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-xs text-brand-text/60 mb-1">
                       <img src="https://storage.googleapis.com/vaultopolis/FLOW.png" alt="FLOW" className="w-5 h-5" />
-                      Flow Balance
+                      Flow
                     </div>
                     <div className="text-sm font-semibold">
                       {isRefreshing ? (
@@ -510,7 +523,7 @@ function Profile() {
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-xs text-brand-text/60 mb-1">
                       <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-5 h-5" />
-                      TSHOT Balance
+                      TSHOT
                     </div>
                     <div className="text-sm font-semibold">
                       {isRefreshing ? (
@@ -521,7 +534,7 @@ function Profile() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">NBA Top Shot</div>
+                    <div className="text-xs text-brand-text/60 mb-1">Top Shot</div>
                     <div className="text-sm font-semibold">
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
@@ -531,7 +544,7 @@ function Profile() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">NFL All Day</div>
+                    <div className="text-xs text-brand-text/60 mb-1">All Day</div>
                     <div className="text-sm font-semibold">
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
@@ -582,8 +595,8 @@ function Profile() {
               </p>
             )}
             {!isRefreshing && accountData?.parentAddress && (
-              <div className="rounded-lg shadow border border-brand-primary mb-6 mx-2 sm:mx-4">
-                <div className="max-w-6xl mx-auto">
+              <div className="rounded-lg shadow border border-brand-primary mb-6">
+                <div className="">
                 <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                   <h3 className="text-sm font-semibold m-0 text-brand-text">Accounts Breakdown</h3>
                 </div>
@@ -646,8 +659,8 @@ function Profile() {
             )}
 
             {/* User Activity: Swap History */}
-            <div className="rounded-lg shadow border border-brand-primary mb-6 mx-2 sm:mx-4">
-              <div className="max-w-6xl mx-auto">
+            <div className="rounded-lg shadow border border-brand-primary mb-6">
+              <div className="">
               <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                 <h3 className="text-sm font-semibold m-0 text-brand-text">User Activity</h3>
             </div>

@@ -8,6 +8,7 @@ import AllDayMomentCard from "../components/AllDayMomentCard";
 import AccountSelection from "../components/AccountSelection";
 import { useMomentFilters } from "../hooks/useMomentFilters";
 import PageWrapper from "../components/PageWrapper";
+ 
 
 
 
@@ -36,20 +37,7 @@ export default function MyCollection() {
   // Collection type state (Top Shot vs All Day)
   const [collectionType, setCollectionType] = useState('topshot');
 
-  // DEBUG: Log AllDay collection data
-  useEffect(() => {
-    if (collectionType === 'allday') {
-      const currentAddress = selectedAccount || accountData?.parentAddress;
-      const addressData = allDayCollectionData[currentAddress];
-      if (addressData?.nftDetails && addressData.nftDetails.length > 0) {
-        console.log('=== ALLDAY COLLECTION DEBUG ===');
-        console.log('Address:', currentAddress);
-        console.log('Total AllDay moments:', addressData.nftDetails.length);
-        console.log('First AllDay moment:', addressData.nftDetails[0]);
-        console.log('AllDay moment fields:', Object.keys(addressData.nftDetails[0]));
-      }
-    }
-  }, [collectionType, selectedAccount, accountData?.parentAddress, allDayCollectionData]);
+  // Removed verbose AllDay debug logs to reduce console noise
   
   
   // AllDay filter state - will be initialized with all available options
@@ -89,6 +77,7 @@ export default function MyCollection() {
     }
   }, [collectionType, selectedAccount, accountData?.parentAddress, allDayCollectionData, fetchAllDayCollection, fetchAllDayCollectionDetails, setAllDayCollectionData]);
 
+  // Pinnacle removed
 
   // Get child account object
   const childObj = selectedAccountType === "child"
@@ -102,7 +91,7 @@ export default function MyCollection() {
     if (collectionType === 'topshot') {
       // For TopShot, use existing UserContext data
       return childObj?.nftDetails || accountData?.nftDetails || [];
-    } else {
+    } else if (collectionType === 'allday') {
       // For AllDay, use AllDay context data
       const currentAddress = selectedAccount || accountData?.parentAddress;
       if (!currentAddress) return [];
@@ -368,6 +357,7 @@ export default function MyCollection() {
                 >
                   <span className="text-sm sm:text-base">Top Shot</span>
                 </button>
+                
                 <button
                   onClick={() => setCollectionType('allday')}
                   className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
@@ -409,7 +399,7 @@ export default function MyCollection() {
               {/* Header with count, sort, and reset */}
               <div className="flex items-center justify-between mb-4">
                 <div className="text-sm text-brand-text/70">
-                  {collectionType === 'topshot' ? (
+                  {collectionType === 'topshot' && (
                     filter.selectedSeries.length === 0 ? (
                       <p>Please select at least one Series to view available Moments.</p>
                     ) : eligibleMoments.length === 0 ? (
@@ -417,13 +407,15 @@ export default function MyCollection() {
                     ) : (
                       <p>{eligibleMoments.length} Moments match your filters.</p>
                     )
-                  ) : (
+                  )}
+                  {collectionType === 'allday' && (
                     eligibleMoments.length === 0 ? (
-                      <p>No Unlocked AllDay Moments found.</p>
+                      <p>No Unlocked All Day Moments found.</p>
                     ) : (
-                      <p>{eligibleMoments.length} Unlocked AllDay Moments found.</p>
+                      <p>{eligibleMoments.length} Unlocked All Day Moments found.</p>
                     )
                   )}
+                  
                 </div>
                 <div className="flex items-center gap-3">
                   {/* Sort Dropdown */}
@@ -454,7 +446,7 @@ export default function MyCollection() {
                       onClick={() => {
                         if (collectionType === 'topshot') {
                           refreshUserData();
-                        } else {
+                        } else if (collectionType === 'allday') {
                           refreshAllDayData();
                         }
                       }}

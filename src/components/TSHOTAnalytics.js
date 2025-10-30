@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart2 } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { LineChart, Line, Tooltip, Legend, ResponsiveContainer, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 // --- Layout wrappers copied from your other components for consistency ---
 const MobileAccordion = ({ icon: Icon, title, children }) => (
@@ -98,7 +98,7 @@ const TSHOTAnalytics = () => {
     fetchAndProcessData();
   }, []);
 
-  const PIE_COLORS = ['#8884d8', '#82ca9d'];
+  
 
   const renderTopList = (list, title, dataKey) => (
     <div className="bg-brand-secondary p-4 rounded-lg">
@@ -161,16 +161,7 @@ const TSHOTAnalytics = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                    <h3 className="text-lg font-semibold mb-2 text-center">User Engagement by Net Deposits</h3>
-                    <div className="bg-brand-secondary p-4 rounded-lg h-80"><ResponsiveContainer width="100%" height="100%"><BarChart data={stats.barChartData}><CartesianGrid strokeDasharray="3 3" strokeOpacity={0.2} /><XAxis dataKey="name" /><YAxis /><Tooltip contentStyle={{ backgroundColor: '#2d3748' }} /><Legend /><Bar dataKey="Users" fill="#8884d8" /></BarChart></ResponsiveContainer></div>
-                </div>
-                <div>
-                    <h3 className="text-lg font-semibold mb-2 text-center">Deposit Volume Concentration</h3>
-                    <div className="bg-brand-secondary p-4 rounded-lg h-80"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={stats.pieChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>{stats.pieChartData.map((entry, index) => (<Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />))}</Pie><Tooltip contentStyle={{ backgroundColor: '#2d3748' }} /><Legend /></PieChart></ResponsiveContainer></div>
-                </div>
-            </div>
+            {/* Removed: User Engagement by Net Deposits & Deposit Volume Concentration */}
         </div>
     );
   }

@@ -10,7 +10,8 @@ import TSHOT            from "./pages/TSHOT";
 import Analytics        from "./pages/Stats";
 import VaultContents    from "./pages/VaultContents";
 import TSHOTVaultPage   from "./pages/vaults/TSHOTVault";
-import TreasuryVaultPage from "./pages/vaults/TreasuryVault";
+import TopShotGrailsVaultPage from "./pages/vaults/TopShotGrailsVault";
+import AllDayGrailsVaultPage from "./pages/vaults/AllDayGrailsVault";
 import Transfer         from "./pages/Transfer";
 import Profile          from "./pages/Profile";
 import MyCollection     from "./pages/MyCollection";
@@ -39,7 +40,9 @@ const routes = [
   { path: "/analytics",   element: <Layout><Analytics /></Layout> },
   { path: "/vault-contents", element: <Layout><VaultContents /></Layout> },
   { path: "/vaults/tshot", element: <Layout><TSHOTVaultPage /></Layout> },
-  { path: "/vaults/treasury", element: <Layout><TreasuryVaultPage /></Layout> },
+  { path: "/vaults/topshotgrails", element: <Layout><TopShotGrailsVaultPage /></Layout> },
+  { path: "/vaults/alldaygrails", element: <Layout><AllDayGrailsVaultPage /></Layout> },
+  { path: "/vaults/treasury", element: <Navigate to="/vaults/topshotgrails" replace /> },
   { path: "/transfer",    element: <Layout><Transfer /></Layout> },
   { path: "/profile",     element: <Layout><Profile /></Layout> },
   { path: "/profile/:address?", element: <Layout><Profile /></Layout> },

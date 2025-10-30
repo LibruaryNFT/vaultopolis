@@ -26,3 +26,4 @@ access(all) fun main(accountAddress: Address, offerId: UInt64): OffersV2.OfferDe
     return nil
 }
 `;
+

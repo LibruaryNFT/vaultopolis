@@ -9,6 +9,7 @@ import {
   FaTimes,
 } from "react-icons/fa";
 import MomentCard from "./MomentCard";
+import { getAllDayImageUrlConsistent } from "../utils/allDayImages";
 
 /* ---------- helpers ---------- */
 const plural = (n, s, p) => (n === 1 ? s : p);
@@ -45,6 +46,7 @@ const TransactionModal = ({
   momentDetails,
   offerDetails,
   usdAmount,
+  collectionType = 'topshot',
 }) => {
   /* collapse noisy statuses */
   const effectiveStatus =
@@ -61,13 +63,19 @@ const TransactionModal = ({
   useEffect(() => {
     if (!revealedNFTDetails?.length) return;
     const imgs = revealedNFTDetails.map((nft) => {
-      const url = `https://assets.nbatopshot.com/media/${nft.id}/transparent/image?width=250&quality=80`;
+      // Generate URL based on collection type
+      let url;
+      if (collectionType === 'allday') {
+        url = getAllDayImageUrlConsistent(nft?.editionID);
+      } else {
+        url = `https://assets.nbatopshot.com/media/${nft.id}/transparent/image?width=250&quality=80`;
+      }
       const img = new Image();
       img.src = url; // browser starts downloading in background
       return img;
     });
     return () => imgs.forEach((img) => (img.src = "")); // abort if unmounts
-  }, [revealedNFTDetails]);
+  }, [revealedNFTDetails, collectionType]);
   /* --------------------------------------------------- */
 
   const revealOne = (id) => setHidden((s) => ({ ...s, [id]: true }));
@@ -214,7 +222,7 @@ const TransactionModal = ({
           <button
             onClick={onClose}
             className="
-              w-11 h-11 flex items-center justify-center
+              w-11 h-11 flex items-center justify-center flex-shrink-0
               bg-brand-secondary hover:bg-brand-blue
               text-brand-text rounded-full transition-colors select-none
             "
@@ -230,12 +238,14 @@ const TransactionModal = ({
               Selling Moment:
             </h3>
             <div className="flex justify-center">
-              <MomentCard nft={momentDetails} disableHover />
+              <MomentCard nft={momentDetails} disableHover collectionType={collectionType} />
             </div>
             {offerDetails && (
               <div className="mt-2 text-center text-sm text-brand-text/70">
                 <p>Offer ID: {offerDetails.offerId}</p>
-                <p>Set {momentDetails.setID}, Play {momentDetails.playID}</p>
+                {collectionType === 'topshot' && (
+                  <p>Set {momentDetails.setID}, Play {momentDetails.playID}</p>
+                )}
                 <p className="mt-1 font-semibold text-green-400">
                   You will receive: {parseFloat(offerDetails.offerAmount).toFixed(2)} FLOW
                   {usdAmount && ` (~$${usdAmount.toFixed(2)} USD)`}
@@ -274,7 +284,7 @@ const TransactionModal = ({
             >
               {revealedNFTDetails.map((n) =>
                 hidden[n.id] ? (
-                  <MomentCard key={n.id} nft={n} disableHover />
+                  <MomentCard key={n.id} nft={n} disableHover collectionType={collectionType} />
                 ) : (
                   <HiddenCard key={n.id} nftId={n.id} onReveal={revealOne} />
                 )

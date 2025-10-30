@@ -48,18 +48,19 @@ function TSHOTVaultPage() {
               to="/vaults/tshot"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-opolis text-opolis bg-brand-secondary"
             >
-              <span aria-hidden="true" className="text-xl sm:text-2xl">🔒</span>
+              <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-8 h-8 sm:w-10 sm:h-10" />
               <span className="hidden sm:inline text-sm sm:text-base">TSHOT</span>
               <span className="sm:hidden text-sm">TSHOT</span>
             </Link>
             <Link
-              to="/vaults/treasury"
+              to="/vaults/topshotgrails"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue"
             >
-              <span aria-hidden="true" className="text-xl sm:text-2xl">🏛️</span>
-              <span className="hidden sm:inline text-sm sm:text-base">Grail Bounties</span>
-              <span className="sm:hidden text-sm">Grail Bounties</span>
+              <span aria-hidden="true" className="text-3xl sm:text-4xl">🏛️</span>
+              <span className="hidden sm:inline text-sm sm:text-base">TopShot Grails</span>
+              <span className="sm:hidden text-sm">TS Grails</span>
             </Link>
+            {/* AllDay Grails temporarily disabled */}
           </div>
         </div>
       </div>

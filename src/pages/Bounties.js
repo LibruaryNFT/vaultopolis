@@ -8,6 +8,8 @@ import TransactionModal from "../components/TransactionModal";
 import useTransaction from "../hooks/useTransaction";
 import { acceptTopShotOffer } from "../flow/offers/acceptTopShotOffer";
 import { acceptTopShotOffer_child } from "../flow/offers/acceptTopShotOffer_child";
+import { acceptAllDayOffer } from "../flow/offers/acceptAllDayOffer";
+import { acceptAllDayOffer_child } from "../flow/offers/acceptAllDayOffer_child";
 import { getAllOfferDetails } from "../flow/offers/getAllOfferDetails";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import AccountSelection from "../components/AccountSelection";
@@ -27,7 +29,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
     smartRefreshUserData,
   } = React.useContext(UserDataContext);
   
-  const { allDayMetadataCache, allDayCollectionData, fetchAllDayCollection, fetchAllDayCollectionDetails, setAllDayCollectionData } = useAllDayContext();
+  const { allDayMetadataCache, allDayCollectionData, fetchAllDayCollection, fetchAllDayCollectionDetails, setAllDayCollectionData, refreshAllDayData, fetchAllDayTreasury } = useAllDayContext();
   const OFFER_OWNER_ADDRESS = "0xd69b6ce48815d4ad";
 
   // Load AllDay collection data when on AllDay bounties page
@@ -70,12 +72,19 @@ export default function Bounties({ collectionType = 'topshot' }) {
   useEffect(() => {
     const fetchTreasuryGrailsCount = async () => {
       try {
-        const ids = await fcl.query({
-          cadence: getTopShotCollectionIDs,
-          args: (arg, t) => [arg("0xd69b6ce48815d4ad", t.Address)],
-        });
-        const normalized = Array.isArray(ids) ? ids.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [];
-        setTreasuryGrailsCount(normalized.length);
+        if (collectionType === 'allday') {
+          // Fetch AllDay treasury grails
+          const allDayTreasury = await fetchAllDayTreasury();
+          setTreasuryGrailsCount(allDayTreasury?.length || 0);
+        } else {
+          // Fetch TopShot treasury grails
+          const ids = await fcl.query({
+            cadence: getTopShotCollectionIDs,
+            args: (arg, t) => [arg("0xd69b6ce48815d4ad", t.Address)],
+          });
+          const normalized = Array.isArray(ids) ? ids.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [];
+          setTreasuryGrailsCount(normalized.length);
+        }
       } catch (e) {
         console.error("Failed to fetch treasury grails count:", e);
         setTreasuryGrailsCount(0);
@@ -83,7 +92,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
     };
     
     fetchTreasuryGrailsCount();
-  }, []);
+  }, [collectionType, fetchAllDayTreasury]);
 
   const EditionOfferCard = ({ offer }) => {
     const setId = offer.__setId;
@@ -117,7 +126,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
 
     // Use correct image URL format based on collection type
     const imageUrl = isAllDayOffer 
-      ? null // Disable AllDay images for now
+      ? `https://media.nflallday.com/editions/${editionId}/media/image?format=webp&width=250&quality=80&cv=1`
       : `https://storage.googleapis.com/flowconnect/topshot/images_small/${setId}_${playId}.jpg`;
 
     const tierClass = tier ? tierStyles[tier.toLowerCase()] || "text-gray-400" : "text-gray-400";
@@ -376,37 +385,70 @@ export default function Bounties({ collectionType = 'topshot' }) {
       if (!accountData) return counts;
       const offerKeySet = new Set(
         (displayedOffers || [])
-          .map((o) => o?.__editionKey)
+          .map((o) => {
+            if (collectionType === 'allday') {
+              return String(o.offerParamsString?.editionId || o.offerParamsString?.editionID || '');
+            } else {
+              return o?.__editionKey || '';
+            }
+          })
           .filter((k) => typeof k === "string" && k.length > 0)
       );
-      const countFor = (acct) => {
-        const moments = acct?.nftDetails;
-        if (!Array.isArray(moments) || moments.length === 0) return 0;
-        let c = 0;
-        for (const m of moments) {
-          const key = `${m?.setID}_${m?.playID}`;
-          if (offerKeySet.has(key)) c++;
+      if (collectionType === 'allday') {
+        // For AllDay, use allDayCollectionData
+        const parentAddr = accountData?.parentAddress || accountData?.addr;
+        if (parentAddr) {
+          const moments = allDayCollectionData[lower(parentAddr)]?.nftDetails || [];
+          let c = 0;
+          for (const m of moments) {
+            const key = String(m?.editionID);
+            if (offerKeySet.has(key)) c++;
+          }
+          counts[lower(parentAddr)] = c;
         }
-        return c;
-      };
-      const parentAddr = lower(accountData?.parentAddress || accountData?.addr);
-      if (parentAddr) counts[parentAddr] = countFor(accountData);
-      if (Array.isArray(accountData?.childrenData)) {
-        for (const child of accountData.childrenData) {
-          const addr = lower(child?.addr);
-          if (addr) counts[addr] = countFor(child);
+        if (Array.isArray(accountData?.childrenAddresses)) {
+          for (const addrRaw of accountData.childrenAddresses) {
+            const addr = lower(addrRaw);
+            const moments = allDayCollectionData[addr]?.nftDetails || [];
+            let c = 0;
+            for (const m of moments) {
+              const key = String(m?.editionID);
+              if (offerKeySet.has(key)) c++;
+            }
+            counts[addr] = c;
+          }
         }
-      } else if (Array.isArray(accountData?.childrenAddresses)) {
-        for (const addrRaw of accountData.childrenAddresses) {
-          const addr = lower(addrRaw);
-          if (addr && !(addr in counts)) counts[addr] = 0;
+      } else {
+        // For TopShot, use accountData
+        const countFor = (acct) => {
+          const moments = acct?.nftDetails;
+          if (!Array.isArray(moments) || moments.length === 0) return 0;
+          let c = 0;
+          for (const m of moments) {
+            const key = `${m?.setID}_${m?.playID}`;
+            if (offerKeySet.has(key)) c++;
+          }
+          return c;
+        };
+        const parentAddr = lower(accountData?.parentAddress || accountData?.addr);
+        if (parentAddr) counts[parentAddr] = countFor(accountData);
+        if (Array.isArray(accountData?.childrenData)) {
+          for (const child of accountData.childrenData) {
+            const addr = lower(child?.addr);
+            if (addr) counts[addr] = countFor(child);
+          }
+        } else if (Array.isArray(accountData?.childrenAddresses)) {
+          for (const addrRaw of accountData.childrenAddresses) {
+            const addr = lower(addrRaw);
+            if (addr && !(addr in counts)) counts[addr] = 0;
+          }
         }
       }
       return counts;
     } catch {
       return {};
     }
-  }, [accountData, displayedOffers]);
+  }, [accountData, displayedOffers, collectionType, allDayCollectionData]);
 
   const paginatedMatches = useMemo(() => {
     const start = (matchesPage - 1) * MATCHES_PER_PAGE;
@@ -425,21 +467,54 @@ export default function Bounties({ collectionType = 'topshot' }) {
       const offerId = String(match.offer.offerId);
       const momentId = String(match.moment.id);
       const isChild = selectedAccountType === "child" && selectedAccount;
+      
+      // Enrich moment with metadata based on collection type
+      let enrichedMoment = match.moment;
+      if (collectionType === 'allday') {
+        const editionId = match.moment.editionID;
+        const metadata = editionId && allDayMetadataCache ? allDayMetadataCache[editionId] : null;
+        if (metadata) {
+          enrichedMoment = {
+            ...match.moment,
+            fullName: metadata.playerName || metadata.FullName || "Unknown Player",
+            name: metadata.setName || metadata.name || "Unknown Set",
+            tier: metadata.tier || match.moment.tier,
+            series: metadata.seriesID || metadata.series || match.moment.series,
+            momentCount: metadata.maxMintSize || metadata.numMinted || "?",
+          };
+        }
+      } else {
+        // TopShot - enrich with metadata cache
+        const setId = match.moment.setID;
+        const playId = match.moment.playID;
+        const metaKey = setId && playId ? `${setId}-${playId}` : null;
+        const metadata = metaKey && metadataCache ? metadataCache[metaKey] : null;
+        if (metadata) {
+          enrichedMoment = { ...match.moment, ...metadata };
+        }
+      }
+      
+      // Create appropriate message based on collection type
+      const message = collectionType === 'allday'
+        ? `Accepting offer for ${enrichedMoment.fullName || 'Unknown Player'} - ${enrichedMoment.name || 'Unknown Set'}`
+        : `Accepting offer for Moment #${momentId} (Set ${enrichedMoment.setID || 'N/A'}, Play ${enrichedMoment.playID || 'N/A'})`;
+      
       setTxModal({
         open: true,
         status: "Awaiting Approval",
         txId: null,
         context: {
           swapType: "OFFERS_ACCEPT",
-          message: `Accepting offer for Moment #${momentId} (Set ${match.moment.setID}, Play ${match.moment.playID})`,
+          message: message,
           amount: parseFloat(match.offer.offerAmount).toFixed(2),
-          moment: match.moment,
+          moment: enrichedMoment,
           offer: match.offer,
         },
       });
       if (isChild) {
+        const cadence = collectionType === 'allday' ? acceptAllDayOffer_child : acceptTopShotOffer_child;
         await sendTransaction({
-          cadence: acceptTopShotOffer_child,
+          cadence,
           args: (arg, t) => [
             arg(selectedAccount, t.Address),
             arg(buyer, t.Address),
@@ -448,8 +523,9 @@ export default function Bounties({ collectionType = 'topshot' }) {
           ],
         });
       } else {
+        const cadence = collectionType === 'allday' ? acceptAllDayOffer : acceptTopShotOffer;
         await sendTransaction({
-          cadence: acceptTopShotOffer,
+          cadence,
           args: (arg, t) => [
             arg(buyer, t.Address),
             arg(offerId, t.UInt64),
@@ -537,6 +613,20 @@ export default function Bounties({ collectionType = 'topshot' }) {
 
   const handleRefresh = async () => {
     try { setMatchesPage(1); smartRefreshUserData?.(); } catch {}
+    if (collectionType === 'allday') {
+      try { 
+        // Clear AllDay collection data to force reload
+        const currentAddress = selectedAccount || accountData?.parentAddress;
+        if (currentAddress) {
+          setAllDayCollectionData(prev => {
+            const updated = { ...prev };
+            delete updated[currentAddress];
+            return updated;
+          });
+        }
+        await refreshAllDayData?.(); 
+      } catch {}
+    }
     try { await fetchOffers(); } catch {}
   };
 
@@ -758,9 +848,13 @@ export default function Bounties({ collectionType = 'topshot' }) {
                   const series = meta?.series !== undefined ? String(meta.series) : "?";
                   const tier = meta?.tier || "";
                   const totalMinted = meta?.momentCount || meta?.subeditionMaxMint || meta?.maxMintSize || "?";
+                  
+                  // Get editionId for AllDay moments
+                  const momentEditionId = moment.editionID;
+                  
                   // Use correct image URL format based on collection type
                   const imageUrl = isAllDayMoment 
-                    ? null // Disable AllDay images for now
+                    ? `https://media.nflallday.com/editions/${momentEditionId}/media/image?format=webp&width=250&quality=80&cv=1`
                     : `https://storage.googleapis.com/flowconnect/topshot/images_small/${setId}_${playId}.jpg`;
                   const tierClass = tier ? tierStyles[tier.toLowerCase()] || "text-gray-400" : "text-gray-400";
 
@@ -892,6 +986,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
           momentDetails={txModal.context?.moment}
           offerDetails={txModal.context?.offer}
           usdAmount={usdAmounts[txModal.context?.offer?.offerId]}
+          collectionType={collectionType}
         />
       )}
     </div>
