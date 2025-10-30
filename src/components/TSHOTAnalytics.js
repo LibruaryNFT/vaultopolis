@@ -2,31 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart2 } from 'lucide-react';
 import { LineChart, Line, Tooltip, Legend, ResponsiveContainer, CartesianGrid, XAxis, YAxis } from 'recharts';
 
-// --- Layout wrappers copied from your other components for consistency ---
-const MobileAccordion = ({ icon: Icon, title, children }) => (
-  <details className="md:hidden group border border-brand-border rounded w-full">
-    <summary className="cursor-pointer select-none flex items-center justify-between bg-brand-primary px-2 py-1 font-semibold text-base text-brand-text rounded w-full">
-      <div className="flex items-center">
-        <Icon className="w-5 h-5 mr-2" /> {title}
-      </div>
-      <span className="transition-transform group-open:rotate-180">▼</span>
-    </summary>
-    <div className="mt-1 px-2 pb-1">{children}</div>
-  </details>
-);
-
-const DesktopSection = ({ icon: Icon, title, children }) => (
-  <div className="hidden md:block">
-    <div className="max-w-6xl mx-auto grid md:grid-cols-[160px_1fr] gap-2">
-      <div className="text-right pt-2">
-        <span className="inline-flex items-center bg-brand-primary text-brand-text px-2 py-1 rounded">
-          <Icon className="w-5 h-5 mr-2" /> {title}
-        </span>
-      </div>
-      {children}
-    </div>
-  </div>
-);
+// Simple, always-visible layout (no mobile accordion)
 
 
 const TSHOTAnalytics = () => {
@@ -142,7 +118,7 @@ const TSHOTAnalytics = () => {
 
             {/* Daily Activity Line Chart */}
             <div>
-                <h3 className="text-lg font-semibold mb-2 text-center">Daily Protocol Activity</h3>
+                <h3 className="text-lg font-semibold mb-2 text-center">Daily Analytics</h3>
                 <div className="bg-brand-secondary p-4 rounded-lg h-96">
                 <ResponsiveContainer width="100%" height="100%">
                     {/* Use the new lineChartData variable here */}
@@ -167,13 +143,12 @@ const TSHOTAnalytics = () => {
   }
 
   return (
-    <div>
-        <MobileAccordion icon={BarChart2} title="Analytics">
-            <AnalyticsBlock />
-        </MobileAccordion>
-        <DesktopSection icon={BarChart2} title="Analytics">
-            <AnalyticsBlock />
-        </DesktopSection>
+    <div className="max-w-6xl mx-auto">
+      <div className="flex items-center gap-2 mb-2 px-2">
+        <BarChart2 className="w-5 h-5" />
+        <h2 className="text-base font-semibold">Analytics</h2>
+      </div>
+      <AnalyticsBlock />
     </div>
   );
 };

@@ -158,7 +158,7 @@ const Header = () => {
             {activeDropdown === 'more' && (
               <div className="absolute top-full left-0 w-72 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
                 <DropdownItem to="/analytics" isActive={location.pathname === "/analytics"}>
-                  Protocol Stats
+                  Analytics
                 </DropdownItem>
                 <DropdownItem to="/transfer" isActive={location.pathname === "/transfer"}>
                   Transfer Hub
@@ -236,7 +236,7 @@ const Header = () => {
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu}>
-                Protocol Stats
+                Analytics
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/transfer" isActive={location.pathname === "/transfer"} onClick={closeMobileMenu}>

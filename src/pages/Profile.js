@@ -506,7 +506,7 @@ function Profile() {
                 </div>
               </div>
               <div className="bg-brand-primary rounded-b-lg p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4">
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-xs text-brand-text/60 mb-1">
                       <img src="https://storage.googleapis.com/vaultopolis/FLOW.png" alt="FLOW" className="w-5 h-5" />
@@ -520,6 +520,7 @@ function Profile() {
                       )}
                     </div>
                   </div>
+                  
                   <div className="text-center">
                     <div className="flex items-center justify-center gap-1 text-xs text-brand-text/60 mb-1">
                       <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-5 h-5" />
@@ -554,7 +555,7 @@ function Profile() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">Deposits (NFT → TSHOT)</div>
+                    <div className="text-xs text-brand-text/60 mb-1">Mint TSHOT ← NFTs</div>
                     <div className="text-sm font-semibold">
                       {swapLoading ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
@@ -564,7 +565,7 @@ function Profile() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">Withdrawals (TSHOT → NFT)</div>
+                    <div className="text-xs text-brand-text/60 mb-1">Burn TSHOT → NFTs</div>
                     <div className="text-sm font-semibold">
                       {swapLoading ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
@@ -574,7 +575,7 @@ function Profile() {
                     </div>
                   </div>
                   <div className="text-center">
-                    <div className="text-xs text-brand-text/60 mb-1">Net (Deposits – Withdrawals)</div>
+                    <div className="text-xs text-brand-text/60 mb-1">Net (Mint − Burn)</div>
                     <div className="text-sm font-semibold">
                       {swapLoading ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
@@ -684,7 +685,7 @@ function Profile() {
                       <tr className="text-left border-b border-brand-border">
                                 <th className="py-2 pr-1 sm:pr-2">When</th>
                                 <th className="py-2 pr-1 sm:pr-2">Type</th>
-                                <th className="py-2 pr-1 sm:pr-2"># NFTs/TSHOT</th>
+                                <th className="py-2 pr-1 sm:pr-2">Received</th>
                                 <th className="py-2">Tx ↗</th>
                       </tr>
                     </thead>
@@ -697,15 +698,39 @@ function Profile() {
                                   <td className="py-2 pr-1 sm:pr-2 text-xs">
                             {new Date(ev.blockTimestamp).toLocaleDateString()}
                           </td>
-                          <td className="py-2 pr-1 sm:pr-2 text-xs">
+                          <td className="py-2 pr-1 sm:pr-2 text-xs whitespace-nowrap">
                             {ev.type.includes("NFTToTSHOT")
-                              ? "Deposit"
-                              : "Withdrawal"}
+                              ? "Mint TSHOT ← NFTs"
+                              : "Burn TSHOT → NFTs"}
                           </td>
-                          <td className="py-2 pr-1 sm:pr-2 text-xs">
-                            {ev.data?.numNFTs ??
-                              parseFloat(ev.data?.betAmount || 0).toFixed(1) ??
-                              ""}
+                          <td className="py-2 pr-1 sm:pr-2 text-xs whitespace-nowrap">
+                            {ev.type.includes("NFTToTSHOT") ? (
+                              // 1:1 mapping – treat NFT count as TSHOT minted and show TSHOT icon
+                              (() => {
+                                const raw = ev?.data?.numNFTs ?? ev?.data?.nftCount ?? ev?.data?.count ?? ev?.data?.value ?? 0;
+                                const num = Number(raw);
+                                const val = Number.isFinite(num) ? num : 0;
+                                return (
+                                  <span className="inline-flex items-center gap-1">
+                                    <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-4 h-4" />
+                                    <span>{val.toLocaleString()}</span>
+                                  </span>
+                                );
+                              })()
+                            ) : (
+                              // Single value: show NFTs received
+                              (() => {
+                                const nftRaw = ev?.data?.numNFTs ?? ev?.data?.nftCount ?? ev?.data?.count ?? ev?.data?.value ?? 0;
+                                const nftNum = Number(nftRaw);
+                                const nftVal = Number.isFinite(nftNum) ? nftNum : 0;
+                                return (
+                                  <span className="inline-flex items-center gap-1">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l8 4.5v11L12 22l-8-4.5v-11L12 2zm0 2.2L6 7v9l6 3.4 6-3.4V7l-6-2.8zm0 1.9L16.5 8 12 10.2 7.5 8 12 6.1z" /></svg>
+                                    <span>{nftVal.toLocaleString()}</span>
+                                  </span>
+                                );
+                              })()
+                            )}
                           </td>
                           <td className="py-2">
                             <a
