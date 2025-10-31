@@ -10,6 +10,10 @@ import React, { useEffect, useMemo, useState, useContext } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import * as fcl from "@onflow/fcl";
+import { getFLOWBalance } from "../flow/getFLOWBalance";
+import { getTSHOTBalance } from "../flow/getTSHOTBalance";
+import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
+import { getAllDayCollectionIDs } from "../flow/getAllDayCollectionIDs";
 import axios from "axios";
 import { UserDataContext } from "../context/UserContext";
 import { useAllDayContext } from "../context/AllDayContext";
@@ -237,6 +241,33 @@ function Profile() {
 
   const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
 
+  // Public aggregate for when UserContext data is unavailable (incognito/public view)
+  const [publicAggregate, setPublicAggregate] = useState({ flow: 0, tshot: 0, topshotMoments: 0, alldayMoments: 0 });
+
+  useEffect(() => {
+    if (!walletAddr) return;
+    // Fetch public balances and counts
+    (async () => {
+      try {
+        const [flowBal, tshotBal, tsIds, adIds] = await Promise.all([
+          fcl.query({ cadence: getFLOWBalance, args: (arg, t) => [arg(walletAddr, t.Address)] }),
+          fcl.query({ cadence: getTSHOTBalance, args: (arg, t) => [arg(walletAddr, t.Address)] }),
+          fcl.query({ cadence: getTopShotCollectionIDs, args: (arg, t) => [arg(walletAddr, t.Address)] }),
+          fcl.query({ cadence: getAllDayCollectionIDs, args: (arg, t) => [arg(walletAddr, t.Address)] }),
+        ]);
+        setPublicAggregate({
+          flow: Number(flowBal || 0),
+          tshot: Number(tshotBal || 0),
+          topshotMoments: Array.isArray(tsIds) ? tsIds.length : 0,
+          alldayMoments: Array.isArray(adIds) ? adIds.length : 0,
+        });
+      } catch (e) {
+        // Fail silently for public view; leave zeros
+        console.warn("Public profile fetch failed", e);
+      }
+    })();
+  }, [walletAddr]);
+
   // Load AllDay collection data for all accounts (parent + children)
   useEffect(() => {
     if (!accountData?.parentAddress) return;
@@ -331,6 +362,8 @@ function Profile() {
     return out;
   }, [accountData, allDayCollectionData]);
 
+  const displayAgg = accountData?.parentAddress ? aggregate : publicAggregate;
+
   // Separate loading states for async data not tied to main profile load
   const [swapStats, setSwapStats] = useState(null);
   const [swapLoading, setSwapLoading] = useState(true);
@@ -396,10 +429,7 @@ function Profile() {
     return <Navigate to={redirectTarget} replace />;
   }
 
-  // Redirect to home if user is not logged in
-  if (viewerReady && !viewer?.loggedIn) {
-    return <Navigate to="/" replace />;
-  }
+  // Public profiles: do not redirect when not logged in
 
   // Content to show if no walletAddr but viewer is being determined or not logged in
   const renderPreContent = () => {
@@ -474,33 +504,34 @@ function Profile() {
                         {walletAddr || '--'}
                       </span>
                     </div>
-                    {/* Plus Sign */}
-                    <span className="text-brand-text/60 font-bold">+</span>
-                    {/* Child Account */}
-                    {userDataCtx?.accountData?.childrenData?.length > 0 && (
-                      <div className="flex items-center space-x-1">
-                        {userDataCtx.accountData.childrenData[0].displayName ? (
-                          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" aria-label="Dapper Wallet">
-                            <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
-                              <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
-                              <g>
-                                <path fill="#FF5A9D" d="M45.92 22.847c0-4.049-1.191-19.768-16.434-22.15-13.545-2.116-24.77 2.144-27.628 15.72-2.859 13.576-.239 26.199 9.765 27.39 10.004 1.19 12.861.714 23.341.238 10.48-.477 10.956-17.149 10.956-21.198" transform="translate(3.2 5.333)"></path>
-                                <path fill="#FFF" d="M32.763 11.307c-4.457 0-8.255 2.82-9.709 6.772-1.453-3.953-5.252-6.772-9.709-6.772-5.712 0-10.342 4.63-10.342 10.342 0 5.712 4.63 10.342 10.342 10.342 4.457 0 8.256-2.82 9.71-6.772 1.453 3.952 5.251 6.772 9.708 6.772 5.712 0 10.342-4.63 10.342-10.342 0-5.712-4.63-10.342-10.342-10.342" transform="translate(3.2 5.333)"></path>
-                                <path fill="#7320D3" d="M13.556 14.364c-3.73 0-6.753 3.023-6.753 6.754 0 3.73 3.023 6.753 6.753 6.753s6.754-3.023 6.754-6.753-3.023-6.754-6.754-6.754M32.552 14.364c-3.73 0-6.754 3.023-6.754 6.754 0 3.73 3.024 6.753 6.754 6.753 3.73 0 6.754-3.023 6.754-6.753s-3.024-6.754-6.754-6.754" transform="translate(3.2 5.333)"></path>
+                    {/* Plus Sign and Child Account - only show for own profile */}
+                    {accountData?.parentAddress?.toLowerCase() === walletAddr?.toLowerCase() && userDataCtx?.accountData?.childrenData?.length > 0 && (
+                      <>
+                        <span className="text-brand-text/60 font-bold">+</span>
+                        <div className="flex items-center space-x-1">
+                          {userDataCtx.accountData.childrenData[0].displayName ? (
+                            <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" aria-label="Dapper Wallet">
+                              <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
+                                <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
+                                <g>
+                                  <path fill="#FF5A9D" d="M45.92 22.847c0-4.049-1.191-19.768-16.434-22.15-13.545-2.116-24.77 2.144-27.628 15.72-2.859 13.576-.239 26.199 9.765 27.39 10.004 1.19 12.861.714 23.341.238 10.48-.477 10.956-17.149 10.956-21.198" transform="translate(3.2 5.333)"></path>
+                                  <path fill="#FFF" d="M32.763 11.307c-4.457 0-8.255 2.82-9.709 6.772-1.453-3.953-5.252-6.772-9.709-6.772-5.712 0-10.342 4.63-10.342 10.342 0 5.712 4.63 10.342 10.342 10.342 4.457 0 8.256-2.82 9.71-6.772 1.453 3.952 5.251 6.772 9.708 6.772 5.712 0 10.342-4.63 10.342-10.342 0-5.712-4.63-10.342-10.342-10.342" transform="translate(3.2 5.333)"></path>
+                                  <path fill="#7320D3" d="M13.556 14.364c-3.73 0-6.753 3.023-6.753 6.754 0 3.73 3.023 6.753 6.753 6.753s6.754-3.023 6.754-6.753-3.023-6.754-6.754-6.754M32.552 14.364c-3.73 0-6.754 3.023-6.754 6.754 0 3.73 3.024 6.753 6.754 6.753 3.73 0 6.754-3.023 6.754-6.753s-3.024-6.754-6.754-6.754" transform="translate(3.2 5.333)"></path>
+                                </g>
                               </g>
-                            </g>
-                          </svg>
-                        ) : (
-                          <img 
-                            src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png" 
-                            alt="Flow" 
-                            className="w-5 h-5"
-                          />
-                        )}
-                        <span className="text-brand-text/80 font-mono break-all select-none">
-                          {userDataCtx.accountData.childrenData[0].displayName || userDataCtx.accountData.childrenData[0].addr}
-                        </span>
-                      </div>
+                            </svg>
+                          ) : (
+                            <img 
+                              src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png" 
+                              alt="Flow" 
+                              className="w-5 h-5"
+                            />
+                          )}
+                          <span className="text-brand-text/80 font-mono break-all select-none">
+                            {userDataCtx.accountData.childrenData[0].displayName || userDataCtx.accountData.childrenData[0].addr}
+                          </span>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
@@ -516,7 +547,7 @@ function Profile() {
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
-                        fixed(aggregate.flow)
+                        fixed(displayAgg.flow)
                       )}
                     </div>
                   </div>
@@ -530,7 +561,7 @@ function Profile() {
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
-                        fixed(aggregate.tshot, 1)
+                        fixed(displayAgg.tshot, 1)
                       )}
                     </div>
                   </div>
@@ -540,7 +571,7 @@ function Profile() {
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
-                        aggregate.topshotMoments
+                        displayAgg.topshotMoments
                       )}
                     </div>
                   </div>
@@ -550,7 +581,7 @@ function Profile() {
                       {isRefreshing ? (
                         <div className="w-12 h-4 bg-brand-secondary animate-pulse rounded mx-auto" />
                       ) : (
-                        aggregate.alldayMoments
+                        displayAgg.alldayMoments
                       )}
                     </div>
                   </div>
@@ -589,13 +620,13 @@ function Profile() {
               </div>
             </div>
 
-            {/* Accounts Breakdown: Conditional on isRefreshing and accountData */}
-            {isRefreshing && (
+            {/* Accounts Breakdown: Only show for own profile (logged in and viewing own address) */}
+            {isRefreshing && accountData?.parentAddress?.toLowerCase() === walletAddr?.toLowerCase() && (
               <p className="text-brand-text/70 mb-4">
                 Loading account details...
               </p>
             )}
-            {!isRefreshing && accountData?.parentAddress && (
+            {!isRefreshing && accountData?.parentAddress?.toLowerCase() === walletAddr?.toLowerCase() && (
               <div className="rounded-lg shadow border border-brand-primary mb-6">
                 <div className="">
                 <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
@@ -653,10 +684,24 @@ function Profile() {
               </div>
                 </div>
             )}
-            {!isRefreshing && !accountData?.parentAddress && walletAddr && (
+            {/* Hide missing data note for public profiles; only show when viewing own profile */}
+            {!isRefreshing && accountData?.parentAddress?.toLowerCase() === walletAddr?.toLowerCase() && !accountData?.parentAddress && walletAddr && (
               <p className="mb-6">
                 No account data or child accounts found for this profile.
               </p>
+            )}
+            {/* Show note for public profiles that Accounts Breakdown is only available when logged in */}
+            {!isRefreshing && accountData?.parentAddress?.toLowerCase() !== walletAddr?.toLowerCase() && walletAddr && (
+              <div className="rounded-lg shadow border border-brand-primary mb-6">
+                <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
+                  <h3 className="text-sm font-semibold m-0 text-brand-text">Accounts Breakdown</h3>
+                </div>
+                <div className="bg-brand-primary rounded-b-lg p-4">
+                  <p className="text-sm text-brand-text/70 text-center m-0">
+                    This section is only available when you are logged in and viewing your own profile.
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* User Activity: Swap History */}
