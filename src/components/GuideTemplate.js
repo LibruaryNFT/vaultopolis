@@ -98,13 +98,13 @@ function GuideTemplate({
   icon: Icon, 
   difficulty, 
   estimatedTime, 
-  steps, 
+  steps = [], 
   prerequisites,
   successMessage, 
   officialDocs, 
   videoEmbed,
   lastUpdated,
-  faq
+  faq = []
 }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError] = useState(false);
@@ -157,7 +157,7 @@ function GuideTemplate({
     },
     "timeRequired": estimatedTime,
     "difficultyLevel": difficulty,
-    "step": steps.map((step, index) => ({
+    "step": (steps || []).map((step, index) => ({
       "@type": "HowToStep",
       "position": step.id,
       "name": step.title,
@@ -301,7 +301,7 @@ function GuideTemplate({
 
                   {/* Step Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {steps.map((step) => (
+                    {(steps || []).map((step) => (
                       <div key={step.id} ref={(el) => (stepRefs.current[step.id] = el)}>
                         <Step step={step} />
                       </div>

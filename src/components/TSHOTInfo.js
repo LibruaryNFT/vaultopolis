@@ -370,7 +370,8 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error, onConnectWalle
               Supercharged Weeks
             </h3>
             <div className="text-3xl font-bold text-yellow-300 mb-2">3,000 $FLOW</div>
-            <div className="text-white/70 text-sm mb-4">(~$840 USD) - Double rewards!</div>
+            <div className="text-white/70 text-sm mb-4">(~$840 USD) - Base reward × 2</div>
+            <p className="text-white/80 text-xs mb-3">On supercharged weeks, the reward pool is doubled (base × 2).</p>
             <div className="space-y-2 text-sm text-white/90">
               <div>🔥 Week 1: NBA Tip-Off (Oct 21-27)</div>
               <div>🔥 Week 6: Thanksgiving Games (Nov 25-Dec 1)</div>
@@ -379,27 +380,11 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error, onConnectWalle
           </div>
         </div>
 
-        {/* APR Calculation */}
-        <div className="bg-white/5 rounded-lg p-6 border border-white/20 mb-6">
-          <h3 className="text-lg font-bold text-white mb-3">📊 Your Potential APR</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="text-white/70 mb-1">Base Week APR</div>
-              <div className="text-2xl font-bold text-yellow-300">~445%</div>
-            </div>
-            <div>
-              <div className="text-white/70 mb-1">Supercharged Week APR</div>
-              <div className="text-2xl font-bold text-yellow-300">~890%</div>
-            </div>
-          </div>
-          <p className="text-white/60 text-xs mt-3">*Based on current eligible supply of ~24,564 $TSHOT. APR will decrease as more users join.</p>
-        </div>
-
         {/* How to Participate */}
         <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
           <h3 className="text-lg font-bold text-white mb-4">🚀 How to Participate</h3>
           <div className="max-w-md mx-auto">
-            <div className="bg-white/5 rounded-lg p-4 space-y-2">
+            <div className="bg-white/5 rounded-lg p-4 space-y-3">
               <div className="font-semibold text-white mb-2">Bridge & Hold $TSHOT on Flow EVM</div>
               <p className="text-white/90 text-sm">1. Bridge your TSHOT to Flow EVM</p>
               <a href="/guides/tshot-bridging" className="text-yellow-300 hover:text-yellow-200 inline-flex items-center gap-1 text-sm font-medium">
@@ -409,6 +394,12 @@ function TSHOTInfo({ vaultSummary, analyticsData, loading, error, onConnectWalle
               <a href="https://app.merkl.xyz/opportunities/flow/ERC20LOGPROCESSOR/0xC618a7356FcF601f694C51578CD94144Deaee690" target="_blank" rel="noreferrer" className="text-yellow-300 hover:text-yellow-200 inline-flex items-center gap-1 text-sm font-medium">
                 View Rewards on Merkl → <ExternalLink className="h-4 w-4" />
               </a>
+              <div className="pt-4 border-t border-white/20 mt-4">
+                <a href="/guides/tshot-rewards" className="text-yellow-300 hover:text-yellow-200 inline-flex items-center gap-2 text-sm font-medium">
+                  Read Complete Guide →
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
             </div>
           </div>
         </div>

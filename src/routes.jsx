@@ -29,6 +29,12 @@ import NFTToTSHOTGuide     from "./pages/guides/NFTToTSHOTGuide";
 import TSHOTToNFTGuide     from "./pages/guides/TSHOTToNFTGuide";
 import TSHOTBridgingGuide   from "./pages/guides/TSHOTBridgingGuide";
 import QuickStartGuidePage from "./pages/guides/QuickStartGuidePage";
+import WhatIsTSHOT from "./pages/guides/WhatIsTSHOT";
+import TSHOTRewardsGuide from "./pages/guides/TSHOTRewardsGuide";
+import HowToGetFLOW from "./pages/guides/HowToGetFLOW";
+import TransferGuide from "./pages/guides/TransferGuide";
+import BountiesGuide from "./pages/guides/BountiesGuide";
+import DeFiBasicsGuide from "./pages/guides/DeFiBasicsGuide";
 import FAQ from "./pages/guides/FAQ";
 
 
@@ -53,6 +59,12 @@ const routes = [
   { path: "/guides",      element: <Layout><Guides /></Layout> },
   { path: "/guides/faq",  element: <Layout><FAQ /></Layout> },
   { path: "/guides/quick-start", element: <Layout><QuickStartGuidePage /></Layout> },
+  { path: "/guides/what-is-tshot", element: <Layout><WhatIsTSHOT /></Layout> },
+  { path: "/guides/tshot-rewards", element: <Layout><TSHOTRewardsGuide /></Layout> },
+  { path: "/guides/how-to-get-flow", element: <Layout><HowToGetFLOW /></Layout> },
+  { path: "/guides/transfer", element: <Layout><TransferGuide /></Layout> },
+  { path: "/guides/bounties", element: <Layout><BountiesGuide /></Layout> },
+  { path: "/guides/defi-basics", element: <Layout><DeFiBasicsGuide /></Layout> },
   { path: "/news", element: <Layout><Announcements /></Layout> },
 
   { path: "/guides/dapper-wallet", element: <Layout><DapperWalletGuide /></Layout> },

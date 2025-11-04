@@ -1,7 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Zap } from "lucide-react";
 import { FaBookOpen } from "react-icons/fa";
 import PageWrapper from "../../components/PageWrapper";
 import ContentPanel from "../../components/ContentPanel";
@@ -13,19 +13,19 @@ function QuickStartGuidePage() {
     <>
       <Helmet>
         <title>Quick Start: From Zero to TSHOT - Vaultopolis</title>
-        <meta name="description" content="Get your first TSHOT tokens in 5 simple steps. Start with Flow wallet setup, then optionally integrate Top Shot, and learn to use TSHOT." />
+        <meta name="description" content="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and earn rewards." />
         <meta name="keywords" content="tshot quick start, vaultopolis guide, flow wallet setup, dapper wallet, nba top shot, tshot token guide" />
         
         {/* Open Graph */}
         <meta property="og:title" content="Quick Start: From Zero to TSHOT - Vaultopolis" />
-        <meta property="og:description" content="Get your first TSHOT tokens in 5 simple steps. Start with Flow wallet setup, then optionally integrate Top Shot, and learn to use TSHOT." />
+        <meta property="og:description" content="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and earn rewards." />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="https://vaultopolis.com/guides/quick-start" />
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary" />
         <meta name="twitter:title" content="Quick Start: From Zero to TSHOT - Vaultopolis" />
-        <meta name="twitter:description" content="Get your first TSHOT tokens in 5 simple steps. Start with Flow wallet setup, then optionally integrate Top Shot, and learn to use TSHOT." />
+        <meta name="twitter:description" content="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, and learn to use TSHOT." />
       </Helmet>
 
       <div className="w-full">
@@ -51,9 +51,27 @@ function QuickStartGuidePage() {
         <PageWrapper padding="md">
           <ContentPanel 
             title="Quick Start: From Zero to TSHOT" 
-            subtitle="Get your first TSHOT tokens in 5 simple steps. Start with Flow wallet setup, then optionally integrate Top Shot, and learn to use TSHOT."
+            subtitle="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and earn rewards."
           >
             <div className="space-y-6">
+              {/* Intro Card */}
+              <Card variant="elevated" padding="md" className="bg-opolis/10 border-opolis/30">
+                <p className="text-sm text-brand-text/80 mb-3 leading-relaxed">
+                  New to TSHOT? Learn what it is and how it works before diving into the steps.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant="primary"
+                    size="sm"
+                    onClick={() => window.location.href = '/guides/what-is-tshot'}
+                    className="inline-flex items-center gap-2"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    What is TSHOT?
+                  </Button>
+                </div>
+              </Card>
+
               {/* Step Cards */}
               <div className="space-y-6">
                 {/* Step 1 */}
@@ -92,7 +110,38 @@ function QuickStartGuidePage() {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-brand-text mb-2 flex items-center gap-2">
-                        Get a Dapper Wallet (Optional)
+                        Get $FLOW for Transaction Fees
+                        <span className="text-xs bg-brand-primary/50 text-brand-text/70 px-2 py-1 rounded-full">
+                          Optional
+                        </span>
+                      </h3>
+                      <p className="text-sm text-brand-text/80 mb-3 leading-relaxed">
+                        <strong>Currently, Flow Wallet is temporarily covering most transaction fees on Vaultopolis.</strong> However, you may still want $FLOW in your wallet for storage capacity (the more NFTs you store, the more FLOW you need as a reserve). Your account automatically comes with 0.001 FLOW minimum, which cannot be withdrawn.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant="primary"
+                          size="sm"
+                          onClick={() => window.location.href = '/guides/how-to-get-flow'}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          Follow the guide: How to Get $FLOW
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Step 3 */}
+                <Card variant="elevated" padding="md">
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-accent text-white flex items-center justify-center text-sm font-bold">
+                      3
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-brand-text mb-2 flex items-center gap-2">
+                        Get a Dapper Wallet
                         <span className="text-xs bg-brand-primary/50 text-brand-text/70 px-2 py-1 rounded-full">
                           Optional
                         </span>
@@ -115,15 +164,15 @@ function QuickStartGuidePage() {
                   </div>
                 </Card>
 
-                {/* Step 3 */}
+                {/* Step 4 */}
                 <Card variant="elevated" padding="md">
                   <div className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-accent text-white flex items-center justify-center text-sm font-bold">
-                      3
+                      4
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-brand-text mb-2 flex items-center gap-2">
-                        Account Linking (Optional)
+                        Account Linking
                         <span className="text-xs bg-brand-primary/50 text-brand-text/70 px-2 py-1 rounded-full">
                           Optional
                         </span>
@@ -146,11 +195,11 @@ function QuickStartGuidePage() {
                   </div>
                 </Card>
 
-                {/* Step 4 */}
+                {/* Step 5 */}
                 <Card variant="elevated" padding="md">
                   <div className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-accent text-white flex items-center justify-center text-sm font-bold">
-                      4
+                      5
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-brand-text mb-2">
@@ -174,11 +223,11 @@ function QuickStartGuidePage() {
                   </div>
                 </Card>
 
-                {/* Step 5 */}
+                {/* Step 6 */}
                 <Card variant="elevated" padding="md">
                   <div className="flex gap-4">
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-accent text-white flex items-center justify-center text-sm font-bold">
-                      5
+                      6
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-brand-text mb-2">
@@ -201,6 +250,35 @@ function QuickStartGuidePage() {
                     </div>
                   </div>
                 </Card>
+
+                {/* Step 7 */}
+                <Card variant="elevated" padding="md">
+                  <div className="flex gap-4">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-accent text-white flex items-center justify-center text-sm font-bold">
+                      7
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-brand-text mb-2 flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-opolis" />
+                        Earn Rewards by Holding TSHOT
+                      </h3>
+                      <p className="text-sm text-brand-text/80 mb-3 leading-relaxed">
+                        Earn weekly $FLOW rewards by holding TSHOT on Flow EVM. Bridge your TSHOT to Flow EVM and hold to participate in the rewards program. No staking required—just hold and earn.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button 
+                          variant="primary"
+                          size="sm"
+                          onClick={() => window.location.href = '/guides/tshot-rewards'}
+                          className="inline-flex items-center gap-2"
+                        >
+                          <BookOpen className="w-4 h-4" />
+                          Follow the guide: TSHOT Rewards Program
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
               </div>
 
               {/* Success Message */}
@@ -214,6 +292,25 @@ function QuickStartGuidePage() {
                   </p>
                 </div>
               </Card>
+
+              {/* Related Guides */}
+              <div className="pt-4 border-t border-brand-border">
+                <h3 className="font-semibold text-brand-text mb-3">
+                  Related Guides
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  <Link to="/guides/what-is-tshot">
+                    <Button variant="secondary" size="md">
+                      What is TSHOT?
+                    </Button>
+                  </Link>
+                  <Link to="/guides/tshot-rewards">
+                    <Button variant="secondary" size="md">
+                      TSHOT Rewards Program
+                    </Button>
+                  </Link>
+                </div>
+              </div>
 
               {/* Footer Info */}
               <Card variant="secondary" padding="md">
