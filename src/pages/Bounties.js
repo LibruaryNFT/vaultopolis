@@ -676,6 +676,16 @@ export default function Bounties({ collectionType = 'topshot' }) {
             >
               <span className="text-sm sm:text-base">Top Shot</span>
             </button>
+            <button
+              onClick={() => navigate('/bounties/allday')}
+              className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
+                collectionType === 'allday'
+                  ? 'border-brand-accent text-brand-accent bg-brand-secondary'
+                  : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
+              }`}
+            >
+              <span className="text-sm sm:text-base">AllDay</span>
+            </button>
           </div>
         </div>
       </div>
@@ -705,7 +715,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
               {/* Treasury Grails Acquired */}
               <div className="text-center bg-brand-secondary rounded-lg p-3 flex flex-col justify-center min-h-[80px]">
                 <Link 
-                  to="/vaults/treasury" 
+                  to={collectionType === 'allday' ? "/vaults/alldaygrails" : "/vaults/treasury"} 
                   className="block hover:bg-brand-secondary/80 rounded-lg p-2 transition-colors flex flex-col justify-center h-full"
                 >
                   <div className="text-xl sm:text-2xl font-bold text-brand-text">

@@ -19,8 +19,17 @@ export const AnnouncementProvider = ({ children }) => {
       snippet: 'Earn massive weekly rewards for holding $TSHOT on Flow EVM. 22,500 FLOW distributed over 12 weeks.',
       link: '/tshot?scroll=rewards',
       date: new Date('2025-10-21'),
-      featured: true, // Shows in banner
+      featured: false, // Notification center only
       category: 'Campaign'
+    },
+    {
+      id: 'allday-grail-bounties-launch',
+      title: '🏈 NFL AllDay Grail Bounties Now Live',
+      snippet: 'We\'ve launched Grail Bounties for NFL AllDay moments! Browse and accept offers for rare AllDay moments from the vault.',
+      link: '/bounties/allday',
+      date: new Date(),
+      featured: true, // Shows in banner
+      category: 'Launch'
     }
     // Add more announcements here as needed
   ]);

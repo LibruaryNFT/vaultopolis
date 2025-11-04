@@ -119,7 +119,7 @@ const Header = () => {
 
           <NavLink 
             to="/vaults/tshot" 
-            isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury"}
+            isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury" || location.pathname === "/vaults/topshotgrails" || location.pathname === "/vaults/alldaygrails"}
             onMouseEnter={() => setActiveDropdown(null)}
           >
             Vaults
@@ -223,7 +223,7 @@ const Header = () => {
                 Grail Bounties
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/vaults/tshot" isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury"} onClick={closeMobileMenu}>
+              <MobileNavLink to="/vaults/tshot" isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury" || location.pathname === "/vaults/topshotgrails" || location.pathname === "/vaults/alldaygrails"} onClick={closeMobileMenu}>
                 Vaults
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
