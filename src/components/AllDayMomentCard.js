@@ -78,6 +78,7 @@ const AllDayMomentCard = ({
   handleNFTSelection,
   isSelected,
   disableHover = false,
+  showMetadata = false,
 }) => {
   const [imageUrl, setImageUrl] = useState("");
 
@@ -233,6 +234,19 @@ const AllDayMomentCard = ({
           {serialNumber} / {mintCountFormatted}
         </p>
       </div>
+
+      {/* On-Chain Metadata Display */}
+      {showMetadata && (
+        <div className="mt-1 pt-1 border-t border-gray-700 space-y-0.5">
+          {nft?.editionID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">editionID: {nft.editionID}</p>}
+          {nft?.setID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">setID: {nft.setID}</p>}
+          {nft?.playID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">playID: {nft.playID}</p>}
+          {nft?.numMinted !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">numMinted: {nft.numMinted}</p>}
+          {nft?.seriesID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">seriesID: {nft.seriesID}</p>}
+          {nft?.series !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">series: {nft.series}</p>}
+          {nft?.tier !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">tier: {nft.tier}</p>}
+        </div>
+      )}
     </div>
   );
 };

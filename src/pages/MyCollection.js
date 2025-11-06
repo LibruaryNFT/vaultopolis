@@ -38,6 +38,9 @@ export default function MyCollection() {
   // Collection type state (Top Shot vs All Day)
   const [collectionType, setCollectionType] = useState('topshot');
 
+  // Show metadata toggle state
+  const [showMetadata, setShowMetadata] = useState(false);
+
   // Removed verbose AllDay debug logs to reduce console noise
   
   
@@ -768,6 +771,19 @@ export default function MyCollection() {
                 </div>
               )}
 
+              {/* Show Metadata Toggle */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
+                <label className="flex items-center gap-1 text-base">
+                  <input
+                    type="checkbox"
+                    checked={showMetadata}
+                    onChange={(e) => setShowMetadata(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className="text-sm text-white">Show On-Chain Metadata</span>
+                </label>
+              </div>
+
               {/* Bottom section with sort, refresh, and reset */}
               <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-brand-primary/30">
                 <div className="flex items-center justify-between">
@@ -833,6 +849,7 @@ export default function MyCollection() {
                             currentPage: 1,
                           });
                         }
+                        setShowMetadata(false);
                       }}
                       className="px-1.5 py-0.5 bg-brand-primary rounded hover:opacity-80 text-xs"
                     >
@@ -866,6 +883,7 @@ export default function MyCollection() {
                     handleNFTSelection={() => {}} // No selection needed for collection view
                     isSelected={false}
                     disableHover={true} // Disable hover states for collection view
+                    showMetadata={showMetadata}
                   />
                 );
               } else {
@@ -877,6 +895,7 @@ export default function MyCollection() {
                     isSelected={false}
                     disableHover={true} // Disable hover states for collection view
                     collectionType={collectionType} // Pass collection type to MomentCard
+                    showMetadata={showMetadata}
                   />
                 );
               }

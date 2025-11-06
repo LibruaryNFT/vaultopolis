@@ -88,6 +88,7 @@ const MomentCard = ({
   isSelected,
   disableHover = false,
   collectionType = 'topshot',
+  showMetadata = false,
 }) => {
   const [imageUrl, setImageUrl] = useState("");
   const [triedFallback, setTriedFallback] = useState(false); // State to prevent infinite loops
@@ -266,6 +267,19 @@ const MomentCard = ({
           {serialNumber} / {mintCount}
         </p>
       </div>
+
+      {/* On-Chain Metadata Display */}
+      {showMetadata && collectionType === 'topshot' && (
+        <div className="mt-1 pt-1 border-t border-gray-700 space-y-0.5">
+          {nft?.id && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">id: {nft.id}</p>}
+          {nft?.setID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">setID: {nft.setID}</p>}
+          {nft?.playID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">playID: {nft.playID}</p>}
+          {nft?.momentCount !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">momentCount: {nft.momentCount}</p>}
+          {nft?.series !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">series: {nft.series}</p>}
+          {nft?.tier !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">tier: {nft.tier}</p>}
+          {nft?.retired !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">retired: {String(nft.retired)}</p>}
+        </div>
+      )}
     </div>
   );
 };
