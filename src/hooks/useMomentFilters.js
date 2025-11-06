@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
 } from "react";
 
@@ -138,12 +139,38 @@ export function useMomentFilters({
     return [...s].sort((a, b) => a - b);
   }, [nftDetails]); /* auto-select series on first load */
 
+  // Track previous seriesOptions to detect account switches
+  const prevSeriesOptionsRef = useRef([]);
+
   useEffect(() => {
-    // Force auto-select all series when they become available
+    const prevSeriesOptions = prevSeriesOptionsRef.current;
+    const seriesOptionsChanged = JSON.stringify(prevSeriesOptions) !== JSON.stringify(seriesOptions);
+    
+    // Auto-select all series when they become available (first load)
     if (seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
       setFilter({ selectedSeries: [...seriesOptions] });
+      prevSeriesOptionsRef.current = [...seriesOptions];
+      return;
     }
-  }, [seriesOptions, filter.selectedSeries.length]);
+    
+    // When seriesOptions changes (e.g., switching accounts), reset to all available series
+    // This ensures consistency when switching between parent/child accounts
+    if (seriesOptionsChanged && seriesOptions.length > 0) {
+      // Check if we had "all selected" before (selectedSeries matched previous options length)
+      const hadAllSelected = prevSeriesOptions.length > 0 && 
+        filter.selectedSeries.length === prevSeriesOptions.length &&
+        filter.selectedSeries.every(s => prevSeriesOptions.includes(s));
+      
+      // If we had all selected, or if current selection has invalid series, reset to all
+      const hasInvalidSeries = filter.selectedSeries.some(s => !seriesOptions.includes(s));
+      
+      if (hadAllSelected || hasInvalidSeries || filter.selectedSeries.length === 0) {
+        setFilter({ selectedSeries: [...seriesOptions] });
+      }
+    }
+    
+    prevSeriesOptionsRef.current = [...seriesOptions];
+  }, [seriesOptions, filter.selectedSeries]);
 
   useEffect(() => {
     const newSelectedTiers = allowAllTiers 

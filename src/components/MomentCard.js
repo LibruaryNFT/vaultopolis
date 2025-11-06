@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { FaLock } from "react-icons/fa";
 import { getAllDayImageUrlConsistent } from "../utils/allDayImages";
+import { getSeriesDisplayText } from "../utils/seriesNames";
 
 // Export tierStyles so other components can use them if needed.
 export const tierStyles = {
@@ -142,7 +143,7 @@ const MomentCard = ({
   }, [imageUrl, triedFallback, primaryImageUrl, fallbackImageUrl, collectionType, nft?.id, nft?.editionID]);
 
   const playerName = getDisplayedName(nft);
-  const seriesText = nft?.series !== undefined ? String(nft.series) : "?";
+  const seriesText = getSeriesDisplayText(nft?.series, collectionType);
   const finalMintCount = nft?.subeditionID
     ? nft?.subeditionMaxMint
     : nft?.momentCount;
@@ -251,7 +252,7 @@ const MomentCard = ({
             mb-0
           "
         >
-          Series {seriesText}
+          {seriesText}
         </p>
         <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight mb-0">
           {nft?.name || "Unknown Set"}

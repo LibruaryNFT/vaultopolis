@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { FaLock } from "react-icons/fa";
 import { getAllDayImageUrlConsistent } from "../utils/allDayImages";
+import { getSeriesDisplayText } from "../utils/seriesNames";
 
 // Export tierStyles for AllDay (different from TopShot)
 export const allDayTierStyles = {
@@ -111,7 +112,7 @@ const AllDayMomentCard = ({
   const playerName = getDisplayedName(nft);
   
   // AllDay-specific field mapping from metadata API
-  const seriesText = nft?.series !== undefined ? String(nft.series) : "?";
+  const seriesText = getSeriesDisplayText(nft?.series, 'allday');
   const setName = nft?.setName || "Unknown Set";
   
   // AllDay maxMintSize comes from the Edition, not the NFT directly
@@ -218,7 +219,7 @@ const AllDayMomentCard = ({
             mb-0
           "
         >
-          Series {seriesText}
+          {seriesText}
         </p>
         <p className="text-center text-[10px] sm:text-xs text-brand-text/50 truncate leading-tight mb-0">
           {setName}

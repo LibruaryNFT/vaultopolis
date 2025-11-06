@@ -8,6 +8,7 @@ import AllDayMomentCard from "../components/AllDayMomentCard";
 import AccountSelection from "../components/AccountSelection";
 import { useMomentFilters } from "../hooks/useMomentFilters";
 import PageWrapper from "../components/PageWrapper";
+import { getSeriesFilterLabel } from "../utils/seriesNames";
  
 
 
@@ -394,54 +395,405 @@ export default function MyCollection() {
 
 
           {/* Filter Panel */}
-          <div className="bg-brand-primary p-4 rounded-lg mb-6">
-            <div className="bg-brand-secondary p-4 rounded-lg">
-              {/* Header with count, sort, and reset */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="text-sm text-brand-text/70">
-                  {collectionType === 'topshot' && (
-                    filter.selectedSeries.length === 0 ? (
-                      <p>Please select at least one Series to view available Moments.</p>
-                    ) : eligibleMoments.length === 0 ? (
-                      <p>No Moments match your filters.</p>
-                    ) : (
-                      <p>{eligibleMoments.length} Moments match your filters.</p>
-                    )
-                  )}
-                  {collectionType === 'allday' && (
-                    eligibleMoments.length === 0 ? (
-                      <p>No Unlocked All Day Moments found.</p>
-                    ) : (
-                      <p>{eligibleMoments.length} Unlocked All Day Moments found.</p>
-                    )
-                  )}
-                  
-                </div>
-                <div className="flex items-center gap-3">
-                  {/* Sort Dropdown */}
+          <div className="bg-brand-primary p-2 rounded-lg mb-6">
+            <div className="bg-brand-secondary p-2 rounded-lg">
+              {/* Filter Controls */}
+
+              {/* Filter Controls - Only show for TopShot */}
+              {collectionType === 'topshot' && (
+                <>
+                  {/* Series */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-xs">Series:</span>
+                      <label className="flex items-center gap-1 text-base">
+                        <input
+                          type="checkbox"
+                          checked={
+                            filter.selectedSeries.length &&
+                            filter.selectedSeries.length === seriesOptions.length
+                          }
+                          onChange={(e) =>
+                            setFilter({
+                              selectedSeries: e.target.checked ? seriesOptions : [],
+                              currentPage: 1,
+                            })
+                          }
+                          className="rounded"
+                        />
+                        All
+                      </label>
+                      {seriesOptions.map((s) => {
+                        const isAllSelected = filter.selectedSeries.length === seriesOptions.length;
+                        const isSeriesSelected = filter.selectedSeries.includes(s);
+                        // When "All" is selected, show individual boxes as unchecked (visual state)
+                        const visualChecked = isAllSelected ? false : isSeriesSelected;
+                        
+                        return (
+                          <label key={s} className="flex items-center gap-1 text-base">
+                            <input
+                              type="checkbox"
+                              checked={visualChecked}
+                              onChange={() => {
+                                if (isAllSelected) {
+                                  // "All" is selected: uncheck "All" and select just this series
+                                  setFilter({ selectedSeries: [s], currentPage: 1 });
+                                } else {
+                                  // Normal toggle behavior
+                                  const next = isSeriesSelected
+                                    ? filter.selectedSeries.filter((x) => x !== s)
+                                    : [...filter.selectedSeries, s];
+                                  setFilter({ selectedSeries: next, currentPage: 1 });
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            {getSeriesFilterLabel(s, 'topshot')}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* Tiers */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-xs">Tiers:</span>
+                      <label className="flex items-center gap-1 text-base">
+                        <input
+                          type="checkbox"
+                          checked={
+                            filter.selectedTiers.length &&
+                            filter.selectedTiers.length === tierOptions.length
+                          }
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              // Check "All" - select all tiers
+                              setFilter({ selectedTiers: tierOptions, currentPage: 1 });
+                            } else {
+                              // Uncheck "All" - but prevent deselecting all, so select just the first tier
+                              if (tierOptions.length > 0) {
+                                setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
+                              }
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        All
+                      </label>
+                      {tierOptions.map((t) => {
+                        const isAllSelected = filter.selectedTiers.length === tierOptions.length;
+                        const isTierSelected = filter.selectedTiers.includes(t);
+                        // When "All" is selected, show individual boxes as unchecked (visual state)
+                        const visualChecked = isAllSelected ? false : isTierSelected;
+                        
+                        return (
+                          <label key={t} className="flex items-center gap-1 text-base">
+                            <input
+                              type="checkbox"
+                              checked={visualChecked}
+                              onChange={() => {
+                                if (isAllSelected) {
+                                  // "All" is selected: uncheck "All" and select just this tier
+                                  setFilter({ selectedTiers: [t], currentPage: 1 });
+                                } else {
+                                  // Normal toggle behavior
+                                  const next = isTierSelected
+                                    ? filter.selectedTiers.filter((x) => x !== t)
+                                    : [...filter.selectedTiers, t];
+                                  // Prevent deselecting all tiers
+                                  if (next.length === 0) {
+                                    return; // Don't allow deselecting all
+                                  }
+                                  setFilter({ selectedTiers: next, currentPage: 1 });
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <span className={t === 'common' ? 'text-gray-400' :
+                              t === 'fandom' ? 'text-lime-400' :
+                              t === 'rare' ? 'text-blue-500' :
+                              t === 'legendary' ? 'text-orange-500' :
+                              t === 'ultimate' ? 'text-pink-500' : 'text-gray-400'
+                            }>
+                              {t[0].toUpperCase() + t.slice(1)}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Other Filters - Only show for TopShot */}
+              {collectionType === 'topshot' && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-brand-text">Sort:</label>
+                    <span className="font-semibold text-xs">League:</span>
                     <select
-                      value={collectionType === 'topshot' ? filter.sortBy : allDayFilter.sortBy}
-                      onChange={(e) => {
-                        if (collectionType === 'topshot') {
-                          setFilter({ ...filter, sortBy: e.target.value, currentPage: 1 });
-                        } else {
-                          setAllDayFilter({ ...allDayFilter, sortBy: e.target.value, currentPage: 1 });
-                        }
-                      }}
-                      className="px-2 py-1 bg-brand-primary border border-white/20 rounded text-brand-text text-sm focus:outline-none focus:ring-2 focus:ring-brand-accent"
+                      value={filter.selectedLeague}
+                      onChange={(e) =>
+                        setFilter({ selectedLeague: e.target.value, currentPage: 1 })
+                      }
+                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
                     >
-                      {sortOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      <option value="All">All</option>
+                      {leagueOptions.map((league) => (
+                        <option key={league} value={league}>
+                          {league}
                         </option>
                       ))}
                     </select>
                   </div>
-                  
-                  <div className="flex justify-between items-center gap-3">
-                    {/* Refresh Button */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs">Set:</span>
+                    <select
+                      value={filter.selectedSetName}
+                      onChange={(e) =>
+                        setFilter({ selectedSetName: e.target.value, currentPage: 1 })
+                      }
+                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                    >
+                      <option value="All">All</option>
+                      {setNameOptions.map((set) => (
+                        <option key={set} value={set}>
+                          {set}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs">Team:</span>
+                    <select
+                      value={filter.selectedTeam}
+                      onChange={(e) =>
+                        setFilter({ selectedTeam: e.target.value, currentPage: 1 })
+                      }
+                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                    >
+                      <option value="All">All</option>
+                      {teamOptions.map((team) => (
+                        <option key={team} value={team}>
+                          {team}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs">Player:</span>
+                    <select
+                      value={filter.selectedPlayer}
+                      onChange={(e) =>
+                        setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
+                      }
+                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                    >
+                      <option value="All">All</option>
+                      {playerOptions.map((player) => (
+                        <option key={player} value={player}>
+                          {player}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* AllDay Filters */}
+              {collectionType === 'allday' && (
+                <>
+                  {/* Series */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-xs">Series:</span>
+                      <label className="flex items-center gap-1 text-base">
+                        <input
+                          type="checkbox"
+                          checked={
+                            allDayFilter.selectedSeries.length &&
+                            allDayFilter.selectedSeries.length === allDayFilterOptions.seriesOptions?.length
+                          }
+                          onChange={(e) =>
+                            setAllDayFilter({
+                              ...allDayFilter,
+                              selectedSeries: e.target.checked ? allDayFilterOptions.seriesOptions || [] : [],
+                              currentPage: 1,
+                            })
+                          }
+                          className="rounded"
+                        />
+                        All
+                      </label>
+                      {(allDayFilterOptions.seriesOptions || []).map((s) => {
+                        const currentSeries = allDayFilter.selectedSeries || [];
+                        const isAllSelected = currentSeries.length === (allDayFilterOptions.seriesOptions?.length || 0);
+                        const isSeriesSelected = currentSeries.includes(s);
+                        // When "All" is selected, show individual boxes as unchecked (visual state)
+                        const visualChecked = isAllSelected ? false : isSeriesSelected;
+                        
+                        return (
+                          <label key={s} className="flex items-center gap-1 text-base">
+                            <input
+                              type="checkbox"
+                              checked={visualChecked}
+                              onChange={() => {
+                                if (isAllSelected) {
+                                  // "All" is selected: uncheck "All" and select just this series
+                                  setAllDayFilter({ ...allDayFilter, selectedSeries: [s], currentPage: 1 });
+                                } else {
+                                  // Normal toggle behavior
+                                  const next = isSeriesSelected
+                                    ? currentSeries.filter((x) => x !== s)
+                                    : [...currentSeries, s];
+                                  setAllDayFilter({ ...allDayFilter, selectedSeries: next, currentPage: 1 });
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            {getSeriesFilterLabel(s, 'allday')}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {/* Tiers */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-xs">Tiers:</span>
+                      <label className="flex items-center gap-1 text-base">
+                        <input
+                          type="checkbox"
+                          checked={
+                            (allDayFilter.selectedTiers || []).length &&
+                            (allDayFilter.selectedTiers || []).length === (allDayFilterOptions.tierOptions || []).length
+                          }
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              // Check "All" - select all tiers
+                              setAllDayFilter({ ...allDayFilter, selectedTiers: allDayFilterOptions.tierOptions || [], currentPage: 1 });
+                            } else {
+                              // Uncheck "All" - but prevent deselecting all, so select just the first tier
+                              if ((allDayFilterOptions.tierOptions || []).length > 0) {
+                                setAllDayFilter({ ...allDayFilter, selectedTiers: [(allDayFilterOptions.tierOptions || [])[0]], currentPage: 1 });
+                              }
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        All
+                      </label>
+                      {(allDayFilterOptions.tierOptions || []).map((t) => {
+                        const currentTiers = allDayFilter.selectedTiers || [];
+                        const isAllSelected = currentTiers.length === (allDayFilterOptions.tierOptions || []).length;
+                        const isTierSelected = currentTiers.includes(t);
+                        // When "All" is selected, show individual boxes as unchecked (visual state)
+                        const visualChecked = isAllSelected ? false : isTierSelected;
+                        
+                        return (
+                          <label key={t} className="flex items-center gap-1 text-base">
+                            <input
+                              type="checkbox"
+                              checked={visualChecked}
+                              onChange={() => {
+                                if (isAllSelected) {
+                                  // "All" is selected: uncheck "All" and select just this tier
+                                  setAllDayFilter({ ...allDayFilter, selectedTiers: [t], currentPage: 1 });
+                                } else {
+                                  // Normal toggle behavior
+                                  const next = isTierSelected
+                                    ? currentTiers.filter((x) => x !== t)
+                                    : [...currentTiers, t];
+                                  // Prevent deselecting all tiers
+                                  if (next.length === 0) {
+                                    return; // Don't allow deselecting all
+                                  }
+                                  setAllDayFilter({ ...allDayFilter, selectedTiers: next, currentPage: 1 });
+                                }
+                              }}
+                              className="rounded"
+                            />
+                            <span className={t === 'common' ? 'text-gray-400' :
+                              t === 'uncommon' ? 'text-lime-400' :
+                              t === 'rare' ? 'text-blue-500' :
+                              t === 'legendary' ? 'text-orange-500' :
+                              t === 'ultimate' ? 'text-pink-500' : 'text-gray-400'
+                            }>
+                              {t[0].toUpperCase() + t.slice(1)}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* AllDay Other Filters */}
+              {collectionType === 'allday' && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs">Team:</span>
+                    <select
+                      value={allDayFilter.selectedTeam}
+                      onChange={(e) =>
+                        setAllDayFilter({ ...allDayFilter, selectedTeam: e.target.value, currentPage: 1 })
+                      }
+                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                    >
+                      <option value="All">All</option>
+                      {(allDayFilterOptions.teamOptions || []).map((team) => (
+                        <option key={team} value={team}>
+                          {team}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs">Player:</span>
+                    <select
+                      value={allDayFilter.selectedPlayer}
+                      onChange={(e) =>
+                        setAllDayFilter({ ...allDayFilter, selectedPlayer: e.target.value, currentPage: 1 })
+                      }
+                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                    >
+                      <option value="All">All</option>
+                      {(allDayFilterOptions.playerOptions || []).map((player) => (
+                        <option key={player} value={player}>
+                          {player}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom section with sort, refresh, and reset */}
+              <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-brand-primary/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-brand-text/70">Sort:</span>
+                      <select
+                        value={collectionType === 'topshot' ? filter.sortBy : allDayFilter.sortBy}
+                        onChange={(e) => {
+                          if (collectionType === 'topshot') {
+                            setFilter({ ...filter, sortBy: e.target.value, currentPage: 1 });
+                          } else {
+                            setAllDayFilter({ ...allDayFilter, sortBy: e.target.value, currentPage: 1 });
+                          }
+                        }}
+                        className="bg-brand-primary text-brand-text rounded px-1 py-0.5 text-xs border border-white/20 focus:outline-none focus:ring-2 focus:ring-brand-accent"
+                      >
+                        {sortOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => {
                         if (collectionType === 'topshot') {
@@ -451,14 +803,11 @@ export default function MyCollection() {
                         }
                       }}
                       disabled={collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay}
-                      className="flex items-center gap-2 px-3 py-1 bg-brand-primary rounded hover:opacity-80 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
                       title={`Refresh ${collectionType === 'topshot' ? 'TopShot' : 'AllDay'} data`}
                     >
-                      <FaSyncAlt size={12} className={(collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay) ? "animate-spin" : ""} />
-                      Refresh Data
+                      <FaSyncAlt size={16} className={`${(collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay) ? "animate-spin" : ""} text-opolis`} />
                     </button>
-                    
-                    {/* Reset Button */}
                     <button
                       onClick={() => {
                         if (collectionType === 'topshot') {
@@ -485,302 +834,17 @@ export default function MyCollection() {
                           });
                         }
                       }}
-                      className="px-3 py-1 bg-brand-primary rounded hover:opacity-80 text-sm font-semibold"
+                      className="px-1.5 py-0.5 bg-brand-primary rounded hover:opacity-80 text-xs"
                     >
                       Reset Filters
                     </button>
                   </div>
                 </div>
               </div>
-
-              {/* Filter Controls - Only show for TopShot */}
-              {collectionType === 'topshot' && (
-                <div className="space-y-4">
-                  {/* Tiers */}
-                  <div>
-                    <h3 className="font-semibold text-sm mb-2">Tiers:</h3>
-                    <div className="flex flex-wrap gap-3">
-                      {tierOptions.map((t) => (
-                        <label key={t} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={filter.selectedTiers.includes(t)}
-                            onChange={() => {
-                              const next = filter.selectedTiers.includes(t)
-                                ? filter.selectedTiers.filter((x) => x !== t)
-                                : [...filter.selectedTiers, t];
-                              setFilter({ selectedTiers: next, currentPage: 1 });
-                            }}
-                            className="rounded"
-                          />
-                          <span className={`text-sm ${
-                            t === 'common' ? 'text-gray-400' :
-                            t === 'fandom' ? 'text-lime-400' :
-                            t === 'rare' ? 'text-blue-500' :
-                            t === 'legendary' ? 'text-orange-500' :
-                            t === 'ultimate' ? 'text-pink-500' : 'text-gray-400'
-                          }`}>
-                            {t[0].toUpperCase() + t.slice(1)}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Series */}
-                  <div>
-                    <h3 className="font-semibold text-sm mb-2">Series:</h3>
-                    <div className="flex flex-wrap gap-3">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={
-                            filter.selectedSeries.length &&
-                            filter.selectedSeries.length === seriesOptions.length
-                          }
-                          onChange={(e) =>
-                            setFilter({
-                              selectedSeries: e.target.checked ? seriesOptions : [],
-                              currentPage: 1,
-                            })
-                          }
-                          className="rounded"
-                        />
-                        <span className="text-sm">All</span>
-                      </label>
-                      {seriesOptions.map((s) => (
-                        <label key={s} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={filter.selectedSeries.includes(s)}
-                            onChange={() => {
-                              const next = filter.selectedSeries.includes(s)
-                                ? filter.selectedSeries.filter((x) => x !== s)
-                                : [...filter.selectedSeries, s];
-                              setFilter({ selectedSeries: next, currentPage: 1 });
-                            }}
-                            className="rounded"
-                          />
-                          <span className="text-sm">{s}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Other Filters */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">League:</label>
-                      <select
-                        value={filter.selectedLeague}
-                        onChange={(e) =>
-                          setFilter({ selectedLeague: e.target.value, currentPage: 1 })
-                        }
-                        className="w-full bg-brand-primary text-brand-text rounded px-2 py-1 text-sm"
-                      >
-                        <option value="All">All</option>
-                        {leagueOptions.map((league) => (
-                          <option key={league} value={league}>
-                            {league}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">Set:</label>
-                      <select
-                        value={filter.selectedSetName}
-                        onChange={(e) =>
-                          setFilter({ selectedSetName: e.target.value, currentPage: 1 })
-                        }
-                        className="w-full bg-brand-primary text-brand-text rounded px-2 py-1 text-sm"
-                      >
-                        <option value="All">All</option>
-                        {setNameOptions.map((set) => (
-                          <option key={set} value={set}>
-                            {set}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">Team:</label>
-                      <select
-                        value={filter.selectedTeam}
-                        onChange={(e) =>
-                          setFilter({ selectedTeam: e.target.value, currentPage: 1 })
-                        }
-                        className="w-full bg-brand-primary text-brand-text rounded px-2 py-1 text-sm"
-                      >
-                        <option value="All">All</option>
-                        {teamOptions.map((team) => (
-                          <option key={team} value={team}>
-                            {team}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">Player:</label>
-                      <select
-                        value={filter.selectedPlayer}
-                        onChange={(e) =>
-                          setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
-                        }
-                        className="w-full bg-brand-primary text-brand-text rounded px-2 py-1 text-sm"
-                      >
-                        <option value="All">All</option>
-                        {playerOptions.map((player) => (
-                          <option key={player} value={player}>
-                            {player}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-1">Status:</label>
-                      <select
-                        value={filter.lockedStatus}
-                        onChange={(e) =>
-                          setFilter({ lockedStatus: e.target.value, currentPage: 1 })
-                        }
-                        className="w-full bg-brand-primary text-brand-text rounded px-2 py-1 text-sm"
-                      >
-                        <option value="All">All</option>
-                        <option value="Unlocked">Unlocked</option>
-                        <option value="Locked">Locked</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* AllDay Filters */}
-              {collectionType === 'allday' && (
-                <div className="space-y-4">
-                  {/* Tiers */}
-                  <div>
-                    <h3 className="font-semibold text-sm mb-2">Tiers:</h3>
-                    <div className="flex flex-wrap gap-3">
-                      {(allDayFilterOptions.tierOptions || []).map((t) => (
-                        <label key={t} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={(allDayFilter.selectedTiers || []).includes(t)}
-                            onChange={() => {
-                              const currentTiers = allDayFilter.selectedTiers || [];
-                              const next = currentTiers.includes(t)
-                                ? currentTiers.filter((x) => x !== t)
-                                : [...currentTiers, t];
-                              setAllDayFilter({ ...allDayFilter, selectedTiers: next, currentPage: 1 });
-                            }}
-                            className="rounded"
-                          />
-                          <span className={`text-sm ${
-                            t === 'common' ? 'text-gray-400' :
-                            t === 'uncommon' ? 'text-lime-400' :
-                            t === 'rare' ? 'text-blue-500' :
-                            t === 'legendary' ? 'text-orange-500' :
-                            t === 'ultimate' ? 'text-pink-500' : 'text-gray-400'
-                          }`}>
-                            {t[0].toUpperCase() + t.slice(1)}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Series */}
-                  <div>
-                    <h3 className="font-semibold text-sm mb-2">Series:</h3>
-                    <div className="flex flex-wrap gap-3">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={
-                            allDayFilter.selectedSeries.length &&
-                            allDayFilter.selectedSeries.length === allDayFilterOptions.seriesOptions?.length
-                          }
-                          onChange={(e) =>
-                            setAllDayFilter({
-                              ...allDayFilter,
-                              selectedSeries: e.target.checked ? allDayFilterOptions.seriesOptions || [] : [],
-                              currentPage: 1,
-                            })
-                          }
-                          className="rounded"
-                        />
-                        <span className="text-sm">All</span>
-                      </label>
-                      {(allDayFilterOptions.seriesOptions || []).map((s) => (
-                        <label key={s} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={(allDayFilter.selectedSeries || []).includes(s)}
-                            onChange={() => {
-                              const currentSeries = allDayFilter.selectedSeries || [];
-                              const next = currentSeries.includes(s)
-                                ? currentSeries.filter((x) => x !== s)
-                                : [...currentSeries, s];
-                              setAllDayFilter({ ...allDayFilter, selectedSeries: next, currentPage: 1 });
-                            }}
-                            className="rounded"
-                          />
-                          <span className="text-sm">{s}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Team and Player */}
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold mb-1">Team:</label>
-                      <select
-                        value={allDayFilter.selectedTeam}
-                        onChange={(e) =>
-                          setAllDayFilter({ ...allDayFilter, selectedTeam: e.target.value, currentPage: 1 })
-                        }
-                        className="w-full bg-brand-primary text-brand-text rounded px-2 py-1 text-sm"
-                      >
-                        <option value="All">All</option>
-                        {(allDayFilterOptions.teamOptions || []).map((team) => (
-                          <option key={team} value={team}>
-                            {team}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="flex-1">
-                      <label className="block text-sm font-semibold mb-1">Player:</label>
-                      <select
-                        value={allDayFilter.selectedPlayer}
-                        onChange={(e) =>
-                          setAllDayFilter({ ...allDayFilter, selectedPlayer: e.target.value, currentPage: 1 })
-                        }
-                        className="w-full bg-brand-primary text-brand-text rounded px-2 py-1 text-sm"
-                      >
-                        <option value="All">All</option>
-                        {(allDayFilterOptions.playerOptions || []).map((player) => (
-                          <option key={player} value={player}>
-                            {player}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                </div>
-              )}
             </div>
           </div>
           {pageCount > 1 && (
-            <div className="flex justify-between items-center mb-4 text-sm text-brand-text/70">
+            <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
               <p>
                 Showing {pageSlice.length} of {eligibleMoments.length.toLocaleString()} items
               </p>
@@ -791,7 +855,7 @@ export default function MyCollection() {
           )}
 
           {/* Moments Display */}
-          <div>
+          <div className="bg-brand-primary text-brand-text p-2 rounded w-full">
             <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
             {pageSlice.map((moment) => {
               if (collectionType === 'allday') {

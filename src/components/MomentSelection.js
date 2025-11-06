@@ -10,6 +10,7 @@ import { Settings as SettingsIcon, RefreshCw } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
+import { getSeriesFilterLabel } from "../utils/seriesNames";
 
 /* ───── colour helpers ───── */
 const colour = {
@@ -70,7 +71,7 @@ const Dropdown = ({
       onChange={onChange}
       disabled={!opts.length}
       title={title}
-      className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40`}
+      className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base`}
     >
       <option value="All">All</option>
       {opts.map((o) => (
@@ -245,7 +246,7 @@ const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
         type="button"
         onClick={handleSubmit}
         disabled={disabled}
-        className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm"
+        className="px-4 py-2 sm:px-3 sm:py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm min-h-[44px] sm:min-h-0"
       >
         Go
       </button>
@@ -410,62 +411,12 @@ export default function MomentSelection(props) {
     <div className="bg-brand-primary text-brand-text p-2 rounded w-full">
       {/* filter panel */}
       <div className="bg-brand-secondary p-2 rounded mb-2">
-        {/* header with count and reset */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs text-brand-text/70">
-            {filter.selectedSeries.length === 0 ? (
-              <p>
-                Please select at least one Series to view available Moments.
-              </p>
-            ) : eligibleMoments.length === 0 ? (
-              <p>No Moments match your filters.</p>
-            ) : (
-              <p>{eligibleMoments.length} Moments match your filters.</p>
-            )}
-          </div>
-          <button
-            onClick={() =>
-              setFilter({
-                selectedTiers: tierOptions,
-                selectedSeries: seriesOptions,
-                selectedSetName: "All",
-                selectedLeague: "All",
-                selectedTeam: "All",
-                selectedPlayer: "All",
-                currentPage: 1,
-              })
-            }
-            className="px-1.5 py-0.5 bg-brand-primary rounded hover:opacity-80 text-xs"
-          >
-            Reset All
-          </button>
-        </div>
-
         {/* filter controls */}
+        {/* Series */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-xs">Tiers:</span>
-            {tierOptions.map((t) => (
-              <label key={t} className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={filter.selectedTiers.includes(t)}
-                  onChange={() => {
-                    const next = filter.selectedTiers.includes(t)
-                      ? filter.selectedTiers.filter((x) => x !== t)
-                      : [...filter.selectedTiers, t];
-                    setFilter({ selectedTiers: next, currentPage: 1 });
-                  }}
-                />
-                <span className={tierClass(t)}>
-                  {t[0].toUpperCase() + t.slice(1)}
-                </span>
-              </label>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-semibold text-xs">Series:</span>
-            <label className="flex items-center gap-1">
+            <label className="flex items-center gap-1 text-base">
               <input
                 type="checkbox"
                 checked={
@@ -481,26 +432,125 @@ export default function MomentSelection(props) {
               />
               All
             </label>
-            {seriesOptions.map((s) => (
-              <label key={s} className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={filter.selectedSeries.includes(s)}
-                  onChange={() => {
-                    const next = filter.selectedSeries.includes(s)
-                      ? filter.selectedSeries.filter((x) => x !== s)
-                      : [...filter.selectedSeries, s];
-                    setFilter({ selectedSeries: next, currentPage: 1 });
-                  }}
-                />
-                {s}
-              </label>
-            ))}
+            {seriesOptions.map((s) => {
+              const isAllSelected = filter.selectedSeries.length === seriesOptions.length;
+              const isSeriesSelected = filter.selectedSeries.includes(s);
+              // When "All" is selected, show individual boxes as unchecked (visual state)
+              const visualChecked = isAllSelected ? false : isSeriesSelected;
+              
+              return (
+                <label key={s} className="flex items-center gap-1 text-base">
+                  <input
+                    type="checkbox"
+                    checked={visualChecked}
+                    onChange={() => {
+                      if (isAllSelected) {
+                        // "All" is selected: uncheck "All" and select just this series
+                        setFilter({ selectedSeries: [s], currentPage: 1 });
+                      } else {
+                        // Normal toggle behavior
+                        const next = isSeriesSelected
+                          ? filter.selectedSeries.filter((x) => x !== s)
+                          : [...filter.selectedSeries, s];
+                        setFilter({ selectedSeries: next, currentPage: 1 });
+                      }
+                    }}
+                  />
+                  {getSeriesFilterLabel(s, 'topshot')}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tiers */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-semibold text-xs">Tiers:</span>
+            <label className="flex items-center gap-1 text-base">
+              <input
+                type="checkbox"
+                checked={
+                  filter.selectedTiers.length &&
+                  filter.selectedTiers.length === tierOptions.length
+                }
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    // Check "All" - select all tiers
+                    setFilter({ selectedTiers: tierOptions, currentPage: 1 });
+                  } else {
+                    // Uncheck "All" - but prevent deselecting all, so select just the first tier
+                    if (tierOptions.length > 0) {
+                      setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
+                    }
+                  }
+                }}
+              />
+              All
+            </label>
+            {tierOptions.map((t) => {
+              const isAllSelected = filter.selectedTiers.length === tierOptions.length;
+              const isTierSelected = filter.selectedTiers.includes(t);
+              // When "All" is selected, show individual boxes as unchecked (visual state)
+              const visualChecked = isAllSelected ? false : isTierSelected;
+              
+              return (
+                <label key={t} className="flex items-center gap-1 text-base">
+                  <input
+                    type="checkbox"
+                    checked={visualChecked}
+                    onChange={() => {
+                      if (isAllSelected) {
+                        // "All" is selected: uncheck "All" and select just this tier
+                        setFilter({ selectedTiers: [t], currentPage: 1 });
+                      } else {
+                        // Normal toggle behavior
+                        const next = isTierSelected
+                          ? filter.selectedTiers.filter((x) => x !== t)
+                          : [...filter.selectedTiers, t];
+                        // Prevent deselecting all tiers
+                        if (next.length === 0) {
+                          return; // Don't allow deselecting all
+                        }
+                        setFilter({ selectedTiers: next, currentPage: 1 });
+                      }
+                    }}
+                  />
+                  <span className={tierClass(t)}>
+                    {t[0].toUpperCase() + t.slice(1)}
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+          <div className="h-6 w-px bg-brand-primary/30 mx-2"></div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-xs">Safety Filters:</span>
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={filter.excludeSpecialSerials}
+                onChange={(e) =>
+                  setFilter({ excludeSpecialSerials: e.target.checked })
+                }
+              />
+              <span className="text-xs">Exclude #1 / Jersey / Last Mint</span>
+            </label>
+            <label className="flex items-center gap-1">
+              <input
+                type="checkbox"
+                checked={filter.excludeLowSerials}
+                onChange={(e) =>
+                  setFilter({ excludeLowSerials: e.target.checked })
+                }
+              />
+              <span className="text-xs">Exclude serials ≤ 4000</span>
+            </label>
           </div>
         </div>
 
         {/* other filters */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-xs">League:</span>
             <Dropdown
@@ -572,35 +622,8 @@ export default function MomentSelection(props) {
           </div>
         </div>
 
-        {/* serial filters */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2">
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={filter.excludeSpecialSerials}
-              onChange={(e) =>
-                setFilter({ excludeSpecialSerials: e.target.checked })
-              }
-            />
-            <span className="text-xs">#1 / Jersey / Last Mint</span>
-          </label>
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={filter.excludeLowSerials}
-              onChange={(e) =>
-                setFilter({ excludeLowSerials: e.target.checked })
-              }
-            />
-            <span className="text-xs">Exclude serials ≤ 4000</span>
-          </label>
-        </div>
-
         {/* bottom section */}
-        <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-brand-primary">
-          <div className="text-xs text-brand-text/70">
-            Only unlocked Common / Fandom can be swapped.
-          </div>
+        <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-brand-primary/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
@@ -614,7 +637,7 @@ export default function MomentSelection(props) {
                 className="p-1 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
               >
                 <RefreshCw
-                  size={20}
+                  size={16}
                   className={`${
                     isRefreshing ? "animate-spin" : ""
                   } text-opolis`}
@@ -640,10 +663,26 @@ export default function MomentSelection(props) {
                   Filter settings
                 </span>
                 <SettingsIcon
-                  size={24}
+                  size={18}
                   strokeWidth={2.4}
                   className="text-brand-text"
                 />
+              </button>
+              <button
+                onClick={() =>
+                  setFilter({
+                    selectedTiers: tierOptions,
+                    selectedSeries: seriesOptions,
+                    selectedSetName: "All",
+                    selectedLeague: "All",
+                    selectedTeam: "All",
+                    selectedPlayer: "All",
+                    currentPage: 1,
+                  })
+                }
+                className="px-1.5 py-0.5 bg-brand-primary rounded hover:opacity-80 text-xs"
+              >
+                Reset Filters
               </button>
             </div>
           </div>
