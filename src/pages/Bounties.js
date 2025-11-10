@@ -965,8 +965,33 @@ export default function Bounties({ collectionType = 'topshot' }) {
           
           {loading && <p className="text-sm text-brand-text/70">Loading bounties…</p>}
           {error && <p className="text-sm text-red-400">{error}</p>}
-          {!loading && !error && offers.length === 0 && (
-            <p className="text-sm text-brand-text/70">No active bounties found for {OFFER_OWNER_ADDRESS}.</p>
+          {!loading && !error && displayedOffers.length === 0 && (
+            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 text-center">
+              <p className="text-sm text-yellow-300 font-semibold mb-2">
+                No Active Bounties
+              </p>
+              <p className="text-sm text-yellow-200/90 mb-3">
+                We will announce when the next wave of bounties will be released. Stay tuned on{" "}
+                <a
+                  href="https://x.com/vaultopolis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-300 hover:text-yellow-200 underline font-medium transition-colors"
+                >
+                  Twitter
+                </a>
+                {" "}and{" "}
+                <a
+                  href="https://discord.gg/nJdwqYfenh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-300 hover:text-yellow-200 underline font-medium transition-colors"
+                >
+                  Discord
+                </a>
+                .
+              </p>
+            </div>
           )}
           {!loading && !error && displayedOffers.length > 0 && (
             <div>
