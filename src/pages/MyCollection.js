@@ -9,6 +9,7 @@ import AccountSelection from "../components/AccountSelection";
 import { useMomentFilters } from "../hooks/useMomentFilters";
 import PageWrapper from "../components/PageWrapper";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
+import { SUBEDITIONS } from "../utils/subeditions";
  
 
 
@@ -190,6 +191,8 @@ export default function MyCollection() {
     setNameOptions,
     teamOptions,
     playerOptions,
+    subeditionOptions,
+    subMeta,
     eligibleMoments: topShotEligibleMoments,
   } = useMomentFilters({
     nftDetails: collectionType === 'topshot' ? moments : [], // Only use TopShot moments for TopShot filtering
@@ -597,6 +600,44 @@ export default function MyCollection() {
                           {player}
                         </option>
                       ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs">Parallel:</span>
+                    <select
+                      value={filter.selectedSubedition}
+                      onChange={(e) =>
+                        setFilter({ selectedSubedition: e.target.value, currentPage: 1 })
+                      }
+                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                      title="Filter by parallel/subedition"
+                    >
+                      <option value="All">All</option>
+                      {subeditionOptions.map((subId) => {
+                        const id = Number(subId);
+                        const sub = subMeta[id] || SUBEDITIONS[id];
+                        if (!sub) {
+                          const count = topShotEligibleMoments.filter((m) => {
+                            const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
+                            return String(effectiveSubId) === String(subId);
+                          }).length;
+                          return (
+                            <option key={subId} value={subId}>
+                              Subedition {id} ({count})
+                            </option>
+                          );
+                        }
+                        const minted = sub.minted || 0;
+                        const count = topShotEligibleMoments.filter((m) => {
+                          const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
+                          return String(effectiveSubId) === String(subId);
+                        }).length;
+                        return (
+                          <option key={subId} value={subId}>
+                            {sub.name} /{minted} ({count})
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>

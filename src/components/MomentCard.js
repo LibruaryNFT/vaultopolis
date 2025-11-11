@@ -27,15 +27,15 @@ function formatNumber(num, isMintCount = false) {
   if (!isMintCount) return num.toString();
 
   // For mint counts, use more precise formatting
-  if (num < 1000) {
-    // Always show full number under 1k
+  if (num < 1300) {
+    // Always show full number under 1300
     return num.toString();
   }
   if (num < 10000) {
-    // For numbers 1k-10k, show with decimal precision
+    // For numbers 1300-10k, show with decimal precision
     const thousands = num / 1000;
     if (thousands % 1 === 0) {
-      // Clean thousands (1000, 2000, etc.)
+      // Clean thousands (2000, 3000, etc.)
       return thousands + "k";
     } else {
       // Show one decimal place (1500 -> 1.5k, 7500 -> 7.5k)
@@ -166,7 +166,8 @@ const MomentCard = ({
   const baseCardClasses = `
     w-[80px]
     sm:w-28
-    aspect-[4/7]
+    min-h-[140px]
+    sm:min-h-[196px]
     rounded
     overflow-hidden
     flex
@@ -263,6 +264,18 @@ const MomentCard = ({
         >
           {tierLabel}
         </p>
+        {nft?.subeditionName && nft?.subeditionIcon && (
+          <div className="flex items-center justify-center gap-1 mb-0">
+            <img 
+              src={nft.subeditionIcon} 
+              alt={nft.subeditionName}
+              className="w-3 h-3 object-contain"
+            />
+            <p className="text-center text-[9px] sm:text-[10px] text-brand-text/70 truncate leading-tight">
+              {nft.subeditionName}
+            </p>
+          </div>
+        )}
         <p className="text-center text-[10px] sm:text-xs text-brand-text/60 truncate leading-tight mb-0">
           {serialNumber} / {mintCount}
         </p>
@@ -274,6 +287,7 @@ const MomentCard = ({
           {nft?.id && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">id: {nft.id}</p>}
           {nft?.setID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">setID: {nft.setID}</p>}
           {nft?.playID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">playID: {nft.playID}</p>}
+          {nft?.subeditionID !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">subeditionID: {nft.subeditionID !== null ? nft.subeditionID : 'null'}</p>}
           {nft?.momentCount !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">momentCount: {nft.momentCount}</p>}
           {nft?.series !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">series: {nft.series}</p>}
           {nft?.tier !== undefined && <p className="text-center text-[8px] sm:text-[9px] text-gray-500">tier: {nft.tier}</p>}

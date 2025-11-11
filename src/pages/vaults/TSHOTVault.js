@@ -76,16 +76,16 @@ function TSHOTVaultPage() {
       <div className="w-full">
         <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
           <div className="p-4 border-b border-brand-border">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-brand-text/70">Browse the moments backing TSHOT</p>
-              </div>
-              <a 
-                href="/tshot" 
-                className="inline-flex items-center gap-2 px-6 py-3 bg-brand-accent text-white text-base font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center"
-              >
-                ℹ️ Learn About TSHOT
-              </a>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <p className="text-sm text-brand-text/70">
+                Browse the moments backing TSHOT.{" "}
+                <a 
+                  href="/tshot" 
+                  className="inline-flex items-center gap-1 text-brand-accent hover:text-brand-accent/80 underline font-medium transition-colors"
+                >
+                  Learn more about TSHOT
+                </a>
+              </p>
             </div>
           </div>
           

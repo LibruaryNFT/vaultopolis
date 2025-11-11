@@ -10,21 +10,7 @@ import { commitSwap } from "../flow/commitSwap";
 import { revealSwap } from "../flow/revealSwap";
 import { getTopShotBatched } from "../flow/getTopShotBatched";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
-
-/* ──────────── constants ─────────── */
-const SUBEDITIONS = {
-  1: { name: "Explosion", minted: 500 },
-  2: { name: "Torn", minted: 1000 },
-  3: { name: "Vortex", minted: 2500 },
-  4: { name: "Rippled", minted: 4000 },
-  5: { name: "Coded", minted: 25 },
-  6: { name: "Halftone", minted: 100 },
-  7: { name: "Bubbled", minted: 250 },
-  8: { name: "Diced", minted: 10 },
-  9: { name: "Bit", minted: 50 },
-  10: { name: "Vibe", minted: 5 },
-  11: { name: "Astra", minted: 75 },
-};
+import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
 
 const META_KEY = "topshotMeta_v1";
 const ONE_HOUR = 3_600_000;
@@ -91,10 +77,13 @@ function enrichWithMetadata(list, meta) {
         out.momentCount = Number(m.momentCount);
     }
 
-    if (out.subeditionID && SUBEDITIONS[out.subeditionID]) {
-      const s = SUBEDITIONS[out.subeditionID];
+    // Treat null/undefined as 0 (Standard), or use the actual subeditionID
+    const effectiveSubeditionID = (out.subeditionID === null || out.subeditionID === undefined) ? 0 : out.subeditionID;
+    if (SUBEDITIONS[effectiveSubeditionID]) {
+      const s = SUBEDITIONS[effectiveSubeditionID];
       out.subeditionName = s.name;
       out.subeditionMaxMint = s.minted;
+      out.subeditionIcon = getParallelIconUrl(effectiveSubeditionID);
     }
     return out;
   });
@@ -364,10 +353,13 @@ export default function TSHOTToNFTPanel({
           o.subeditionID =
             o.subeditionID != null ? Number(o.subeditionID) : null;
 
-          if (o.subeditionID && SUBEDITIONS[o.subeditionID]) {
-            const s = SUBEDITIONS[o.subeditionID];
+          // Treat null/undefined as 0 (Standard), or use the actual subeditionID
+          const effectiveSubeditionID = (o.subeditionID === null || o.subeditionID === undefined) ? 0 : o.subeditionID;
+          if (SUBEDITIONS[effectiveSubeditionID]) {
+            const s = SUBEDITIONS[effectiveSubeditionID];
             o.subeditionName = s.name;
             o.subeditionMaxMint = s.minted;
+            o.subeditionIcon = getParallelIconUrl(effectiveSubeditionID);
           }
           return o;
         });

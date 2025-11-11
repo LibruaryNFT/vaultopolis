@@ -15,6 +15,7 @@ import pLimit from "p-limit";
 import { SnapshotManager, tierTally } from "../utils/SnapshotManager"; // Assuming SnapshotManager is simplified (no mergeSnapshot)
 import { fclQueryWithRetry } from "../utils/fclUtils";
 import { metaStore } from "../utils/metaStore";
+import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
 
 /* ───────── cadence imports ───────── */
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
@@ -31,19 +32,7 @@ import { getFlowPricePerNFT } from "../flow/getFlowPricePerNFT";
 export const UserDataContext = createContext();
 
 /* ───────── constants ───────── */
-const SUBEDITIONS = {
-  1: { name: "Explosion", minted: 500 },
-  2: { name: "Torn", minted: 1000 },
-  3: { name: "Vortex", minted: 2500 },
-  4: { name: "Rippled", minted: 4000 },
-  5: { name: "Coded", minted: 25 },
-  6: { name: "Halftone", minted: 100 },
-  7: { name: "Bubbled", minted: 250 },
-  8: { name: "Diced", minted: 10 },
-  9: { name: "Bit", minted: 50 },
-  10: { name: "Vibe", minted: 5 },
-  11: { name: "Astra", minted: 75 },
-};
+// SUBEDITIONS is now imported from utils/subeditions.js
 
 const LIMIT_FCL = pLimit(10);
 const BATCH_SIZE_FCL = 250;
@@ -230,10 +219,13 @@ async function enrichNFTData(list, metadata, subeditionData = SUBEDITIONS) {
       out.teamAtMoment = m.TeamAtMoment ?? n.teamAtMoment;
       out.momentCount = m.momentCount ?? n.momentCount;
     }
-    if (n.subeditionID && subeditionData[n.subeditionID]) {
-      const s = subeditionData[n.subeditionID];
+    // Treat null/undefined as 0 (Standard), or use the actual subeditionID
+    const effectiveSubeditionID = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
+    if (subeditionData[effectiveSubeditionID]) {
+      const s = subeditionData[effectiveSubeditionID];
       out.subeditionName = s.name;
       out.subeditionMaxMint = s.minted;
+      out.subeditionIcon = getParallelIconUrl(effectiveSubeditionID);
     }
     return out;
   });

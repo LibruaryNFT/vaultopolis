@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { SUBEDITIONS as SUB_META_BASE } from "../utils/subeditions";
 
 /* ───────── helpers ───────── */
 const safeStringify = (o) =>
@@ -41,19 +42,8 @@ export const WNBA_TEAMS = [
 export const FORCED_SERIES = [0, 2, 3, 4, 5, 6, 7];
 
 /* master sub-edition map (id → {name, minted}) */
-export const SUB_META = {
-  1: { name: "Explosion", minted: 500 },
-  2: { name: "Torn", minted: 1000 },
-  3: { name: "Vortex", minted: 2500 },
-  4: { name: "Rippled", minted: 4000 },
-  5: { name: "Coded", minted: 25 },
-  6: { name: "Halftone", minted: 100 },
-  7: { name: "Bubbled", minted: 250 },
-  8: { name: "Diced", minted: 10 },
-  9: { name: "Bit", minted: 50 },
-  10: { name: "Vibe", minted: 5 },
-  11: { name: "Astra", minted: 75 },
-};
+// Imported from utils/subeditions.js for consistency
+export const SUB_META = SUB_META_BASE;
 
 /* ───────── default filter ─── */
 const FILTER_SCHEMA = {
@@ -308,7 +298,9 @@ export function useMomentFilters({
         return false;
 
       if (omit !== "subedition" && immediateFilter.selectedSubedition !== "All") {
-        if (String(immediateFilter.selectedSubedition) !== String(n.subeditionID))
+        // Treat null/undefined subeditionID as 0 (Standard) for filtering
+        const effectiveSubId = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
+        if (String(immediateFilter.selectedSubedition) !== String(effectiveSubId))
           return false;
       }
 
@@ -356,18 +348,21 @@ export function useMomentFilters({
     (() => {
       const tally = {};
       dDetails.forEach((n) => {
-        if (!n.subeditionID) return;
+        // Treat null/undefined subeditionID as 0 (Standard) for options
+        const effectiveSubId = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
         // For sub-edition options, don't filter by locked status
         // Only apply other filters (tier, series, etc.) but not locked status
         if (excludeIds.includes(String(n.id))) return;
-        if (!immediateFilter.selectedTiers.includes((n.tier || "").toLowerCase())) return;
-        if (!immediateFilter.selectedSeries.includes(String(n.series))) return;
+        // Only filter by tier if tiers are selected
+        if (immediateFilter.selectedTiers.length > 0 && !immediateFilter.selectedTiers.includes((n.tier || "").toLowerCase())) return;
+        // Only filter by series if series are selected
+        if (immediateFilter.selectedSeries.length > 0 && !immediateFilter.selectedSeries.includes(Number(n.series))) return;
         if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) return;
         if (immediateFilter.selectedLeague !== "All" && n.league !== immediateFilter.selectedLeague) return;
         if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) return;
         if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) return;
         
-        tally[n.subeditionID] = (tally[n.subeditionID] || 0) + 1;
+        tally[effectiveSubId] = (tally[effectiveSubId] || 0) + 1;
       });
 
       const result = Object.keys(tally)
@@ -411,6 +406,13 @@ export function useMomentFilters({
     
     // Player filter
     if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) return false;
+    
+    // Subedition/Parallel filter
+    if (immediateFilter.selectedSubedition !== "All") {
+      // Treat null/undefined subeditionID as 0 (Standard) for filtering
+      const effectiveSubId = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
+      if (String(immediateFilter.selectedSubedition) !== String(effectiveSubId)) return false;
+    }
     
     // Locked status filter
     if (immediateFilter.lockedStatus !== "All") {

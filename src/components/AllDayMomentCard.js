@@ -27,15 +27,15 @@ function formatNumber(num, isMintCount = false) {
   if (!isMintCount) return num.toString();
 
   // For mint counts, use more precise formatting
-  if (num < 1000) {
-    // Always show full number under 1k
+  if (num < 1300) {
+    // Always show full number under 1300
     return num.toString();
   }
   if (num < 10000) {
-    // For numbers 1k-10k, show with decimal precision
+    // For numbers 1300-10k, show with decimal precision
     const thousands = num / 1000;
     if (thousands % 1 === 0) {
-      // Clean thousands (1000, 2000, etc.)
+      // Clean thousands (2000, 3000, etc.)
       return thousands + "k";
     } else {
       // Show one decimal place (1500 -> 1.5k, 7500 -> 7.5k)

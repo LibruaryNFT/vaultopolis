@@ -11,6 +11,7 @@ import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
+import { SUBEDITIONS } from "../utils/subeditions";
 
 /* ───── colour helpers ───── */
 const colour = {
@@ -340,6 +341,8 @@ export default function MomentSelection(props) {
     setNameOptions,
     teamOptions,
     playerOptions,
+    subeditionOptions,
+    subMeta,
     eligibleMoments,
     base,
     prefs,
@@ -618,6 +621,39 @@ export default function MomentSelection(props) {
                   : base.baseNoPlayer.filter((m) => m.fullName === player)
                       .length
               }
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-xs">Parallel:</span>
+            <Dropdown
+              opts={subeditionOptions}
+              value={filter.selectedSubedition}
+              onChange={(e) =>
+                setFilter({ selectedSubedition: e.target.value, currentPage: 1 })
+              }
+              title="Filter by parallel/subedition"
+              countFn={(subId) =>
+                subId === "All"
+                  ? eligibleMoments.length
+                  : eligibleMoments.filter(
+                      (m) => {
+                        const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
+                        return String(effectiveSubId) === String(subId);
+                      }
+                    ).length
+              }
+              labelFn={(subId) => {
+                if (subId === "All") return "All";
+                const id = Number(subId);
+                const sub = subMeta[id] || SUBEDITIONS[id];
+                if (!sub) return `Subedition ${id}`;
+                const minted = sub.minted || 0;
+                const count = eligibleMoments.filter((m) => {
+                  const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
+                  return String(effectiveSubId) === String(subId);
+                }).length;
+                return `${sub.name} /${minted} (${count})`;
+              }}
             />
           </div>
         </div>

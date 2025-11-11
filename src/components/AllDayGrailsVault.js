@@ -146,23 +146,25 @@ function AllDayGrailsVault() {
     <div className="text-brand-text">
       <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
         <div className="p-4 border-b border-brand-border">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <div className="flex items-center gap-3">
               <span className="text-2xl sm:text-3xl" aria-hidden="true">🏈</span>
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold m-0">AllDay Grail Bounties Vault</h2>
-                <p className="text-xs sm:text-sm text-brand-text/70 m-0">
-                  Treasury-held NFL AllDay Moments
-                  {loadingIds ? " (Loading…)" : ` (${momentIds.length.toLocaleString()} total)`}
-                </p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div>
+                  <h2 className="text-lg sm:text-xl font-semibold m-0">AllDay Grail Bounties Vault</h2>
+                  <p className="text-xs sm:text-sm text-brand-text/70 m-0">
+                    Treasury-held NFL AllDay Moments
+                    {loadingIds ? " (Loading…)" : ` (${momentIds.length.toLocaleString()} total)`}
+                  </p>
+                </div>
+                <Link 
+                  to="/bounties/allday" 
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-brand-accent text-white text-sm font-semibold rounded-lg hover:bg-brand-accent/90 transition-all shadow-sm hover:shadow-md"
+                >
+                  💰 View Grail Bounties
+                </Link>
               </div>
             </div>
-            <Link 
-              to="/bounties/allday" 
-              className="inline-flex items-center gap-2 px-6 py-3 bg-brand-accent text-white text-base font-semibold rounded-lg hover:bg-brand-accent/90 transition-colors shadow-md hover:shadow-lg w-full sm:w-auto justify-center"
-            >
-              💰 View Grail Bounties
-            </Link>
           </div>
         </div>
 
