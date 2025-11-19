@@ -5,6 +5,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import Layout           from "./layout/Layout";
+import Home             from "./pages/Home";
 import Swap             from "./pages/Swap";
 import TSHOT            from "./pages/TSHOT";
 import Analytics        from "./pages/Stats";
@@ -19,6 +20,8 @@ import BountiesTopShot from "./pages/BountiesTopShot";
 import BountiesAllDay from "./pages/BountiesAllDay";
 import Announcements from "./pages/Announcements";
 import TermsAndPrivacy  from "./pages/TermsAndPrivacy";
+import TermsOfUse       from "./pages/TermsOfUse";
+import PrivacyPolicy    from "./pages/PrivacyPolicy";
 import ComingSoon       from "./pages/ComingSoon";
 import Guides           from "./pages/Guides";
 import About            from "./pages/About";
@@ -40,7 +43,7 @@ import FAQ from "./pages/guides/FAQ";
 
 /** Export the route object array (React Router v6 friendly) */
 const routes = [
-  { path: "/",            element: <Layout><Swap /></Layout> },
+  { path: "/",            element: <Layout><Home /></Layout> },
   { path: "/swap",        element: <Layout><Swap /></Layout> },
   { path: "/tshot",       element: <Layout><TSHOT /></Layout> },
   { path: "/analytics",   element: <Layout><Analytics /></Layout> },
@@ -79,6 +82,8 @@ const routes = [
   { path: "/guides/bridging-from-fevm", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/about",       element: <Layout><About /></Layout> },
   { path: "/terms",       element: <Layout><TermsAndPrivacy /></Layout> },
+  { path: "/terms-of-use", element: <Layout><TermsOfUse /></Layout> },
+  { path: "/privacy-policy", element: <Layout><PrivacyPolicy /></Layout> },
   { path: "/comingsoon",  element: <ComingSoon /> },
 ];
 

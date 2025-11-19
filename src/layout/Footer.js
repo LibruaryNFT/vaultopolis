@@ -23,17 +23,14 @@ const Footer = () => {
               />
             </div>
             <p className="text-sm text-brand-text/80 max-w-md leading-relaxed">
-              Vaultopolis is a decentralized platform that tokenizes Top Shot
-              Moments into TSHOT, enabling instant bulk trading, yield
-              opportunities, and seamless liquidity management.
+              Vaultopolis is a smart-contract–powered platform that tokenizes Top Shot Moments into TSHOT, enabling instant trading, liquidity, and new utility across the Flow ecosystem.
             </p>
           </div>
 
           {/* Disclaimer Section */}
           <div className="flex items-center">
             <p className="text-sm text-brand-text/80 leading-relaxed">
-              Vaultopolis is not affiliated with Top Shot or Dapper Labs. All
-              operations are executed through decentralized smart contracts.
+              Vaultopolis is not affiliated with Top Shot or Dapper Labs. Core functions are automated by on-chain smart contracts, with Vaultopolis operating and administering the platform.
             </p>
           </div>
         </div>
@@ -51,6 +48,22 @@ const Footer = () => {
               className="text-sm text-brand-text/70 hover:text-brand-text transition-colors"
             >
               Terms of Service
+            </button>
+
+            {/* Terms of Use Button */}
+            <button
+              onClick={() => navigate("/terms-of-use")}
+              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors"
+            >
+              Terms of Use
+            </button>
+
+            {/* Privacy Policy Button */}
+            <button
+              onClick={() => navigate("/privacy-policy")}
+              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors"
+            >
+              Privacy Policy
             </button>
 
             {/* Link to X Account */}

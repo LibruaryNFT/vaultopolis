@@ -326,7 +326,7 @@ export default function MyCollection() {
   return (
     <>
       <Helmet>
-        <title>My Collection | Vaultopolis</title>
+        <title>Vaultopolis - My Collection</title>
         <meta name="description" content="View and manage your NBA Top Shot collection with advanced filtering and sorting options." />
         <meta name="keywords" content="NBA Top Shot, collection, moments, filtering, vaultopolis" />
         <link rel="canonical" href="https://vaultopolis.com/my-collection" />

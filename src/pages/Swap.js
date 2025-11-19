@@ -13,7 +13,6 @@ import { AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { X } from "lucide-react";
 import { motion } from "framer-motion";
-import TSHOTInfo from "../components/TSHOTInfo";
 import SwapApplication from "../components/SwapApplication";
 
 /** Utility to get total TSHOT balance across parent + child. */
@@ -93,24 +92,8 @@ const Swap = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
 
   const [childAddresses, setChildAddresses] = useState([]);
-
-  // TSHOTInfo data fetching state
-  const [vaultSummary, setVaultSummary] = useState(null);
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [tshotLoading, setTshotLoading] = useState(true);
-  const [tshotError, setTshotError] = useState(null);
   const [accountCollections, setAccountCollections] = useState({});
 
-  // Wallet connection function
-  const handleConnectWallet = async () => {
-    try {
-      await fcl.authenticate();
-      // After successful authentication, the user will be redirected to the app automatically
-      // due to the isLoggedIn state change in the conditional rendering
-    } catch (error) {
-      console.error("Failed to connect wallet:", error);
-    }
-  };
 
   // Whenever fromAsset changes, auto-switch toAsset
   useEffect(() => {
@@ -144,54 +127,6 @@ const Swap = () => {
     }
   }, [fromAsset, tshotReceiptAmount]);
 
-  // Fetch TSHOTInfo data for logged-out users
-  useEffect(() => {
-    if (!isLoggedIn) {
-      const fetchTshotData = async () => {
-        try {
-          setTshotLoading(true);
-          const [vaultResponse, analyticsResponse] = await Promise.all([
-            fetch("https://api.vaultopolis.com/tshot-vault"),
-            fetch("https://api.vaultopolis.com/wallet-leaderboard?limit=3000")
-          ]);
-          
-          if (!vaultResponse.ok) {
-            throw new Error(`Vault API error! status: ${vaultResponse.status}`);
-          }
-          if (!analyticsResponse.ok) {
-            throw new Error(`Analytics API error! status: ${analyticsResponse.status}`);
-          }
-          
-          const vaultData = await vaultResponse.json();
-          const leaderboardData = await analyticsResponse.json();
-          
-          // Process analytics data similar to TSHOTAnalytics component
-          const items = leaderboardData.items || [];
-          const totalDeposits = items.reduce((sum, user) => sum + (user.NFTToTSHOTSwapCompleted || 0), 0);
-          const totalWithdrawals = items.reduce((sum, user) => sum + (user.TSHOTToNFTSwapCompleted || 0), 0);
-          const totalMomentsExchanged = totalDeposits + totalWithdrawals;
-          const totalUniqueWallets = items.length;
-          
-          const processedAnalyticsData = {
-            totalMomentsExchanged,
-            totalUniqueWallets,
-            totalDeposits,
-            totalWithdrawals
-          };
-          
-          setVaultSummary(vaultData);
-          setAnalyticsData(processedAnalyticsData);
-        } catch (err) {
-          console.error("Failed to fetch TSHOT data:", err);
-          setTshotError(err.message);
-        } finally {
-          setTshotLoading(false);
-        }
-      };
-
-      fetchTshotData();
-    }
-  }, [isLoggedIn]);
 
   // Load child addresses and check collections independently for step 2
   useEffect(() => {
@@ -502,7 +437,7 @@ const Swap = () => {
     <>
       {/* ────────────── SEO HEAD (new) ────────────── */}
       <Helmet>
-        <title>Vaultopolis | Swap NBA Top Shot Moments for TSHOT Tokens on Flow</title>
+        <title>Vaultopolis - Swap</title>
         <meta
           name="description"
           content="Vaultopolis is a decentralized protocol on Flow blockchain for swapping NBA Top Shot Moments and TSHOT tokens. Mint, burn, or swap TSHOT instantly with 1:1 backing by Top Shot Moments."
@@ -675,14 +610,14 @@ const Swap = () => {
       {/* Featured Announcement Banner */}
       {shouldShowFeaturedBanner && featuredAnnouncement && (
         <div className="w-full bg-gradient-to-r from-brand-accent to-brand-blue text-white py-3 px-4 relative">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-1">
-              <span className="text-xl">{featuredAnnouncement.title.split(' ')[0]}</span>
-              <p className="text-sm sm:text-base font-medium flex-1">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+              <span className="text-xl flex-shrink-0">{featuredAnnouncement.title.split(' ')[0]}</span>
+              <p className="text-sm sm:text-base font-medium flex-1 min-w-0">
                 {featuredAnnouncement.snippet}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center justify-end gap-2 flex-shrink-0">
               <a
                 href={featuredAnnouncement.link}
                 className="px-4 py-2 bg-white text-brand-accent font-semibold rounded-lg hover:bg-white/90 transition-colors text-sm whitespace-nowrap"
@@ -691,7 +626,7 @@ const Swap = () => {
               </a>
               <button
                 onClick={() => dismissBanner(featuredAnnouncement.id)}
-                className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                className="p-1 hover:bg-white/20 rounded-full transition-colors flex-shrink-0"
                 aria-label="Dismiss"
               >
                 <X size={18} />
@@ -701,49 +636,39 @@ const Swap = () => {
         </div>
       )}
 
-      {/* Main Content - Conditional Rendering */}
-      {isLoggedIn ? (
-        <SwapApplication
-          fromAsset={fromAsset}
-          toAsset={toAsset}
-          fromInput={fromInput}
-          toInput={toInput}
-          isOverMax={isOverMax}
-          isOverNFTLimit={isOverNFTLimit}
-          isNFTMode={isNFTMode}
-          dashboardMode={dashboardMode}
-          setFromAsset={setFromAsset}
-          setShowInfoModal={setShowInfoModal}
-          handleFromKeyDown={handleFromKeyDown}
-          handleFromInputChange={handleFromInputChange}
-          toggleAssets={toggleAssets}
-          handleToKeyDown={handleToKeyDown}
-          handleToInputChange={handleToInputChange}
-          renderFromBalance={renderFromBalance}
-          renderToBalance={renderToBalance}
-          renderSwapPanel={renderSwapPanel}
-          accountData={accountData}
-          selectedNFTs={selectedNFTs}
-          selectedAccount={selectedAccount}
-          childAddresses={childAddresses}
-          accountCollections={accountCollections}
-          isLoadingChildren={isLoadingChildren}
-          excludedNftIds={excludedNftIds}
-          handleSelectAccount={handleSelectAccount}
-          setAccountCollections={setAccountCollections}
-          dispatch={dispatch}
-          maxTSHOTAmount={maxTSHOTAmount}
-          onMaxClick={handleMaxClick}
-        />
-      ) : (
-        <TSHOTInfo 
-          vaultSummary={vaultSummary} 
-          analyticsData={analyticsData} 
-          loading={tshotLoading} 
-          error={tshotError}
-          onConnectWallet={handleConnectWallet}
-        />
-      )}
+      {/* Main Content - Always show swap interface */}
+      <SwapApplication
+        fromAsset={fromAsset}
+        toAsset={toAsset}
+        fromInput={fromInput}
+        toInput={toInput}
+        isOverMax={isOverMax}
+        isOverNFTLimit={isOverNFTLimit}
+        isNFTMode={isNFTMode}
+        dashboardMode={dashboardMode}
+        setFromAsset={setFromAsset}
+        setShowInfoModal={setShowInfoModal}
+        handleFromKeyDown={handleFromKeyDown}
+        handleFromInputChange={handleFromInputChange}
+        toggleAssets={toggleAssets}
+        handleToKeyDown={handleToKeyDown}
+        handleToInputChange={handleToInputChange}
+        renderFromBalance={renderFromBalance}
+        renderToBalance={renderToBalance}
+        renderSwapPanel={renderSwapPanel}
+        accountData={accountData}
+        selectedNFTs={selectedNFTs}
+        selectedAccount={selectedAccount}
+        childAddresses={childAddresses}
+        accountCollections={accountCollections}
+        isLoadingChildren={isLoadingChildren}
+        excludedNftIds={excludedNftIds}
+        handleSelectAccount={handleSelectAccount}
+        setAccountCollections={setAccountCollections}
+        dispatch={dispatch}
+        maxTSHOTAmount={maxTSHOTAmount}
+        onMaxClick={handleMaxClick}
+      />
     </>
   );
 };

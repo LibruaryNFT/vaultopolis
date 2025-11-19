@@ -136,7 +136,7 @@ function Guides() {
   return (
     <>
       <Helmet>
-        <title>Guides - Vaultopolis | Complete Step-by-Step Tutorials</title>
+        <title>Vaultopolis - Guides</title>
         <meta name="description" content="Complete step-by-step guides for the Vaultopolis ecosystem. Learn how to create wallets, link accounts, and swap NBA Top Shot Moments for TSHOT tokens." />
         <meta name="keywords" content="Vaultopolis guides, TSHOT tutorial, NBA Top Shot guide, Flow wallet setup, Dapper wallet, account linking, NFT swapping" />
         

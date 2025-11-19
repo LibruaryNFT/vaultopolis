@@ -26,7 +26,6 @@ const Header = () => {
   /* ───────── helpers ───────── */
   const parentAddress = accountData?.parentAddress || user?.addr || "";
   const userButtonAddr = selectedAccount || parentAddress;
-  const isHome = location.pathname === "/";
 
   const toggleMenu = () => setIsMenuOpen((p) => !p);
   const connectWallet = () => fcl.authenticate();
@@ -98,21 +97,11 @@ const Header = () => {
         {/* ── Desktop nav ── */}
         <nav className="hidden lg:flex items-center space-x-0 flex-grow justify-center h-10">
           <NavLink 
-            to="/" 
-            isActive={isHome}
+            to="/swap" 
+            isActive={location.pathname === "/swap"}
             onMouseEnter={() => setActiveDropdown(null)}
           >
             Swap
-          </NavLink>
-
-          <div className="w-px h-6 bg-white/20 mx-2" />
-
-          <NavLink 
-            to="/bounties/topshot" 
-            isActive={location.pathname.startsWith("/bounties")}
-            onMouseEnter={() => setActiveDropdown(null)}
-          >
-            Grail Bounties
           </NavLink>
 
           <div className="w-px h-6 bg-white/20 mx-2" />
@@ -128,21 +117,11 @@ const Header = () => {
           <div className="w-px h-6 bg-white/20 mx-2" />
 
           <NavLink 
-            to="/tshot" 
-            isActive={location.pathname === "/tshot"}
+            to="/bounties/topshot" 
+            isActive={location.pathname.startsWith("/bounties")}
             onMouseEnter={() => setActiveDropdown(null)}
           >
-            TSHOT
-          </NavLink>
-
-          <div className="w-px h-6 bg-white/20 mx-2" />
-
-          <NavLink 
-            to="/my-collection" 
-            isActive={location.pathname === "/my-collection"}
-            onMouseEnter={() => setActiveDropdown(null)}
-          >
-            My Collection
+            Grail Bounties
           </NavLink>
 
           <div className="w-px h-6 bg-white/20 mx-2" />
@@ -152,18 +131,24 @@ const Header = () => {
             onMouseEnter={() => handleDropdownEnter('more')}
             onMouseLeave={handleDropdownLeave}
           >
-            <button className="flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text opacity-70 hover:opacity-100 transition-all duration-200 min-w-[90px] h-10 justify-center">
+            <button className={`flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text transition-all duration-200 min-w-[90px] h-10 justify-center ${location.pathname === "/tshot" || location.pathname === "/my-collection" || location.pathname === "/analytics" || location.pathname === "/transfer" || location.pathname === "/guides" || location.pathname.startsWith("/guides/") || location.pathname === "/about" ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"}`}>
               More <FaChevronDown size={12} className="ml-1" />
             </button>
             {activeDropdown === 'more' && (
               <div className="absolute top-full left-0 w-72 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
+                <DropdownItem to="/tshot" isActive={location.pathname === "/tshot"}>
+                  TSHOT
+                </DropdownItem>
+                <DropdownItem to="/my-collection" isActive={location.pathname === "/my-collection"}>
+                  My Collection
+                </DropdownItem>
                 <DropdownItem to="/analytics" isActive={location.pathname === "/analytics"}>
                   Analytics
                 </DropdownItem>
                 <DropdownItem to="/transfer" isActive={location.pathname === "/transfer"}>
                   Transfer Hub
                 </DropdownItem>
-                <DropdownItem to="/guides" isActive={location.pathname === "/guides"}>
+                <DropdownItem to="/guides" isActive={(location.pathname === "/guides" || location.pathname.startsWith("/guides/")) && location.pathname !== "/guides/faq"}>
                   Guides
                 </DropdownItem>
                 <DropdownItem to="/guides/faq" isActive={location.pathname === "/guides/faq"}>
@@ -215,18 +200,23 @@ const Header = () => {
             className="absolute top-[68px] left-0 w-full lg:hidden bg-brand-secondary text-brand-text shadow-md shadow-black/50"
           >
             <div className="flex flex-col">
-              <MobileNavLink to="/" isActive={isHome} onClick={toggleMobileMenu}>
+              {/* Primary Actions */}
+              <MobileNavLink to="/swap" isActive={location.pathname === "/swap"} onClick={toggleMobileMenu}>
                 Swap
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/bounties/topshot" isActive={location.pathname.startsWith("/bounties")} onClick={closeMobileMenu}>
-                Grail Bounties
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/vaults/tshot" isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury" || location.pathname === "/vaults/topshotgrails" || location.pathname === "/vaults/alldaygrails"} onClick={closeMobileMenu}>
                 Vaults
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/bounties/topshot" isActive={location.pathname.startsWith("/bounties")} onClick={closeMobileMenu}>
+                Grail Bounties
+              </MobileNavLink>
+              
+              {/* Separator between primary and secondary */}
+              <div className="w-full h-0.5 bg-white/30 my-2" />
+              
+              {/* Secondary Items */}
               <MobileNavLink to="/tshot" isActive={location.pathname === "/tshot"} onClick={closeMobileMenu}>
                 TSHOT
               </MobileNavLink>
@@ -243,7 +233,7 @@ const Header = () => {
                 Transfer Hub
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/guides" isActive={location.pathname === "/guides"} onClick={closeMobileMenu}>
+              <MobileNavLink to="/guides" isActive={(location.pathname === "/guides" || location.pathname.startsWith("/guides/")) && location.pathname !== "/guides/faq"} onClick={closeMobileMenu}>
                 Guides
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />

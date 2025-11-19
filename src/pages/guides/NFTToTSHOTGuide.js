@@ -190,7 +190,7 @@ function NFTToTSHOTGuide() {
       },
       {
         question: "Are there any risks involved in swapping?",
-        answer: "The main risk is that you won't get your exact Moments back when redeeming. The protocol is audited and secure, but always ensure you're using the official Vaultopolis platform and verify transaction details in your wallet."
+        answer: "The main risk is that you won't get your exact Moments back when redeeming. The protocol is secure and built on Flow's blockchain, but always ensure you're using the official Vaultopolis platform and verify transaction details in your wallet."
       },
       {
         question: "Can I swap multiple Moments at once?",

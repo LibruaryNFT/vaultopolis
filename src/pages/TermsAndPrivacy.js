@@ -7,29 +7,29 @@ const TermsAndPrivacy = () => {
   return (
     <>
       <Helmet>
-        <title>Terms of Service & Privacy Policy | Vaultopolis</title>
-        <meta name="description" content="Vaultopolis Terms of Service and Privacy Policy. Learn about our decentralized protocol for swapping NBA Top Shot Moments and TSHOT tokens on Flow blockchain." />
-        <meta name="keywords" content="vaultopolis terms, privacy policy, terms of service, flow blockchain terms, nft terms" />
+        <title>Terms of Service | Vaultopolis</title>
+        <meta name="description" content="Vaultopolis Terms of Service. Learn about our smart-contract platform for exchanging digital collectibles and TSHOT tokens on Flow blockchain." />
+        <meta name="keywords" content="vaultopolis terms, terms of service, flow blockchain terms, nft terms, digital collectibles terms" />
         <link rel="canonical" href="https://vaultopolis.com/terms" />
         
         {/* Open Graph Tags */}
-        <meta property="og:title" content="Terms of Service & Privacy Policy | Vaultopolis" />
-        <meta property="og:description" content="Vaultopolis Terms of Service and Privacy Policy for our decentralized protocol." />
+        <meta property="og:title" content="Terms of Service | Vaultopolis" />
+        <meta property="og:description" content="Vaultopolis Terms of Service for our smart-contract platform." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://vaultopolis.com/terms" />
         
         {/* Twitter Card Tags */}
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Terms of Service & Privacy Policy" />
-        <meta name="twitter:description" content="Vaultopolis Terms of Service and Privacy Policy." />
+        <meta name="twitter:title" content="Terms of Service | Vaultopolis" />
+        <meta name="twitter:description" content="Vaultopolis Terms of Service." />
         
         {/* Structured Data */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebPage",
-            "name": "Terms of Service & Privacy Policy",
-            "description": "Vaultopolis Terms of Service and Privacy Policy",
+            "name": "Terms of Service",
+            "description": "Vaultopolis Terms of Service",
             "url": "https://vaultopolis.com/terms"
           })}
         </script>
@@ -37,94 +37,71 @@ const TermsAndPrivacy = () => {
       
       <div className="w-full max-w-4xl mx-auto m-4 p-8 bg-brand-secondary text-brand-text rounded-lg shadow-xl">
         <h1 className="text-3xl font-bold mb-8">
-          Vaultopolis Terms of Service and Privacy Policy
+          Vaultopolis Terms of Service
         </h1>
 
         <div className="space-y-8 text-brand-text/80">
           {/* =============== Introduction =============== */}
           <section className="mb-12">
+            <p className="mb-4 text-sm text-brand-text/60">
+              Last Updated: November 2025
+            </p>
             <p className="mb-6 text-lg font-semibold bg-brand-primary text-brand-text p-4 rounded">
-              PLEASE READ THESE TERMS CAREFULLY. BY USING VAULTOPOLIS OR ANY OF
-              OUR SERVICES, YOU AGREE TO BE BOUND BY THESE TERMS AND CONDITIONS.
+              Please read these Terms carefully. By accessing or using Vaultopolis (the "Platform"), you agree to be bound by these Terms.
             </p>
             <p className="mb-4">
-              Vaultopolis ("we," "us," or "our") is a decentralized application
-              that enables users to swap NBA Top Shot NFTs for TSHOT tokens and
-              back again through smart contracts on the blockchain (collectively,
-              the "App"). The App is currently in a beta/experimental phase and is
-              subject to change without notice.
-            </p>
-            <p className="mb-4">
-              All transactions on Vaultopolis are final. We do not offer refunds
-              or returns for any digital assets or tokens once a transaction has
-              been executed on-chain.
+              Vaultopolis ("we," "us," or "our") provides smart-contract tools that allow users to exchange eligible digital collectibles for TSHOT tokens and redeem TSHOT through automated on-chain mechanisms. The Platform is experimental, may change without notice, and is used at your own risk.
             </p>
           </section>
 
-          {/* =============== 1. Platform Status =============== */}
+          {/* =============== 1. Independent Platform =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              1. Platform Status
+              1. Independent Platform
             </h2>
             <div className="space-y-4">
               <p>
-                Vaultopolis operates as an independent, decentralized platform. We
-                are not affiliated with, endorsed by, or connected to Dapper Labs,
-                NBA Top Shot, the National Basketball Association, or any of their
-                affiliates or subsidiaries.
+                Vaultopolis is an independent project and is not affiliated with, endorsed by, or connected to Dapper Labs, NBA Top Shot, the NBA, or any related entities.
               </p>
               <p>
-                YOU ACKNOWLEDGE AND AGREE THAT WE ARE A DECENTRALIZED PLATFORM AND
-                NOT A BROKER, FINANCIAL INSTITUTION, OR CREDITOR. WE DO NOT TAKE
-                CUSTODY OF YOUR ASSETS OR PROVIDE ANY FINANCIAL ADVICE.
+                We do not act as a broker, exchange, custodian, dealer, advisor, or financial institution. We do not hold user assets; interactions occur directly between users and on-chain smart contracts.
               </p>
             </div>
           </section>
 
-          {/* =============== 2. Services =============== */}
+          {/* =============== 2. Smart Contract-Based Services =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              2. Services
+              2. Smart Contract-Based Services
             </h2>
             <div className="space-y-4">
               <p>
-                The App provides the following services through smart contracts:
+                Through the Platform, users may:
               </p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Swapping NBA Top Shot NFTs for TSHOT tokens</li>
-                <li>Holding and transferring TSHOT tokens</li>
-                <li>
-                  Converting TSHOT tokens back to random NBA Top Shot NFTs from
-                  the vault
-                </li>
-                <li>Verification of NFT ownership and transaction history</li>
+                <li>Deposit eligible digital collectibles into a smart-contract vault</li>
+                <li>Mint TSHOT tokens corresponding to those deposits</li>
+                <li>Redeem TSHOT through automated vault logic that selects an eligible digital collectible</li>
+                <li>View relevant on-chain data associated with digital collectible deposits, withdrawals, and balances</li>
               </ul>
+              <p>
+                All transactions occur exclusively on-chain, and cannot be reversed once executed.
+              </p>
             </div>
           </section>
 
-          {/* =============== 3. Smart Contract Operations =============== */}
+          {/* =============== 3. No Custody or Control =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              3. Smart Contract Operations
+              3. No Custody or Control
             </h2>
             <div className="space-y-4">
               <p>
-                All platform operations are executed through immutable smart
-                contracts on the blockchain. Users acknowledge that:
+                Vaultopolis does not custody or manage user assets off-chain. Smart contracts are autonomous and users interact with them directly.
               </p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>
-                  Smart contracts operate autonomously and cannot be modified once
-                  deployed
-                </li>
-                <li>
-                  Transactions cannot be reversed or modified once confirmed
-                </li>
-                <li>
-                  Random NFT distribution uses verifiable on-chain randomization
-                </li>
-                <li>Smart contract code is public and verifiable</li>
-              </ul>
+              <p>
+                You are responsible for the security of your wallet, keys, and devices.
+              </p>
             </div>
           </section>
 
@@ -134,17 +111,12 @@ const TermsAndPrivacy = () => {
               4. User Responsibilities
             </h2>
             <div className="space-y-4">
-              <p>By using Vaultopolis, you represent and warrant that:</p>
+              <p>By using the Platform, you represent that:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>You are the rightful owner of any NFTs you swap</li>
-                <li>
-                  You understand blockchain technology and smart contract risks
-                </li>
-                <li>You are not located in a prohibited jurisdiction</li>
-                <li>You are of legal age in your jurisdiction</li>
-                <li>
-                  You will not attempt to manipulate or exploit the platform
-                </li>
+                <li>You are the lawful owner of the digital collectibles you interact with</li>
+                <li>You understand blockchain risks, including loss of assets</li>
+                <li>You are not in a prohibited jurisdiction</li>
+                <li>You will not attempt to exploit, attack, or misuse the Platform or smart contracts</li>
               </ul>
             </div>
           </section>
@@ -155,98 +127,78 @@ const TermsAndPrivacy = () => {
               5. Risks
             </h2>
             <div className="space-y-4">
-              <p className="font-semibold">
-                YOU EXPRESSLY UNDERSTAND AND AGREE THAT:
+              <p>
+                Digital collectibles and tokens are volatile and may lose value. You acknowledge:
               </p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>The value of NFTs and TSHOT tokens is highly volatile</li>
-                <li>Smart contracts may contain unknown vulnerabilities</li>
+                <li>Smart contracts may contain bugs or behave unexpectedly</li>
                 <li>Blockchain transactions are irreversible</li>
-                <li>
-                  Random NFT distribution may result in receiving NFTs of
-                  different perceived value
-                </li>
-                <li>Regulatory changes may impact platform operations</li>
-                <li>We cannot guarantee continuous platform availability</li>
+                <li>Redemption results may differ in perceived value</li>
+                <li>The Platform may change, fail, or be discontinued</li>
+                <li>Regulatory changes may affect functionality or availability</li>
               </ul>
+              <p className="font-semibold">
+                You use the Platform entirely at your own risk.
+              </p>
             </div>
           </section>
 
-          {/* =============== 6. Prohibited Activities =============== */}
+          {/* =============== 6. Prohibited Actions =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              6. Prohibited Activities
+              6. Prohibited Actions
             </h2>
             <div className="space-y-4">
-              <p>Users are prohibited from:</p>
+              <p>You may not:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Using automated systems to interact with the platform</li>
-                <li>Attempting to exploit smart contract vulnerabilities</li>
-                <li>Engaging in market manipulation</li>
-                <li>Using the platform for illegal activities</li>
-                <li>Circumventing platform restrictions</li>
+                <li>Exploit smart contracts</li>
+                <li>Use bots or automation to manipulate activity</li>
+                <li>Engage in illegal, fraudulent, or abusive behavior</li>
+                <li>Circumvent rate limits, safeguards, or restrictions</li>
+                <li>Use the Platform for financial crime, sanctions evasion, or other prohibited uses</li>
               </ul>
             </div>
           </section>
 
-          {/* =============== 7. Privacy Policy =============== */}
+          {/* =============== 7. Data & Privacy =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              7. Privacy Policy
+              7. Data & Privacy
             </h2>
             <div className="space-y-4">
-              <p>As a decentralized platform, our data collection is minimal:</p>
-
-              <h3 className="text-xl font-semibold text-brand-text mb-2">
-                Information We Collect:
-              </h3>
-              <ul className="list-disc pl-6 space-y-2 mb-4">
+              <p>
+                Vaultopolis collects minimal information, primarily:
+              </p>
+              <ul className="list-disc pl-6 space-y-2">
                 <li>Public blockchain addresses</li>
-                <li>Transaction data on the blockchain</li>
-                <li>Smart contract interactions</li>
+                <li>On-chain transaction data</li>
                 <li>Basic website analytics</li>
               </ul>
-
-              <h3 className="text-xl font-semibold text-brand-text mb-2">
-                We Do Not Collect:
-              </h3>
-              <ul className="list-disc pl-6 space-y-2 mb-4">
-                <li>Personal identification information</li>
-                <li>KYC/AML information</li>
-                <li>Financial information</li>
-                <li>User accounts or profiles</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-brand-text mb-2">
-                Data Usage:
-              </h3>
-              <ul className="list-disc pl-6 space-y-2">
-                <li>To facilitate smart contract operations</li>
-                <li>To improve platform functionality</li>
-                <li>To monitor platform security</li>
-                <li>To analyze usage patterns</li>
-              </ul>
+              <p>
+                We do not collect personal identification or financial account information.
+              </p>
             </div>
           </section>
 
-          {/* =============== 8. Disclaimer of Warranties =============== */}
+          {/* =============== 8. No Warranties =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              8. Disclaimer of Warranties
+              8. No Warranties
             </h2>
             <div className="space-y-4">
-              <p className="font-semibold">
-                THE APP AND ALL SERVICES ARE PROVIDED "AS IS" WITHOUT WARRANTY OF
-                ANY KIND. WE MAKE NO WARRANTIES, EXPRESSED OR IMPLIED, AND HEREBY
-                DISCLAIM ALL WARRANTIES, INCLUDING:
+              <p>
+                The Platform is provided "as is" without warranties of any kind, express or implied, including:
               </p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Platform availability or reliability</li>
-                <li>Smart contract security</li>
-                <li>NFT or token values</li>
-                <li>Transaction processing times</li>
-                <li>Compatibility with external services</li>
+                <li>Availability</li>
+                <li>Security</li>
+                <li>Smart contract accuracy</li>
+                <li>Market value of digital assets</li>
+                <li>Error-free or uninterrupted access</li>
               </ul>
+              <p>
+                You assume all risks related to your use of the Platform.
+              </p>
             </div>
           </section>
 
@@ -255,112 +207,81 @@ const TermsAndPrivacy = () => {
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
               9. Limitation of Liability
             </h2>
-            <p className="mb-4">
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR
-              ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE
-              DAMAGES ARISING FROM YOUR USE OF THE PLATFORM OR ANY RELATED
-              SERVICES.
-            </p>
+            <div className="space-y-4">
+              <p>
+                To the maximum extent permitted by law, Vaultopolis is not liable for any:
+              </p>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Loss of digital assets</li>
+                <li>Indirect, punitive, or consequential damages</li>
+                <li>Smart contract bugs or failures</li>
+                <li>Wallet breaches or user mistakes</li>
+                <li>Market losses or volatility</li>
+              </ul>
+              <p>
+                Your sole remedy is to stop using the Platform.
+              </p>
+            </div>
           </section>
 
-          {/* =============== 10. Changes to Terms =============== */}
+          {/* =============== 10. Smart Contract Access =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              10. Changes to Terms
-            </h2>
-            <p className="mb-4">
-              We reserve the right to modify these terms at any time. Changes will
-              be effective immediately upon posting to the platform. Your
-              continued use of the platform constitutes acceptance of the modified
-              terms.
-            </p>
-          </section>
-
-          {/* =============== 11. Authorized Use of Smart Contracts =============== */}
-          <section>
-            <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              11. Authorized Use of Smart Contracts
+              10. Smart Contract Access
             </h2>
             <div className="space-y-4">
               <p>
-                Vaultopolis's smart contracts and related functionalities ("Smart
-                Contracts") are intended to be accessed solely through the
-                official user interface at{" "}
-                <a
-                  href="https://vaultopolis.com"
-                  className="text-flow-light hover:text-flow-dark"
-                >
-                  https://vaultopolis.com
-                </a>{" "}
-                (the "Official Interface"). By using the App, you agree not to
-                interact with or invoke the Smart Contracts via any other means,
-                including direct contract calls, unofficial tools, or third-party
-                interfaces, without explicit authorization from Vaultopolis.
+                The Platform's smart contracts are intended to be used via the official Vaultopolis interface.
+              </p>
+              <p>
+                Using them through alternate interfaces, direct calls, scripts, or third-party tools:
               </p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>
-                  <strong>Bypassing Controls:</strong> Any attempt to call or
-                  execute the Smart Contracts outside the Official Interface may
-                  bypass certain controls, checks, or user protections. You
-                  acknowledge that you do so at your own risk and assume full
-                  responsibility for any resulting loss, error, or damage.
-                </li>
-                <li>
-                  <strong>Disclaimer of Liability:</strong> Vaultopolis disclaims
-                  all liability for any losses arising out of or related to Smart
-                  Contract interactions performed outside the Official Interface.
-                  Unauthorized or unsupported integrations may produce unexpected
-                  results and are not covered by Vaultopolis's warranties or
-                  protections.
-                </li>
-                <li>
-                  <strong>No Support:</strong> Vaultopolis does not provide
-                  support for transactions, swaps, or other interactions executed
-                  without using the Official Interface. If you or any third party
-                  uses alternate interfaces or direct calls, you do so entirely at
-                  your own risk and responsibility.
-                </li>
+                <li>May bypass safeguards</li>
+                <li>Is at your own risk</li>
+                <li>Is not supported, and</li>
+                <li>Releases Vaultopolis from any liability for resulting loss or malfunction</li>
               </ul>
             </div>
           </section>
 
-          {/* =============== 12. Indemnification =============== */}
+          {/* =============== 11. Indemnification =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              12. Indemnification
+              11. Indemnification
             </h2>
-            <p className="mb-4">
-              You agree to indemnify and hold harmless Vaultopolis, its affiliates
-              and their respective officers, employees, contractors, agents, and
-              licensors from and against any and all claims, damages, liabilities,
-              costs, or expenses (including reasonable attorneys' fees) arising
-              out of or related to:
-            </p>
-            <ul className="list-disc pl-6 space-y-2">
-              <li>Your use or misuse of the Platform</li>
-              <li>Your violation of these Terms</li>
-              <li>Your violation of any law or regulation</li>
-              <li>Any infringement by you of any intellectual property rights</li>
-            </ul>
+            <div className="space-y-4">
+              <p>
+                You agree to indemnify Vaultopolis from any claims arising from:
+              </p>
+              <ul className="list-disc pl-6 space-y-2">
+                <li>Your use or misuse of the Platform</li>
+                <li>Your breach of these Terms</li>
+                <li>Violations of law or third-party rights</li>
+              </ul>
+            </div>
           </section>
 
-          {/* =============== 13. Beta/Experimental Notice =============== */}
+          {/* =============== 12. Beta Status =============== */}
           <section>
             <h2 className="text-2xl font-semibold text-brand-text mb-4">
-              13. Beta/Experimental Status
+              12. Beta Status
             </h2>
             <p className="mb-4">
-              Vaultopolis is currently offered in a beta/experimental capacity.
-              Features, functionality, and user experience are subject to change
-              without notice. By participating in the beta, you acknowledge the
-              possibility of encountering bugs, errors, or other unforeseen
-              issues.
+              Vaultopolis is currently in an experimental/beta phase.
             </p>
             <p className="mb-4">
-              While we strive to maintain platform stability, we make no
-              guarantees about the reliability, security, or performance of
-              Vaultopolis during the beta phase. You agree to use Vaultopolis at
-              your own risk.
+              Features may change, fail, or be removed without notice.
+            </p>
+          </section>
+
+          {/* =============== 13. Changes to Terms =============== */}
+          <section>
+            <h2 className="text-2xl font-semibold text-brand-text mb-4">
+              13. Changes to Terms
+            </h2>
+            <p className="mb-4">
+              We may modify these Terms at any time. Continued use constitutes acceptance of updated Terms.
             </p>
           </section>
         </div>

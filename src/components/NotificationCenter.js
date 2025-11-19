@@ -47,7 +47,7 @@ export default function NotificationCenter() {
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-brand-secondary border border-brand-border rounded-lg shadow-xl z-50 max-h-[500px] overflow-hidden flex flex-col">
+        <div className="fixed top-[68px] right-0 sm:right-4 w-80 max-w-[calc(100vw-0.5rem)] sm:max-w-[calc(100vw-2rem)] bg-brand-secondary border border-brand-border rounded-lg shadow-xl z-50 max-h-[calc(100vh-80px)] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-brand-border">
             <h3 className="text-lg font-semibold text-brand-text">News & Updates</h3>

@@ -86,7 +86,7 @@ function Analytics() {
     <>
       {/* ─── SEO ─── */}
       <Helmet>
-        <title>Analytics | TSHOT Vault Data & Token Statistics | Vaultopolis</title>
+        <title>Vaultopolis - Analytics</title>
         <meta
           name="description"
           content="Comprehensive analytics and vault data for TSHOT token. View real-time vault contents, token statistics, price data, and detailed analytics on the Flow blockchain."

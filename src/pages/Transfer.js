@@ -387,7 +387,7 @@ const Transfer = () => {
   return (
     <>
       <Helmet>
-        <title>Bulk Transfer NBA Top Shot Moments | Vaultopolis</title>
+        <title>Vaultopolis - Transfer</title>
         <meta name="description" content="Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM. Bulk transfer functionality for efficient NFT management and cross-chain bridging." />
         <meta name="keywords" content="bulk transfer, nba top shot transfer, flow nft transfer, evm bridge, flow blockchain transfer, nft bridge, cross-chain transfer" />
         <link rel="canonical" href="https://vaultopolis.com/transfer" />

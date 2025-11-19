@@ -49,10 +49,10 @@ function FAQ() {
               },
               {
                 "@type": "Question",
-                "name": "Is TSHOT audited and secure?",
+                "name": "Is TSHOT secure?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes! TSHOT is built on the Flow blockchain with smart contracts that are audited and verifiable. The protocol uses secure vault mechanics and VRF technology for fair Moment selection."
+                  "text": "Yes! TSHOT is built on the Flow blockchain with secure vault mechanics. The protocol uses VRF technology for provably fair randomness, guarantees 1:1 collateralization, and executes all swaps on-chain."
                 }
               }
             ]
@@ -98,12 +98,12 @@ function FAQ() {
 
                 <details className="group bg-white/5 rounded-lg border border-white/10 hover:border-white/20 transition-all duration-200">
                   <summary className="cursor-pointer text-white font-medium hover:text-opolis transition-colors flex items-center justify-between p-4">
-                    Is TSHOT audited and secure?
+                    Is TSHOT secure?
                     <ChevronDown className="h-4 w-4 group-open:rotate-180 transition-transform duration-200 text-opolis" />
                   </summary>
                   <div className="px-4 pb-4">
                     <p className="text-white/80 leading-relaxed text-sm">
-                      Yes! TSHOT is built on the Flow blockchain with smart contracts that are audited and verifiable. The protocol uses secure vault mechanics and VRF technology for fair Moment selection.
+                      Yes! TSHOT is built on the Flow blockchain with secure vault mechanics. The protocol uses VRF technology for provably fair randomness, guarantees 1:1 collateralization, and executes all swaps on-chain.
                     </p>
                   </div>
                 </details>

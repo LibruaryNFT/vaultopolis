@@ -28,7 +28,7 @@ export const AnnouncementProvider = ({ children }) => {
       snippet: 'We\'ve launched Grail Bounties for NFL AllDay moments! Browse and accept offers for high-end AllDay moments from the vault.',
       link: '/bounties/allday',
       date: new Date(),
-      featured: true, // Shows in banner
+      featured: false, // Disabled banner - shows in notification center only
       category: 'Launch'
     }
     // Add more announcements here as needed
