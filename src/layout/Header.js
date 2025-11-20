@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaUserCircle, FaBars, FaTimes, FaChevronDown } from "react-icons/fa";
+import { FaUserCircle, FaBars, FaTimes } from "react-icons/fa";
 import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
@@ -13,13 +13,10 @@ const Header = () => {
   /* ───────── local state ───────── */
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
   
   // Refs for UI elements
   const buttonRef = useRef(null);
   const mobileMenuRef = useRef(null);
-  // Use a ref for the timeout to prevent re-renders when it's set or cleared
-  const dropdownTimeoutRef = useRef(null);
   
   const location = useLocation();
 
@@ -33,20 +30,6 @@ const Header = () => {
   /* ─── Mobile Menu Logic ─── */
   const toggleMobileMenu = () => setIsMobileMenuOpen((p) => !p);
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
-
-  /* ───────── Desktop Dropdown Helpers ───────── */
-  const handleDropdownEnter = (dropdownName) => {
-    if (dropdownTimeoutRef.current) {
-      clearTimeout(dropdownTimeoutRef.current);
-    }
-    setActiveDropdown(dropdownName);
-  };
-
-  const handleDropdownLeave = () => {
-    dropdownTimeoutRef.current = setTimeout(() => {
-      setActiveDropdown(null);
-    }, 200);
-  };
 
   /* ─── Mobile Menu Effects ─── */
   // Close mobile drawer on outside click
@@ -99,7 +82,6 @@ const Header = () => {
           <NavLink 
             to="/swap" 
             isActive={location.pathname === "/swap"}
-            onMouseEnter={() => setActiveDropdown(null)}
           >
             Swap
           </NavLink>
@@ -109,7 +91,6 @@ const Header = () => {
           <NavLink 
             to="/vaults/tshot" 
             isActive={location.pathname === "/vault-contents" || location.pathname === "/vaults/tshot" || location.pathname === "/vaults/treasury" || location.pathname === "/vaults/topshotgrails" || location.pathname === "/vaults/alldaygrails"}
-            onMouseEnter={() => setActiveDropdown(null)}
           >
             Vaults
           </NavLink>
@@ -119,38 +100,10 @@ const Header = () => {
           <NavLink 
             to="/bounties/topshot" 
             isActive={location.pathname.startsWith("/bounties")}
-            onMouseEnter={() => setActiveDropdown(null)}
           >
             Grail Bounties
           </NavLink>
 
-          <div className="w-px h-6 bg-white/20 mx-2" />
-          {/* More Dropdown */}
-          <div 
-            className="relative" 
-            onMouseEnter={() => handleDropdownEnter('more')}
-            onMouseLeave={handleDropdownLeave}
-          >
-            <button className={`flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text transition-all duration-200 min-w-[90px] h-10 justify-center ${location.pathname === "/tshot" || location.pathname === "/analytics" || location.pathname === "/transfer" || location.pathname === "/guides" || location.pathname.startsWith("/guides/") ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"}`}>
-              More <FaChevronDown size={12} className="ml-1" />
-            </button>
-            {activeDropdown === 'more' && (
-              <div className="absolute top-full left-0 w-72 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
-                <DropdownItem to="/tshot" isActive={location.pathname === "/tshot"}>
-                  TSHOT
-                </DropdownItem>
-                <DropdownItem to="/analytics" isActive={location.pathname === "/analytics"}>
-                  Analytics
-                </DropdownItem>
-                <DropdownItem to="/transfer" isActive={location.pathname === "/transfer"}>
-                  Transfer Hub
-                </DropdownItem>
-                <DropdownItem to="/guides" isActive={(location.pathname === "/guides" || location.pathname.startsWith("/guides/")) && location.pathname !== "/guides/faq"}>
-                  Guides
-                </DropdownItem>
-              </div>
-            )}
-          </div>
         </nav>
 
         {/* ── Right: notifications + connect / account ── */}
@@ -212,16 +165,12 @@ const Header = () => {
                 TSHOT
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu}>
-                Analytics
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/transfer" isActive={location.pathname === "/transfer"} onClick={closeMobileMenu}>
-                Transfer Hub
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/guides" isActive={(location.pathname === "/guides" || location.pathname.startsWith("/guides/")) && location.pathname !== "/guides/faq"} onClick={closeMobileMenu}>
                 Guides
+              </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/about" isActive={location.pathname === "/about"} onClick={closeMobileMenu}>
+                About
               </MobileNavLink>
             </div>
           </div>
@@ -233,20 +182,10 @@ const Header = () => {
 
 /* ── helper components ── */
 
-const NavLink = ({ to, isActive, children, className = "", onMouseEnter }) => (
+const NavLink = ({ to, isActive, children, className = "" }) => (
   <Link
     to={to}
-    onMouseEnter={onMouseEnter}
     className={`py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text transition-all duration-200 h-10 flex items-center justify-center ${isActive ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"} ${className}`}
-  >
-    {children}
-  </Link>
-);
-
-const DropdownItem = ({ to, isActive, children, className = "" }) => (
-  <Link
-    to={to}
-    className={`flex w-full py-5 px-8 font-semibold text-brand-text hover:bg-brand-primary/20 hover:text-brand-accent transition-all duration-200 border-b border-brand-border/30 last:border-b-0 first:rounded-t-md last:rounded-b-md items-center justify-center min-h-[60px] ${isActive ? "bg-brand-primary/30 text-brand-accent" : ""} ${className}`}
   >
     {children}
   </Link>
