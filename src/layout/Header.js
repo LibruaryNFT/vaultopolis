@@ -144,8 +144,7 @@ const Header = () => {
             className="absolute top-[68px] left-0 w-full lg:hidden bg-brand-secondary text-brand-text shadow-md shadow-black/50"
           >
             <div className="flex flex-col">
-              {/* Primary Actions */}
-              <MobileNavLink to="/swap" isActive={location.pathname === "/swap"} onClick={toggleMobileMenu}>
+              <MobileNavLink to="/swap" isActive={location.pathname === "/swap"} onClick={closeMobileMenu}>
                 Swap
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
@@ -155,22 +154,6 @@ const Header = () => {
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/bounties/topshot" isActive={location.pathname.startsWith("/bounties")} onClick={closeMobileMenu}>
                 Grail Bounties
-              </MobileNavLink>
-              
-              {/* Separator between primary and secondary */}
-              <div className="w-full h-0.5 bg-white/30 my-2" />
-              
-              {/* Secondary Items */}
-              <MobileNavLink to="/tshot" isActive={location.pathname === "/tshot"} onClick={closeMobileMenu}>
-                TSHOT
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/guides" isActive={(location.pathname === "/guides" || location.pathname.startsWith("/guides/")) && location.pathname !== "/guides/faq"} onClick={closeMobileMenu}>
-                Guides
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/about" isActive={location.pathname === "/about"} onClick={closeMobileMenu}>
-                About
               </MobileNavLink>
             </div>
           </div>
