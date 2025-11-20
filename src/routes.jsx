@@ -15,7 +15,7 @@ import TopShotGrailsVaultPage from "./pages/vaults/TopShotGrailsVault";
 import AllDayGrailsVaultPage from "./pages/vaults/AllDayGrailsVault";
 import Transfer         from "./pages/Transfer";
 import Profile          from "./pages/Profile";
-import MyCollection     from "./pages/MyCollection";
+import MyCollectionRedirect from "./pages/MyCollectionRedirect";
 import BountiesTopShot from "./pages/BountiesTopShot";
 import BountiesAllDay from "./pages/BountiesAllDay";
 import Announcements from "./pages/Announcements";
@@ -55,7 +55,7 @@ const routes = [
   { path: "/transfer",    element: <Layout><Transfer /></Layout> },
   { path: "/profile",     element: <Layout><Profile /></Layout> },
   { path: "/profile/:address?", element: <Layout><Profile /></Layout> },
-  { path: "/my-collection", element: <Layout><MyCollection /></Layout> },
+  { path: "/my-collection", element: <Layout><MyCollectionRedirect /></Layout> },
   { path: "/bounties",  element: <Navigate to="/bounties/topshot" replace /> },
   { path: "/bounties/topshot", element: <Layout><BountiesTopShot /></Layout> },
   { path: "/bounties/allday", element: <Layout><BountiesAllDay /></Layout> },

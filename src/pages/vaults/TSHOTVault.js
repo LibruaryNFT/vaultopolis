@@ -75,15 +75,23 @@ function TSHOTVaultPage() {
       {/* TSHOT Vault Contents */}
       <div className="w-full">
         <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
-          <div className="p-4 border-b border-brand-border">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="p-4 sm:p-6 border-b border-brand-border">
+            <div className="max-w-4xl">
+              <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-3">
+                TSHOT Vault Contents
+              </h2>
+              <p className="text-sm sm:text-base text-brand-text/80 leading-relaxed mb-3">
+                This page displays all the NBA Top Shot digital collectibles currently held in the TSHOT vault. 
+                These collectibles serve as collateral backing TSHOT tokens at a 1:1 ratio. When you deposit eligible 
+                moments to mint TSHOT, they are added to this vault. When you burn TSHOT to redeem, a collectible is 
+                automatically selected from this vault.
+              </p>
               <p className="text-sm text-brand-text/70">
-                Browse the moments backing TSHOT.{" "}
                 <a 
                   href="/tshot" 
                   className="inline-flex items-center gap-1 text-brand-accent hover:text-brand-accent/80 underline font-medium transition-colors"
                 >
-                  Learn more about TSHOT
+                  Learn more about TSHOT →
                 </a>
               </p>
             </div>

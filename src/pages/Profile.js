@@ -7,7 +7,7 @@
     ------------------------------------------------------------ */
 
 import React, { useEffect, useMemo, useState, useContext } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import * as fcl from "@onflow/fcl";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
@@ -17,6 +17,7 @@ import { getAllDayCollectionIDs } from "../flow/getAllDayCollectionIDs";
 import axios from "axios";
 import { UserDataContext } from "../context/UserContext";
 import { useAllDayContext } from "../context/AllDayContext";
+import MyCollection from "./MyCollection";
 
 
 /* ───────── constants ───────── */
@@ -217,6 +218,7 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => 
 
 function Profile() {
   const { address: paramAddr } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const userDataCtx = useContext(UserDataContext);
   const { accountData, isRefreshing } = userDataCtx;
   
@@ -230,6 +232,14 @@ function Profile() {
 
   const [viewer, setViewer] = useState(null);
   const [viewerReady, setViewerReady] = useState(false);
+  
+  // Tab state from URL
+  const activeTab = searchParams.get('tab') || 'portfolio';
+  
+  // Check if viewing own profile
+  const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
+  const isOwnProfile = walletAddr && accountData?.parentAddress?.toLowerCase() === walletAddr?.toLowerCase();
+  
   useEffect(
     () =>
       fcl.currentUser().subscribe((u) => {
@@ -238,8 +248,6 @@ function Profile() {
       }),
     []
   );
-
-  const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
 
   // Public aggregate for when UserContext data is unavailable (incognito/public view)
   const [publicAggregate, setPublicAggregate] = useState({ flow: 0, tshot: 0, topshotMoments: 0, alldayMoments: 0 });
@@ -400,9 +408,14 @@ function Profile() {
 
   let redirectTarget = null;
   if (!paramAddr && viewerReady) {
-    redirectTarget = viewer?.addr
-      ? `/profile/${viewer.addr.toLowerCase()}`
-      : "/";
+    if (viewer?.addr) {
+      const tabParam = searchParams.get('tab');
+      redirectTarget = tabParam 
+        ? `/profile/${viewer.addr.toLowerCase()}?tab=${tabParam}`
+        : `/profile/${viewer.addr.toLowerCase()}`;
+    } else {
+      redirectTarget = "/";
+    }
   }
 
   const canonicalUrl = walletAddr
@@ -486,8 +499,60 @@ function Profile() {
         {/* Always render the main structure if walletAddr is present, sections handle their own loading */}
         {walletAddr && (
           <>
+            {/* Tabs - Only show Collection tab when viewing own profile */}
+            <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 mt-4">
+              <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
+                <div className="flex items-center gap-2" role="tablist" aria-label="Profile sections">
+                  <button
+                    onClick={() => {
+                      const newParams = new URLSearchParams(searchParams);
+                      newParams.set('tab', 'portfolio');
+                      setSearchParams(newParams);
+                    }}
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
+                      activeTab === 'portfolio'
+                        ? 'border-brand-accent text-brand-accent bg-brand-secondary'
+                        : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
+                    }`}
+                  >
+                    <span className="text-sm sm:text-base">Portfolio</span>
+                  </button>
+                  {isOwnProfile && (
+                    <button
+                      onClick={() => {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set('tab', 'collection');
+                        setSearchParams(newParams);
+                      }}
+                      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 relative ${
+                        activeTab === 'collection'
+                          ? 'border-brand-accent text-brand-accent bg-brand-secondary'
+                          : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
+                      }`}
+                      title="Private - Only visible when viewing your own profile"
+                    >
+                      <span className="text-sm sm:text-base">My Collection</span>
+                      <span className="text-xs bg-brand-accent/30 text-brand-accent px-2 py-0.5 rounded border border-brand-accent/50 font-semibold" title="Private view only">
+                        🔒 Private
+                      </span>
+                    </button>
+                  )}
+                </div>
+                {!isOwnProfile && walletAddr && (
+                  <div className="mt-2 p-2 bg-brand-secondary/50 border border-brand-border/50 rounded">
+                    <p className="text-xs text-brand-text/70 text-center m-0">
+                      <span className="font-semibold">🔒 Private View:</span> Collection browsing is only available when viewing your own profile. Connect your wallet to see your collection.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'portfolio' && (
+              <>
             {/* Portfolio Summary Table */}
-            <div className="rounded-lg shadow border border-brand-primary mb-6 mt-4">
+            <div className="rounded-lg shadow border border-brand-primary mb-6">
               <div className="">
               <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
                 <div className="flex items-center justify-between">
@@ -828,12 +893,52 @@ function Profile() {
                         ))}
                     </div>
                   )}
-                </>
+                </> 
               )}
                 </div>
               </div>
               </div>
             </div>
+              </>
+            )}
+
+            {/* Collection Tab Content - Only shown when viewing own profile */}
+            {activeTab === 'collection' && isOwnProfile && (
+              <MyCollection />
+            )}
+
+            {/* Show message if trying to access collection tab but not own profile */}
+            {activeTab === 'collection' && !isOwnProfile && (
+              <div className="rounded-lg shadow border-2 border-brand-accent/50 mb-6 mt-4 bg-brand-secondary/30">
+                <div className="bg-brand-secondary px-3 py-2 rounded-t-lg border-b border-brand-accent/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🔒</span>
+                    <h3 className="text-sm font-semibold m-0 text-brand-text">Private Collection View</h3>
+                  </div>
+                </div>
+                <div className="bg-brand-primary rounded-b-lg p-6">
+                  <div className="max-w-2xl mx-auto text-center space-y-3">
+                    <p className="text-base text-brand-text font-semibold m-0">
+                      This is a private view only available when viewing your own profile.
+                    </p>
+                    <p className="text-sm text-brand-text/70 m-0">
+                      Collection browsing is only accessible when you are logged in and viewing your own wallet address. 
+                      Connect your wallet and navigate to your profile to view your collection.
+                    </p>
+                    <button
+                      onClick={() => {
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.set('tab', 'portfolio');
+                        setSearchParams(newParams);
+                      }}
+                      className="mt-4 px-4 py-2 bg-brand-accent text-white rounded-lg hover:bg-brand-accent/80 transition-colors text-sm font-semibold"
+                    >
+                      View Portfolio Instead
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

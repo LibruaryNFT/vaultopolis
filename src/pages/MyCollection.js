@@ -643,6 +643,37 @@ export default function MyCollection() {
                 </div>
               )}
 
+              {/* Safety Filters - Only show for TopShot */}
+              {collectionType === 'topshot' && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-xs">Safety Filters:</span>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={filter.excludeSpecialSerials}
+                        onChange={(e) =>
+                          setFilter({ excludeSpecialSerials: e.target.checked, currentPage: 1 })
+                        }
+                        className="rounded"
+                      />
+                      <span className="text-xs">Exclude #1 / Jersey / Last Mint</span>
+                    </label>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={filter.excludeLowSerials}
+                        onChange={(e) =>
+                          setFilter({ excludeLowSerials: e.target.checked, currentPage: 1 })
+                        }
+                        className="rounded"
+                      />
+                      <span className="text-xs">Exclude serials ≤ 4000</span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* AllDay Filters */}
               {collectionType === 'allday' && (
                 <>

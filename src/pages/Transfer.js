@@ -420,6 +420,34 @@ const Transfer = () => {
         </script>
       </Helmet>
 
+      {/* Page Header with Description */}
+      <div className="bg-brand-primary p-4 sm:p-6 rounded-lg mb-4">
+        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-4">
+            Bulk Transfer Tool
+          </h1>
+          <div className="space-y-3">
+            <p className="text-base sm:text-lg text-brand-text/90 leading-relaxed">
+              Transfer multiple NBA Top Shot Moments between Flow accounts or bridge them to Flow EVM. 
+              This tool allows you to efficiently move large batches of digital collectibles in a single transaction, 
+              saving time and transaction fees compared to transferring individually.
+            </p>
+            <div className="bg-brand-secondary/50 border border-brand-border rounded-lg p-3 sm:p-4">
+              <p className="text-sm sm:text-base text-brand-text/80 font-semibold mb-2">
+                Transfer Options:
+              </p>
+              <ul className="text-sm text-brand-text/70 space-y-1.5 list-disc list-inside">
+                <li><strong>Bulk Transfer:</strong> Transfer up to 280 Moments between Flow accounts (Cadence addresses)</li>
+                <li><strong>EVM Bridge:</strong> Bridge up to 9 Moments from Flow to Flow EVM for use in EVM-compatible applications</li>
+              </ul>
+            </div>
+            <p className="text-sm text-brand-text/70">
+              <strong>Note:</strong> Locked moments are automatically excluded from transfers. Only unlocked moments can be transferred.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* 1) Top panel */}
       <div className="w-full max-w-md mx-auto mt-2 mb-2">
         <div className="bg-brand-primary shadow-md shadow-black/30 rounded-lg p-3 min-h-[180px]">

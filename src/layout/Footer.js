@@ -42,6 +42,14 @@ const Footer = () => {
           </div>
 
           <div className="flex items-center gap-8">
+            {/* About Button */}
+            <button
+              onClick={() => navigate("/about")}
+              className="text-sm text-brand-text/70 hover:text-brand-text transition-colors"
+            >
+              About
+            </button>
+
             {/* Terms of Service Button */}
             <button
               onClick={() => navigate("/terms")}

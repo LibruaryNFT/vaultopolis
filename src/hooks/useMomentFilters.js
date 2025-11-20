@@ -420,6 +420,17 @@ export function useMomentFilters({
       if (immediateFilter.lockedStatus === "Unlocked" && n.isLocked) return false;
     }
     
+    // Safety filters: excludeSpecialSerials and excludeLowSerials
+    const sn = Number(n.serialNumber);
+    if (immediateFilter.excludeSpecialSerials) {
+      const max = n.subeditionMaxMint
+        ? Number(n.subeditionMaxMint)
+        : Number(n.momentCount);
+      const jersey = n.jerseyNumber ? Number(n.jerseyNumber) : null;
+      if (sn === 1 || sn === max || (jersey && jersey === sn)) return false;
+    }
+    if (immediateFilter.excludeLowSerials && sn <= 4000) return false;
+    
     return true;
   }, [immediateFilter, showLockedMoments, excludeIds, selectedNFTs]);
 

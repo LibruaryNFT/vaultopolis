@@ -214,7 +214,7 @@ const Home = () => {
                   </div>
                   <h3 className="text-base sm:text-lg font-bold text-white mb-1">Redeem</h3>
                   <p className="text-xs sm:text-sm text-white/80">
-                    Burn TSHOT to redeem an eligible collectible automatically selected from the vault.
+                    Burn TSHOT to receive a collectible from the vault.
                   </p>
                 </div>
               </div>

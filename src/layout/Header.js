@@ -131,16 +131,13 @@ const Header = () => {
             onMouseEnter={() => handleDropdownEnter('more')}
             onMouseLeave={handleDropdownLeave}
           >
-            <button className={`flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text transition-all duration-200 min-w-[90px] h-10 justify-center ${location.pathname === "/tshot" || location.pathname === "/my-collection" || location.pathname === "/analytics" || location.pathname === "/transfer" || location.pathname === "/guides" || location.pathname.startsWith("/guides/") || location.pathname === "/about" ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"}`}>
+            <button className={`flex items-center py-2 px-4 rounded-md whitespace-nowrap select-none font-semibold text-brand-text transition-all duration-200 min-w-[90px] h-10 justify-center ${location.pathname === "/tshot" || location.pathname === "/analytics" || location.pathname === "/transfer" || location.pathname === "/guides" || location.pathname.startsWith("/guides/") ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"}`}>
               More <FaChevronDown size={12} className="ml-1" />
             </button>
             {activeDropdown === 'more' && (
               <div className="absolute top-full left-0 w-72 bg-brand-secondary rounded-md shadow-lg shadow-black/50 border border-brand-border overflow-hidden">
                 <DropdownItem to="/tshot" isActive={location.pathname === "/tshot"}>
                   TSHOT
-                </DropdownItem>
-                <DropdownItem to="/my-collection" isActive={location.pathname === "/my-collection"}>
-                  My Collection
                 </DropdownItem>
                 <DropdownItem to="/analytics" isActive={location.pathname === "/analytics"}>
                   Analytics
@@ -150,12 +147,6 @@ const Header = () => {
                 </DropdownItem>
                 <DropdownItem to="/guides" isActive={(location.pathname === "/guides" || location.pathname.startsWith("/guides/")) && location.pathname !== "/guides/faq"}>
                   Guides
-                </DropdownItem>
-                <DropdownItem to="/guides/faq" isActive={location.pathname === "/guides/faq"}>
-                  FAQ
-                </DropdownItem>
-                <DropdownItem to="/about" isActive={location.pathname === "/about"}>
-                  About
                 </DropdownItem>
               </div>
             )}
@@ -221,10 +212,6 @@ const Header = () => {
                 TSHOT
               </MobileNavLink>
               <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/my-collection" isActive={location.pathname === "/my-collection"} onClick={closeMobileMenu}>
-                My Collection
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/analytics" isActive={location.pathname === "/analytics"} onClick={closeMobileMenu}>
                 Analytics
               </MobileNavLink>
@@ -235,14 +222,6 @@ const Header = () => {
               <div className="w-full h-px bg-white/20" />
               <MobileNavLink to="/guides" isActive={(location.pathname === "/guides" || location.pathname.startsWith("/guides/")) && location.pathname !== "/guides/faq"} onClick={closeMobileMenu}>
                 Guides
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/guides/faq" isActive={location.pathname === "/guides/faq"} onClick={closeMobileMenu}>
-                FAQ
-              </MobileNavLink>
-              <div className="w-full h-px bg-white/20" />
-              <MobileNavLink to="/about" isActive={location.pathname === "/about"} onClick={closeMobileMenu}>
-                About
               </MobileNavLink>
             </div>
           </div>

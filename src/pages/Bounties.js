@@ -662,6 +662,32 @@ export default function Bounties({ collectionType = 'topshot' }) {
 
   return (
     <div className="w-full space-y-2">
+      {/* Page Header with Description */}
+      <div className="bg-brand-primary p-4 sm:p-6 rounded-lg mb-4">
+        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-4">
+            Grail Bounties
+          </h1>
+          <div className="space-y-3 mb-4">
+            <p className="text-base sm:text-lg text-brand-text/90 leading-relaxed">
+              Grail Bounties is our program for acquiring higher-end grails and culturally significant moments. 
+              We place on-chain offers for specific moments, and when accepted, those moments are added to our 
+              treasury vault for future innovative products and community initiatives.
+            </p>
+            <p className="text-sm sm:text-base text-brand-text/80 leading-relaxed">
+              Browse active bounties below and accept offers if you have the matching moments. You can also view 
+              the complete collection of acquired moments in our{" "}
+              <Link 
+                to={collectionType === 'allday' ? "/vaults/alldaygrails" : "/vaults/topshotgrails"} 
+                className="text-brand-accent hover:text-brand-accent/80 underline font-medium transition-colors"
+              >
+                Grail Bounties Vault
+              </Link>.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Project Tabs */}
       <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4">
         <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
@@ -693,13 +719,10 @@ export default function Bounties({ collectionType = 'topshot' }) {
       {!loading && !error && displayedOffers.length > 0 && (
         <div className="bg-brand-primary p-3 sm:p-4 rounded-lg">
           <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
-            <div className="mb-3">
-              <h2 className="text-lg font-semibold text-brand-text mb-2">
+            <div className="mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-3">
                 Overview
               </h2>
-              <p className="text-brand-text/70 text-sm mb-4 leading-relaxed">
-                We are actively acquiring higher-end grails and culturally significant moments to add to our treasury for future innovative products and community initiatives.
-              </p>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* Active Offers Count */}
