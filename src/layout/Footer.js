@@ -8,7 +8,7 @@ const Footer = () => {
       {/* Horizontal line at the top */}
       <hr className="border-brand-border" />
 
-      <div className="max-w-7xl mx-auto px-4 py-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-10">
         {/* Logo and Disclaimer Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-8 border-b border-brand-border text-center md:text-left">
           <img
@@ -24,7 +24,7 @@ const Footer = () => {
         {/* Link Columns */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 mb-10 text-center sm:text-left">
           {/* PRODUCT */}
-          <div>
+          <div className="w-full">
             <h3 className="text-xs tracking-[0.15em] font-semibold text-brand-text/80 mb-3">
               PRODUCT
             </h3>
@@ -48,7 +48,7 @@ const Footer = () => {
           </div>
 
           {/* TOOLS */}
-          <div>
+          <div className="w-full">
             <h3 className="text-xs tracking-[0.15em] font-semibold text-brand-text/80 mb-3">
               TOOLS
             </h3>
@@ -72,7 +72,7 @@ const Footer = () => {
           </div>
 
           {/* LEARN */}
-          <div>
+          <div className="w-full">
             <h3 className="text-xs tracking-[0.15em] font-semibold text-brand-text/80 mb-3">
               LEARN
             </h3>
@@ -96,7 +96,7 @@ const Footer = () => {
           </div>
 
           {/* COMPANY */}
-          <div>
+          <div className="w-full">
             <h3 className="text-xs tracking-[0.15em] font-semibold text-brand-text/80 mb-3">
               COMPANY
             </h3>
