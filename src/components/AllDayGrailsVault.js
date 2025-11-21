@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import * as fcl from "@onflow/fcl";
 import AllDayMomentCard from "./AllDayMomentCard";
 import { getAllDayCollectionBatched } from "../flow/getAllDayCollectionBatched";

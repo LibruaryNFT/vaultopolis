@@ -17,7 +17,7 @@ const Footer = () => {
             className="max-h-9 mx-auto md:mx-0"
           />
           <p className="text-xs sm:text-sm text-brand-text/80 leading-relaxed max-w-2xl mx-auto md:mx-0">
-            Not affiliated with Top Shot or Dapper Labs. Powered by on-chain smart contracts.
+            Vaultopolis is an independent third-party protocol and is not affiliated with Dapper Labs, NBA Top Shot, or NFL All Day. All interactions occur through non-custodial Flow smart contracts.
           </p>
         </div>
 

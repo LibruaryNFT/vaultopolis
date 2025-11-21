@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import * as fcl from "@onflow/fcl";
 import MomentCard from "./MomentCard";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
