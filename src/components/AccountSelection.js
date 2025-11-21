@@ -17,7 +17,14 @@ const AccountBox = ({
     if (!isDisabled) onClick(address);
   };
 
-  const primaryText = role === "PARENT" ? null : (displayName || label);
+  // For child accounts with displayName, use displayName only (no "Child Account" label to avoid overlap with badge)
+  // For child accounts without displayName, use label
+  // For parent accounts, no primary text
+  const primaryText = role === "PARENT" 
+    ? null 
+    : displayName 
+      ? displayName  // If displayName exists, use it only (don't use label)
+      : label;       // If no displayName, use label ("Child Account")
   const hasPrimary = !!primaryText;
 
   return (
