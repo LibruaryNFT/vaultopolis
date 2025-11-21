@@ -663,62 +663,76 @@ export default function Bounties({ collectionType = 'topshot' }) {
   return (
     <div className="w-full space-y-2">
       {/* Page Header with Description */}
-      <div className="bg-brand-primary p-4 sm:p-6 rounded-lg mb-4">
-        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-brand-text mb-4">
-            Grail Bounties
-          </h1>
-          <div className="space-y-3 mb-4">
-            <p className="text-base sm:text-lg text-brand-text/90 leading-relaxed">
-              Grail Bounties is our program for acquiring higher-end grails and culturally significant moments. 
-              We place on-chain offers for specific moments, and when accepted, those moments are added to our 
-              treasury vault for future innovative products and community initiatives.
-            </p>
-            <p className="text-sm sm:text-base text-brand-text/80 leading-relaxed">
-              Browse active bounties below and accept offers if you have the matching moments. You can also view 
-              the complete collection of acquired moments in our{" "}
-              <Link 
-                to={collectionType === 'allday' ? "/vaults/alldaygrails" : "/vaults/topshotgrails"} 
-                className="text-brand-accent hover:text-brand-accent/80 underline font-medium transition-colors"
-              >
-                Grail Bounties Vault
-              </Link>.
-            </p>
+      <div className="bg-brand-primary p-4 sm:p-6 rounded-lg mb-4 border border-brand-border">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-4xl sm:text-5xl" aria-hidden="true">🏛️</span>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">
+                Grail Bounties
+              </h1>
+              <p className="text-sm text-brand-text/70 mt-1">
+                Treasury • High-End Grails • Community Initiatives
+              </p>
+            </div>
+          </div>
+          <p className="text-sm sm:text-base text-brand-text/80 leading-relaxed mb-4">
+            Our program for acquiring higher-end grails and culturally significant moments. 
+            We place on-chain offers for specific moments, and when accepted, those moments are added to our 
+            treasury vault for future innovative products and community initiatives.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-brand-text/70">View acquired moments:</span>
+            <Link 
+              to="/vaults/topshotgrails" 
+              className="inline-flex items-center justify-center px-4 py-2 bg-brand-secondary hover:bg-brand-secondary/80 rounded-lg text-sm font-medium text-brand-text transition-colors border border-brand-border"
+            >
+              TopShot Grails Vault
+            </Link>
+            <Link 
+              to="/vaults/alldaygrails" 
+              className="inline-flex items-center justify-center px-4 py-2 bg-brand-secondary hover:bg-brand-secondary/80 rounded-lg text-sm font-medium text-brand-text transition-colors border border-brand-border"
+            >
+              AllDay Grails Vault
+            </Link>
           </div>
         </div>
       </div>
 
       {/* Project Tabs */}
-      <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4">
-        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
-          <div className="flex items-center gap-2" role="tablist" aria-label="Project sections">
-            <button
-              onClick={() => navigate('/bounties/topshot')}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
-                collectionType === 'topshot'
-                  ? 'border-brand-accent text-brand-accent bg-brand-secondary'
-                  : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
-              }`}
-            >
-              <span className="text-sm sm:text-base">Top Shot</span>
-            </button>
-            <button
-              onClick={() => navigate('/bounties/allday')}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
-                collectionType === 'allday'
-                  ? 'border-brand-accent text-brand-accent bg-brand-secondary'
-                  : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
-              }`}
-            >
-              <span className="text-sm sm:text-base">AllDay</span>
-            </button>
+      <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 border border-brand-border">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-brand-text/70">View Bounties:</span>
+            <div className="flex items-center gap-2" role="tablist" aria-label="Project sections">
+              <button
+                onClick={() => navigate('/bounties/topshot')}
+                className={`inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
+                  collectionType === 'topshot'
+                    ? 'border-brand-accent text-brand-accent bg-brand-secondary shadow-sm'
+                    : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50'
+                }`}
+              >
+                <span className="text-sm sm:text-base">Top Shot</span>
+              </button>
+              <button
+                onClick={() => navigate('/bounties/allday')}
+                className={`inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
+                  collectionType === 'allday'
+                    ? 'border-brand-accent text-brand-accent bg-brand-secondary shadow-sm'
+                    : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50'
+                }`}
+              >
+                <span className="text-sm sm:text-base">AllDay</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
       {!loading && !error && displayedOffers.length > 0 && (
-        <div className="bg-brand-primary p-3 sm:p-4 rounded-lg">
-          <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
+        <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 border border-brand-border">
+          <div className="max-w-6xl mx-auto px-2 sm:px-4">
             <div className="mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-3">
                 Overview
@@ -738,7 +752,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
               {/* Treasury Grails Acquired */}
               <div className="text-center bg-brand-secondary rounded-lg p-3 flex flex-col justify-center min-h-[80px]">
                 <Link 
-                  to={collectionType === 'allday' ? "/vaults/alldaygrails" : "/vaults/treasury"} 
+                  to={collectionType === 'allday' ? "/vaults/alldaygrails" : "/vaults/topshotgrails"} 
                   className="block hover:bg-brand-secondary/80 rounded-lg p-2 transition-colors flex flex-col justify-center h-full"
                 >
                   <div className="text-xl sm:text-2xl font-bold text-brand-text">
@@ -785,11 +799,69 @@ export default function Bounties({ collectionType = 'topshot' }) {
         </div>
       )}
 
-      {/* Matching Moments Section - Moved Above Bounties */}
-      {accountData && accountData.parentAddress && (
-        <section className="bg-brand-primary p-4 rounded-lg">
+      {/* Active Grail Bounties Section */}
+      <section className="bg-brand-primary p-4 rounded-lg mb-4 border border-brand-border">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4">
           <div className="mb-4">
-            {(() => {
+            <h2 className="text-xl font-bold text-brand-text mb-2">
+              Active Grail Bounties
+            </h2>
+            <p className="text-sm text-brand-text/70">
+              Browse available bounties
+            </p>
+          </div>
+          
+          {loading && <p className="text-sm text-brand-text/70">Loading bounties…</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
+          {!loading && !error && displayedOffers.length === 0 && (
+            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 text-center">
+              <p className="text-sm text-yellow-300 font-semibold mb-2">
+                No Active Bounties
+              </p>
+              <p className="text-sm text-yellow-200/90 mb-3">
+                We will announce when the next wave of bounties will be released. Stay tuned on{" "}
+                <a
+                  href="https://x.com/vaultopolis"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-300 hover:text-yellow-200 underline font-medium transition-colors"
+                >
+                  Twitter
+                </a>
+                {" "}and{" "}
+                <a
+                  href="https://discord.gg/nJdwqYfenh"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-yellow-300 hover:text-yellow-200 underline font-medium transition-colors"
+                >
+                  Discord
+                </a>
+                .
+              </p>
+            </div>
+          )}
+          {!loading && !error && displayedOffers.length > 0 && (
+            <div>
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 text-sm text-brand-text/70 gap-1">
+                <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} bounties</p>
+              </div>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,130px))] sm:grid-cols-[repeat(auto-fit,minmax(150px,150px))] md:grid-cols-[repeat(auto-fit,minmax(140px,140px))] lg:grid-cols-[repeat(auto-fit,minmax(160px,160px))] gap-1.5 justify-items-center">
+                {displayedOffers.map((o) => (
+                  <EditionOfferCard key={o.offerId} offer={o} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Matching Moments Section */}
+      {accountData && accountData.parentAddress && (
+        <section className="bg-brand-primary p-4 rounded-lg mb-4 border border-brand-border">
+          <div className="max-w-6xl mx-auto px-2 sm:px-4">
+            <div className="mb-4">
+              {(() => {
               const parentAddr = accountData?.parentAddress?.toLowerCase?.();
               const parentCount = (parentAddr && matchCounts[parentAddr]) || 0;
               const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
@@ -832,10 +904,10 @@ export default function Bounties({ collectionType = 'topshot' }) {
                 </svg>
                 {loading ? 'Refreshing...' : 'Refresh'}
               </button>
-            </div>
-          )}
+              </div>
+            )}
 
-          {!accountData || !accountData.parentAddress ? (
+            {!accountData || !accountData.parentAddress ? (
             <div className="text-center py-8">
               <p className="text-brand-text/70">Connect your wallet to view your matching moments</p>
             </div>
@@ -972,64 +1044,9 @@ export default function Bounties({ collectionType = 'topshot' }) {
               )}
             </div>
           )}
+          </div>
         </section>
       )}
-
-      <section className="bg-brand-primary p-4 rounded-lg">
-        <div>
-          <div className="mb-4">
-            <h2 className="text-xl font-bold text-brand-text mb-2">
-              Active Grail Bounties
-            </h2>
-            <p className="text-sm text-brand-text/70">
-              Browse available bounties
-            </p>
-          </div>
-          
-          {loading && <p className="text-sm text-brand-text/70">Loading bounties…</p>}
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {!loading && !error && displayedOffers.length === 0 && (
-            <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 text-center">
-              <p className="text-sm text-yellow-300 font-semibold mb-2">
-                No Active Bounties
-              </p>
-              <p className="text-sm text-yellow-200/90 mb-3">
-                We will announce when the next wave of bounties will be released. Stay tuned on{" "}
-                <a
-                  href="https://x.com/vaultopolis"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-yellow-300 hover:text-yellow-200 underline font-medium transition-colors"
-                >
-                  Twitter
-                </a>
-                {" "}and{" "}
-                <a
-                  href="https://discord.gg/nJdwqYfenh"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-yellow-300 hover:text-yellow-200 underline font-medium transition-colors"
-                >
-                  Discord
-                </a>
-                .
-              </p>
-            </div>
-          )}
-          {!loading && !error && displayedOffers.length > 0 && (
-            <div>
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 text-sm text-brand-text/70 gap-1">
-                <p className="text-center sm:text-left">Showing all {displayedOffers.length.toLocaleString()} bounties</p>
-              </div>
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,130px))] sm:grid-cols-[repeat(auto-fit,minmax(150px,150px))] md:grid-cols-[repeat(auto-fit,minmax(140px,140px))] lg:grid-cols-[repeat(auto-fit,minmax(160px,160px))] gap-1.5 justify-items-center">
-                {displayedOffers.map((o) => (
-                  <EditionOfferCard key={o.offerId} offer={o} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
 
       {txModal.open && (
         <TransactionModal

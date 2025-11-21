@@ -42,11 +42,11 @@ function TreasuryVaultPage() {
 
       {/* Vault Navigation */}
       <div className="w-full mt-4 mb-4">
-        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
+        <div className="max-w-6xl mx-auto px-2 sm:px-4">
           <div className="flex items-center gap-2 bg-brand-primary rounded-lg p-2" role="tablist" aria-label="Vault sections">
             <Link
               to="/vaults/tshot"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80"
             >
               <span aria-hidden="true" className="text-xl sm:text-2xl">🔒</span>
               <span className="hidden sm:inline text-sm sm:text-base">TSHOT</span>
@@ -54,7 +54,7 @@ function TreasuryVaultPage() {
             </Link>
             <Link
               to="/vaults/treasury"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-opolis text-opolis bg-brand-secondary"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-brand-accent text-brand-accent bg-brand-secondary hover:bg-brand-secondary/80 transition-all duration-200 shadow-sm"
             >
               <span aria-hidden="true" className="text-xl sm:text-2xl">🏛️</span>
               <span className="hidden sm:inline text-sm sm:text-base">Grail Bounties</span>

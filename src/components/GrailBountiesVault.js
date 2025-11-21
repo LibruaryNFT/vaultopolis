@@ -151,35 +151,15 @@ function GrailBountiesVault() {
   return (
     <div className="text-brand-text">
       <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
-        <div className="p-4 border-b border-brand-border">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl sm:text-3xl" aria-hidden="true">🏛️</span>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div>
-                  <h2 className="text-lg sm:text-xl font-semibold m-0">Grail Bounties Vault</h2>
-                  <p className="text-xs sm:text-sm text-brand-text/70 m-0">
-                    Treasury-held NBA Top Shot Moments
-                    {loadingIds ? " (Loading…)" : ` (${momentIds.length.toLocaleString()} total)`}
-                  </p>
-                </div>
-                <Link 
-                  to="/bounties/topshot" 
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-brand-accent text-white text-sm font-semibold rounded-lg hover:bg-brand-accent/90 transition-all shadow-sm hover:shadow-md"
-                >
-                  💰 View Grail Bounties
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-3">
+        <div className="p-3 sm:p-4">
           {error && (
             <p className="text-sm text-red-400 mb-2">{error}</p>
           )}
           {!loadingIds && momentIds.length === 0 && !error && (
-            <p className="text-sm text-brand-text/70">No moments found for the treasury.</p>
+            <div className="text-center py-8">
+              <p className="text-sm text-brand-text/70 mb-2">No moments acquired yet through Grail Bounties.</p>
+              <p className="text-xs text-brand-text/50">Moments will appear here once they are acquired by the program.</p>
+            </div>
           )}
           <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
             {items.map((nft) => (

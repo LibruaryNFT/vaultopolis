@@ -42,32 +42,32 @@ function TopShotGrailsVaultPage() {
 
       {/* Vault Navigation */}
       <div className="w-full mt-4 mb-4">
-        <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
-          <div className="flex items-center gap-2 bg-brand-primary rounded-lg p-2" role="tablist" aria-label="Vault sections">
-            <Link
-              to="/vaults/tshot"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue"
-            >
-              <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-8 h-8 sm:w-10 sm:h-10" />
-              <span className="hidden sm:inline text-sm sm:text-base">TSHOT</span>
-              <span className="sm:hidden text-sm">TSHOT</span>
-            </Link>
-            <Link
-              to="/vaults/topshotgrails"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-opolis text-opolis bg-brand-secondary"
-            >
-              <span aria-hidden="true" className="text-3xl sm:text-4xl">🏛️</span>
-              <span className="hidden sm:inline text-sm sm:text-base">TopShot Grails</span>
-              <span className="sm:hidden text-sm">TS Grails</span>
-            </Link>
-            <Link
-              to="/vaults/alldaygrails"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue"
-            >
-              <span aria-hidden="true" className="text-3xl sm:text-4xl">🏈</span>
-              <span className="hidden sm:inline text-sm sm:text-base">AllDay Grails</span>
-              <span className="sm:hidden text-sm">AD Grails</span>
-            </Link>
+        <div className="max-w-6xl mx-auto px-2 sm:px-4">
+          <div className="bg-brand-primary rounded-lg p-4 border border-brand-border">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-brand-text/70 whitespace-nowrap">View Vault:</span>
+              <div className="flex items-center gap-2" role="tablist" aria-label="Vault sections">
+                <Link
+                  to="/vaults/tshot"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50 transition-all duration-200"
+                >
+                  <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span className="text-sm sm:text-base">TSHOT</span>
+                </Link>
+                <Link
+                  to="/vaults/topshotgrails"
+                  className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold border-2 border-brand-accent text-brand-accent bg-brand-secondary hover:bg-brand-secondary/80 transition-all duration-200 shadow-sm"
+                >
+                  <span className="text-sm sm:text-base">TopShot Grails</span>
+                </Link>
+                <Link
+                  to="/vaults/alldaygrails"
+                  className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50 transition-all duration-200"
+                >
+                  <span className="text-sm sm:text-base">AllDay Grails</span>
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -76,28 +76,37 @@ function TopShotGrailsVaultPage() {
       <div className="w-full">
         <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden mb-4">
           <div className="p-4 sm:p-6 border-b border-brand-border">
-            <div className="max-w-4xl">
-              <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-3">
-                TopShot Grail Bounties Vault Contents
-              </h2>
+            <div className="max-w-6xl mx-auto">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-4xl sm:text-5xl" aria-hidden="true">🏛️</span>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-brand-text">
+                    TopShot Grail Bounties Vault Contents
+                  </h2>
+                  <p className="text-sm text-brand-text/70 mt-1">
+                    Treasury • High-End Grails • Community Initiatives
+                  </p>
+                </div>
+              </div>
               <p className="text-sm sm:text-base text-brand-text/80 leading-relaxed mb-3">
-                This vault contains the NBA Top Shot Moments acquired through our Grail Bounties program. 
-                These are higher-end grails and culturally significant moments that we actively acquire for future 
-                innovative products and community initiatives. You can browse the collection and view details of 
-                each moment held in the treasury.
+                This vault contains NBA Top Shot Moments acquired through our Grail Bounties program. 
+                These are higher-end grails and culturally significant moments held for future innovative products and community initiatives.
               </p>
               <p className="text-sm text-brand-text/70">
-                <a 
-                  href="/bounties/topshot" 
+                <Link 
+                  to="/bounties/topshot" 
                   className="inline-flex items-center gap-1 text-brand-accent hover:text-brand-accent/80 underline font-medium transition-colors"
                 >
                   Learn more about Grail Bounties →
-                </a>
+                </Link>
               </p>
             </div>
           </div>
+          
+          <div className="p-3 sm:p-4">
+            <GrailBountiesVault />
+          </div>
         </div>
-        <GrailBountiesVault />
       </div>
     </>
   );

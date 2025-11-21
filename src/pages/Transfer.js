@@ -345,39 +345,54 @@ const Transfer = () => {
   };
 
   const renderSelectedMoments = () => (
-    <div>
-      <div className="flex justify-between items-center mb-2">
-        <h4 className="text-sm text-brand">Selected Moments:</h4>
-        <span className="text-brand-text/70 text-sm">
-          {currentSelectionCount}/
-          {destinationType === "evm"
-            ? MAX_EVM_BRIDGE_COUNT
-            : MAX_FLOW_TRANSFER_COUNT}
-        </span>
-      </div>
-      <div className="h-[280px] overflow-y-auto pr-1">
-        {selectedNftsInAccount.length ? (
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
-            {selectedNftsInAccount.map((id) => {
-              const nft = (activeAccountData.nftDetails || []).find(
-                (item) => Number(item.id) === Number(id)
-              );
-              return nft ? (
-                <MomentCard
-                  key={id}
-                  nft={nft}
-                  handleNFTSelection={() =>
-                    dispatch({ type: "SET_SELECTED_NFTS", payload: id })
-                  }
-                  isSelected
-                />
-              ) : null;
-            })}
+    <div
+      className={`bg-brand-primary shadow-md rounded w-full transition-all duration-300 overflow-hidden border ${
+        currentSelectionCount === 0
+          ? "h-14 border-brand-border/30" // Collapsed: ~56px with subtle border
+          : "h-[280px] border-brand-border/50" // Expanded: fixed height for proper scrolling
+      }`}
+    >
+      <div className="p-2 h-full flex flex-col">
+        {/* Header - Always visible */}
+        <div className="flex justify-between items-center flex-shrink-0 mb-2">
+          <h4 className="text-sm text-brand-text">Selected Moments:</h4>
+          <span className="text-brand-text/70 text-sm">
+            {currentSelectionCount}/
+            {destinationType === "evm"
+              ? MAX_EVM_BRIDGE_COUNT
+              : MAX_FLOW_TRANSFER_COUNT}
+          </span>
+        </div>
+
+        {/* Content - Conditional */}
+        {currentSelectionCount === 0 ? (
+          // Empty state - minimal but "alive"
+          <div className="flex-1 flex items-center justify-center">
+            <span className="text-brand-text/50 text-xs">
+              No moments selected yet
+            </span>
           </div>
         ) : (
-          <p className="text-sm text-brand text-center">
-            No Moments selected yet.
-          </p>
+          // Populated state - scrollable grid
+          <div className="flex-1 overflow-y-auto pr-1 min-h-0">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
+              {selectedNftsInAccount.map((id) => {
+                const nft = (activeAccountData.nftDetails || []).find(
+                  (item) => Number(item.id) === Number(id)
+                );
+                return nft ? (
+                  <MomentCard
+                    key={id}
+                    nft={nft}
+                    handleNFTSelection={() =>
+                      dispatch({ type: "SET_SELECTED_NFTS", payload: id })
+                    }
+                    isSelected
+                  />
+                ) : null;
+              })}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -578,9 +593,7 @@ const Transfer = () => {
       {/* 2) Main area */}
       <div className="w-full">
         <div className="space-y-2">
-          <div className="bg-brand-primary shadow-md p-2 rounded w-full">
-            {renderSelectedMoments()}
-          </div>
+          {renderSelectedMoments()}
 
           <div className="bg-brand-primary shadow-md px-1 py-2 rounded flex flex-wrap gap-2 w-full">
             <AccountSelection
