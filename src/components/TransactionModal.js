@@ -207,8 +207,8 @@ const TransactionModal = ({
   /* ---------- Shared content render function ---------- */
   const renderContent = () => (
     <>
-      {/* Scrollable content container */}
-      <div className="overflow-y-auto h-full max-h-[70vh] sm:max-h-[80vh]">
+      {/* Scrollable content container - smooth scrolling on mobile */}
+      <div className="overflow-y-auto h-full max-h-[75vh] sm:max-h-[80vh] overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* sticky compact header */}
         <div className="flex items-center justify-between sticky top-0 bg-black/30 backdrop-blur-md border-b border-white/10 z-10 px-4 py-3 sm:px-5 sm:py-4">
           <div className="flex items-center gap-2 flex-1 min-w-0 pr-2">
@@ -287,7 +287,7 @@ const TransactionModal = ({
           {/* reveal grid - only show for non-OFFERS_ACCEPT transactions */}
           {revealedCount > 0 && transactionAction !== "OFFERS_ACCEPT" && (
             <div className="mt-4 pb-2 border-t border-brand-border pt-4">
-              <div className="flex items-center justify-between my-2">
+              <div className="flex items-center justify-between my-2 flex-wrap gap-2">
                 <h3 className="font-bold text-sm">
                   You received {revealedCount}{" "}
                   {plural(revealedCount, "Moment", "Moments")}:
@@ -296,8 +296,9 @@ const TransactionModal = ({
                   <button
                     onClick={revealAll}
                     className="
-                      bg-brand-secondary text-brand-text text-xs px-3 py-1 rounded
-                      hover:opacity-80 select-none
+                      bg-brand-accent text-white text-xs px-3 py-1.5 rounded font-semibold
+                      hover:opacity-90 active:opacity-75 select-none
+                      transition-opacity
                     "
                   >
                     Reveal All
@@ -359,7 +360,7 @@ const TransactionModal = ({
           exit={{ y: 400, opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", stiffness: 300, damping: 25 }}
           className="
-            w-full max-h-[70vh]
+            w-full max-h-[75vh]
             rounded-t-2xl
             bg-brand-secondary/95 backdrop-blur-md
             border border-white/10
