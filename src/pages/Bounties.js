@@ -3,8 +3,8 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 import { Link, useNavigate } from "react-router-dom";
 import { UserDataContext } from "../context/UserContext";
 import { useAllDayContext } from "../context/AllDayContext";
+import { useTransactionCenter } from "../context/TransactionCenterContext";
 import * as fcl from "@onflow/fcl";
-import TransactionModal from "../components/TransactionModal";
 import useTransaction from "../hooks/useTransaction";
 import { acceptTopShotOffer } from "../flow/offers/acceptTopShotOffer";
 import { acceptTopShotOffer_child } from "../flow/offers/acceptTopShotOffer_child";
@@ -60,8 +60,9 @@ export default function Bounties({ collectionType = 'topshot' }) {
   const sealedHandledRef = useRef(false);
   const [offers, setOffers] = useState([]);
   const [error, setError] = useState("");
-  const [txModal, setTxModal] = useState({ open: false, status: null, txId: null, context: null });
   const { sendTransaction, status: txStatus, txId } = useTransaction();
+  const { addOrUpdateTransaction, completeTransaction, openTransactionDrawer } = useTransactionCenter();
+  const currentTxRef = useRef(null); // Track current transaction UI ID
   const [matchesPage, setMatchesPage] = useState(1);
   const [usdAmounts, setUsdAmounts] = useState({});
   const [flowPrice, setFlowPrice] = useState(null);
@@ -499,18 +500,21 @@ export default function Bounties({ collectionType = 'topshot' }) {
         ? `Accepting offer for ${enrichedMoment.fullName || 'Unknown Player'} - ${enrichedMoment.name || 'Unknown Set'}`
         : `Accepting offer for Moment #${momentId} (Set ${enrichedMoment.setID || 'N/A'}, Play ${enrichedMoment.playID || 'N/A'})`;
       
-      setTxModal({
-        open: true,
+      // Add transaction to context
+      const txData = {
         status: "Awaiting Approval",
         txId: null,
-        context: {
-          swapType: "OFFERS_ACCEPT",
-          message: message,
-          amount: parseFloat(match.offer.offerAmount).toFixed(2),
-          moment: enrichedMoment,
-          offer: match.offer,
-        },
-      });
+        transactionAction: "OFFERS_ACCEPT",
+        swapType: "OFFERS_ACCEPT",
+        nftCount: 1,
+        tshotAmount: parseFloat(match.offer.offerAmount).toFixed(2),
+        momentDetails: enrichedMoment,
+        offerDetails: match.offer,
+        usdAmount: usdAmounts[match.offer.offerId],
+        collectionType: collectionType,
+      };
+      currentTxRef.current = addOrUpdateTransaction(txData);
+      // Don't auto-open drawer for OFFERS_ACCEPT - user can check Transaction Center
       if (isChild) {
         const cadence = collectionType === 'allday' ? acceptAllDayOffer_child : acceptTopShotOffer_child;
         await sendTransaction({
@@ -534,14 +538,39 @@ export default function Bounties({ collectionType = 'topshot' }) {
         });
       }
     } catch (e) {
-      setTxModal((s) => ({ ...s, status: "Error" }));
+      // Update transaction with error status
+      if (currentTxRef.current) {
+        const errorMsg = e?.message || String(e);
+        const isUserRejection = errorMsg.toLowerCase().includes("user rejected") || 
+                                errorMsg.toLowerCase().includes("declined");
+        addOrUpdateTransaction({
+          status: isUserRejection ? "Declined" : "Error",
+          error: errorMsg,
+        });
+      }
     }
   };
 
+  // Update transaction status when txStatus or txId changes
   useEffect(() => {
-    if (!txModal.open) return;
-    if (txStatus) setTxModal((s) => ({ ...s, status: txStatus }));
-  }, [txStatus, txModal.open]);
+    if (!currentTxRef.current) return;
+    if (txStatus || txId) {
+      // Update transaction by passing the _uiId to match existing transaction
+      addOrUpdateTransaction({
+        _uiId: currentTxRef.current,
+        status: txStatus || undefined,
+        txId: txId || undefined,
+      });
+      
+      // Mark as complete when sealed
+      if (txStatus === "Sealed" || txStatus === "Expired" || txStatus === "Error") {
+        setTimeout(() => {
+          completeTransaction(currentTxRef.current);
+          currentTxRef.current = null;
+        }, 2000);
+      }
+    }
+  }, [txStatus, txId, addOrUpdateTransaction, completeTransaction]);
 
   const fetchUsdAmounts = async (offerList) => {
     const newUsdAmounts = {};
@@ -1048,22 +1077,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
         </section>
       )}
 
-      {txModal.open && (
-        <TransactionModal
-          status={txModal.status}
-          txId={txId || txModal.txId}
-          nftCount={1}
-          tshotAmount={txModal.context?.amount}
-          swapType={"OFFERS_ACCEPT"}
-          transactionAction={"OFFERS_ACCEPT"}
-          onClose={() => setTxModal({ open: false, status: null, txId: null, context: null })}
-          revealedNFTDetails={txModal.context?.moment ? [txModal.context.moment] : []}
-          momentDetails={txModal.context?.moment}
-          offerDetails={txModal.context?.offer}
-          usdAmount={usdAmounts[txModal.context?.offer?.offerId]}
-          collectionType={collectionType}
-        />
-      )}
+      {/* Transaction Modal is now global - rendered in App.js via TransactionDrawer */}
     </div>
   );
 }

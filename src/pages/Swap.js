@@ -1,18 +1,17 @@
 import React, { useState, useEffect, useContext } from "react";
 import { UserDataContext } from "../context/UserContext";
 import { useAnnouncement } from "../context/AnnouncementContext";
+import { useTransactionCenter } from "../context/TransactionCenterContext";
 import * as fcl from "@onflow/fcl";
 import { getChildren } from "../flow/getChildren";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import NFTToTSHOTPanel from "../components/NFTToTSHOTPanel";
 import TSHOTToNFTPanel from "../components/TSHOTToNFTPanel";
-import TransactionModal from "../components/TransactionModal";
 import AccountSelection from "../components/AccountSelection";
-import { AnimatePresence } from "framer-motion";
 
 import { Helmet } from "react-helmet-async";
 import { X } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import SwapApplication from "../components/SwapApplication";
 
 /** Utility to get total TSHOT balance across parent + child. */
@@ -82,12 +81,23 @@ const Swap = () => {
   const [toInput, setToInput] = useState("");
   const [lastFocus, setLastFocus] = useState(null);
 
-  // Transaction modal
-  const [showModal, setShowModal] = useState(false);
-  const [transactionData, setTransactionData] = useState({});
+  // Transaction center (replaces local modal state)
+  const { addOrUpdateTransaction, openTransactionDrawer, shouldAutoOpenDrawer, completeTransaction } = useTransactionCenter();
+  
+  // Debounce for auto-opening drawer to prevent spam
+  const [openDrawerTimeout, setOpenDrawerTimeout] = useState(null);
 
   // Excluded NFT IDs (committed for TSHOT, so we don't see them again)
   const [excludedNftIds, setExcludedNftIds] = useState([]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (openDrawerTimeout) {
+        clearTimeout(openDrawerTimeout);
+      }
+    };
+  }, [openDrawerTimeout]);
 
   const [showInfoModal, setShowInfoModal] = useState(false);
 
@@ -287,8 +297,29 @@ const Swap = () => {
 
   /** Called whenever a transaction starts or updates. */
   const handleTransactionStart = (txData) => {
-    setTransactionData(txData);
-    setShowModal(true);
+    // Add or update transaction in context
+    const txId = addOrUpdateTransaction(txData);
+
+    // Auto-open drawer for transactions so users can see status
+    // Drawer is non-blocking, so users can close it if they want to continue browsing
+    // REVEAL_SWAP gets special treatment (cinematic reveal), but all transactions show in drawer
+    // Debounce to prevent drawer spam when clicking fast
+    const shouldAutoOpen = shouldAutoOpenDrawer(txData) || 
+      txData.swapType === "NFT_TO_TSHOT" || 
+      txData.transactionAction === "COMMIT_SWAP" || 
+      txData.transactionAction === "OFFERS_ACCEPT";
+    
+    if (shouldAutoOpen) {
+      // Clear any pending open
+      if (openDrawerTimeout) {
+        clearTimeout(openDrawerTimeout);
+      }
+      // Debounce: open after 150ms (prevents spam, feels instant)
+      const timeoutId = setTimeout(() => {
+        openTransactionDrawer(txId);
+      }, 150);
+      setOpenDrawerTimeout(timeoutId);
+    }
 
     // If NFT->TSHOT => exclude these NFT IDs from selection
     if (
@@ -298,11 +329,14 @@ const Swap = () => {
     ) {
       setExcludedNftIds((prev) => [...prev, ...txData.nftIds.map(String)]);
     }
-  };
 
-  const handleCloseModal = () => {
-    setTransactionData({});
-    setShowModal(false);
+    // If transaction is sealed, mark as complete
+    if (txData.status === "Sealed" || txData.status === "Expired" || txData.status === "Error") {
+      // Delay completion slightly to allow UI to show final state
+      setTimeout(() => {
+        completeTransaction(txId);
+      }, 2000);
+    }
   };
 
   /** Prevent typed input in from=NFT or TSHOT w/ receipt mode. */
@@ -474,12 +508,7 @@ const Swap = () => {
         </script>
       </Helmet>
 
-      {/* Transaction Modal */}
-      <AnimatePresence>
-        {showModal && transactionData.status && (
-          <TransactionModal {...transactionData} onClose={handleCloseModal} />
-        )}
-      </AnimatePresence>
+      {/* Transaction Modal is now global - rendered in App.js via TransactionDrawer */}
 
       {/* TSHOT Info Modal */}
       <AnimatePresence>

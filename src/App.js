@@ -3,6 +3,8 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import UserDataProvider from "./context/UserContext";
 import { AllDayProvider } from "./context/AllDayContext";
 import { AnnouncementProvider } from "./context/AnnouncementContext";
+import { TransactionCenterProvider } from "./context/TransactionCenterContext";
+import TransactionDrawer from "./components/TransactionDrawer";
 import routes from "./routes";
 import MaintenancePage from "./pages/Maintenance";
 import ComingSoon from "./pages/ComingSoon";
@@ -21,11 +23,15 @@ function App() {
     <UserDataProvider>
       <AllDayProvider>
         <AnnouncementProvider>
-          <div className="w-full min-h-screen bg-brand-secondary text-brand-text">
-            <div className="relative min-h-screen">
-              <RouterProvider router={router} />
+          <TransactionCenterProvider>
+            <div className="w-full min-h-screen bg-brand-secondary text-brand-text">
+              <div className="relative min-h-screen">
+                <RouterProvider router={router} />
+                {/* Global Transaction Drawer */}
+                <TransactionDrawer />
+              </div>
             </div>
-          </div>
+          </TransactionCenterProvider>
         </AnnouncementProvider>
       </AllDayProvider>
     </UserDataProvider>

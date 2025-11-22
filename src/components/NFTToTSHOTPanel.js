@@ -171,9 +171,12 @@ function NFTToTSHOTPanel({ nftIds = [], buyAmount = "0", onTransactionStart }) {
       }
     } catch (err) {
       console.error("[NFT→TSHOT] tx failed:", err);
+      const errorMsg = err?.message ?? String(err);
+      const isUserRejection = errorMsg.toLowerCase().includes("user rejected") || 
+                              errorMsg.toLowerCase().includes("declined");
       onTransactionStart?.({
-        status: "Error",
-        error: err?.message ?? String(err),
+        status: isUserRejection ? "Declined" : "Error",
+        error: errorMsg,
         txId: null,
         nftCount: nftIds.length,
         tshotAmount: buyAmount,

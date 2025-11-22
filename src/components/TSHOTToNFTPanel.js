@@ -249,9 +249,12 @@ export default function TSHOTToNFTPanel({
       /* Remove the reset after deposit step */
     } catch (err) {
       console.error("[deposit] failed:", err);
+      const errorMsg = err?.message ?? String(err);
+      const isUserRejection = errorMsg.toLowerCase().includes("user rejected") || 
+                              errorMsg.toLowerCase().includes("declined");
       onTransactionStart?.({
-        status: "Error",
-        error: err?.message ?? String(err),
+        status: isUserRejection ? "Declined" : "Error",
+        error: errorMsg,
         txId: null,
         tshotAmount: bet,
         transactionAction: "COMMIT_SWAP",
@@ -406,9 +409,12 @@ export default function TSHOTToNFTPanel({
       onTransactionComplete?.();
     } catch (err) {
       console.error("[reveal] failed:", err);
+      const errorMsg = err?.message ?? String(err);
+      const isUserRejection = errorMsg.toLowerCase().includes("user rejected") || 
+                              errorMsg.toLowerCase().includes("declined");
       onTransactionStart?.({
-        status: "Error",
-        error: err?.message ?? String(err),
+        status: isUserRejection ? "Declined" : "Error",
+        error: errorMsg,
         txId: null,
         tshotAmount: betAmount,
         transactionAction: "REVEAL_SWAP",
