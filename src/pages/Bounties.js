@@ -61,7 +61,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
   const [offers, setOffers] = useState([]);
   const [error, setError] = useState("");
   const { sendTransaction, status: txStatus, txId } = useTransaction();
-  const { addOrUpdateTransaction, completeTransaction, openTransactionDrawer } = useTransactionCenter();
+  const { addOrUpdateTransaction, completeTransaction } = useTransactionCenter();
   const currentTxRef = useRef(null); // Track current transaction UI ID
   const [matchesPage, setMatchesPage] = useState(1);
   const [usdAmounts, setUsdAmounts] = useState({});
@@ -494,11 +494,6 @@ export default function Bounties({ collectionType = 'topshot' }) {
           enrichedMoment = { ...match.moment, ...metadata };
         }
       }
-      
-      // Create appropriate message based on collection type
-      const message = collectionType === 'allday'
-        ? `Accepting offer for ${enrichedMoment.fullName || 'Unknown Player'} - ${enrichedMoment.name || 'Unknown Set'}`
-        : `Accepting offer for Moment #${momentId} (Set ${enrichedMoment.setID || 'N/A'}, Play ${enrichedMoment.playID || 'N/A'})`;
       
       // Add transaction to context
       const txData = {

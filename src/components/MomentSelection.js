@@ -15,16 +15,6 @@ import { SUBEDITIONS } from "../utils/subeditions";
 import MultiSelectDropdown from "./MultiSelectDropdown";
 import FilterDropdown from "./FilterDropdown";
 
-/* ───── colour helpers ───── */
-const colour = {
-  common: "text-gray-400",
-  fandom: "text-lime-400",
-  rare: "text-blue-500",
-  legendary: "text-orange-500",
-  ultimate: "text-pink-500",
-};
-const tierClass = (t) => colour[t] ?? "";
-
 /* ───── local exclude-set helpers ───── */
 const exclKey = (addr) => `excluded:${addr?.toLowerCase?.()}`;
 const readExcluded = (addr) => {

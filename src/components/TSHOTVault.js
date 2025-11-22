@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
-import MomentCard, { tierStyles } from "./MomentCard";
+import MomentCard from "./MomentCard";
 import { UserDataContext } from "../context/UserContext";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
