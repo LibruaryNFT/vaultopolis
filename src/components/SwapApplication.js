@@ -187,12 +187,13 @@ const SwapApplication = ({
                         <span>TSHOT</span>
                       </div>
                     ) : (
-                      <span>
-                        <span className="hidden sm:inline">TopShot</span>
-                        <span className="sm:hidden">TS</span>{" "}
-                        <span className="text-gray-400">Common</span> /{" "}
-                        <span className="text-lime-400">Fandom</span>
-                      </span>
+                      <div className="flex flex-col leading-tight">
+                        <span>TopShot Moments</span>
+                        <span className="text-xs text-brand-text/70 mt-0.5">
+                          <span className="text-gray-400">Common</span> and{" "}
+                          <span className="text-lime-400">Fandom</span>
+                        </span>
+                      </div>
                     )}
                   </div>
                   {toAsset === "TSHOT" && (

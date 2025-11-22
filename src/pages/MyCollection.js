@@ -10,6 +10,8 @@ import { useMomentFilters } from "../hooks/useMomentFilters";
 import PageWrapper from "../components/PageWrapper";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
+import MultiSelectDropdown from "../components/MultiSelectDropdown";
+import FilterDropdown from "../components/FilterDropdown";
  
 
 
@@ -199,6 +201,11 @@ export default function MyCollection() {
     selectedNFTs: [], // No selection needed for collection view
     allowAllTiers: true, // Show all tiers, not just common/fandom
     showLockedMoments: true, // Show locked moments in collection view
+    scope: "myCollection", // Separate storage scope from MomentSelection
+    defaultFilters: {
+      excludeSpecialSerials: false, // Don't exclude special serials by default in MyCollection
+      excludeLowSerials: false, // Don't exclude low serials by default in MyCollection
+    },
   });
 
   // For AllDay, merge Flow data with metadata and apply basic filtering
@@ -408,212 +415,112 @@ export default function MyCollection() {
               {/* Filter Controls - Only show for TopShot */}
               {collectionType === 'topshot' && (
                 <>
-                  {/* Series */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-xs">Series:</span>
-                      <label className="flex items-center gap-1 text-base">
-                        <input
-                          type="checkbox"
-                          checked={
-                            filter.selectedSeries.length &&
-                            filter.selectedSeries.length === seriesOptions.length
-                          }
-                          onChange={(e) =>
-                            setFilter({
-                              selectedSeries: e.target.checked ? seriesOptions : [],
-                              currentPage: 1,
-                            })
-                          }
-                          className="rounded"
-                        />
-                        All
-                      </label>
-                      {seriesOptions.map((s) => {
-                        const isAllSelected = filter.selectedSeries.length === seriesOptions.length;
-                        const isSeriesSelected = filter.selectedSeries.includes(s);
-                        // When "All" is selected, show individual boxes as unchecked (visual state)
-                        const visualChecked = isAllSelected ? false : isSeriesSelected;
-                        
-                        return (
-                          <label key={s} className="flex items-center gap-1 text-base">
-                            <input
-                              type="checkbox"
-                              checked={visualChecked}
-                              onChange={() => {
-                                if (isAllSelected) {
-                                  // "All" is selected: uncheck "All" and select just this series
-                                  setFilter({ selectedSeries: [s], currentPage: 1 });
-                                } else {
-                                  // Normal toggle behavior
-                                  const next = isSeriesSelected
-                                    ? filter.selectedSeries.filter((x) => x !== s)
-                                    : [...filter.selectedSeries, s];
-                                  setFilter({ selectedSeries: next, currentPage: 1 });
-                                }
-                              }}
-                              className="rounded"
-                            />
-                            {getSeriesFilterLabel(s, 'topshot')}
-                          </label>
-                        );
-                      })}
+                  {/* Row 1: Series & Tiers */}
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Series:</span>
+                      <MultiSelectDropdown
+                        options={seriesOptions}
+                        selectedValues={filter.selectedSeries}
+                        onChange={(newSelection) => {
+                          setFilter({ selectedSeries: newSelection, currentPage: 1 });
+                        }}
+                        labelFn={(s) => getSeriesFilterLabel(s, 'topshot')}
+                        countFn={(s) => {
+                          return topShotEligibleMoments.filter((m) =>
+                            Number(m.series) === s
+                          ).length;
+                        }}
+                        placeholder="Select series..."
+                        width="w-full"
+                        title="Filter by series"
+                      />
                     </div>
-                  </div>
-                  {/* Tiers */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-xs">Tiers:</span>
-                      <label className="flex items-center gap-1 text-base">
-                        <input
-                          type="checkbox"
-                          checked={
-                            filter.selectedTiers.length &&
-                            filter.selectedTiers.length === tierOptions.length
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Tiers:</span>
+                      <MultiSelectDropdown
+                        options={tierOptions}
+                        selectedValues={filter.selectedTiers}
+                        onChange={(newSelection) => {
+                          // Prevent empty selection - if would be empty, keep at least first tier
+                          if (newSelection.length === 0 && tierOptions.length > 0) {
+                            setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
+                            return;
                           }
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              // Check "All" - select all tiers
-                              setFilter({ selectedTiers: tierOptions, currentPage: 1 });
-                            } else {
-                              // Uncheck "All" - but prevent deselecting all, so select just the first tier
-                              if (tierOptions.length > 0) {
-                                setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
-                              }
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        All
-                      </label>
-                      {tierOptions.map((t) => {
-                        const isAllSelected = filter.selectedTiers.length === tierOptions.length;
-                        const isTierSelected = filter.selectedTiers.includes(t);
-                        // When "All" is selected, show individual boxes as unchecked (visual state)
-                        const visualChecked = isAllSelected ? false : isTierSelected;
-                        
-                        return (
-                          <label key={t} className="flex items-center gap-1 text-base">
-                            <input
-                              type="checkbox"
-                              checked={visualChecked}
-                              onChange={() => {
-                                if (isAllSelected) {
-                                  // "All" is selected: uncheck "All" and select just this tier
-                                  setFilter({ selectedTiers: [t], currentPage: 1 });
-                                } else {
-                                  // Normal toggle behavior
-                                  const next = isTierSelected
-                                    ? filter.selectedTiers.filter((x) => x !== t)
-                                    : [...filter.selectedTiers, t];
-                                  // Prevent deselecting all tiers
-                                  if (next.length === 0) {
-                                    return; // Don't allow deselecting all
-                                  }
-                                  setFilter({ selectedTiers: next, currentPage: 1 });
-                                }
-                              }}
-                              className="rounded"
-                            />
-                            <span className={t === 'common' ? 'text-gray-400' :
-                              t === 'fandom' ? 'text-lime-400' :
-                              t === 'rare' ? 'text-blue-500' :
-                              t === 'legendary' ? 'text-orange-500' :
-                              t === 'ultimate' ? 'text-pink-500' : 'text-gray-400'
-                            }>
-                              {t[0].toUpperCase() + t.slice(1)}
-                            </span>
-                          </label>
-                        );
-                      })}
+                          setFilter({ selectedTiers: newSelection, currentPage: 1 });
+                        }}
+                        labelFn={(t) => t[0].toUpperCase() + t.slice(1)}
+                        placeholder="Select tiers..."
+                        width="w-full"
+                        title="Filter by tiers"
+                      />
                     </div>
                   </div>
                 </>
               )}
 
-              {/* Other Filters - Only show for TopShot */}
+              {/* Row 4: Refinement Filters - Only show for TopShot */}
               {collectionType === 'topshot' && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">League:</span>
-                    <select
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">League:</span>
+                    <FilterDropdown
+                      options={["All", ...leagueOptions]}
                       value={filter.selectedLeague}
                       onChange={(e) =>
                         setFilter({ selectedLeague: e.target.value, currentPage: 1 })
                       }
-                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
-                    >
-                      <option value="All">All</option>
-                      {leagueOptions.map((league) => (
-                        <option key={league} value={league}>
-                          {league}
-                        </option>
-                      ))}
-                    </select>
+                      title="Filter by league"
+                      width="w-full"
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">Set:</span>
-                    <select
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Set:</span>
+                    <FilterDropdown
+                      options={["All", ...setNameOptions]}
                       value={filter.selectedSetName}
                       onChange={(e) =>
                         setFilter({ selectedSetName: e.target.value, currentPage: 1 })
                       }
-                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
-                    >
-                      <option value="All">All</option>
-                      {setNameOptions.map((set) => (
-                        <option key={set} value={set}>
-                          {set}
-                        </option>
-                      ))}
-                    </select>
+                      title="Filter by set"
+                      width="w-full"
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">Team:</span>
-                    <select
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Team:</span>
+                    <FilterDropdown
+                      options={["All", ...teamOptions]}
                       value={filter.selectedTeam}
                       onChange={(e) =>
                         setFilter({ selectedTeam: e.target.value, currentPage: 1 })
                       }
-                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
-                    >
-                      <option value="All">All</option>
-                      {teamOptions.map((team) => (
-                        <option key={team} value={team}>
-                          {team}
-                        </option>
-                      ))}
-                    </select>
+                      title="Filter by team"
+                      width="w-full"
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">Player:</span>
-                    <select
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Player:</span>
+                    <FilterDropdown
+                      options={["All", ...playerOptions]}
                       value={filter.selectedPlayer}
                       onChange={(e) =>
                         setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
                       }
-                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
-                    >
-                      <option value="All">All</option>
-                      {playerOptions.map((player) => (
-                        <option key={player} value={player}>
-                          {player}
-                        </option>
-                      ))}
-                    </select>
+                      title="Filter by player"
+                      width="w-full"
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">Parallel:</span>
-                    <select
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Parallel:</span>
+                    <FilterDropdown
+                      options={["All", ...subeditionOptions]}
                       value={filter.selectedSubedition}
                       onChange={(e) =>
                         setFilter({ selectedSubedition: e.target.value, currentPage: 1 })
                       }
-                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
                       title="Filter by parallel/subedition"
-                    >
-                      <option value="All">All</option>
-                      {subeditionOptions.map((subId) => {
+                      labelFn={(subId) => {
+                        if (subId === "All") return "All";
                         const id = Number(subId);
                         const sub = subMeta[id] || SUBEDITIONS[id];
                         if (!sub) {
@@ -621,183 +528,59 @@ export default function MyCollection() {
                             const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
                             return String(effectiveSubId) === String(subId);
                           }).length;
-                          return (
-                            <option key={subId} value={subId}>
-                              Subedition {id} ({count})
-                            </option>
-                          );
+                          return `Subedition ${id} (${count})`;
                         }
                         const minted = sub.minted || 0;
                         const count = topShotEligibleMoments.filter((m) => {
                           const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
                           return String(effectiveSubId) === String(subId);
                         }).length;
-                        return (
-                          <option key={subId} value={subId}>
-                            {sub.name} /{minted} ({count})
-                          </option>
-                        );
-                      })}
-                    </select>
+                        return `${sub.name} /${minted} (${count})`;
+                      }}
+                      width="w-full"
+                    />
                   </div>
                 </div>
               )}
 
-              {/* Safety Filters - Only show for TopShot */}
-              {collectionType === 'topshot' && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">Safety Filters:</span>
-                    <label className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={filter.excludeSpecialSerials}
-                        onChange={(e) =>
-                          setFilter({ excludeSpecialSerials: e.target.checked, currentPage: 1 })
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-xs">Exclude #1 / Jersey / Last Mint</span>
-                    </label>
-                    <label className="flex items-center gap-1">
-                      <input
-                        type="checkbox"
-                        checked={filter.excludeLowSerials}
-                        onChange={(e) =>
-                          setFilter({ excludeLowSerials: e.target.checked, currentPage: 1 })
-                        }
-                        className="rounded"
-                      />
-                      <span className="text-xs">Exclude serials ≤ 4000</span>
-                    </label>
-                  </div>
-                </div>
-              )}
 
               {/* AllDay Filters */}
               {collectionType === 'allday' && (
                 <>
-                  {/* Series */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-xs">Series:</span>
-                      <label className="flex items-center gap-1 text-base">
-                        <input
-                          type="checkbox"
-                          checked={
-                            allDayFilter.selectedSeries.length &&
-                            allDayFilter.selectedSeries.length === allDayFilterOptions.seriesOptions?.length
-                          }
-                          onChange={(e) =>
-                            setAllDayFilter({
-                              ...allDayFilter,
-                              selectedSeries: e.target.checked ? allDayFilterOptions.seriesOptions || [] : [],
-                              currentPage: 1,
-                            })
-                          }
-                          className="rounded"
-                        />
-                        All
-                      </label>
-                      {(allDayFilterOptions.seriesOptions || []).map((s) => {
-                        const currentSeries = allDayFilter.selectedSeries || [];
-                        const isAllSelected = currentSeries.length === (allDayFilterOptions.seriesOptions?.length || 0);
-                        const isSeriesSelected = currentSeries.includes(s);
-                        // When "All" is selected, show individual boxes as unchecked (visual state)
-                        const visualChecked = isAllSelected ? false : isSeriesSelected;
-                        
-                        return (
-                          <label key={s} className="flex items-center gap-1 text-base">
-                            <input
-                              type="checkbox"
-                              checked={visualChecked}
-                              onChange={() => {
-                                if (isAllSelected) {
-                                  // "All" is selected: uncheck "All" and select just this series
-                                  setAllDayFilter({ ...allDayFilter, selectedSeries: [s], currentPage: 1 });
-                                } else {
-                                  // Normal toggle behavior
-                                  const next = isSeriesSelected
-                                    ? currentSeries.filter((x) => x !== s)
-                                    : [...currentSeries, s];
-                                  setAllDayFilter({ ...allDayFilter, selectedSeries: next, currentPage: 1 });
-                                }
-                              }}
-                              className="rounded"
-                            />
-                            {getSeriesFilterLabel(s, 'allday')}
-                          </label>
-                        );
-                      })}
+                  {/* Series & Tiers */}
+                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Series:</span>
+                      <MultiSelectDropdown
+                        options={allDayFilterOptions.seriesOptions || []}
+                        selectedValues={allDayFilter.selectedSeries}
+                        onChange={(newSelection) => {
+                          setAllDayFilter({ ...allDayFilter, selectedSeries: newSelection, currentPage: 1 });
+                        }}
+                        labelFn={(s) => getSeriesFilterLabel(s, 'allday')}
+                        placeholder="Select series..."
+                        width="w-full"
+                        title="Filter by series"
+                      />
                     </div>
-                  </div>
-                  {/* Tiers */}
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-xs">Tiers:</span>
-                      <label className="flex items-center gap-1 text-base">
-                        <input
-                          type="checkbox"
-                          checked={
-                            (allDayFilter.selectedTiers || []).length &&
-                            (allDayFilter.selectedTiers || []).length === (allDayFilterOptions.tierOptions || []).length
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Tiers:</span>
+                      <MultiSelectDropdown
+                        options={allDayFilterOptions.tierOptions || []}
+                        selectedValues={allDayFilter.selectedTiers}
+                        onChange={(newSelection) => {
+                          // Prevent empty selection - if would be empty, keep at least first tier
+                          if (newSelection.length === 0 && (allDayFilterOptions.tierOptions || []).length > 0) {
+                            setAllDayFilter({ ...allDayFilter, selectedTiers: [(allDayFilterOptions.tierOptions || [])[0]], currentPage: 1 });
+                            return;
                           }
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              // Check "All" - select all tiers
-                              setAllDayFilter({ ...allDayFilter, selectedTiers: allDayFilterOptions.tierOptions || [], currentPage: 1 });
-                            } else {
-                              // Uncheck "All" - but prevent deselecting all, so select just the first tier
-                              if ((allDayFilterOptions.tierOptions || []).length > 0) {
-                                setAllDayFilter({ ...allDayFilter, selectedTiers: [(allDayFilterOptions.tierOptions || [])[0]], currentPage: 1 });
-                              }
-                            }
-                          }}
-                          className="rounded"
-                        />
-                        All
-                      </label>
-                      {(allDayFilterOptions.tierOptions || []).map((t) => {
-                        const currentTiers = allDayFilter.selectedTiers || [];
-                        const isAllSelected = currentTiers.length === (allDayFilterOptions.tierOptions || []).length;
-                        const isTierSelected = currentTiers.includes(t);
-                        // When "All" is selected, show individual boxes as unchecked (visual state)
-                        const visualChecked = isAllSelected ? false : isTierSelected;
-                        
-                        return (
-                          <label key={t} className="flex items-center gap-1 text-base">
-                            <input
-                              type="checkbox"
-                              checked={visualChecked}
-                              onChange={() => {
-                                if (isAllSelected) {
-                                  // "All" is selected: uncheck "All" and select just this tier
-                                  setAllDayFilter({ ...allDayFilter, selectedTiers: [t], currentPage: 1 });
-                                } else {
-                                  // Normal toggle behavior
-                                  const next = isTierSelected
-                                    ? currentTiers.filter((x) => x !== t)
-                                    : [...currentTiers, t];
-                                  // Prevent deselecting all tiers
-                                  if (next.length === 0) {
-                                    return; // Don't allow deselecting all
-                                  }
-                                  setAllDayFilter({ ...allDayFilter, selectedTiers: next, currentPage: 1 });
-                                }
-                              }}
-                              className="rounded"
-                            />
-                            <span className={t === 'common' ? 'text-gray-400' :
-                              t === 'uncommon' ? 'text-lime-400' :
-                              t === 'rare' ? 'text-blue-500' :
-                              t === 'legendary' ? 'text-orange-500' :
-                              t === 'ultimate' ? 'text-pink-500' : 'text-gray-400'
-                            }>
-                              {t[0].toUpperCase() + t.slice(1)}
-                            </span>
-                          </label>
-                        );
-                      })}
+                          setAllDayFilter({ ...allDayFilter, selectedTiers: newSelection, currentPage: 1 });
+                        }}
+                        labelFn={(t) => t[0].toUpperCase() + t.slice(1)}
+                        placeholder="Select tiers..."
+                        width="w-full"
+                        title="Filter by tiers"
+                      />
                     </div>
                   </div>
                 </>
@@ -805,15 +588,15 @@ export default function MyCollection() {
 
               {/* AllDay Other Filters */}
               {collectionType === 'allday' && (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">Team:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Team:</span>
                     <select
                       value={allDayFilter.selectedTeam}
                       onChange={(e) =>
                         setAllDayFilter({ ...allDayFilter, selectedTeam: e.target.value, currentPage: 1 })
                       }
-                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                      className="w-full bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-xs"
                     >
                       <option value="All">All</option>
                       {(allDayFilterOptions.teamOptions || []).map((team) => (
@@ -823,14 +606,14 @@ export default function MyCollection() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-xs">Player:</span>
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Player:</span>
                     <select
                       value={allDayFilter.selectedPlayer}
                       onChange={(e) =>
                         setAllDayFilter({ ...allDayFilter, selectedPlayer: e.target.value, currentPage: 1 })
                       }
-                      className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base"
+                      className="w-full bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-xs"
                     >
                       <option value="All">All</option>
                       {(allDayFilterOptions.playerOptions || []).map((player) => (

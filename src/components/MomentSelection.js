@@ -12,6 +12,8 @@ import MomentCard from "./MomentCard";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
+import MultiSelectDropdown from "./MultiSelectDropdown";
+import FilterDropdown from "./FilterDropdown";
 
 /* ───── colour helpers ───── */
 const colour = {
@@ -34,55 +36,7 @@ const readExcluded = (addr) => {
   }
 };
 
-/* ───── reusable dropdown ───── */
-const Dropdown = ({
-  opts,
-  value,
-  onChange,
-  title,
-  countFn = () => 0,
-  labelFn = null,
-  width = "w-40",
-  isPlayerDropdown = false,
-  nftDetails = [],
-  filter = {},
-}) => {
-  // For player dropdown, show total count without serial filters
-  const getCount = (option) => {
-    if (
-      isPlayerDropdown &&
-      Array.isArray(nftDetails) &&
-      filter.selectedTiers &&
-      filter.selectedSeries
-    ) {
-      return nftDetails.filter(
-        (n) =>
-          !n.isLocked &&
-          n.fullName === option &&
-          filter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
-          filter.selectedSeries.includes(Number(n.series))
-      ).length;
-    }
-    return countFn(option);
-  };
-
-  return (
-    <select
-      value={value}
-      onChange={onChange}
-      disabled={!opts.length}
-      title={title}
-      className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-base`}
-    >
-      <option value="All">All</option>
-      {opts.map((o) => (
-        <option key={o} value={o} className="text-brand-text">
-          {labelFn ? labelFn(o) : `${o} (${getCount(o)})`}
-        </option>
-      ))}
-    </select>
-  );
-};
+/* ───── reusable dropdown - deprecated, use FilterDropdown instead ───── */
 
 /* ───── preset-modal (unchanged) ───── */
 const sanitizeName = (s) =>
@@ -415,118 +369,8 @@ export default function MomentSelection(props) {
       {/* filter panel */}
       <div className="bg-brand-secondary p-2 rounded mb-2">
         {/* filter controls */}
-        {/* Series */}
+        {/* Row 1: Safety Filters */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-xs">Series:</span>
-            <label className="flex items-center gap-1 text-base">
-              <input
-                type="checkbox"
-                checked={
-                  filter.selectedSeries.length &&
-                  filter.selectedSeries.length === seriesOptions.length
-                }
-                onChange={(e) =>
-                  setFilter({
-                    selectedSeries: e.target.checked ? seriesOptions : [],
-                    currentPage: 1,
-                  })
-                }
-              />
-              All
-            </label>
-            {seriesOptions.map((s) => {
-              const isAllSelected = filter.selectedSeries.length === seriesOptions.length;
-              const isSeriesSelected = filter.selectedSeries.includes(s);
-              // When "All" is selected, show individual boxes as unchecked (visual state)
-              const visualChecked = isAllSelected ? false : isSeriesSelected;
-              
-              return (
-                <label key={s} className="flex items-center gap-1 text-base">
-                  <input
-                    type="checkbox"
-                    checked={visualChecked}
-                    onChange={() => {
-                      if (isAllSelected) {
-                        // "All" is selected: uncheck "All" and select just this series
-                        setFilter({ selectedSeries: [s], currentPage: 1 });
-                      } else {
-                        // Normal toggle behavior
-                        const next = isSeriesSelected
-                          ? filter.selectedSeries.filter((x) => x !== s)
-                          : [...filter.selectedSeries, s];
-                        setFilter({ selectedSeries: next, currentPage: 1 });
-                      }
-                    }}
-                  />
-                  {getSeriesFilterLabel(s, 'topshot')}
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Tiers */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-xs">Tiers:</span>
-            <label className="flex items-center gap-1 text-base">
-              <input
-                type="checkbox"
-                checked={
-                  filter.selectedTiers.length &&
-                  filter.selectedTiers.length === tierOptions.length
-                }
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    // Check "All" - select all tiers
-                    setFilter({ selectedTiers: tierOptions, currentPage: 1 });
-                  } else {
-                    // Uncheck "All" - but prevent deselecting all, so select just the first tier
-                    if (tierOptions.length > 0) {
-                      setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
-                    }
-                  }
-                }}
-              />
-              All
-            </label>
-            {tierOptions.map((t) => {
-              const isAllSelected = filter.selectedTiers.length === tierOptions.length;
-              const isTierSelected = filter.selectedTiers.includes(t);
-              // When "All" is selected, show individual boxes as unchecked (visual state)
-              const visualChecked = isAllSelected ? false : isTierSelected;
-              
-              return (
-                <label key={t} className="flex items-center gap-1 text-base">
-                  <input
-                    type="checkbox"
-                    checked={visualChecked}
-                    onChange={() => {
-                      if (isAllSelected) {
-                        // "All" is selected: uncheck "All" and select just this tier
-                        setFilter({ selectedTiers: [t], currentPage: 1 });
-                      } else {
-                        // Normal toggle behavior
-                        const next = isTierSelected
-                          ? filter.selectedTiers.filter((x) => x !== t)
-                          : [...filter.selectedTiers, t];
-                        // Prevent deselecting all tiers
-                        if (next.length === 0) {
-                          return; // Don't allow deselecting all
-                        }
-                        setFilter({ selectedTiers: next, currentPage: 1 });
-                      }
-                    }}
-                  />
-                  <span className={tierClass(t)}>
-                    {t[0].toUpperCase() + t.slice(1)}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-          <div className="h-6 w-px bg-brand-primary/30 mx-2"></div>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-xs">Safety Filters:</span>
             <label className="flex items-center gap-1">
@@ -534,7 +378,7 @@ export default function MomentSelection(props) {
                 type="checkbox"
                 checked={filter.excludeSpecialSerials}
                 onChange={(e) =>
-                  setFilter({ excludeSpecialSerials: e.target.checked })
+                  setFilter({ excludeSpecialSerials: e.target.checked, currentPage: 1 })
                 }
               />
               <span className="text-xs">Exclude #1 / Jersey / Last Mint</span>
@@ -544,7 +388,7 @@ export default function MomentSelection(props) {
                 type="checkbox"
                 checked={filter.excludeLowSerials}
                 onChange={(e) =>
-                  setFilter({ excludeLowSerials: e.target.checked })
+                  setFilter({ excludeLowSerials: e.target.checked, currentPage: 1 })
                 }
               />
               <span className="text-xs">Exclude serials ≤ 4000</span>
@@ -552,12 +396,54 @@ export default function MomentSelection(props) {
           </div>
         </div>
 
-        {/* other filters */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs">League:</span>
-            <Dropdown
-              opts={leagueOptions}
+        {/* Row 2: Series & Tiers */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Series:</span>
+            <MultiSelectDropdown
+              options={seriesOptions}
+              selectedValues={filter.selectedSeries}
+              onChange={(newSelection) => {
+                setFilter({ selectedSeries: newSelection, currentPage: 1 });
+              }}
+              labelFn={(s) => getSeriesFilterLabel(s, 'topshot')}
+              countFn={(s) => {
+                return eligibleMoments.filter((m) =>
+                  Number(m.series) === s
+                ).length;
+              }}
+              placeholder="Select series..."
+              width="w-full"
+              title="Filter by series"
+            />
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Tiers:</span>
+            <MultiSelectDropdown
+              options={tierOptions}
+              selectedValues={filter.selectedTiers}
+              onChange={(newSelection) => {
+                // Prevent empty selection - if would be empty, keep at least first tier
+                if (newSelection.length === 0 && tierOptions.length > 0) {
+                  setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
+                  return;
+                }
+                setFilter({ selectedTiers: newSelection, currentPage: 1 });
+              }}
+              labelFn={(t) => t[0].toUpperCase() + t.slice(1)}
+              placeholder="Select tiers..."
+              width="w-full"
+              title="Filter by tiers"
+            />
+          </div>
+        </div>
+
+        {/* Row 4: Refinement Filters */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">League:</span>
+            <FilterDropdown
+              options={["All", ...leagueOptions]}
               value={filter.selectedLeague}
               onChange={(e) =>
                 setFilter({ selectedLeague: e.target.value, currentPage: 1 })
@@ -572,12 +458,13 @@ export default function MomentSelection(props) {
                     : !WNBA_TEAMS.includes(m.teamAtMoment || "")
                 ).length
               }
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs">Set:</span>
-            <Dropdown
-              opts={setNameOptions}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Set:</span>
+            <FilterDropdown
+              options={["All", ...setNameOptions]}
               value={filter.selectedSetName}
               onChange={(e) =>
                 setFilter({ selectedSetName: e.target.value, currentPage: 1 })
@@ -588,12 +475,13 @@ export default function MomentSelection(props) {
                   set === "All" ? true : m.name === set
                 ).length
               }
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs">Team:</span>
-            <Dropdown
-              opts={teamOptions}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Team:</span>
+            <FilterDropdown
+              options={["All", ...teamOptions]}
               value={filter.selectedTeam}
               onChange={(e) =>
                 setFilter({ selectedTeam: e.target.value, currentPage: 1 })
@@ -604,49 +492,47 @@ export default function MomentSelection(props) {
                   team === "All" ? true : m.teamAtMoment === team
                 ).length
               }
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs">Player:</span>
-            <Dropdown
-              opts={playerOptions}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Player:</span>
+            <FilterDropdown
+              options={["All", ...playerOptions]}
               value={filter.selectedPlayer}
               onChange={(e) =>
                 setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
               }
               title="Filter by player"
-              countFn={(player) =>
-                player === "All"
-                  ? base.baseNoPlayer.length
-                  : base.baseNoPlayer.filter((m) => m.fullName === player)
-                      .length
-              }
+              countFn={(player) => {
+                if (player === "All") {
+                  return base.baseNoPlayer.length;
+                }
+                return base.baseNoPlayer.filter((m) => m.fullName === player).length;
+              }}
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs">Parallel:</span>
-            <Dropdown
-              opts={subeditionOptions}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Parallel:</span>
+            <FilterDropdown
+              options={["All", ...subeditionOptions]}
               value={filter.selectedSubedition}
               onChange={(e) =>
                 setFilter({ selectedSubedition: e.target.value, currentPage: 1 })
               }
               title="Filter by parallel/subedition"
-              countFn={(subId) =>
-                subId === "All"
-                  ? eligibleMoments.length
-                  : eligibleMoments.filter(
-                      (m) => {
-                        const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
-                        return String(effectiveSubId) === String(subId);
-                      }
-                    ).length
-              }
               labelFn={(subId) => {
                 if (subId === "All") return "All";
                 const id = Number(subId);
                 const sub = subMeta[id] || SUBEDITIONS[id];
-                if (!sub) return `Subedition ${id}`;
+                if (!sub) {
+                  const count = eligibleMoments.filter((m) => {
+                    const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
+                    return String(effectiveSubId) === String(subId);
+                  }).length;
+                  return `Subedition ${id} (${count})`;
+                }
                 const minted = sub.minted || 0;
                 const count = eligibleMoments.filter((m) => {
                   const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
@@ -654,6 +540,7 @@ export default function MomentSelection(props) {
                 }).length;
                 return `${sub.name} /${minted} (${count})`;
               }}
+              width="w-full"
             />
           </div>
         </div>

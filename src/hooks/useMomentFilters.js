@@ -88,6 +88,8 @@ const ensureInOpts = (val, arr) => {
  * @param {Array} params.nftDetails - Array of NFT objects to filter
  * @param {Array} params.selectedNFTs - Currently selected NFT IDs
  * @param {boolean} params.disableBootEffect - Disable initial effect
+ * @param {string} params.scope - Scope/namespace for localStorage isolation (default: "momentSelection")
+ * @param {Object} params.defaultFilters - Override default filter values (e.g., {excludeSpecialSerials: false})
  */
 export function useMomentFilters({
   allowAllTiers = false,
@@ -97,6 +99,8 @@ export function useMomentFilters({
   selectedNFTs = [],
   showLockedMoments = false, // <-- ADDED THIS PROP
   forceSortOrder = null, // Force sort order regardless of other settings
+  scope = "momentSelection", // Storage scope for isolation
+  defaultFilters = {}, // Override default filter values
 }) {
   /* ----- tier list ----- */
   const tierOptions = allowAllTiers
@@ -114,6 +118,7 @@ export function useMomentFilters({
 
   const [filter, dispatch] = useReducer(reducer, {
     ...DEFAULT_FILTER,
+    ...defaultFilters, // Apply any overridden defaults (e.g., excludeSpecialSerials: false for MyCollection)
     selectedTiers: allowAllTiers ? [...BASE_TIERS, ...EXTRA_TIERS] : BASE_TIERS,
     selectedSeries: [], // Will be populated by useEffect
   });
@@ -505,7 +510,7 @@ export function useMomentFilters({
     [dDetails, passes]
   ); /* ---------- presets ---------- */
 
-  const PREF_KEY = "momentSelectionFilterPrefs";
+  const PREF_KEY = `momentSelectionFilterPrefs:${scope}`;
   const [prefs, setPrefs] = useState(() => {
     try {
       const raw = localStorage.getItem(PREF_KEY);

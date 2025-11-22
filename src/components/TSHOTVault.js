@@ -4,6 +4,8 @@ import MomentCard, { tierStyles } from "./MomentCard";
 import { UserDataContext } from "../context/UserContext";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
+import MultiSelectDropdown from "./MultiSelectDropdown";
+import FilterDropdown from "./FilterDropdown";
 
 /* ---------- constants ---------- */
 const TIER_OPTIONS = [
@@ -26,23 +28,7 @@ const Stat = ({ label, value }) => (
   </div>
 );
 
-/* ---------- reusable dropdown (unchanged) ---------- */
-const Dropdown = ({ opts, value, onChange, title, width = "w-40" }) => (
-  <select
-    value={value}
-    onChange={onChange}
-    disabled={!opts}
-    title={title}
-    className={`${width} bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-xs`}
-  >
-    <option value="All">All ({opts?.length ?? 0})</option>
-    {opts?.map((o) => (
-      <option key={o} value={o}>
-        {o}
-      </option>
-    ))}
-  </select>
-);
+/* ---------- reusable dropdown - deprecated, use FilterDropdown instead ---------- */
 
 /* ---------- main component ---------- */
 const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
@@ -258,28 +244,6 @@ function TSHOTVault({ onSummaryUpdate }) {
     setter(value);
   };
 
-  const toggleArrayFilter = (setter, fullOptionsArray, value) => {
-    setPage(1);
-    setter((prev) => {
-      const isAllSelected = prev.length === fullOptionsArray.length;
-      const isValueSelected = prev.includes(value);
-      
-      if (isAllSelected) {
-        // "All" is selected: uncheck "All" and select just this value
-        return [value];
-      } else if (isValueSelected) {
-        // Deselecting this value
-        const next = prev.filter((x) => x !== value);
-        // If nothing left, select all
-        return next.length === 0 ? fullOptionsArray : next;
-      } else {
-        // Selecting this value
-        const next = [...prev, value];
-        // If all selected, return full array
-        return next.length === fullOptionsArray.length ? fullOptionsArray : next;
-      }
-    });
-  };
 
   const retryFetch = () => {
     setRetry((r) => r + 1);
@@ -323,160 +287,144 @@ function TSHOTVault({ onSummaryUpdate }) {
       )}
 
       <div className="flex flex-col gap-3 text-sm bg-brand-secondary p-2 rounded mb-2">
+        {/* Row 1: Safety Filters */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Tiers:</span>
-            {TIER_OPTIONS.map((t) => (
-              <label key={t.value} className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={selectedTiers.includes(t.value)}
-                  onChange={() =>
-                    toggleArrayFilter(
-                      setSelectedTiers,
-                      TIER_OPTIONS.map((opt) => opt.value),
-                      t.value
-                    )
-                  }
-                />
-                <span className={tierStyles[t.value]}>{t.label}</span>
-              </label>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold">Series:</span>
+            <span className="font-semibold text-xs">Safety Filters:</span>
             <label className="flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={selectedSeries.length === ALL_SERIES_OPTIONS.length}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      // Check "All" - select all series
-                      handleFilterChange(setSelectedSeries, ALL_SERIES_OPTIONS);
-                    } else {
-                      // Uncheck "All" - but prevent deselecting all, so select just the first series
-                      if (ALL_SERIES_OPTIONS.length > 0) {
-                        handleFilterChange(setSelectedSeries, [ALL_SERIES_OPTIONS[0]]);
-                      }
-                    }
-                  }}
-                  disabled={loading.moments}
-                />
-                All
-              </label>
-              {ALL_SERIES_OPTIONS.map((s) => {
-                const isAllSelected = selectedSeries.length === ALL_SERIES_OPTIONS.length;
-                const isSeriesSelected = selectedSeries.includes(s);
-                // When "All" is selected, show individual boxes as unchecked (visual state)
-                const visualChecked = isAllSelected ? false : isSeriesSelected;
-                
-                return (
-                  <label key={s} className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      checked={visualChecked}
-                      onChange={() =>
-                        toggleArrayFilter(setSelectedSeries, ALL_SERIES_OPTIONS, s)
-                      }
-                      disabled={loading.moments}
-                    />
-                    {getSeriesFilterLabel(s, 'topshot')}
-                  </label>
-                );
-              })}
+              <input
+                type="checkbox"
+                checked={onlySpecial}
+                onChange={() => {
+                  setOnlySpecial((v) => !v);
+                  setPage(1);
+                }}
+              />
+              <span className="text-xs">Show only #1 / Jersey / Last Mint</span>
+            </label>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-brand-primary">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">League:</span>
-            <Dropdown
-              opts={filterOptions?.allLeagues}
+        {/* Row 2: Series & Tiers */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Series:</span>
+            <MultiSelectDropdown
+              options={ALL_SERIES_OPTIONS}
+              selectedValues={selectedSeries}
+              onChange={(newSelection) => {
+                handleFilterChange(setSelectedSeries, newSelection);
+              }}
+              labelFn={(s) => getSeriesFilterLabel(s, 'topshot')}
+              placeholder="Select series..."
+              width="w-full"
+              title="Filter by series"
+              disabled={loading.moments}
+            />
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Tiers:</span>
+            <MultiSelectDropdown
+              options={TIER_OPTIONS.map((t) => t.value)}
+              selectedValues={selectedTiers}
+              onChange={(newSelection) => {
+                setPage(1);
+                // Prevent empty selection - if would be empty, keep at least first tier
+                if (newSelection.length === 0 && TIER_OPTIONS.length > 0) {
+                  setSelectedTiers([TIER_OPTIONS[0].value]);
+                  return;
+                }
+                setSelectedTiers(newSelection);
+              }}
+              labelFn={(t) => {
+                const tier = TIER_OPTIONS.find((opt) => opt.value === t);
+                return tier ? tier.label : t;
+              }}
+              placeholder="Select tiers..."
+              width="w-full"
+              title="Filter by tiers"
+              disabled={loading.moments}
+            />
+          </div>
+        </div>
+
+        {/* Row 4: Refinement Filters */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">League:</span>
+            <FilterDropdown
+              options={filterOptions?.allLeagues ? ["All", ...filterOptions.allLeagues] : ["All"]}
               value={selectedLeague}
               onChange={(e) =>
                 handleFilterChange(setSelectedLeague, e.target.value)
               }
               title="Filter by league"
+              disabled={loading.moments || !filterOptions?.allLeagues}
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">Set:</span>
-            <Dropdown
-              opts={filterOptions?.allSets}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Set:</span>
+            <FilterDropdown
+              options={filterOptions?.allSets ? ["All", ...filterOptions.allSets] : ["All"]}
               value={selectedSet}
               onChange={(e) =>
                 handleFilterChange(setSelectedSet, e.target.value)
               }
               title="Filter by set"
+              disabled={loading.moments || !filterOptions?.allSets}
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">Team:</span>
-            <Dropdown
-              opts={filterOptions?.allTeams}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Team:</span>
+            <FilterDropdown
+              options={filterOptions?.allTeams ? ["All", ...filterOptions.allTeams] : ["All"]}
               value={selectedTeam}
               onChange={(e) =>
                 handleFilterChange(setSelectedTeam, e.target.value)
               }
               title="Filter by team"
+              disabled={loading.moments || !filterOptions?.allTeams}
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">Player:</span>
-            <Dropdown
-              opts={filterOptions?.allPlayers}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Player:</span>
+            <FilterDropdown
+              options={filterOptions?.allPlayers ? ["All", ...filterOptions.allPlayers] : ["All"]}
               value={selectedPlayer}
               onChange={(e) =>
                 handleFilterChange(setSelectedPlayer, e.target.value)
               }
               title="Filter by player"
+              disabled={loading.moments || !filterOptions?.allPlayers}
+              width="w-full"
             />
           </div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold">Parallel:</span>
-            <select
-                value={selectedSubedition}
-                onChange={(e) =>
-                  handleFilterChange(setSelectedSubedition, e.target.value)
+          <div className="flex items-center gap-1 sm:gap-2">
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Parallel:</span>
+            <FilterDropdown
+              options={["All", ...subeditionOptions]}
+              value={selectedSubedition}
+              onChange={(e) =>
+                handleFilterChange(setSelectedSubedition, e.target.value)
+              }
+              labelFn={(subId) => {
+                if (subId === "All") return "All";
+                const id = Number(subId);
+                const sub = SUBEDITIONS[id];
+                if (!sub) {
+                  return `Subedition ${id}`;
                 }
-              className="w-40 bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-xs"
+                const minted = sub.minted || 0;
+                return `${sub.name} /${minted}`;
+              }}
               title="Filter by parallel/subedition"
               disabled={loading.moments}
-            >
-                <option value="All">All</option>
-                {subeditionOptions.map((subId) => {
-                  const id = Number(subId);
-                  const sub = SUBEDITIONS[id];
-                  if (!sub) {
-                    return (
-                      <option key={subId} value={subId}>
-                        Subedition {id}
-                      </option>
-                    );
-                  }
-                  const minted = sub.minted || 0;
-                  return (
-                    <option key={subId} value={subId}>
-                      {sub.name} /{minted}
-                    </option>
-                  );
-                })}
-              </select>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-brand-primary">
-          <label className="flex items-center gap-1">
-            <input
-              type="checkbox"
-              checked={onlySpecial}
-              onChange={() => {
-                setOnlySpecial((v) => !v);
-                setPage(1);
-              }}
+              width="w-full"
             />
-            <span>#1 / Jersey / Last Mint</span>
-          </label>
+          </div>
         </div>
       </div>
 

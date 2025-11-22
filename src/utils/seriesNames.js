@@ -18,14 +18,14 @@ const ALLDAY_SERIES_NAMES = {
 
 // TopShot Series Name Mappings
 const TOPSHOT_SERIES_NAMES = {
-  0: "Series 1",
-  1: "Series 2",
+  0: "1",
+  1: "2",
   3: "Summer 2021",
-  4: "Series 3",
-  5: "Series 4",
-  6: "Series 2023-24",
-  7: "Series 2024-25",
-  8: "Series 2025-26",
+  4: "3",
+  5: "4",
+  6: "2023-24",
+  7: "2024-25",
+  8: "2025-26",
 };
 
 /**
@@ -47,8 +47,8 @@ export const getSeriesName = (seriesId, collectionType = 'topshot') => {
     return mapping[id];
   }
   
-  // If not found, default to "Series {ID}" format
-  return `Series ${id}`;
+  // If not found, default to just the ID number
+  return String(id);
 };
 
 /**
