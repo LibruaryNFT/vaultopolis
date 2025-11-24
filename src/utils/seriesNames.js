@@ -63,7 +63,12 @@ export const getSeriesDisplayText = (seriesId, collectionType = 'topshot') => {
   if (name.startsWith("Series") || name === "?") {
     return name;
   }
-  // For names like "Historical", "2023 Season", etc., return as-is
+  // For TopShot: if it's a simple number (like "1", "2", "3", "4"), add "Series" prefix
+  // For names like "Summer 2021", "2023-24", etc., return as-is
+  if (collectionType === 'topshot' && /^\d+$/.test(name)) {
+    return `Series ${name}`;
+  }
+  // For AllDay or other names, return as-is
   return name;
 };
 

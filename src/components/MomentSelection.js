@@ -360,99 +360,202 @@ export default function MomentSelection(props) {
       <div className="bg-brand-secondary p-2 rounded mb-2">
         {/* filter controls */}
         {/* Row 1: Safety Filters */}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs">Safety Filters:</span>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={filter.excludeSpecialSerials}
-                onChange={(e) =>
-                  setFilter({ excludeSpecialSerials: e.target.checked, currentPage: 1 })
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-xs sm:text-sm mr-1">Safety Filters:</span>
+            <button
+              type="button"
+              onClick={() =>
+                setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
+              }
+              className={`
+                px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+                transition-all duration-200 whitespace-normal
+                ${filter.excludeSpecialSerials
+                  ? 'bg-brand-accent text-white shadow-md'
+                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
                 }
-              />
-              <span className="text-xs">Exclude #1 / Jersey / Last Mint</span>
-            </label>
-            <label className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={filter.excludeLowSerials}
-                onChange={(e) =>
-                  setFilter({ excludeLowSerials: e.target.checked, currentPage: 1 })
+              `}
+            >
+              Exclude #1 / Jersey / Last Mint
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
+              }
+              className={`
+                px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+                transition-all duration-200 whitespace-normal shadow-sm
+                ${filter.excludeLowSerials
+                  ? 'bg-brand-accent text-white'
+                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
                 }
-              />
-              <span className="text-xs">Exclude serials ≤ 4000</span>
-            </label>
+              `}
+            >
+              Exclude serials ≤ 4000
+            </button>
           </div>
         </div>
 
-        {/* Row 2: Series & Tiers */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Series:</span>
-            <MultiSelectDropdown
-              options={seriesOptions}
-              selectedValues={filter.selectedSeries}
-              onChange={(newSelection) => {
-                setFilter({ selectedSeries: newSelection, currentPage: 1 });
+        {/* Row 2: Series */}
+        <div className="mt-3 pt-3 border-t border-brand-primary/30">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-xs sm:text-sm mr-1">Series:</span>
+            <button
+              type="button"
+              onClick={() => {
+                setFilter({ selectedSeries: [...seriesOptions], currentPage: 1 });
               }}
-              labelFn={(s) => getSeriesFilterLabel(s, 'topshot')}
-              countFn={(s) => {
-                return eligibleMoments.filter((m) =>
-                  Number(m.series) === s
-                ).length;
-              }}
-              placeholder="Select series..."
-              width="w-full"
-              title="Filter by series"
-            />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Tiers:</span>
-            <MultiSelectDropdown
-              options={tierOptions}
-              selectedValues={filter.selectedTiers}
-              onChange={(newSelection) => {
-                // Prevent empty selection - if would be empty, keep at least first tier
-                if (newSelection.length === 0 && tierOptions.length > 0) {
-                  setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
-                  return;
+              className={`
+                px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                transition-all duration-200 shadow-sm
+                ${filter.selectedSeries.length === seriesOptions.length && seriesOptions.length > 0
+                  ? 'bg-brand-accent text-white'
+                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
                 }
-                setFilter({ selectedTiers: newSelection, currentPage: 1 });
+              `}
+            >
+              All
+            </button>
+            {seriesOptions.map((series) => {
+              const isSelected = filter.selectedSeries.includes(series);
+              // Count should show total moments for this series, regardless of selection
+              const count = nftDetails.filter((m) =>
+                Number(m.series) === series
+              ).length;
+              return (
+                <button
+                  key={series}
+                  type="button"
+                  onClick={() => {
+                    const newSelection = isSelected
+                      ? filter.selectedSeries.filter((s) => s !== series)
+                      : [...filter.selectedSeries, series];
+                    setFilter({ selectedSeries: newSelection, currentPage: 1 });
+                  }}
+                  className={`
+                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                    transition-all duration-200 shadow-sm
+                    ${isSelected
+                      ? 'bg-brand-accent text-white'
+                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                    }
+                  `}
+                >
+                  {getSeriesFilterLabel(series, 'topshot')}
+                  {count !== null && (
+                    <span className="ml-1.5 text-xs opacity-80">({count})</span>
+                  )}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => {
+                setFilter({ selectedSeries: [], currentPage: 1 });
               }}
-              labelFn={(t) => t[0].toUpperCase() + t.slice(1)}
-              placeholder="Select tiers..."
-              width="w-full"
-              title="Filter by tiers"
-            />
+              className={`
+                px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                transition-all duration-200 shadow-sm
+                ${filter.selectedSeries.length === 0
+                  ? 'bg-brand-accent text-white'
+                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                }
+              `}
+            >
+              Clear All
+            </button>
           </div>
         </div>
 
-        {/* Row 4: Refinement Filters */}
+        {/* Row 3: Tiers & League */}
+        <div className="mt-3 pt-3 border-t border-brand-primary/30">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-xs sm:text-sm mr-1">Tiers:</span>
+            {tierOptions.map((tier) => {
+              const isSelected = filter.selectedTiers.includes(tier);
+              return (
+                <button
+                  key={tier}
+                  type="button"
+                  onClick={() => {
+                    const newSelection = isSelected
+                      ? filter.selectedTiers.filter((t) => t !== tier)
+                      : [...filter.selectedTiers, tier];
+                    // Prevent empty selection - if would be empty, keep at least first tier
+                    if (newSelection.length === 0 && tierOptions.length > 0) {
+                      setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
+                    } else {
+                      setFilter({ selectedTiers: newSelection, currentPage: 1 });
+                    }
+                  }}
+                  className={`
+                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                    transition-all duration-200 shadow-sm
+                    ${isSelected
+                      ? 'bg-brand-accent text-white'
+                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                    }
+                  `}
+                >
+                  {tier[0].toUpperCase() + tier.slice(1)}
+                </button>
+              );
+            })}
+            <span className="font-semibold text-xs sm:text-sm mr-1 ml-1">League:</span>
+            {leagueOptions.map((league) => {
+              const count = eligibleMoments.filter((m) =>
+                league === "WNBA"
+                  ? WNBA_TEAMS.includes(m.teamAtMoment || "")
+                  : !WNBA_TEAMS.includes(m.teamAtMoment || "")
+              ).length;
+              const isSelected = Array.isArray(filter.selectedLeague)
+                ? filter.selectedLeague.includes(league)
+                : filter.selectedLeague === league;
+              return (
+                <button
+                  key={league}
+                  type="button"
+                  onClick={() => {
+                    const currentLeagues = Array.isArray(filter.selectedLeague) 
+                      ? filter.selectedLeague 
+                      : filter.selectedLeague === "All" 
+                        ? ["NBA", "WNBA"] 
+                        : [filter.selectedLeague];
+                    const newSelection = isSelected
+                      ? currentLeagues.filter((l) => l !== league)
+                      : [...currentLeagues, league];
+                    // Prevent deselecting all - if would be empty, select all instead
+                    if (newSelection.length === 0) {
+                      setFilter({ selectedLeague: ["NBA", "WNBA"], currentPage: 1 });
+                    } else {
+                      setFilter({ selectedLeague: newSelection, currentPage: 1 });
+                    }
+                  }}
+                  className={`
+                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                    transition-all duration-200 shadow-sm
+                    ${isSelected
+                      ? 'bg-brand-accent text-white'
+                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                    }
+                  `}
+                >
+                  {league}
+                  {count !== null && (
+                    <span className="ml-1.5 text-xs opacity-80">({count})</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Row 5: Set, Team, Player, Parallel */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
           <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">League:</span>
-            <FilterDropdown
-              options={["All", ...leagueOptions]}
-              value={filter.selectedLeague}
-              onChange={(e) =>
-                setFilter({ selectedLeague: e.target.value, currentPage: 1 })
-              }
-              title="Filter by league"
-              countFn={(league) =>
-                eligibleMoments.filter((m) =>
-                  league === "All"
-                    ? true
-                    : league === "WNBA"
-                    ? WNBA_TEAMS.includes(m.teamAtMoment || "")
-                    : !WNBA_TEAMS.includes(m.teamAtMoment || "")
-                ).length
-              }
-              width="w-full"
-            />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Set:</span>
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Set:</span>
             <FilterDropdown
               options={["All", ...setNameOptions]}
               value={filter.selectedSetName}
@@ -469,7 +572,7 @@ export default function MomentSelection(props) {
             />
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Team:</span>
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Team:</span>
             <FilterDropdown
               options={["All", ...teamOptions]}
               value={filter.selectedTeam}
@@ -486,7 +589,7 @@ export default function MomentSelection(props) {
             />
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Player:</span>
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Player:</span>
             <FilterDropdown
               options={["All", ...playerOptions]}
               value={filter.selectedPlayer}
@@ -504,7 +607,7 @@ export default function MomentSelection(props) {
             />
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Parallel:</span>
+            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Parallel:</span>
             <FilterDropdown
               options={["All", ...subeditionOptions]}
               value={filter.selectedSubedition}

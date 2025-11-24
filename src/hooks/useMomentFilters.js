@@ -50,7 +50,7 @@ const FILTER_SCHEMA = {
   selectedTiers: { def: BASE_TIERS },
   selectedSeries: { def: [] },
   selectedSetName: { def: "All" },
-  selectedLeague: { def: "All" },
+  selectedLeague: { def: ["NBA", "WNBA"] }, // Multi-select: array of leagues
   selectedTeam: { def: "All" },
   selectedPlayer: { def: "All" },
   selectedSubedition: { def: "All" }, // id (string) | "All"
@@ -113,7 +113,7 @@ export function useMomentFilters({
       : a.type === "LOAD"
       ? { ...s, ...a.payload, currentPage: 1 }
       : a.type === "RESET"
-      ? { ...DEFAULT_FILTER, selectedTiers: tierOptions }
+      ? { ...DEFAULT_FILTER, selectedTiers: tierOptions, selectedLeague: ["NBA", "WNBA"] }
       : s;
 
   const [filter, dispatch] = useReducer(reducer, {
@@ -136,15 +136,17 @@ export function useMomentFilters({
 
   // Track previous seriesOptions to detect account switches
   const prevSeriesOptionsRef = useRef([]);
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
     const prevSeriesOptions = prevSeriesOptionsRef.current;
     const seriesOptionsChanged = JSON.stringify(prevSeriesOptions) !== JSON.stringify(seriesOptions);
     
-    // Auto-select all series when they become available (first load)
-    if (seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
+    // Auto-select all series when they become available (first load only)
+    if (!hasInitializedRef.current && seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
       setFilter({ selectedSeries: [...seriesOptions] });
       prevSeriesOptionsRef.current = [...seriesOptions];
+      hasInitializedRef.current = true;
       return;
     }
     
@@ -159,12 +161,15 @@ export function useMomentFilters({
       // If we had all selected, or if current selection has invalid series, reset to all
       const hasInvalidSeries = filter.selectedSeries.some(s => !seriesOptions.includes(s));
       
-      if (hadAllSelected || hasInvalidSeries || filter.selectedSeries.length === 0) {
+      // Only auto-select if we had all selected before or have invalid series
+      // Don't auto-select if user intentionally cleared (hadAllSelected will be false)
+      if (hadAllSelected || hasInvalidSeries) {
         setFilter({ selectedSeries: [...seriesOptions] });
       }
     }
     
     prevSeriesOptionsRef.current = [...seriesOptions];
+    hasInitializedRef.current = true;
   }, [seriesOptions, filter.selectedSeries]);
 
   useEffect(() => {
@@ -186,9 +191,7 @@ export function useMomentFilters({
   const immediateFilter = {
     ...dFilter,
     selectedTiers: filter.selectedTiers, // Use immediate value, not deferred
-    selectedSeries: seriesOptions.length > 0 && filter.selectedSeries.length === 0 
-      ? [...seriesOptions] // Force all series if none selected
-      : filter.selectedSeries, // Use immediate value, not deferred
+    selectedSeries: filter.selectedSeries, // Use immediate value, not deferred (allow empty selection)
   };
 
   const buildOpts = useCallback(
@@ -217,12 +220,8 @@ export function useMomentFilters({
     [dDetails, dFilter.selectedTiers, dFilter.selectedSeries, showLockedMoments]
   );
 
-  const leagueOptions = buildOpts(
-    (n) => (WNBA_TEAMS.includes(n.teamAtMoment || "") ? "WNBA" : "NBA"),
-    (n) =>
-      dFilter.selectedSeries.includes(Number(n.series)) &&
-      dFilter.selectedTiers.includes((n.tier || "").toLowerCase())
-  );
+  // Always show both NBA and WNBA options, even if one has 0 results
+  const leagueOptions = ["NBA", "WNBA"];
 
   const setNameOptions = ensureInOpts(
     dFilter.selectedSetName,
@@ -231,7 +230,13 @@ export function useMomentFilters({
       (n) =>
         dFilter.selectedSeries.includes(Number(n.series)) &&
         dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
-        (dFilter.selectedLeague === "All"
+        (Array.isArray(dFilter.selectedLeague)
+          ? dFilter.selectedLeague.length === 0 || dFilter.selectedLeague.some(league => {
+              if (league === "WNBA") return WNBA_TEAMS.includes(n.teamAtMoment || "");
+              if (league === "NBA") return !WNBA_TEAMS.includes(n.teamAtMoment || "");
+              return false;
+            })
+          : dFilter.selectedLeague === "All"
           ? true
           : dFilter.selectedLeague === "WNBA"
           ? WNBA_TEAMS.includes(n.teamAtMoment || "")
@@ -248,7 +253,13 @@ export function useMomentFilters({
         dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
         (dFilter.selectedSetName === "All" ||
           n.name === dFilter.selectedSetName) &&
-        (dFilter.selectedLeague === "All"
+        (Array.isArray(dFilter.selectedLeague)
+          ? dFilter.selectedLeague.length === 0 || dFilter.selectedLeague.some(league => {
+              if (league === "WNBA") return WNBA_TEAMS.includes(n.teamAtMoment || "");
+              if (league === "NBA") return !WNBA_TEAMS.includes(n.teamAtMoment || "");
+              return false;
+            })
+          : dFilter.selectedLeague === "All"
           ? true
           : dFilter.selectedLeague === "WNBA"
           ? WNBA_TEAMS.includes(n.teamAtMoment || "")
@@ -279,9 +290,20 @@ export function useMomentFilters({
       // Apply all restrictive filters for NFT→TSHOT/TSHOT→NFT flows
       if (!immediateFilter.selectedSeries.includes(Number(n.series))) return false;
 
-      if (omit !== "league" && immediateFilter.selectedLeague !== "All") {
-        const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
-        if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
+      if (omit !== "league") {
+        if (Array.isArray(immediateFilter.selectedLeague)) {
+          if (immediateFilter.selectedLeague.length === 0) return false;
+          const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
+          const leagueMatch = immediateFilter.selectedLeague.some(league => {
+            if (league === "WNBA") return isW;
+            if (league === "NBA") return !isW;
+            return false;
+          });
+          if (!leagueMatch) return false;
+        } else if (immediateFilter.selectedLeague !== "All") {
+          const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
+          if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
+        }
       }
       if (
         omit !== "set" &&
@@ -363,7 +385,20 @@ export function useMomentFilters({
         // Only filter by series if series are selected
         if (immediateFilter.selectedSeries.length > 0 && !immediateFilter.selectedSeries.includes(Number(n.series))) return;
         if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) return;
-        if (immediateFilter.selectedLeague !== "All" && n.league !== immediateFilter.selectedLeague) return;
+        // League filter - handle both array and string formats
+        if (Array.isArray(immediateFilter.selectedLeague)) {
+          if (immediateFilter.selectedLeague.length === 0) return;
+          const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
+          const leagueMatch = immediateFilter.selectedLeague.some(league => {
+            if (league === "WNBA") return isW;
+            if (league === "NBA") return !isW;
+            return false;
+          });
+          if (!leagueMatch) return;
+        } else if (immediateFilter.selectedLeague !== "All") {
+          const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
+          if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return;
+        }
         if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) return;
         if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) return;
         
@@ -398,7 +433,16 @@ export function useMomentFilters({
     if (!immediateFilter.selectedSeries.includes(Number(n.series))) return false;
     
     // League filter
-    if (immediateFilter.selectedLeague !== "All") {
+    if (Array.isArray(immediateFilter.selectedLeague)) {
+      if (immediateFilter.selectedLeague.length === 0) return false;
+      const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
+      const leagueMatch = immediateFilter.selectedLeague.some(league => {
+        if (league === "WNBA") return isW;
+        if (league === "NBA") return !isW;
+        return false;
+      });
+      if (!leagueMatch) return false;
+    } else if (immediateFilter.selectedLeague !== "All") {
       const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
       if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
     }

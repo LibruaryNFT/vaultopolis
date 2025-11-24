@@ -415,67 +415,159 @@ export default function MyCollection() {
               {/* Filter Controls - Only show for TopShot */}
               {collectionType === 'topshot' && (
                 <>
-                  {/* Row 1: Series & Tiers */}
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Series:</span>
-                      <MultiSelectDropdown
-                        options={seriesOptions}
-                        selectedValues={filter.selectedSeries}
-                        onChange={(newSelection) => {
-                          setFilter({ selectedSeries: newSelection, currentPage: 1 });
+                  {/* Row 1: Series */}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-xs sm:text-sm mr-1">Series:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilter({ selectedSeries: [...seriesOptions], currentPage: 1 });
                         }}
-                        labelFn={(s) => getSeriesFilterLabel(s, 'topshot')}
-                        countFn={(s) => {
-                          return topShotEligibleMoments.filter((m) =>
-                            Number(m.series) === s
-                          ).length;
-                        }}
-                        placeholder="Select series..."
-                        width="w-full"
-                        title="Filter by series"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Tiers:</span>
-                      <MultiSelectDropdown
-                        options={tierOptions}
-                        selectedValues={filter.selectedTiers}
-                        onChange={(newSelection) => {
-                          // Prevent empty selection - if would be empty, keep at least first tier
-                          if (newSelection.length === 0 && tierOptions.length > 0) {
-                            setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
-                            return;
+                        className={`
+                          px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                          transition-all duration-200 shadow-sm
+                          ${filter.selectedSeries.length === seriesOptions.length && seriesOptions.length > 0
+                            ? 'bg-brand-accent text-white'
+                            : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
                           }
-                          setFilter({ selectedTiers: newSelection, currentPage: 1 });
+                        `}
+                      >
+                        All
+                      </button>
+                      {seriesOptions.map((series) => {
+                        const isSelected = filter.selectedSeries.includes(series);
+                        // Count should show total moments for this series, regardless of selection
+                        const count = moments.filter((m) =>
+                          Number(m.series) === series
+                        ).length;
+                        return (
+                          <button
+                            key={series}
+                            type="button"
+                            onClick={() => {
+                              const newSelection = isSelected
+                                ? filter.selectedSeries.filter((s) => s !== series)
+                                : [...filter.selectedSeries, series];
+                              setFilter({ selectedSeries: newSelection, currentPage: 1 });
+                            }}
+                            className={`
+                              px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                              transition-all duration-200 shadow-sm
+                              ${isSelected
+                                ? 'bg-brand-accent text-white'
+                                : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                              }
+                            `}
+                          >
+                            {getSeriesFilterLabel(series, 'topshot')}
+                            {count !== null && (
+                              <span className="ml-1.5 text-xs opacity-80">({count})</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFilter({ selectedSeries: [], currentPage: 1 });
                         }}
-                        labelFn={(t) => t[0].toUpperCase() + t.slice(1)}
-                        placeholder="Select tiers..."
-                        width="w-full"
-                        title="Filter by tiers"
-                      />
+                        className={`
+                          px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                          transition-all duration-200 shadow-sm
+                          ${filter.selectedSeries.length === 0
+                            ? 'bg-brand-accent text-white'
+                            : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                          }
+                        `}
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Tiers & League */}
+                  <div className="mt-3 pt-3 border-t border-brand-primary/30">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-xs sm:text-sm mr-1">Tiers:</span>
+                      {tierOptions.map((tier) => {
+                        const isSelected = filter.selectedTiers.includes(tier);
+                        return (
+                          <button
+                            key={tier}
+                            type="button"
+                            onClick={() => {
+                              const newSelection = isSelected
+                                ? filter.selectedTiers.filter((t) => t !== tier)
+                                : [...filter.selectedTiers, tier];
+                              // Prevent empty selection - if would be empty, keep at least first tier
+                              if (newSelection.length === 0 && tierOptions.length > 0) {
+                                setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
+                              } else {
+                                setFilter({ selectedTiers: newSelection, currentPage: 1 });
+                              }
+                            }}
+                            className={`
+                              px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                              transition-all duration-200
+                              ${isSelected
+                                ? 'bg-brand-accent text-white shadow-md'
+                                : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
+                              }
+                            `}
+                          >
+                            {tier[0].toUpperCase() + tier.slice(1)}
+                          </button>
+                        );
+                      })}
+                      <span className="font-semibold text-xs sm:text-sm mr-1 ml-1">League:</span>
+                      {leagueOptions.map((league) => {
+                        const isSelected = Array.isArray(filter.selectedLeague)
+                          ? filter.selectedLeague.includes(league)
+                          : filter.selectedLeague === league;
+                        return (
+                          <button
+                            key={league}
+                            type="button"
+                            onClick={() => {
+                              const currentLeagues = Array.isArray(filter.selectedLeague) 
+                                ? filter.selectedLeague 
+                                : filter.selectedLeague === "All" 
+                                  ? ["NBA", "WNBA"] 
+                                  : [filter.selectedLeague];
+                              const newSelection = isSelected
+                                ? currentLeagues.filter((l) => l !== league)
+                                : [...currentLeagues, league];
+                              // Prevent deselecting all - if would be empty, select all instead
+                              if (newSelection.length === 0) {
+                                setFilter({ selectedLeague: ["NBA", "WNBA"], currentPage: 1 });
+                              } else {
+                                setFilter({ selectedLeague: newSelection, currentPage: 1 });
+                              }
+                            }}
+                            className={`
+                              px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                              transition-all duration-200 shadow-sm
+                              ${isSelected
+                                ? 'bg-brand-accent text-white'
+                                : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                              }
+                            `}
+                          >
+                            {league}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </>
               )}
 
-              {/* Row 4: Refinement Filters - Only show for TopShot */}
+              {/* Row 4: Set, Team, Player, Parallel - Only show for TopShot */}
               {collectionType === 'topshot' && (
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">League:</span>
-                    <FilterDropdown
-                      options={["All", ...leagueOptions]}
-                      value={filter.selectedLeague}
-                      onChange={(e) =>
-                        setFilter({ selectedLeague: e.target.value, currentPage: 1 })
-                      }
-                      title="Filter by league"
-                      width="w-full"
-                    />
-                  </div>
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Set:</span>
+                    <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Set:</span>
                     <FilterDropdown
                       options={["All", ...setNameOptions]}
                       value={filter.selectedSetName}
@@ -487,7 +579,7 @@ export default function MyCollection() {
                     />
                   </div>
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Team:</span>
+                    <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Team:</span>
                     <FilterDropdown
                       options={["All", ...teamOptions]}
                       value={filter.selectedTeam}
@@ -499,7 +591,7 @@ export default function MyCollection() {
                     />
                   </div>
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Player:</span>
+                    <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Player:</span>
                     <FilterDropdown
                       options={["All", ...playerOptions]}
                       value={filter.selectedPlayer}
@@ -511,7 +603,7 @@ export default function MyCollection() {
                     />
                   </div>
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Parallel:</span>
+                    <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Parallel:</span>
                     <FilterDropdown
                       options={["All", ...subeditionOptions]}
                       value={filter.selectedSubedition}
@@ -547,40 +639,121 @@ export default function MyCollection() {
               {/* AllDay Filters */}
               {collectionType === 'allday' && (
                 <>
-                  {/* Series & Tiers */}
-                  <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Series:</span>
-                      <MultiSelectDropdown
-                        options={allDayFilterOptions.seriesOptions || []}
-                        selectedValues={allDayFilter.selectedSeries}
-                        onChange={(newSelection) => {
-                          setAllDayFilter({ ...allDayFilter, selectedSeries: newSelection, currentPage: 1 });
+                  {/* Series */}
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-xs sm:text-sm mr-1">Series:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const allSeries = allDayFilterOptions.seriesOptions || [];
+                          setAllDayFilter({ ...allDayFilter, selectedSeries: [...allSeries], currentPage: 1 });
                         }}
-                        labelFn={(s) => getSeriesFilterLabel(s, 'allday')}
-                        placeholder="Select series..."
-                        width="w-full"
-                        title="Filter by series"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 sm:gap-2">
-                      <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Tiers:</span>
-                      <MultiSelectDropdown
-                        options={allDayFilterOptions.tierOptions || []}
-                        selectedValues={allDayFilter.selectedTiers}
-                        onChange={(newSelection) => {
-                          // Prevent empty selection - if would be empty, keep at least first tier
-                          if (newSelection.length === 0 && (allDayFilterOptions.tierOptions || []).length > 0) {
-                            setAllDayFilter({ ...allDayFilter, selectedTiers: [(allDayFilterOptions.tierOptions || [])[0]], currentPage: 1 });
-                            return;
+                        className={`
+                          px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                          transition-all duration-200 shadow-sm
+                          ${allDayFilter.selectedSeries.length === (allDayFilterOptions.seriesOptions || []).length && (allDayFilterOptions.seriesOptions || []).length > 0
+                            ? 'bg-brand-accent text-white'
+                            : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
                           }
-                          setAllDayFilter({ ...allDayFilter, selectedTiers: newSelection, currentPage: 1 });
+                        `}
+                      >
+                        All
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAllDayFilter({ ...allDayFilter, selectedSeries: [], currentPage: 1 });
                         }}
-                        labelFn={(t) => t[0].toUpperCase() + t.slice(1)}
-                        placeholder="Select tiers..."
-                        width="w-full"
-                        title="Filter by tiers"
-                      />
+                        className={`
+                          px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                          transition-all duration-200 shadow-sm
+                          ${allDayFilter.selectedSeries.length === 0
+                            ? 'bg-brand-accent text-white'
+                            : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                          }
+                        `}
+                      >
+                        Clear All
+                      </button>
+                      {(allDayFilterOptions.seriesOptions || []).map((series) => {
+                        const isSelected = allDayFilter.selectedSeries.includes(series);
+                        return (
+                          <button
+                            key={series}
+                            type="button"
+                            onClick={() => {
+                              const newSelection = isSelected
+                                ? allDayFilter.selectedSeries.filter((s) => s !== series)
+                                : [...allDayFilter.selectedSeries, series];
+                              setAllDayFilter({ ...allDayFilter, selectedSeries: newSelection, currentPage: 1 });
+                            }}
+                            className={`
+                              px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                              transition-all duration-200 shadow-sm
+                              ${isSelected
+                                ? 'bg-brand-accent text-white'
+                                : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                              }
+                            `}
+                          >
+                            {getSeriesFilterLabel(series, 'allday')}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAllDayFilter({ ...allDayFilter, selectedSeries: [], currentPage: 1 });
+                        }}
+                        className={`
+                          px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                          transition-all duration-200 shadow-sm
+                          ${allDayFilter.selectedSeries.length === 0
+                            ? 'bg-brand-accent text-white'
+                            : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                          }
+                        `}
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tiers */}
+                  <div className="mt-3 pt-3 border-t border-brand-primary/30">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-xs sm:text-sm mr-1">Tiers:</span>
+                      {(allDayFilterOptions.tierOptions || []).map((tier) => {
+                        const isSelected = allDayFilter.selectedTiers.includes(tier);
+                        return (
+                          <button
+                            key={tier}
+                            type="button"
+                            onClick={() => {
+                              const newSelection = isSelected
+                                ? allDayFilter.selectedTiers.filter((t) => t !== tier)
+                                : [...allDayFilter.selectedTiers, tier];
+                              // Prevent empty selection - if would be empty, keep at least first tier
+                              if (newSelection.length === 0 && (allDayFilterOptions.tierOptions || []).length > 0) {
+                                setAllDayFilter({ ...allDayFilter, selectedTiers: [(allDayFilterOptions.tierOptions || [])[0]], currentPage: 1 });
+                              } else {
+                                setAllDayFilter({ ...allDayFilter, selectedTiers: newSelection, currentPage: 1 });
+                              }
+                            }}
+                            className={`
+                              px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
+                              transition-all duration-200
+                              ${isSelected
+                                ? 'bg-brand-accent text-white shadow-md'
+                                : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
+                              }
+                            `}
+                          >
+                            {tier[0].toUpperCase() + tier.slice(1)}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </>
@@ -590,7 +763,7 @@ export default function MyCollection() {
               {collectionType === 'allday' && (
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Team:</span>
+                    <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Team:</span>
                     <select
                       value={allDayFilter.selectedTeam}
                       onChange={(e) =>
@@ -607,7 +780,7 @@ export default function MyCollection() {
                     </select>
                   </div>
                   <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="font-semibold text-xs min-w-[45px] sm:min-w-[50px]">Player:</span>
+                    <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Player:</span>
                     <select
                       value={allDayFilter.selectedPlayer}
                       onChange={(e) =>

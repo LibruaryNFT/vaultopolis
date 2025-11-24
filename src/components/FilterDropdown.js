@@ -26,17 +26,27 @@ export default function FilterDropdown({
   disabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
+        setSearchQuery("");
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isOpen]);
 
   const handleToggle = () => {
     if (!disabled) {
@@ -52,6 +62,7 @@ export default function FilterDropdown({
     };
     onChange(syntheticEvent);
     setIsOpen(false);
+    setSearchQuery("");
   };
 
   const getLabel = (optionValue) => {
@@ -63,6 +74,16 @@ export default function FilterDropdown({
     if (countFn) return countFn(optionValue);
     return null;
   };
+
+  // Filter options based on search query
+  const filteredOptions = React.useMemo(() => {
+    if (!searchQuery.trim()) return options;
+    const query = searchQuery.toLowerCase().trim();
+    return options.filter((option) => {
+      const label = getLabel(option).toLowerCase();
+      return label.includes(query);
+    });
+  }, [options, searchQuery, labelFn]);
 
   const selectedOption = value || "All";
   const displayText = selectedOption === "All" 
@@ -132,12 +153,46 @@ export default function FilterDropdown({
             rounded
             shadow-lg
             max-h-60
-            overflow-y-auto
-            overflow-x-hidden
+            overflow-hidden
             min-w-0
+            flex flex-col
           "
         >
-          {options.map((option) => {
+          {/* Search Input */}
+          <div className="p-2 border-b border-brand-border sticky top-0 bg-brand-primary z-10">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="
+                w-full
+                px-2
+                py-1.5
+                text-xs
+                bg-brand-secondary
+                text-brand-text
+                border
+                border-brand-border
+                rounded
+                focus:outline-none
+                focus:ring-1
+                focus:ring-brand-accent
+                placeholder:text-brand-text/50
+              "
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+          
+          {/* Options List */}
+          <div className="overflow-y-auto overflow-x-hidden max-h-[200px]">
+            {filteredOptions.length === 0 ? (
+              <div className="px-3 py-4 text-center text-xs text-brand-text/60">
+                No results found
+              </div>
+            ) : (
+              filteredOptions.map((option) => {
             const isSelected = option === selectedOption;
             const count = getCount(option);
             const label = getLabel(option);
@@ -165,7 +220,8 @@ export default function FilterDropdown({
                 </div>
               </div>
             );
-          })}
+          }))}
+          </div>
         </div>
       )}
     </div>
