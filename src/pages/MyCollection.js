@@ -10,7 +10,6 @@ import { useMomentFilters } from "../hooks/useMomentFilters";
 import PageWrapper from "../components/PageWrapper";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
-import MultiSelectDropdown from "../components/MultiSelectDropdown";
 import FilterDropdown from "../components/FilterDropdown";
  
 

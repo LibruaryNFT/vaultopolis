@@ -1,5 +1,5 @@
 // src/components/FilterDropdown.jsx
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 
 /**
  * FilterDropdown Component
@@ -65,15 +65,15 @@ export default function FilterDropdown({
     setSearchQuery("");
   };
 
-  const getLabel = (optionValue) => {
+  const getLabel = useCallback((optionValue) => {
     if (labelFn) return labelFn(optionValue);
     return String(optionValue);
-  };
+  }, [labelFn]);
 
-  const getCount = (optionValue) => {
+  const getCount = useCallback((optionValue) => {
     if (countFn) return countFn(optionValue);
     return null;
-  };
+  }, [countFn]);
 
   // Filter options based on search query
   const filteredOptions = React.useMemo(() => {
@@ -83,7 +83,7 @@ export default function FilterDropdown({
       const label = getLabel(option).toLowerCase();
       return label.includes(query);
     });
-  }, [options, searchQuery, labelFn]);
+  }, [options, searchQuery, getLabel]);
 
   const selectedOption = value || "All";
   const displayText = selectedOption === "All" 

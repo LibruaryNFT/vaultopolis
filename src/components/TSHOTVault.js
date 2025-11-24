@@ -4,7 +4,6 @@ import MomentCard from "./MomentCard";
 import { UserDataContext } from "../context/UserContext";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
-import MultiSelectDropdown from "./MultiSelectDropdown";
 import FilterDropdown from "./FilterDropdown";
 
 /* ---------- constants ---------- */
