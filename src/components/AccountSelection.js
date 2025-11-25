@@ -17,22 +17,18 @@ const AccountBox = ({
     if (!isDisabled) onClick(address);
   };
 
-  // For child accounts with displayName, use displayName only (no "Child Account" label to avoid overlap with badge)
-  // For child accounts without displayName, use label
-  // For parent accounts, no primary text
-  const primaryText = role === "PARENT" 
-    ? null 
-    : displayName 
-      ? displayName  // If displayName exists, use it only (don't use label)
-      : label;       // If no displayName, use label ("Child Account")
-  const hasPrimary = !!primaryText;
+  // Always show a primary text line for consistent card heights
+  // Use displayName if available, otherwise show wallet type label
+  const primaryText =
+    displayName ||
+    (role === "PARENT" ? "Flow Wallet" : "Dapper Wallet");
 
   return (
     <div
       onClick={handleClick}
       title={isDisabled ? "This account has no TopShot collection." : ""}
       className={`
-        p-2 w-36 sm:w-48 rounded-lg border-2 transition-all flex-shrink-0 select-none relative
+        p-1.5 w-32 sm:w-40 rounded-lg border-2 transition-all flex-shrink-0 select-none relative
         ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
         ${isSelected ? "border-opolis" : "border-brand-border"}
         ${
@@ -40,39 +36,29 @@ const AccountBox = ({
             ? "bg-brand-blue"
             : "bg-brand-secondary hover:bg-brand-blue"
         }
-        ${!hasPrimary && role ? "pt-5" : ""}
       `}
     >
-      {/* Top row: primary name on left, role badge on right */}
-      <div className="flex items-start justify-between">
-        {primaryText && (
-          <h4
-            className={`
-              text-sm font-semibold select-none text-left truncate pr-2
-              ${isSelected ? "text-opolis" : "text-brand-text"}
-            `}
-            title={primaryText}
-          >
-            {primaryText}
-          </h4>
-        )}
-        {role && (
-          <span className="px-1.5 py-0.5 text-[10px] rounded bg-brand-primary/60 text-brand-text font-semibold whitespace-nowrap border border-brand-border/50 absolute right-1 top-1">
-            {role}
-          </span>
-        )}
-      </div>
+      {/* Label on top line */}
+      <span
+        className={`
+          text-xs font-semibold select-none truncate leading-tight mb-0.5 block
+          ${isSelected ? "text-opolis" : "text-brand-text"}
+        `}
+        title={primaryText}
+      >
+        {primaryText}
+      </span>
 
-      {/* Second line: wallet type icon (Flow for parent, Dapper for child with username) + address */}
-      <p className={`text-[11px] leading-snug text-brand-text/80 font-mono break-all select-none text-left ${hasPrimary ? "mt-0.5" : "mt-2"} flex items-center`}>
+      {/* Icon + address on second line */}
+      <div className="flex items-center gap-1 min-w-0">
         {role === "PARENT" ? (
           <img
             src="https://cdn.prod.website-files.com/68d31a12d30c3ba3a0928e1d/68d31a12d30c3ba3a092902a_Group%2047467.png"
             alt="Flow Wallet"
-            className="w-5 h-5 mr-1 shrink-0"
+            className="w-4 h-4 shrink-0"
           />
-        ) : (displayName ? (
-          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-1 shrink-0" aria-label="Dapper Wallet">
+        ) : (
+          <svg fill="none" viewBox="0 0 53 54" xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" aria-label="Dapper Wallet">
             <g fill="none" fillRule="evenodd" transform="translate(.197 .704)">
               <path fill="#F5E3F7" d="M52.803 26.982C52.803 12.412 40.983.6 26.4.6 11.82.6 0 12.41 0 26.982v13.789c0 6.462 5.291 11.75 11.758 11.75h29.287c6.466 0 11.758-5.288 11.758-11.75V26.982z"></path>
               <g>
@@ -83,9 +69,9 @@ const AccountBox = ({
               </g>
             </g>
           </svg>
-        ) : null)}
-        <span className="truncate">{address}</span>
-      </p>
+        )}
+        <span className="text-[11px] text-brand-text/80 font-mono truncate leading-tight">{address}</span>
+      </div>
     </div>
   );
 };
@@ -132,18 +118,17 @@ const AccountSelection = ({
   const renderParentBox = () => {
     if (!parentAccount?.addr) return null;
 
-      const parentLabel = parentAccount.addr;
       const parentBox = (
       <AccountBox
         key={`parent-${parentAccount.addr}`}
-          label={parentLabel}
+        label={null}
         address={parentAccount.addr}
         isSelected={normSel === parentAccount.addr.toLowerCase()}
         onClick={onSelectAccount}
         isDisabled={requireCollection && !parentAccount.hasCollection}
-          matchCount={matchCounts[parentAccount.addr?.toLowerCase?.()]}
-          role="PARENT"
-          displayName={null}
+        matchCount={matchCounts[parentAccount.addr?.toLowerCase?.()]}
+        role="PARENT"
+        displayName={null}
       />
     );
 
@@ -153,7 +138,7 @@ const AccountSelection = ({
         <div
           key="setup-collection"
           className="
-            p-2 w-36 sm:w-48 rounded-lg border-2 border-brand-border
+            p-2 w-32 sm:w-40 rounded-lg border-2 border-brand-border
             bg-brand-secondary flex flex-col items-center text-center
             flex-shrink-0 select-none
           "
@@ -163,7 +148,7 @@ const AccountSelection = ({
             Setup Collection
           </div>
           <p className="text-[11px] leading-snug text-brand-text/70 mb-2">
-            Your parent account needs a TopShot collection to proceed.
+            This Flow wallet needs a Top Shot collection to proceed.
           </p>
           {setupError && (
             <p className="text-[11px] text-red-500 mb-1">{setupError}</p>
@@ -194,12 +179,12 @@ const AccountSelection = ({
         <div
           key="loading"
           className="
-            p-2 w-36 sm:w-48 rounded-lg border-2 border-brand-border
+            p-2 w-32 sm:w-40 rounded-lg border-2 border-brand-border
             bg-brand-secondary flex flex-col items-center text-center
             flex-shrink-0 select-none
           "
         >
-          <p className="text-sm text-brand-text">Loading child data...</p>
+          <p className="text-sm text-brand-text">Loading account data...</p>
         </div>
       );
     }
@@ -209,7 +194,7 @@ const AccountSelection = ({
         <div
           key="dapper-card"
           className="
-            p-2 w-36 sm:w-48 rounded-lg border-2 border-brand-border
+            p-2 w-32 sm:w-40 rounded-lg border-2 border-brand-border
             bg-brand-secondary flex flex-col items-center text-center
             flex-shrink-0 select-none
           "
@@ -240,11 +225,10 @@ const AccountSelection = ({
       const lower = childAddr?.toLowerCase?.();
       const childObj = (childrenAccounts || []).find((c) => c?.addr?.toLowerCase?.() === lower);
       const name = childObj?.displayName;
-      const labelText = "Child Account";
       return (
         <AccountBox
           key={childAddr}
-          label={labelText}
+          label={null}
           address={childAddr}
           isSelected={normSel === childAddr.toLowerCase()}
           onClick={onSelectAccount}
@@ -274,9 +258,13 @@ const AccountSelection = ({
 
   /* -------- render -------- */
   return (
-    <div className="bg-brand-primary text-brand-text p-1 rounded w-full">
-      <h4 className="text-brand-text text-sm mb-2">Select Account:</h4>
-      <div className="flex flex-wrap justify-start gap-2">{allBoxes}</div>
+    <div className="bg-brand-primary text-brand-text p-0.5 rounded w-full">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-brand-text text-sm font-semibold whitespace-nowrap">
+          Select Account:
+        </span>
+        <div className="flex flex-wrap items-center gap-1.5 flex-1">{allBoxes}</div>
+      </div>
     </div>
   );
 };

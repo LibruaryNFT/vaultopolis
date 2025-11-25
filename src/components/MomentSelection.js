@@ -6,13 +6,14 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { Settings as SettingsIcon, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, RefreshCw, X } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
-import FilterDropdown from "./FilterDropdown";
+import FilterPopover from "./FilterPopover";
+import MultiSelectFilterPopover from "./MultiSelectFilterPopover";
 
 /* ───── local exclude-set helpers ───── */
 const exclKey = (addr) => `excluded:${addr?.toLowerCase?.()}`;
@@ -274,6 +275,9 @@ export default function MomentSelection(props) {
   const excluded = readExcluded(selectedAccount);
   const nftDetails = filteredNFTs.filter((m) => !excluded.has(m.id));
 
+  /* safety filter overrides - must be declared before useMomentFilters */
+  const [safetyOverrides, setSafetyOverrides] = useState(new Set());
+
   /* heavy filter hook */
   const {
     filter,
@@ -287,7 +291,6 @@ export default function MomentSelection(props) {
     subeditionOptions,
     subMeta,
     eligibleMoments,
-    base,
     prefs,
     currentPrefKey,
     savePref,
@@ -299,6 +302,7 @@ export default function MomentSelection(props) {
     allowAllTiers: props.allowAllTiers || false,
     forceSortOrder: props.forceSortOrder || null,
     showLockedMoments: props.showLockedMoments !== undefined ? props.showLockedMoments : false,
+    safetyOverrides,
   });
 
   /* pagination */
@@ -320,6 +324,61 @@ export default function MomentSelection(props) {
   /* prefs modal */
   const [showPrefs, setShowPrefs] = useState(false);
   const [newPrefName, setNewPrefName] = useState("");
+
+  // Reset overrides when series selection changes significantly
+  const selectedSeriesKey = filter.selectedSeries.join(",");
+  useEffect(() => {
+    setSafetyOverrides(new Set());
+  }, [selectedSeriesKey]);
+
+  // Detect if selected series have moments with serial numbers ≤4000
+  const seriesWithLowMints = React.useMemo(() => {
+    if (!filter.excludeLowSerials) return new Set();
+    
+    const seriesSet = new Set();
+    const selectedSeriesNums = filter.selectedSeries.map(Number);
+    
+    // Group moments by series to check each series
+    const momentsBySeries = {};
+    nftDetails.forEach((moment) => {
+      const seriesNum = Number(moment.series);
+      if (!selectedSeriesNums.includes(seriesNum) || isNaN(seriesNum)) return;
+      
+      if (!momentsBySeries[seriesNum]) {
+        momentsBySeries[seriesNum] = [];
+      }
+      momentsBySeries[seriesNum].push(moment);
+    });
+    
+    // Check each selected series
+    selectedSeriesNums.forEach((seriesNum) => {
+      const moments = momentsBySeries[seriesNum] || [];
+      
+      // Check if any moment in this series has serial number ≤4000
+      const hasLowSerial = moments.some((moment) => {
+        const serialNum = Number(moment.serialNumber) || 0;
+        // If serial number is ≤4000, this series has moments that will be hidden
+        return serialNum > 0 && serialNum <= 4000;
+      });
+      
+      if (hasLowSerial) {
+        seriesSet.add(seriesNum);
+      }
+    });
+    
+    return seriesSet;
+  }, [nftDetails, filter.selectedSeries, filter.excludeLowSerials]);
+
+  // Determine which series need override (have low mints but aren't overridden yet)
+  const seriesNeedingOverride = React.useMemo(() => {
+    const needing = new Set();
+    seriesWithLowMints.forEach((seriesNum) => {
+      if (!safetyOverrides.has(seriesNum)) {
+        needing.add(seriesNum);
+      }
+    });
+    return needing;
+  }, [seriesWithLowMints, safetyOverrides]);
 
   /* ───────── early exits ───────── */
   if (!user?.loggedIn)
@@ -354,353 +413,264 @@ export default function MomentSelection(props) {
 
   /* ───────── render ───────── */
   return (
-    <div className="bg-brand-primary text-brand-text p-2 rounded w-full">
-      {/* filter panel */}
-      <div className="bg-brand-secondary p-2 rounded mb-2">
-        {/* filter controls */}
-        {/* Row 1: Safety Filters */}
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-xs sm:text-sm mr-1">Safety Filters:</span>
-            <button
-              type="button"
-              onClick={() =>
-                setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
-              }
-              className={`
-                px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
-                transition-all duration-200 whitespace-normal
-                ${filter.excludeSpecialSerials
-                  ? 'bg-brand-accent text-white shadow-md'
-                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
-                }
-              `}
-            >
-              Exclude #1 / Jersey / Last Mint
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
-              }
-              className={`
-                px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
-                transition-all duration-200 whitespace-normal shadow-sm
-                ${filter.excludeLowSerials
-                  ? 'bg-brand-accent text-white'
-                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                }
-              `}
-            >
-              Exclude serials ≤ 4000
-            </button>
-          </div>
-        </div>
-
-        {/* Row 2: Series */}
-        <div className="mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-xs sm:text-sm mr-1">Series:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setFilter({ selectedSeries: [...seriesOptions], currentPage: 1 });
-              }}
-              className={`
-                px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                transition-all duration-200 shadow-sm
-                ${filter.selectedSeries.length === seriesOptions.length && seriesOptions.length > 0
-                  ? 'bg-brand-accent text-white'
-                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                }
-              `}
-            >
-              All
-            </button>
-            {seriesOptions.map((series) => {
-              const isSelected = filter.selectedSeries.includes(series);
-              // Count should show total moments for this series, regardless of selection
-              const count = nftDetails.filter((m) =>
-                Number(m.series) === series
-              ).length;
-              return (
-                <button
-                  key={series}
-                  type="button"
-                  onClick={() => {
-                    const newSelection = isSelected
-                      ? filter.selectedSeries.filter((s) => s !== series)
-                      : [...filter.selectedSeries, series];
-                    setFilter({ selectedSeries: newSelection, currentPage: 1 });
-                  }}
-                  className={`
-                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                    transition-all duration-200 shadow-sm
-                    ${isSelected
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                    }
-                  `}
-                >
-                  {getSeriesFilterLabel(series, 'topshot')}
-                  {count !== null && (
-                    <span className="ml-1.5 text-xs opacity-80">({count})</span>
-                  )}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => {
-                setFilter({ selectedSeries: [], currentPage: 1 });
-              }}
-              className={`
-                px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                transition-all duration-200 shadow-sm
-                ${filter.selectedSeries.length === 0
-                  ? 'bg-brand-accent text-white'
-                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                }
-              `}
-            >
-              Clear All
-            </button>
-          </div>
-        </div>
-
-        {/* Row 3: Tiers & League */}
-        <div className="mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-xs sm:text-sm mr-1">Tiers:</span>
-            {tierOptions.map((tier) => {
-              const isSelected = filter.selectedTiers.includes(tier);
-              return (
-                <button
-                  key={tier}
-                  type="button"
-                  onClick={() => {
-                    const newSelection = isSelected
-                      ? filter.selectedTiers.filter((t) => t !== tier)
-                      : [...filter.selectedTiers, tier];
-                    // Prevent empty selection - if would be empty, keep at least first tier
-                    if (newSelection.length === 0 && tierOptions.length > 0) {
-                      setFilter({ selectedTiers: [tierOptions[0]], currentPage: 1 });
-                    } else {
-                      setFilter({ selectedTiers: newSelection, currentPage: 1 });
-                    }
-                  }}
-                  className={`
-                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                    transition-all duration-200 shadow-sm
-                    ${isSelected
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                    }
-                  `}
-                >
-                  {tier[0].toUpperCase() + tier.slice(1)}
-                </button>
-              );
-            })}
-            <span className="font-semibold text-xs sm:text-sm mr-1 ml-1">League:</span>
-            {leagueOptions.map((league) => {
-              const count = eligibleMoments.filter((m) =>
-                league === "WNBA"
-                  ? WNBA_TEAMS.includes(m.teamAtMoment || "")
-                  : !WNBA_TEAMS.includes(m.teamAtMoment || "")
-              ).length;
-              const isSelected = Array.isArray(filter.selectedLeague)
-                ? filter.selectedLeague.includes(league)
-                : filter.selectedLeague === league;
-              return (
-                <button
-                  key={league}
-                  type="button"
-                  onClick={() => {
-                    const currentLeagues = Array.isArray(filter.selectedLeague) 
-                      ? filter.selectedLeague 
-                      : filter.selectedLeague === "All" 
-                        ? ["NBA", "WNBA"] 
-                        : [filter.selectedLeague];
-                    const newSelection = isSelected
-                      ? currentLeagues.filter((l) => l !== league)
-                      : [...currentLeagues, league];
-                    // Prevent deselecting all - if would be empty, select all instead
-                    if (newSelection.length === 0) {
-                      setFilter({ selectedLeague: ["NBA", "WNBA"], currentPage: 1 });
-                    } else {
-                      setFilter({ selectedLeague: newSelection, currentPage: 1 });
-                    }
-                  }}
-                  className={`
-                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                    transition-all duration-200 shadow-sm
-                    ${isSelected
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                    }
-                  `}
-                >
-                  {league}
-                  {count !== null && (
-                    <span className="ml-1.5 text-xs opacity-80">({count})</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Row 5: Set, Team, Player, Parallel */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Set:</span>
-            <FilterDropdown
-              options={["All", ...setNameOptions]}
-              value={filter.selectedSetName}
-              onChange={(e) =>
-                setFilter({ selectedSetName: e.target.value, currentPage: 1 })
-              }
-              title="Filter by set"
-              countFn={(set) =>
-                eligibleMoments.filter((m) =>
-                  set === "All" ? true : m.name === set
-                ).length
-              }
-              width="w-full"
+    <div className="bg-brand-primary text-brand-text p-3 rounded-lg w-full space-y-3">
+      {/* Row 1: Safety Filters + Controls */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-xs sm:text-sm mr-1">
+          Safety Filters:
+        </span>
+        <button
+          type="button"
+          onClick={() =>
+            setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
+          }
+          className={`
+            px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+            transition-all duration-200 whitespace-normal h-[28px]
+            ${filter.excludeSpecialSerials
+              ? 'bg-brand-secondary border-2 border-opolis text-opolis shadow-md'
+              : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
+            }
+          `}
+        >
+          Exclude #1 / Jersey / Last Mint
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
+          }
+          className={`
+            px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+            transition-all duration-200 whitespace-normal shadow-sm h-[28px]
+            ${filter.excludeLowSerials
+              ? 'bg-brand-secondary border-2 border-opolis text-opolis'
+              : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+            }
+          `}
+        >
+          Exclude serials ≤ 4000
+        </button>
+        <div className="flex-1" />
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing || cooldown}
+            title={
+              cooldown
+                ? "Please wait a few seconds before refreshing again"
+                : "Refresh snapshots"
+            }
+            className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-40 select-none h-[28px]"
+          >
+            <RefreshCw
+              size={14}
+              className={`${isRefreshing ? "animate-spin" : ""} text-opolis`}
             />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Team:</span>
-            <FilterDropdown
-              options={["All", ...teamOptions]}
-              value={filter.selectedTeam}
-              onChange={(e) =>
-                setFilter({ selectedTeam: e.target.value, currentPage: 1 })
-              }
-              title="Filter by team"
-              countFn={(team) =>
-                eligibleMoments.filter((m) =>
-                  team === "All" ? true : m.teamAtMoment === team
-                ).length
-              }
-              width="w-full"
+            <span>Refresh</span>
+          </button>
+          <span className="text-xs text-brand-text/70 h-[28px] flex items-center">
+            Updated: <span className="text-brand-text ml-1">{elapsed}</span>
+          </span>
+          <button
+            aria-label="Filter settings"
+            onClick={() => setShowPrefs(true)}
+            className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+          >
+            <span className="text-xs text-brand-text/80">
+              Filter:{" "}
+              <span className="text-brand-text">
+                {currentPrefKey || "None"}
+              </span>
+            </span>
+            <SettingsIcon
+              size={14}
+              strokeWidth={2}
+              className="text-opolis"
             />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Player:</span>
-            <FilterDropdown
-              options={["All", ...playerOptions]}
-              value={filter.selectedPlayer}
-              onChange={(e) =>
-                setFilter({ selectedPlayer: e.target.value, currentPage: 1 })
+          </button>
+          <button
+            onClick={() => {
+              setFilter({
+                selectedTiers: tierOptions,
+                selectedSeries: seriesOptions,
+                selectedSetName: "All",
+                selectedLeague: leagueOptions,
+                selectedTeam: "All",
+                selectedPlayer: "All",
+                selectedSubedition: "All",
+                excludeSpecialSerials: true,
+                excludeLowSerials: true,
+                currentPage: 1,
+              });
+            }}
+            className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+          >
+            <X size={13} />
+            Reset Filters
+          </button>
+        </div>
+      </div>
+
+      {/* Safety Filter Override Warning */}
+      {seriesNeedingOverride.size > 0 && (
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-brand-text/90 bg-yellow-500/20 border-2 border-yellow-500/60 rounded-md px-3 py-2">
+          <span className="text-yellow-400 text-base">⚠</span>
+          <span className="flex-1">
+            Low serials from the following series: {Array.from(seriesNeedingOverride).map((s) => getSeriesFilterLabel(s, "topshot")).join(", ")} are hidden. 
+            <button
+              type="button"
+              onClick={() => setFilter({ excludeLowSerials: false, currentPage: 1 })}
+              className="ml-1 text-opolis hover:underline font-medium"
+            >
+              Turn off "Exclude serials ≤ 4000"
+            </button>
+            {" "}to see them.
+          </span>
+        </div>
+      )}
+
+      {/* Unified filter row */}
+      <div className="pt-3 border-t border-brand-border/30">
+        <div className="flex flex-wrap items-center gap-2">
+            <MultiSelectFilterPopover
+              label="Series"
+              selectedValues={filter.selectedSeries}
+              options={seriesOptions}
+              placeholder="Search series..."
+              onChange={(values) =>
+                setFilter({ selectedSeries: values.map(Number), currentPage: 1 })
               }
-              title="Filter by player"
-              countFn={(player) => {
-                if (player === "All") {
-                  return base.baseNoPlayer.length;
-                }
-                return base.baseNoPlayer.filter((m) => m.fullName === player).length;
+              formatOption={(series) =>
+                getSeriesFilterLabel(Number(series), "topshot")
+              }
+              getCount={(series) =>
+                series === "All"
+                  ? eligibleMoments.length
+                  : eligibleMoments.filter((m) => Number(m.series) === Number(series))
+                      .length
+              }
+            />
+            <MultiSelectFilterPopover
+              label="Tier"
+              selectedValues={filter.selectedTiers}
+              options={tierOptions}
+              placeholder="Search tiers..."
+              onChange={(values) => {
+                const next =
+                  values.length || !tierOptions.length
+                    ? values
+                    : [tierOptions[0]];
+                setFilter({ selectedTiers: next, currentPage: 1 });
               }}
-              width="w-full"
-            />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Parallel:</span>
-            <FilterDropdown
-              options={["All", ...subeditionOptions]}
-              value={filter.selectedSubedition}
-              onChange={(e) =>
-                setFilter({ selectedSubedition: e.target.value, currentPage: 1 })
+              formatOption={(tier) =>
+                tier ? tier[0].toUpperCase() + tier.slice(1) : tier
               }
-              title="Filter by parallel/subedition"
-              labelFn={(subId) => {
-                if (subId === "All") return "All";
+              getCount={(tier) =>
+                tier === "All"
+                  ? eligibleMoments.length
+                  : eligibleMoments.filter((m) => (m.tier || "").toLowerCase() === tier.toLowerCase()).length
+              }
+              minSelection={1}
+            />
+            <MultiSelectFilterPopover
+              label="League"
+              selectedValues={
+                Array.isArray(filter.selectedLeague)
+                  ? filter.selectedLeague
+                  : filter.selectedLeague === "All"
+                  ? leagueOptions
+                  : [filter.selectedLeague]
+              }
+              options={leagueOptions}
+              placeholder="Search leagues..."
+              onChange={(values) => {
+                const sanitized = values.length ? values : leagueOptions;
+                setFilter({ selectedLeague: sanitized, currentPage: 1 });
+              }}
+              getCount={(league) =>
+                league === "All"
+                  ? eligibleMoments.length
+                  : eligibleMoments.filter((m) =>
+                      league === "WNBA"
+                        ? WNBA_TEAMS.includes(m.teamAtMoment || "")
+                        : !WNBA_TEAMS.includes(m.teamAtMoment || "")
+                    ).length
+              }
+              minSelection={1}
+            />
+            <FilterPopover
+              label="Set"
+              selectedValue={filter.selectedSetName}
+              options={setNameOptions}
+              placeholder="Search sets..."
+              onChange={(value) =>
+                setFilter({ selectedSetName: value, currentPage: 1 })
+              }
+              getCount={(setName) =>
+                setName === "All"
+                  ? eligibleMoments.length
+                  : eligibleMoments.filter((m) => m.name === setName).length
+              }
+            />
+            <FilterPopover
+              label="Team"
+              selectedValue={filter.selectedTeam}
+              options={teamOptions}
+              placeholder="Search teams..."
+              onChange={(value) =>
+                setFilter({ selectedTeam: value, currentPage: 1 })
+              }
+              getCount={(team) =>
+                team === "All"
+                  ? eligibleMoments.length
+                  : eligibleMoments.filter((m) => m.teamAtMoment === team).length
+              }
+            />
+            <FilterPopover
+              label="Player"
+              selectedValue={filter.selectedPlayer}
+              options={playerOptions}
+              placeholder="Search players..."
+              onChange={(value) =>
+                setFilter({ selectedPlayer: value, currentPage: 1 })
+              }
+              getCount={(player) =>
+                player === "All"
+                  ? eligibleMoments.length
+                  : eligibleMoments.filter((m) => m.fullName === player).length
+              }
+            />
+            <FilterPopover
+              label="Parallel"
+              selectedValue={filter.selectedSubedition}
+              options={subeditionOptions}
+              placeholder="Search parallels..."
+              onChange={(value) =>
+                setFilter({ selectedSubedition: value, currentPage: 1 })
+              }
+              formatOption={(subId) => {
                 const id = Number(subId);
                 const sub = subMeta[id] || SUBEDITIONS[id];
                 if (!sub) {
-                  const count = eligibleMoments.filter((m) => {
-                    const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
-                    return String(effectiveSubId) === String(subId);
-                  }).length;
-                  return `Subedition ${id} (${count})`;
+                  return `Subedition ${id}`;
                 }
                 const minted = sub.minted || 0;
-                const count = eligibleMoments.filter((m) => {
-                  const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
+                return `${sub.name} /${minted}`;
+              }}
+              getCount={(subId) => {
+                if (subId === "All") {
+                  return eligibleMoments.length;
+                }
+                return eligibleMoments.filter((m) => {
+                  const effectiveSubId =
+                    m.subeditionID === null || m.subeditionID === undefined
+                      ? 0
+                      : m.subeditionID;
                   return String(effectiveSubId) === String(subId);
                 }).length;
-                return `${sub.name} /${minted} (${count})`;
               }}
-              width="w-full"
             />
-          </div>
-        </div>
-
-        {/* bottom section */}
-        <div className="flex flex-col gap-2 pt-2 mt-2 border-t border-brand-primary/30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleRefresh}
-                disabled={isRefreshing || cooldown}
-                title={
-                  cooldown
-                    ? "Please wait a few seconds before refreshing again"
-                    : "Refresh snapshots"
-                }
-                className="p-1 rounded-full hover:bg-flow-dark/10 disabled:opacity-40 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
-              >
-                <RefreshCw
-                  size={16}
-                  className={`${
-                    isRefreshing ? "animate-spin" : ""
-                  } text-opolis`}
-                />
-              </button>
-              <span className="text-xs text-brand-text/70">
-                Updated: <span className="text-brand-text">{elapsed}</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-brand-text/70">
-                Filter:{" "}
-                <span className="text-brand-text">
-                  {currentPrefKey || "None"}
-                </span>
-              </span>
-              <button
-                aria-label="Filter settings"
-                onClick={() => setShowPrefs(true)}
-                className="relative group p-1 rounded-full hover:bg-flow-dark/10 focus-visible:ring focus-visible:ring-flow-dark/60 select-none"
-              >
-                <span className="pointer-events-none absolute -top-9 left-1/2 -translate-x-1/2 rounded bg-flow-dark px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-                  Filter settings
-                </span>
-                <SettingsIcon
-                  size={18}
-                  strokeWidth={2.4}
-                  className="text-brand-text"
-                />
-              </button>
-              <button
-                onClick={() =>
-                  setFilter({
-                    selectedTiers: tierOptions,
-                    selectedSeries: seriesOptions,
-                    selectedSetName: "All",
-                    selectedLeague: "All",
-                    selectedTeam: "All",
-                    selectedPlayer: "All",
-                    currentPage: 1,
-                  })
-                }
-                className="px-1.5 py-0.5 bg-brand-primary rounded hover:opacity-80 text-xs"
-              >
-                Reset Filters
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -710,6 +680,9 @@ export default function MomentSelection(props) {
           Max 200 NFTs selected. Deselect some to add more.
         </div>
       )}
+
+      {/* Divider between filters and results */}
+      <div className="border-t border-brand-border/30 my-3" />
 
       {/* grid */}
       {pageCount > 1 && (

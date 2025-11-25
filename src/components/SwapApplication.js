@@ -42,9 +42,9 @@ const SwapApplication = ({
 }) => {
   return (
     <div className="w-full text-white space-y-2 mb-2">
-      <div className="space-y-4">
+      <div className="space-y-2">
         {/* Swap Panel */}
-        <div className="max-w-md mx-auto mt-2 space-y-2 w-full md:w-[400px] mb-2">
+        <div className="max-w-md mx-auto mt-2 space-y-2 w-full md:w-[400px]">
           {/* Outer container => brand-primary with shadow */}
           <div className="p-2 rounded-lg bg-brand-primary shadow-md shadow-black/30">
             {/* FROM BOX => brand-secondary */}
@@ -238,65 +238,8 @@ const SwapApplication = ({
         {fromAsset === "TopShot Common / Fandom" &&
           accountData?.parentAddress && (
             <div className="w-full p-0 space-y-2 mb-2">
-              {/* Selected Moments - Collapsible */}
-              <div
-                className={`bg-brand-primary shadow-md rounded w-full transition-all duration-300 overflow-hidden border ${
-                  selectedNFTs.length === 0
-                    ? "h-14 border-brand-border/30" // Collapsed: ~56px with subtle border
-                    : "h-[280px] border-brand-border/50" // Expanded: fixed height for proper scrolling
-                }`}
-              >
-                <div className="p-2 h-full flex flex-col">
-                  {/* Header - Always visible */}
-                  <div className="flex justify-between items-center flex-shrink-0 mb-2">
-                    <h4 className="text-brand-text text-sm">Selected Moments:</h4>
-                    <span className="text-brand-text/70 text-sm">
-                      {selectedNFTs.length}/200
-                    </span>
-                  </div>
-
-                  {/* Content - Conditional */}
-                  {selectedNFTs.length === 0 ? (
-                    // Empty state - minimal but "alive"
-                    <div className="flex-1 flex items-center justify-center">
-                      <span className="text-brand-text/50 text-xs">
-                        No moments selected yet
-                      </span>
-                    </div>
-                  ) : (
-                    // Populated state - scrollable grid
-                    <div className="flex-1 overflow-y-auto pr-1 min-h-0">
-                      <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
-                        {selectedNFTs.map((momentId) => {
-                          const activeAcc =
-                            (accountData.childrenData || []).find(
-                              (c) => c.addr === selectedAccount
-                            ) || accountData;
-                          const nft = (activeAcc.nftDetails || []).find(
-                            (item) => Number(item.id) === Number(momentId)
-                          );
-                          return (
-                            <MomentCard
-                              key={momentId}
-                              nft={nft}
-                              handleNFTSelection={() =>
-                                dispatch({
-                                  type: "SET_SELECTED_NFTS",
-                                  payload: momentId,
-                                })
-                              }
-                              isSelected={true}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
               {/* Account Selection (left-aligned, not full width) */}
-              <div className="bg-brand-primary shadow-md px-1 py-2 rounded flex flex-wrap gap-2 w-full">
+              <div className="bg-brand-primary shadow-md px-1 py-1 rounded flex flex-wrap gap-2 w-full">
                 <AccountSelection
                   parentAccount={{
                     addr: accountData?.parentAddress,
@@ -378,6 +321,66 @@ const SwapApplication = ({
                   excludeIds={excludedNftIds}
                   restrictToCommonFandom={true}
                 />
+              </div>
+
+              {/* Selected Moments - Collapsible */}
+              <div
+                className={`bg-brand-primary shadow-md rounded w-full transition-all duration-300 overflow-hidden ${
+                  selectedNFTs.length === 0 ? "h-14 border border-transparent" : "h-[280px] border-2 border-opolis"
+                }`}
+              >
+                <div className="p-2 h-full flex flex-col">
+                  {/* Header - Always visible */}
+                  <div className="flex justify-between items-center flex-shrink-0 mb-2">
+                    <h4 className="text-brand-text text-sm">Selected Moments:</h4>
+                    <span className="text-brand-text/70 text-sm">
+                      {selectedNFTs.length}/200
+                    </span>
+                  </div>
+
+                  {/* Content - Conditional */}
+                  {selectedNFTs.length === 0 ? (
+                    // Empty state - minimal but "alive"
+                    <div className="flex-1 flex items-center justify-center">
+                      <span className="text-brand-text/50 text-xs">
+                        No moments selected yet
+                      </span>
+                    </div>
+                  ) : (
+                    // Populated state - scrollable grid
+                    <div className="flex-1 overflow-y-auto pr-1 min-h-0">
+                      <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
+                        {selectedNFTs.map((momentId) => {
+                          const activeAcc =
+                            (accountData.childrenData || []).find(
+                              (c) => c.addr === selectedAccount
+                            ) || accountData;
+                          const nft = (activeAcc.nftDetails || []).find(
+                            (item) => Number(item.id) === Number(momentId)
+                          );
+                          return (
+                            <MomentCard
+                              key={momentId}
+                              nft={nft}
+                              handleNFTSelection={() =>
+                                dispatch({
+                                  type: "SET_SELECTED_NFTS",
+                                  payload: momentId,
+                                })
+                              }
+                              isSelected={true}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ========== DUPLICATE SWAP ACTION PANEL ========== */}
+              <div className="max-w-md mx-auto w-full md:w-[400px]">
+                <div>{renderSwapPanel()}</div>
               </div>
             </div>
           )}

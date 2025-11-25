@@ -101,11 +101,24 @@ export function useMomentFilters({
   forceSortOrder = null, // Force sort order regardless of other settings
   scope = "momentSelection", // Storage scope for isolation
   defaultFilters = {}, // Override default filter values
+  safetyOverrides = new Set(), // Set of series numbers that override the safety filter
 }) {
   /* ----- tier list ----- */
-  const tierOptions = allowAllTiers
-    ? [...BASE_TIERS, ...EXTRA_TIERS]
-    : BASE_TIERS; /* ----- reducer ----- */
+  // Only include tiers that actually have moments in the user's collection
+  const tierOptions = useMemo(() => {
+    const allPossibleTiers = allowAllTiers
+      ? [...BASE_TIERS, ...EXTRA_TIERS]
+      : BASE_TIERS;
+    const tiersInCollection = new Set();
+    nftDetails.forEach((n) => {
+      const tier = (n.tier || "").toLowerCase();
+      if (tier && allPossibleTiers.includes(tier)) {
+        tiersInCollection.add(tier);
+      }
+    });
+    // Return only tiers that exist in the collection, in the original order
+    return allPossibleTiers.filter((tier) => tiersInCollection.has(tier));
+  }, [nftDetails, allowAllTiers]);
 
   const reducer = (s, a) =>
     a.type === "SET"
@@ -113,20 +126,21 @@ export function useMomentFilters({
       : a.type === "LOAD"
       ? { ...s, ...a.payload, currentPage: 1 }
       : a.type === "RESET"
-      ? { ...DEFAULT_FILTER, selectedTiers: tierOptions, selectedLeague: ["NBA", "WNBA"] }
+      ? { ...DEFAULT_FILTER }
       : s;
 
   const [filter, dispatch] = useReducer(reducer, {
     ...DEFAULT_FILTER,
     ...defaultFilters, // Apply any overridden defaults (e.g., excludeSpecialSerials: false for MyCollection)
-    selectedTiers: allowAllTiers ? [...BASE_TIERS, ...EXTRA_TIERS] : BASE_TIERS,
+    selectedTiers: tierOptions.length > 0 ? tierOptions : (allowAllTiers ? [...BASE_TIERS, ...EXTRA_TIERS] : BASE_TIERS),
     selectedSeries: [], // Will be populated by useEffect
   });
   const setFilter = (p) =>
     dispatch({ type: "SET", payload: p }); /* ----- option arrays ----- */
 
   const seriesOptions = useMemo(() => {
-    const s = new Set(FORCED_SERIES);
+    // Only include series that actually have moments in the user's collection
+    const s = new Set();
     nftDetails.forEach((n) => {
       const v = Number(n.series);
       if (!Number.isNaN(v)) s.add(v);
@@ -173,16 +187,18 @@ export function useMomentFilters({
   }, [seriesOptions, filter.selectedSeries]);
 
   useEffect(() => {
-    const newSelectedTiers = allowAllTiers 
-      ? tierOptions // When allowAllTiers is true, always select all tiers
-      : filter.selectedTiers.filter((t) => tierOptions.includes(t)) || tierOptions;
+    // Filter selectedTiers to only include tiers that are still available
+    const validTiers = filter.selectedTiers.filter((t) => tierOptions.includes(t));
+    const newSelectedTiers = validTiers.length > 0 
+      ? validTiers 
+      : (tierOptions.length > 0 ? tierOptions : []);
     
     // Only update if the tiers actually changed to prevent infinite loops
     const tiersChanged = JSON.stringify(newSelectedTiers.sort()) !== JSON.stringify(filter.selectedTiers.sort());
     if (tiersChanged) {
       setFilter({ selectedTiers: newSelectedTiers });
     }
-  }, [tierOptions.join(","), allowAllTiers]); /* heavy lists – defer */
+  }, [tierOptions.join(","), allowAllTiers, filter.selectedTiers]); /* heavy lists – defer */
 
   const dFilter = useDeferredValue(filter);
   const dDetails = useDeferredValue(nftDetails);
@@ -220,8 +236,23 @@ export function useMomentFilters({
     [dDetails, dFilter.selectedTiers, dFilter.selectedSeries, showLockedMoments]
   );
 
-  // Always show both NBA and WNBA options, even if one has 0 results
-  const leagueOptions = ["NBA", "WNBA"];
+  // Only include leagues that actually have moments in the user's collection
+  const leagueOptions = useMemo(() => {
+    const leagues = new Set();
+    nftDetails.forEach((n) => {
+      const team = n.teamAtMoment || "";
+      if (WNBA_TEAMS.includes(team)) {
+        leagues.add("WNBA");
+      } else if (team) {
+        leagues.add("NBA");
+      }
+    });
+    // Return in consistent order: NBA first, then WNBA
+    const result = [];
+    if (leagues.has("NBA")) result.push("NBA");
+    if (leagues.has("WNBA")) result.push("WNBA");
+    return result;
+  }, [nftDetails]);
 
   const setNameOptions = ensureInOpts(
     dFilter.selectedSetName,
@@ -339,7 +370,10 @@ export function useMomentFilters({
         const jersey = n.jerseyNumber ? Number(n.jerseyNumber) : null;
         if (sn === 1 || sn === max || (jersey && jersey === sn)) return false;
       }
-      if (immediateFilter.excludeLowSerials && sn <= 4000) return false;
+      // Check safety filter override: if series is overridden, skip the ≤4000 check
+      const seriesNum = Number(n.series);
+      const isSeriesOverridden = safetyOverrides.has(seriesNum);
+      if (immediateFilter.excludeLowSerials && sn <= 4000 && !isSeriesOverridden) return false;
       
       // Locked status filter
       if (immediateFilter.lockedStatus !== "All") {
@@ -367,7 +401,7 @@ export function useMomentFilters({
       if (selectedNFTs.includes(n.id)) return false;
       return true;
     },
-    [immediateFilter, excludeIds, selectedNFTs]
+    [immediateFilter, excludeIds, selectedNFTs, safetyOverrides]
   ); /* ---------- sub-edition options ---------- */
 
   const subeditionOptions = ensureInOpts(
@@ -478,10 +512,13 @@ export function useMomentFilters({
       const jersey = n.jerseyNumber ? Number(n.jerseyNumber) : null;
       if (sn === 1 || sn === max || (jersey && jersey === sn)) return false;
     }
-    if (immediateFilter.excludeLowSerials && sn <= 4000) return false;
+    // Check safety filter override: if series is overridden, skip the ≤4000 check
+    const seriesNum = Number(n.series);
+    const isSeriesOverridden = safetyOverrides.has(seriesNum);
+    if (immediateFilter.excludeLowSerials && sn <= 4000 && !isSeriesOverridden) return false;
     
     return true;
-  }, [immediateFilter, showLockedMoments, excludeIds, selectedNFTs]);
+  }, [immediateFilter, showLockedMoments, excludeIds, selectedNFTs, safetyOverrides]);
 
   const nftToTshotFilter = useCallback((n) => {
     // NFT→TSHOT/TSHOT→NFT: Apply all restrictive filters

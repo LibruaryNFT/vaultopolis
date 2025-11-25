@@ -26,21 +26,9 @@ function formatNumber(num, isMintCount = false) {
   // For serial numbers, always show the full number
   if (!isMintCount) return num.toString();
 
-  // For mint counts, use more precise formatting
-  if (num < 1300) {
-    // Always show full number under 1300
+  // For mint counts, show full number if 4 digits or less (≤9999)
+  if (num <= 9999) {
     return num.toString();
-  }
-  if (num < 10000) {
-    // For numbers 1300-10k, show with decimal precision
-    const thousands = num / 1000;
-    if (thousands % 1 === 0) {
-      // Clean thousands (2000, 3000, etc.)
-      return thousands + "k";
-    } else {
-      // Show one decimal place (1500 -> 1.5k, 7500 -> 7.5k)
-      return thousands.toFixed(1) + "k";
-    }
   }
   // For numbers 10k and above, round to nearest thousand
   return Math.round(num / 1000) + "k";
@@ -152,6 +140,10 @@ const MomentCard = ({
   // Format the serial numbers for display
   const serialNumber = formatNumber(nft?.serialNumber, false);
   const mintCount = formatNumber(finalMintCount, true);
+  
+  // Show subeditionMaxMint if it's 4 digits or less (≤9999)
+  const showSubeditionMint = nft?.subeditionMaxMint && Number(nft.subeditionMaxMint) <= 9999;
+  const subeditionMintDisplay = showSubeditionMint ? ` /${nft.subeditionMaxMint}` : "";
 
   // Tier color classes from tierStyles, fallback "text-gray-400"
   const tierClass = nft?.tier
@@ -277,7 +269,7 @@ const MomentCard = ({
           </div>
         )}
         <p className="text-center text-[10px] sm:text-xs text-brand-text/60 truncate leading-tight mb-0">
-          {serialNumber} / {mintCount}
+          {serialNumber} / {mintCount}{subeditionMintDisplay}
         </p>
       </div>
 
