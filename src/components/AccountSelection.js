@@ -87,6 +87,7 @@ const AccountSelection = ({
   isLoadingChildren,
   requireCollection = false,
   title = "Account Selection",
+  labelText = "Select Account:",
   onSetupTopShotCollection,
   onRefreshParentAccount,
 }) => {
@@ -258,12 +259,12 @@ const AccountSelection = ({
 
   /* -------- render -------- */
   return (
-    <div className="bg-brand-primary text-brand-text p-0.5 rounded w-full">
-      <div className="flex flex-wrap items-center gap-1.5">
+    <div className="text-brand-text w-full">
+      <div className="flex flex-col gap-1.5">
         <span className="text-brand-text text-sm font-semibold whitespace-nowrap">
-          Select Account:
+          {labelText}
         </span>
-        <div className="flex flex-wrap items-center gap-1.5 flex-1">{allBoxes}</div>
+        <div className="flex flex-wrap items-center gap-1.5">{allBoxes}</div>
       </div>
     </div>
   );

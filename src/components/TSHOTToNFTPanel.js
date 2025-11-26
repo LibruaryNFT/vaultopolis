@@ -112,6 +112,7 @@ export default function TSHOTToNFTPanel({
   depositDisabled = false,
   onTransactionStart,
   onTransactionComplete,
+  renderButtonOnly = false,
 }) {
   const {
     user,
@@ -470,47 +471,6 @@ export default function TSHOTToNFTPanel({
         >
           Commit TSHOT
         </Button>
-
-        {/* Stepper */}
-        <div className="flex items-center justify-center gap-3 pt-1">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-brand-accent flex items-center justify-center">
-              <span className="text-xs font-semibold text-white">1</span>
-            </div>
-            <span className="text-xs font-medium text-brand-accent">Commit TSHOT</span>
-          </div>
-          <div className="w-12 h-px bg-brand-border" />
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-brand-text/20 flex items-center justify-center">
-              <span className="text-xs font-semibold text-brand-text/40">2</span>
-            </div>
-            <span className="text-xs font-medium text-brand-text/40">Reveal Moments</span>
-          </div>
-        </div>
-
-        {/* Step 1 Helper Text - Only when enabled */}
-        {!btnDisabledDeposit && (
-          <p className="text-xs text-brand-text/60 text-center mt-2 px-2">
-            Burns your TSHOT and creates a receipt for your reveal.
-          </p>
-        )}
-
-        {/* Step 1 Error Helpers - Only when disabled */}
-        {btnDisabledDeposit && numericValue === 0 && (
-          <p className="text-xs text-brand-text/60 text-center mt-1 px-2">
-            Enter an amount to continue.
-          </p>
-        )}
-        {btnDisabledDeposit && numericValue > 50 && (
-          <p className="text-xs text-red-400 text-center mt-1 px-2">
-            Maximum 50 TSHOT per swap
-          </p>
-        )}
-        {btnDisabledDeposit && numericValue > parentTSHOT && numericValue <= 50 && (
-          <p className="text-xs text-yellow-400 text-center mt-1 px-2">
-            Insufficient TSHOT balance
-          </p>
-        )}
       </div>
     );
   }
@@ -518,79 +478,116 @@ export default function TSHOTToNFTPanel({
   /* ───────────────────────────────────────────────────────
    *  STEP 2 VIEW (has receipt)
    * ───────────────────────────────────────────────────────*/
+  // If renderButtonOnly is true, just return the button (for placement after AccountSelection)
+  if (renderButtonOnly && revealStep) {
+    return (
+      <>
+        <Button
+          onClick={handleReveal}
+          disabled={step2Disabled}
+          variant={step2Disabled ? "secondary" : "opolis"}
+          size="lg"
+          className={`
+            w-full px-4 py-4 
+            shadow-md shadow-black/40
+            transition-all duration-200
+            relative
+            select-none
+            ${!step2Disabled
+              ? 'hover:scale-[1.02] hover:shadow-lg hover:shadow-opolis/30 active:scale-[0.98] focus:ring-2 focus:ring-opolis/50 focus:ring-offset-2 focus:ring-offset-brand-primary'
+              : 'opacity-60 cursor-not-allowed'
+            }
+          `}
+        >
+          {checkingCol && (
+            <span className="absolute left-4">
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+          )}
+          {checkingCol
+            ? "Checking collection..."
+            : "Reveal Moments"}
+        </Button>
+        {step2Disabled && !checkingCol && (
+          <p className="text-xs text-brand-text/70 text-center mt-1 px-2">
+            To reveal, choose an account that has a Top Shot collection set up.
+          </p>
+        )}
+      </>
+    );
+  }
+
+  // Step 2: Just render stepper (button will be rendered separately)
+  if (revealStep) {
+    return (
+      <>
+        {/* Stepper with committed amount */}
+        <div className="bg-brand-primary p-2 rounded-lg">
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center gap-2 px-2 py-1 bg-brand-secondary rounded-md">
+              <div className="w-6 h-6 rounded-full bg-brand-text/20 flex items-center justify-center">
+                <Check className="w-3 h-3 text-brand-accent" />
+              </div>
+              <span className="text-xs font-medium text-brand-text/40">
+                {formattedAmount ? `Commit ${formattedAmount}` : "Commit TSHOT"}
+              </span>
+            </div>
+            <div className="w-12 h-px bg-brand-border" />
+            <div className="flex items-center gap-2 px-2 py-1 bg-brand-secondary rounded-md">
+              <div className="w-6 h-6 rounded-full bg-brand-accent flex items-center justify-center">
+                <span className="text-xs font-semibold text-white">2</span>
+              </div>
+              <span className="text-xs font-medium text-brand-accent">Reveal Moments</span>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // Step 1: Render button and stepper
   return (
     <div className="space-y-3">
-      {/* Step 1 Completion Pill (not a button) */}
-      <div className="p-2 bg-brand-accent/10 border border-brand-accent/30 rounded-lg">
-        <div className="flex items-center gap-2 text-xs text-brand-accent">
-          <Check className="w-4 h-4 flex-shrink-0" />
-          <span>
-            Receipt ready — You committed {formattedAmount}
-          </span>
-        </div>
-      </div>
-
-      {/* Step 2 Primary Button */}
+      {/* Step 1 Primary Button */}
       <Button
-        onClick={handleReveal}
-        disabled={step2Disabled}
-        variant={step2Disabled ? "secondary" : "opolis"}
+        onClick={handleDeposit}
+        disabled={btnDisabledDeposit}
+        variant={btnDisabledDeposit ? "secondary" : "opolis"}
         size="lg"
         className={`
           w-full px-4 py-4 
           shadow-md shadow-black/40
           transition-all duration-200
-          relative
-          select-none
-          ${!step2Disabled
+          ${!btnDisabledDeposit
             ? 'hover:scale-[1.02] hover:shadow-lg hover:shadow-opolis/30 active:scale-[0.98] focus:ring-2 focus:ring-opolis/50 focus:ring-offset-2 focus:ring-offset-brand-primary'
             : 'opacity-60 cursor-not-allowed'
           }
         `}
       >
-        {checkingCol && (
-          <span className="absolute left-4">
-            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </span>
-        )}
-        {checkingCol
-          ? "Checking collection..."
-          : "Reveal Moments"}
+        Commit TSHOT
       </Button>
 
       {/* Stepper */}
-      <div className="flex items-center justify-center gap-3 pt-1">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-brand-text/20 flex items-center justify-center">
-            <Check className="w-3 h-3 text-brand-accent" />
+      <div className="bg-brand-primary p-2 rounded-lg">
+        <div className="flex items-center justify-center gap-3">
+          <div className="flex items-center gap-2 px-2 py-1 bg-brand-secondary rounded-md">
+            <div className="w-6 h-6 rounded-full bg-brand-accent flex items-center justify-center">
+              <span className="text-xs font-semibold text-white">1</span>
+            </div>
+            <span className="text-xs font-medium text-brand-accent">Commit TSHOT</span>
           </div>
-          <span className="text-xs font-medium text-brand-text/40">Commit TSHOT</span>
-        </div>
-        <div className="w-12 h-px bg-brand-border" />
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-full bg-brand-accent flex items-center justify-center">
-            <span className="text-xs font-semibold text-white">2</span>
+          <div className="w-12 h-px bg-brand-border" />
+          <div className="flex items-center gap-2 px-2 py-1 bg-brand-secondary rounded-md">
+            <div className="w-6 h-6 rounded-full bg-brand-text/20 flex items-center justify-center">
+              <span className="text-xs font-semibold text-brand-text/40">2</span>
+            </div>
+            <span className="text-xs font-medium text-brand-text/40">Reveal Moments</span>
           </div>
-          <span className="text-xs font-medium text-brand-accent">Reveal Moments</span>
         </div>
       </div>
-
-      {/* Step 2 Helper Text - Only when enabled and not checking */}
-      {!step2Disabled && !checkingCol && (
-        <p className="text-xs text-brand-text/60 text-center mt-2 px-2">
-          Redeems your receipt and delivers random Moments to your collection.
-        </p>
-      )}
-
-      {/* Step 2 Error Helper - Only when disabled and not checking */}
-      {step2Disabled && !checkingCol && (
-        <p className="text-xs text-brand-text/70 text-center mt-1 px-2">
-          To reveal, choose an account that has a Top Shot collection set up.
-        </p>
-      )}
     </div>
   );
 }

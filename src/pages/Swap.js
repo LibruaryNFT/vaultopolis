@@ -429,31 +429,57 @@ const Swap = () => {
       const hasReceipt = !!accountData?.hasReceipt;
       return (
         <>
-          <TSHOTToNFTPanel
-            key="TSHOT_TO_NFT"
-            sellAmount={formattedFrom}
-            depositDisabled={false}
-            onTransactionStart={handleTransactionStart}
-            onTransactionComplete={() => {
-              setFromInput("");
-              setToInput("");
-            }}
-          />
-          {/* If we have a deposit receipt, let user choose which account receives minted NFTs */}
+          {!hasReceipt && (
+            <TSHOTToNFTPanel
+              key="TSHOT_TO_NFT"
+              sellAmount={formattedFrom}
+              depositDisabled={false}
+              onTransactionStart={handleTransactionStart}
+              onTransactionComplete={() => {
+                setFromInput("");
+                setToInput("");
+              }}
+            />
+          )}
+          {/* If we have a deposit receipt, show stepper, account selection, then button */}
           {hasReceipt && (
-            <div className="mt-2">
-              <AccountSelection
-                parentAccount={{
-                  addr: accountData?.parentAddress,
-                  hasCollection: accountCollections[accountData?.parentAddress],
+            <div className="space-y-2">
+              <TSHOTToNFTPanel
+                key="TSHOT_TO_NFT_STEPPER"
+                sellAmount={formattedFrom}
+                depositDisabled={false}
+                onTransactionStart={handleTransactionStart}
+                onTransactionComplete={() => {
+                  setFromInput("");
+                  setToInput("");
                 }}
-                childrenAddresses={childAddresses}
-                childrenAccounts={accountData?.childrenData || []}
-                selectedAccount={selectedAccount}
-                onSelectAccount={handleSelectAccount}
-                isLoadingChildren={isLoadingChildren}
-                requireCollection={true}
-                title="Select Receiving Account"
+              />
+              <div className="bg-brand-primary shadow-md px-1 py-1 rounded -mt-2">
+                <AccountSelection
+                  parentAccount={{
+                    addr: accountData?.parentAddress,
+                    hasCollection: accountCollections[accountData?.parentAddress],
+                  }}
+                  childrenAddresses={childAddresses}
+                  childrenAccounts={accountData?.childrenData || []}
+                  selectedAccount={selectedAccount}
+                  onSelectAccount={handleSelectAccount}
+                  isLoadingChildren={isLoadingChildren}
+                  requireCollection={true}
+                  title="Select Receiving Account"
+                  labelText="Select Receiving Account:"
+                />
+              </div>
+              <TSHOTToNFTPanel
+                key="TSHOT_TO_NFT_BUTTON"
+                sellAmount={formattedFrom}
+                depositDisabled={false}
+                onTransactionStart={handleTransactionStart}
+                onTransactionComplete={() => {
+                  setFromInput("");
+                  setToInput("");
+                }}
+                renderButtonOnly={true}
               />
             </div>
           )}

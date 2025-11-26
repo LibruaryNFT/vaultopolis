@@ -126,8 +126,8 @@ const TransactionModal = ({
     }
     case "COMMIT_SWAP":
       txMsg = past(
-        `Depositing ${parseInt(tshotAmount || 0, 10)} TSHOT`,
-        `Deposited ${parseInt(tshotAmount || 0, 10)} TSHOT`
+        `Committing ${parseInt(tshotAmount || 0, 10)} TSHOT`,
+        `Committed ${parseInt(tshotAmount || 0, 10)} TSHOT`
       );
       break;
     case "REVEAL_SWAP": {

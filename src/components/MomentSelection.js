@@ -6,7 +6,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { Settings as SettingsIcon, RefreshCw, X } from "lucide-react";
+import { Settings as SettingsIcon, RefreshCw, X, ChevronDown, ChevronUp } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
@@ -324,6 +324,7 @@ export default function MomentSelection(props) {
   /* prefs modal */
   const [showPrefs, setShowPrefs] = useState(false);
   const [newPrefName, setNewPrefName] = useState("");
+  const [filtersExpanded, setFiltersExpanded] = useState(false); // Collapsed by default on mobile
 
   // Reset overrides when series selection changes significantly
   const selectedSeriesKey = filter.selectedSeries.join(",");
@@ -331,54 +332,22 @@ export default function MomentSelection(props) {
     setSafetyOverrides(new Set());
   }, [selectedSeriesKey]);
 
-  // Detect if selected series have moments with serial numbers ≤4000
-  const seriesWithLowMints = React.useMemo(() => {
-    if (!filter.excludeLowSerials) return new Set();
-    
-    const seriesSet = new Set();
-    const selectedSeriesNums = filter.selectedSeries.map(Number);
-    
-    // Group moments by series to check each series
-    const momentsBySeries = {};
-    nftDetails.forEach((moment) => {
-      const seriesNum = Number(moment.series);
-      if (!selectedSeriesNums.includes(seriesNum) || isNaN(seriesNum)) return;
-      
-      if (!momentsBySeries[seriesNum]) {
-        momentsBySeries[seriesNum] = [];
-      }
-      momentsBySeries[seriesNum].push(moment);
-    });
-    
-    // Check each selected series
-    selectedSeriesNums.forEach((seriesNum) => {
-      const moments = momentsBySeries[seriesNum] || [];
-      
-      // Check if any moment in this series has serial number ≤4000
-      const hasLowSerial = moments.some((moment) => {
-        const serialNum = Number(moment.serialNumber) || 0;
-        // If serial number is ≤4000, this series has moments that will be hidden
-        return serialNum > 0 && serialNum <= 4000;
-      });
-      
-      if (hasLowSerial) {
-        seriesSet.add(seriesNum);
-      }
-    });
-    
-    return seriesSet;
-  }, [nftDetails, filter.selectedSeries, filter.excludeLowSerials]);
-
-  // Determine which series need override (have low mints but aren't overridden yet)
-  const seriesNeedingOverride = React.useMemo(() => {
-    const needing = new Set();
-    seriesWithLowMints.forEach((seriesNum) => {
-      if (!safetyOverrides.has(seriesNum)) {
-        needing.add(seriesNum);
-      }
-    });
-    return needing;
-  }, [seriesWithLowMints, safetyOverrides]);
+  // Count active filters for mobile summary
+  const activeFilterCount = React.useMemo(() => {
+    let count = 0;
+    // Safety filters
+    if (filter.excludeSpecialSerials) count++;
+    if (filter.excludeLowSerials) count++;
+    // Regular filters (only count if not "All" or default)
+    if (filter.selectedSeries.length !== seriesOptions.length) count++;
+    if (filter.selectedTiers.length !== tierOptions.length) count++;
+    if (Array.isArray(filter.selectedLeague) && filter.selectedLeague.length !== leagueOptions.length) count++;
+    if (filter.selectedSetName !== "All") count++;
+    if (filter.selectedTeam !== "All") count++;
+    if (filter.selectedPlayer !== "All") count++;
+    if (filter.selectedSubedition !== "All") count++;
+    return count;
+  }, [filter, seriesOptions, tierOptions, leagueOptions]);
 
   /* ───────── early exits ───────── */
   if (!user?.loggedIn)
@@ -414,121 +383,123 @@ export default function MomentSelection(props) {
   /* ───────── render ───────── */
   return (
     <div className="bg-brand-primary text-brand-text p-3 rounded-lg w-full space-y-3">
-      {/* Row 1: Safety Filters + Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-xs sm:text-sm mr-1">
-          Safety Filters:
+      {/* Collapsible Filter Header (mobile and desktop) */}
+      <button
+        onClick={() => setFiltersExpanded(!filtersExpanded)}
+        className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-brand-border bg-brand-secondary hover:border-opolis transition"
+      >
+        <span className="text-sm font-medium text-brand-text">
+          Filters {activeFilterCount > 0 && `(${activeFilterCount} active)`}
         </span>
-        <button
-          type="button"
-          onClick={() =>
-            setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
-          }
-          className={`
-            px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
-            transition-all duration-200 whitespace-normal h-[28px]
-            ${filter.excludeSpecialSerials
-              ? 'bg-brand-secondary border-2 border-opolis text-opolis shadow-md'
-              : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
-            }
-          `}
-        >
-          Exclude #1 / Jersey / Last Mint
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
-          }
-          className={`
-            px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
-            transition-all duration-200 whitespace-normal shadow-sm h-[28px]
-            ${filter.excludeLowSerials
-              ? 'bg-brand-secondary border-2 border-opolis text-opolis'
-              : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-            }
-          `}
-        >
-          Exclude serials ≤ 4000
-        </button>
-        <div className="flex-1" />
-        <div className="flex items-center gap-2 flex-wrap">
+        {filtersExpanded ? (
+          <ChevronUp size={18} className="text-brand-text" />
+        ) : (
+          <ChevronDown size={18} className="text-brand-text" />
+        )}
+      </button>
+
+      {/* Filter Sections (collapsible on all screen sizes) */}
+      {filtersExpanded && (
+        <div className="space-y-3">
+        {/* Row 1: Safety Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-xs sm:text-sm mr-1 whitespace-nowrap">
+          Safety Exclusions:
+        </span>
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleRefresh}
-            disabled={isRefreshing || cooldown}
-            title={
-              cooldown
-                ? "Please wait a few seconds before refreshing again"
-                : "Refresh snapshots"
+            type="button"
+            onClick={() =>
+              setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
             }
-            className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-40 select-none h-[28px]"
+            className={`
+              px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+              transition-all duration-200 whitespace-normal h-[28px]
+              ${filter.excludeSpecialSerials
+                ? 'bg-brand-secondary border-2 border-opolis text-opolis shadow-md'
+                : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
+              }
+            `}
           >
-            <RefreshCw
-              size={14}
-              className={`${isRefreshing ? "animate-spin" : ""} text-opolis`}
-            />
-            <span>Refresh</span>
-          </button>
-          <span className="text-xs text-brand-text/70 h-[28px] flex items-center">
-            Updated: <span className="text-brand-text ml-1">{elapsed}</span>
-          </span>
-          <button
-            aria-label="Filter settings"
-            onClick={() => setShowPrefs(true)}
-            className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
-          >
-            <span className="text-xs text-brand-text/80">
-              Filter:{" "}
-              <span className="text-brand-text">
-                {currentPrefKey || "None"}
-              </span>
-            </span>
-            <SettingsIcon
-              size={14}
-              strokeWidth={2}
-              className="text-opolis"
-            />
+            #1 / Jersey / Last Mint
           </button>
           <button
-            onClick={() => {
-              setFilter({
-                selectedTiers: tierOptions,
-                selectedSeries: seriesOptions,
-                selectedSetName: "All",
-                selectedLeague: leagueOptions,
-                selectedTeam: "All",
-                selectedPlayer: "All",
-                selectedSubedition: "All",
-                excludeSpecialSerials: true,
-                excludeLowSerials: true,
-                currentPage: 1,
-              });
-            }}
-            className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+            type="button"
+            onClick={() =>
+              setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
+            }
+            className={`
+              px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+              transition-all duration-200 whitespace-normal shadow-sm h-[28px]
+              ${filter.excludeLowSerials
+                ? 'bg-brand-secondary border-2 border-opolis text-opolis'
+                : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+              }
+            `}
           >
-            <X size={13} />
-            Reset Filters
+            Serial ≤ 4000
           </button>
         </div>
       </div>
-
-      {/* Safety Filter Override Warning */}
-      {seriesNeedingOverride.size > 0 && (
-        <div className="flex items-center gap-2 text-xs sm:text-sm text-brand-text/90 bg-yellow-500/20 border-2 border-yellow-500/60 rounded-md px-3 py-2">
-          <span className="text-yellow-400 text-base">⚠</span>
-          <span className="flex-1">
-            Low serials from the following series: {Array.from(seriesNeedingOverride).map((s) => getSeriesFilterLabel(s, "topshot")).join(", ")} are hidden. 
-            <button
-              type="button"
-              onClick={() => setFilter({ excludeLowSerials: false, currentPage: 1 })}
-              className="ml-1 text-opolis hover:underline font-medium"
-            >
-              Turn off "Exclude serials ≤ 4000"
-            </button>
-            {" "}to see them.
+      {/* Row 2: Controls */}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing || cooldown}
+          title={
+            cooldown
+              ? "Please wait a few seconds before refreshing again"
+              : "Refresh snapshots"
+          }
+          className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-40 select-none h-[28px]"
+        >
+          <RefreshCw
+            size={14}
+            className={`${isRefreshing ? "animate-spin" : ""} text-opolis`}
+          />
+          <span>Refresh</span>
+        </button>
+        <span className="text-xs text-brand-text/70 h-[28px] flex items-center">
+          Updated: <span className="text-brand-text ml-1">{elapsed}</span>
+        </span>
+        <button
+          aria-label="Filter settings"
+          onClick={() => setShowPrefs(true)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+        >
+          <span className="text-xs text-brand-text/80">
+            Filter:{" "}
+            <span className="text-brand-text">
+              {currentPrefKey || "None"}
+            </span>
           </span>
-        </div>
-      )}
+          <SettingsIcon
+            size={14}
+            strokeWidth={2}
+            className="text-opolis"
+          />
+        </button>
+        <button
+          onClick={() => {
+            setFilter({
+              selectedTiers: tierOptions,
+              selectedSeries: seriesOptions,
+              selectedSetName: "All",
+              selectedLeague: leagueOptions,
+              selectedTeam: "All",
+              selectedPlayer: "All",
+              selectedSubedition: "All",
+              excludeSpecialSerials: true,
+              excludeLowSerials: true,
+              currentPage: 1,
+            });
+          }}
+          className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+        >
+          <X size={13} />
+          Reset Filters
+        </button>
+      </div>
 
       {/* Unified filter row */}
       <div className="pt-3 border-t border-brand-border/30">
@@ -673,6 +644,9 @@ export default function MomentSelection(props) {
             />
         </div>
       </div>
+        </div>
+      )}
+      {/* End of collapsible filter section */}
 
       {/* Selection limit warning */}
       {selectedNFTs.length >= 200 && (
@@ -686,12 +660,12 @@ export default function MomentSelection(props) {
 
       {/* grid */}
       {pageCount > 1 && (
-        <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 mb-2 text-xs sm:text-sm text-brand-text/70">
           <p>
             Showing {pageSlice.length} of{" "}
             {eligibleMoments.length.toLocaleString()} items
           </p>
-          <p>
+          <p className="sm:hidden">
             Page {filter.currentPage} of {pageCount}
           </p>
         </div>
@@ -716,33 +690,56 @@ export default function MomentSelection(props) {
 
       {/* pagination */}
       {pageCount > 1 && (
-        <div className="flex justify-center items-center gap-3 mt-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4">
+          {/* Mobile: Simple Prev/Next with compact indicator */}
+          <div className="flex items-center gap-2 sm:hidden">
             <button
               onClick={() => goPage(filter.currentPage - 1)}
               disabled={filter.currentPage === 1}
-              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
             >
               Prev
             </button>
-            <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
-              Page {filter.currentPage} of {pageCount}
+            <span className="text-xs text-brand-text/70 px-2">
+              {filter.currentPage}/{pageCount}
             </span>
             <button
               onClick={() => goPage(filter.currentPage + 1)}
               disabled={filter.currentPage === pageCount}
-              className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
             >
               Next
             </button>
           </div>
-          <div className="h-[1px] w-8 bg-brand-primary/30" />
-          <PageInput
-            maxPages={pageCount}
-            currentPage={filter.currentPage}
-            onPageChange={goPage}
-            disabled={false}
-          />
+          {/* Desktop: Full pagination with PageInput */}
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goPage(filter.currentPage - 1)}
+                disabled={filter.currentPage === 1}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                Page {filter.currentPage} of {pageCount}
+              </span>
+              <button
+                onClick={() => goPage(filter.currentPage + 1)}
+                disabled={filter.currentPage === pageCount}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="h-[1px] w-8 bg-brand-primary/30" />
+            <PageInput
+              maxPages={pageCount}
+              currentPage={filter.currentPage}
+              onPageChange={goPage}
+              disabled={false}
+            />
+          </div>
         </div>
       )}
 
