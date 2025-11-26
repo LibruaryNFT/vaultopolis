@@ -4,7 +4,9 @@ import MomentCard from "./MomentCard";
 import { UserDataContext } from "../context/UserContext";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
-import FilterDropdown from "./FilterDropdown";
+import FilterPopover from "./FilterPopover";
+import MultiSelectFilterPopover from "./MultiSelectFilterPopover";
+import { X } from "lucide-react";
 
 /* ---------- constants ---------- */
 const TIER_OPTIONS = [
@@ -16,7 +18,7 @@ const PAGE_SIZE = 50;
 
 /* ---------- layout wrappers (unchanged) ---------- */
 const Section = ({ children }) => (
-  <section className="px-2 md:px-3">{children}</section>
+  <section>{children}</section>
 );
 
 /* ---------- stat tile (unchanged) ---------- */
@@ -258,9 +260,9 @@ function TSHOTVault({ onSummaryUpdate }) {
 
   /* ---------- RENDER ---------- */
   const VaultBlock = () => (
-    <div className="bg-brand-primary text-brand-text p-2 rounded w-full">
+    <div className="bg-brand-primary text-brand-text rounded w-full space-y-2">
       {summary && (
-        <div className="bg-brand-secondary p-3 rounded mb-3">
+        <div className="bg-brand-secondary p-2 sm:p-3 rounded">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
             <Stat label="Total in vault" value={summary.totalInVault} />
             <Stat label="Common" value={summary.totalCommon} />
@@ -268,7 +270,6 @@ function TSHOTVault({ onSummaryUpdate }) {
             <Stat label="#1 Mints" value={summary.totalFirstMints} />
             <Stat label="Jersey Matches" value={summary.totalJerseyMatches} />
             <Stat label="Last Mints" value={summary.totalLastMints} />
-            <Stat label={getSeriesFilterLabel(0, 'topshot')} value={summary.totalSeries0} />
           </div>
           <p className="italic text-xs text-brand-text/60 mt-2">
             Data refreshes every 10 minutes on the hour.
@@ -277,7 +278,7 @@ function TSHOTVault({ onSummaryUpdate }) {
       )}
 
       {errorMsg && !anyLoading && (
-        <div className="flex items-center gap-2 bg-red-900/20 p-3 rounded mb-3">
+        <div className="flex items-center gap-2 bg-red-900/20 p-2 sm:p-3 rounded">
           <AlertTriangle className="h-5 w-5 text-red-500" />
           <p className="flex-1 text-red-400">{errorMsg}</p>
           <button
@@ -290,252 +291,174 @@ function TSHOTVault({ onSummaryUpdate }) {
         </div>
       )}
 
-      <div className="flex flex-col text-sm bg-brand-secondary p-2 rounded mb-2">
-        {/* Row 1: Safety Filters */}
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-xs sm:text-sm mr-1">Special Filters:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setOnlySpecial((v) => !v);
-                setPage(1);
-              }}
-              disabled={loading.moments}
-              className={`
-                px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
-                transition-all duration-200 whitespace-normal shadow-sm
-                ${onlySpecial
-                  ? 'bg-brand-accent text-white'
-                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                }
-                disabled:opacity-50 disabled:cursor-not-allowed
-              `}
-            >
-              Show only #1 / Jersey / Last Mint
-            </button>
-          </div>
-        </div>
+      <div className="bg-brand-primary text-brand-text rounded-lg w-full space-y-2">
+        {/* Filter Sections */}
+        <div className="space-y-2">
+            {/* Row 1: Safety Filters */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-xs sm:text-sm mr-1 whitespace-nowrap">
+                Special Filters:
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setOnlySpecial((v) => !v);
+                  setPage(1);
+                }}
+                disabled={loading.moments}
+                className={`
+                  px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+                  transition-all duration-200 whitespace-normal shadow-sm h-[28px]
+                  ${onlySpecial
+                    ? 'bg-brand-secondary border-2 border-opolis text-opolis'
+                    : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-opolis hover:opacity-90'
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+              >
+                Show only #1 / Jersey / Last Mint
+              </button>
+            </div>
 
-        {/* Row 2: Series */}
-        <div className="mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-xs sm:text-sm mr-1">Series:</span>
-            <button
-              type="button"
-              onClick={() => {
-                handleFilterChange(setSelectedSeries, ALL_SERIES_OPTIONS);
-              }}
-              disabled={loading.moments}
-              className={`
-                px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                transition-all duration-200 shadow-sm
-                ${selectedSeries.length === ALL_SERIES_OPTIONS.length
-                  ? 'bg-brand-accent text-white'
-                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                }
-                disabled:opacity-50 disabled:cursor-not-allowed
-              `}
-            >
-              All
-            </button>
-            {ALL_SERIES_OPTIONS.map((series) => {
-              const isSelected = selectedSeries.includes(series);
-              return (
-                <button
-                  key={series}
-                  type="button"
-                  onClick={() => {
-                    const newSelection = isSelected
-                      ? selectedSeries.filter((s) => s !== series)
-                      : [...selectedSeries, series];
-                    handleFilterChange(setSelectedSeries, newSelection);
-                  }}
+            {/* Unified filter row */}
+            <div className="pt-2 border-t border-brand-border/30">
+              <div className="flex flex-wrap items-center gap-2">
+                <MultiSelectFilterPopover
+                  label="Series"
+                  selectedValues={selectedSeries}
+                  options={ALL_SERIES_OPTIONS}
+                  placeholder="Search series..."
+                  onChange={(values) =>
+                    handleFilterChange(setSelectedSeries, values.map(Number))
+                  }
+                  formatOption={(series) =>
+                    getSeriesFilterLabel(Number(series), "topshot")
+                  }
+                  getCount={() => vaultData.length}
                   disabled={loading.moments}
-                  className={`
-                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                    transition-all duration-200 shadow-sm
-                    ${isSelected
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                    }
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                  `}
-                >
-                  {getSeriesFilterLabel(series, 'topshot')}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() => {
-                handleFilterChange(setSelectedSeries, []);
-              }}
-              disabled={loading.moments}
-              className={`
-                px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                transition-all duration-200 shadow-sm
-                ${selectedSeries.length === 0
-                  ? 'bg-brand-accent text-white'
-                  : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                }
-                disabled:opacity-50 disabled:cursor-not-allowed
-              `}
-            >
-              Clear All
-            </button>
-          </div>
-        </div>
-
-        {/* Row 3: Tiers & League */}
-        <div className="mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="font-semibold text-xs sm:text-sm mr-1">Tiers:</span>
-            {TIER_OPTIONS.map((tier) => {
-              const isSelected = selectedTiers.includes(tier.value);
-              return (
-                <button
-                  key={tier.value}
-                  type="button"
-                  onClick={() => {
+                />
+                <MultiSelectFilterPopover
+                  label="Tier"
+                  selectedValues={selectedTiers}
+                  options={TIER_OPTIONS.map(t => t.value)}
+                  placeholder="Search tiers..."
+                  onChange={(values) => {
+                    const next = values.length || !TIER_OPTIONS.length
+                      ? values
+                      : [TIER_OPTIONS[0].value];
                     setPage(1);
-                    const newSelection = isSelected
-                      ? selectedTiers.filter((t) => t !== tier.value)
-                      : [...selectedTiers, tier.value];
-                    // Prevent empty selection - if would be empty, keep at least first tier
-                    if (newSelection.length === 0 && TIER_OPTIONS.length > 0) {
-                      setSelectedTiers([TIER_OPTIONS[0].value]);
-                    } else {
-                      setSelectedTiers(newSelection);
-                    }
+                    setSelectedTiers(next);
                   }}
-                  disabled={loading.moments}
-                  className={`
-                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                    transition-all duration-200 shadow-sm
-                    ${isSelected
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
-                    }
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                  `}
-                >
-                  {tier.label}
-                </button>
-              );
-            })}
-            <span className="font-semibold text-xs sm:text-sm mr-1 ml-1">League:</span>
-            {(["NBA", "WNBA"]).map((league) => {
-              const isSelected = Array.isArray(selectedLeague)
-                ? selectedLeague.includes(league)
-                : selectedLeague === league;
-              return (
-                <button
-                  key={league}
-                  type="button"
-                  onClick={() => {
-                    const currentLeagues = Array.isArray(selectedLeague) 
-                      ? selectedLeague 
-                      : selectedLeague === "All" 
-                        ? ["NBA", "WNBA"] 
-                        : [selectedLeague];
-                    const newSelection = isSelected
-                      ? currentLeagues.filter((l) => l !== league)
-                      : [...currentLeagues, league];
-                    // Prevent deselecting all - if would be empty, select all instead
-                    if (newSelection.length === 0) {
-                      handleFilterChange(setSelectedLeague, ["NBA", "WNBA"]);
-                    } else {
-                      handleFilterChange(setSelectedLeague, newSelection);
-                    }
+                  formatOption={(tier) => {
+                    const tierObj = TIER_OPTIONS.find(t => t.value === tier);
+                    return tierObj ? tierObj.label : tier;
                   }}
+                  getCount={() => vaultData.length}
+                  minSelection={1}
                   disabled={loading.moments}
-                  className={`
-                    px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                    transition-all duration-200 shadow-sm
-                    ${isSelected
-                      ? 'bg-brand-accent text-white'
-                      : 'bg-brand-primary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                />
+                <MultiSelectFilterPopover
+                  label="League"
+                  selectedValues={
+                    Array.isArray(selectedLeague)
+                      ? selectedLeague
+                      : selectedLeague === "All"
+                      ? ["NBA", "WNBA"]
+                      : [selectedLeague]
+                  }
+                  options={["NBA", "WNBA"]}
+                  placeholder="Search leagues..."
+                  onChange={(values) => {
+                    const sanitized = values.length ? values : ["NBA", "WNBA"];
+                    handleFilterChange(setSelectedLeague, sanitized);
+                  }}
+                  getCount={() => vaultData.length}
+                  minSelection={1}
+                  disabled={loading.moments}
+                />
+                <FilterPopover
+                  label="Set"
+                  selectedValue={selectedSet}
+                  options={filterOptions?.allSets || []}
+                  placeholder="Search sets..."
+                  onChange={(value) =>
+                    handleFilterChange(setSelectedSet, value)
+                  }
+                  getCount={() => vaultData.length}
+                  disabled={loading.moments || !filterOptions?.allSets}
+                />
+                <FilterPopover
+                  label="Team"
+                  selectedValue={selectedTeam}
+                  options={filterOptions?.allTeams || []}
+                  placeholder="Search teams..."
+                  onChange={(value) =>
+                    handleFilterChange(setSelectedTeam, value)
+                  }
+                  getCount={() => vaultData.length}
+                  disabled={loading.moments || !filterOptions?.allTeams}
+                />
+                <FilterPopover
+                  label="Player"
+                  selectedValue={selectedPlayer}
+                  options={filterOptions?.allPlayers || []}
+                  placeholder="Search players..."
+                  onChange={(value) =>
+                    handleFilterChange(setSelectedPlayer, value)
+                  }
+                  getCount={() => vaultData.length}
+                  disabled={loading.moments || !filterOptions?.allPlayers}
+                />
+                <FilterPopover
+                  label="Parallel"
+                  selectedValue={selectedSubedition}
+                  options={subeditionOptions}
+                  placeholder="Search parallels..."
+                  onChange={(value) =>
+                    handleFilterChange(setSelectedSubedition, value)
+                  }
+                  formatOption={(subId) => {
+                    if (subId === "All") return "All";
+                    const id = Number(subId);
+                    const sub = SUBEDITIONS[id];
+                    if (!sub) {
+                      return `Subedition ${id}`;
                     }
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                  `}
-                >
-                  {league}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                    const minted = sub.minted || 0;
+                    return `${sub.name} /${minted}`;
+                  }}
+                  getCount={() => vaultData.length}
+                  disabled={loading.moments}
+                />
+              </div>
+            </div>
 
-        {/* Row 5: Set, Team, Player, Parallel */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-primary/30">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Set:</span>
-            <FilterDropdown
-              options={filterOptions?.allSets ? ["All", ...filterOptions.allSets] : ["All"]}
-              value={selectedSet}
-              onChange={(e) =>
-                handleFilterChange(setSelectedSet, e.target.value)
-              }
-              title="Filter by set"
-              disabled={loading.moments || !filterOptions?.allSets}
-              width="w-full"
-            />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Team:</span>
-            <FilterDropdown
-              options={filterOptions?.allTeams ? ["All", ...filterOptions.allTeams] : ["All"]}
-              value={selectedTeam}
-              onChange={(e) =>
-                handleFilterChange(setSelectedTeam, e.target.value)
-              }
-              title="Filter by team"
-              disabled={loading.moments || !filterOptions?.allTeams}
-              width="w-full"
-            />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Player:</span>
-            <FilterDropdown
-              options={filterOptions?.allPlayers ? ["All", ...filterOptions.allPlayers] : ["All"]}
-              value={selectedPlayer}
-              onChange={(e) =>
-                handleFilterChange(setSelectedPlayer, e.target.value)
-              }
-              title="Filter by player"
-              disabled={loading.moments || !filterOptions?.allPlayers}
-              width="w-full"
-            />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Parallel:</span>
-            <FilterDropdown
-              options={["All", ...subeditionOptions]}
-              value={selectedSubedition}
-              onChange={(e) =>
-                handleFilterChange(setSelectedSubedition, e.target.value)
-              }
-              labelFn={(subId) => {
-                if (subId === "All") return "All";
-                const id = Number(subId);
-                const sub = SUBEDITIONS[id];
-                if (!sub) {
-                  return `Subedition ${id}`;
-                }
-                const minted = sub.minted || 0;
-                return `${sub.name} /${minted}`;
-              }}
-              title="Filter by parallel/subedition"
-              disabled={loading.moments}
-              width="w-full"
-            />
+            {/* Reset Filters */}
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-brand-border/30">
+              <button
+                onClick={() => {
+                  setSelectedSeries(ALL_SERIES_OPTIONS);
+                  setSelectedTiers(TIER_OPTIONS.map(t => t.value));
+                  setSelectedLeague(["NBA", "WNBA"]);
+                  setSelectedSet("All");
+                  setSelectedTeam("All");
+                  setSelectedPlayer("All");
+                  setSelectedSubedition("All");
+                  setOnlySpecial(false);
+                  setPage(1);
+                }}
+                disabled={loading.moments}
+                className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <X size={13} />
+                Reset Filters
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
       {!anyLoading && vaultData.length > 0 && (
-        <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
+        <div className="flex justify-between items-center text-sm text-brand-text/70">
           <p>
             Showing {vaultData.length} of{" "}
             {queryTotal > 0 ? queryTotal.toLocaleString() : "..."} items
@@ -549,7 +472,7 @@ function TSHOTVault({ onSummaryUpdate }) {
       )}
 
       {loading.moments ? (
-        <div className="flex flex-col items-center justify-center py-12">
+        <div className="flex flex-col items-center justify-center py-8 sm:py-12">
           <Loader2 className="h-8 w-8 animate-spin text-brand-text/70 mb-4" />
           <p className="text-sm text-brand-text/70">
             {vaultData.length === 0 ? "Loading vault data…" : "Loading moments…"}
@@ -568,7 +491,7 @@ function TSHOTVault({ onSummaryUpdate }) {
               />
             ))}
           </div>
-          <div className="flex justify-center items-center gap-3 mt-4">
+          <div className="flex justify-center items-center gap-3 mt-2 sm:mt-4">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => p - 1)}

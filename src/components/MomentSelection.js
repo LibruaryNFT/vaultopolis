@@ -6,7 +6,7 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { Settings as SettingsIcon, RefreshCw, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Settings as SettingsIcon, RefreshCw, X } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
@@ -324,30 +324,12 @@ export default function MomentSelection(props) {
   /* prefs modal */
   const [showPrefs, setShowPrefs] = useState(false);
   const [newPrefName, setNewPrefName] = useState("");
-  const [filtersExpanded, setFiltersExpanded] = useState(false); // Collapsed by default on mobile
 
   // Reset overrides when series selection changes significantly
   const selectedSeriesKey = filter.selectedSeries.join(",");
   useEffect(() => {
     setSafetyOverrides(new Set());
   }, [selectedSeriesKey]);
-
-  // Count active filters for mobile summary
-  const activeFilterCount = React.useMemo(() => {
-    let count = 0;
-    // Safety filters
-    if (filter.excludeSpecialSerials) count++;
-    if (filter.excludeLowSerials) count++;
-    // Regular filters (only count if not "All" or default)
-    if (filter.selectedSeries.length !== seriesOptions.length) count++;
-    if (filter.selectedTiers.length !== tierOptions.length) count++;
-    if (Array.isArray(filter.selectedLeague) && filter.selectedLeague.length !== leagueOptions.length) count++;
-    if (filter.selectedSetName !== "All") count++;
-    if (filter.selectedTeam !== "All") count++;
-    if (filter.selectedPlayer !== "All") count++;
-    if (filter.selectedSubedition !== "All") count++;
-    return count;
-  }, [filter, seriesOptions, tierOptions, leagueOptions]);
 
   /* ───────── early exits ───────── */
   if (!user?.loggedIn)
@@ -383,24 +365,8 @@ export default function MomentSelection(props) {
   /* ───────── render ───────── */
   return (
     <div className="bg-brand-primary text-brand-text p-3 rounded-lg w-full space-y-3">
-      {/* Collapsible Filter Header (mobile and desktop) */}
-      <button
-        onClick={() => setFiltersExpanded(!filtersExpanded)}
-        className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-brand-border bg-brand-secondary hover:border-opolis transition"
-      >
-        <span className="text-sm font-medium text-brand-text">
-          Filters {activeFilterCount > 0 && `(${activeFilterCount} active)`}
-        </span>
-        {filtersExpanded ? (
-          <ChevronUp size={18} className="text-brand-text" />
-        ) : (
-          <ChevronDown size={18} className="text-brand-text" />
-        )}
-      </button>
-
-      {/* Filter Sections (collapsible on all screen sizes) */}
-      {filtersExpanded && (
-        <div className="space-y-3">
+      {/* Filter Sections */}
+      <div className="space-y-3">
         {/* Row 1: Safety Filters */}
         <div className="flex flex-wrap items-center gap-2">
         <span className="font-semibold text-xs sm:text-sm mr-1 whitespace-nowrap">
