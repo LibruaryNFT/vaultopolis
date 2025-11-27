@@ -1,7 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FaBookOpen } from "react-icons/fa";
+import { BookOpen } from "lucide-react";
 import PageWrapper from "../../components/PageWrapper";
 import ContentPanel from "../../components/ContentPanel";
 import Card from "../../components/Card";
@@ -40,7 +40,7 @@ function TSHOTRewardsGuide() {
             <ol className="flex items-center space-x-2 text-sm text-white/70">
               <li>
                 <Link to="/guides" className="hover:text-opolis transition-colors flex items-center">
-                  <FaBookOpen className="mr-1" size={14} />
+                  <BookOpen className="mr-1" size={14} />
                   Guides
                 </Link>
               </li>

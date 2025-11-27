@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaSignOutAlt, FaCopy, FaUser } from "react-icons/fa";
+import { LogOut, Copy, User, LayoutGrid } from "lucide-react";
 import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
@@ -57,7 +57,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
         mt-0
         rounded-lg border border-brand-border
         shadow-xl shadow-black/70
-        bg-brand-secondary text-brand-text z-60
+        bg-brand-secondary text-brand-text z-[60]
       "
     >
       {/* Tier 1: Identity & Status Header */}
@@ -82,7 +82,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                 className="p-1 hover:bg-white/10 rounded transition-colors"
                 title="Copy address"
               >
-                <FaCopy className="text-xs" />
+                <Copy className="text-xs" />
               </button>
             </div>
             <div className="flex items-center space-x-2 mt-1">
@@ -127,7 +127,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                   className="p-1 hover:bg-white/10 rounded transition-colors"
                   title="Copy address"
                 >
-                  <FaCopy className="text-xs" />
+                  <Copy className="text-xs" />
                 </button>
               </div>
               <div className="flex items-center space-x-2 mt-1">
@@ -145,8 +145,15 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           onClick={() => navigateTo('/profile')}
           className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center space-x-3"
         >
-          <FaUser className="text-brand-accent" />
-          <span>My Profile</span>
+          <User className="text-brand-accent" />
+          <span>Profile</span>
+        </button>
+        <button
+          onClick={() => navigateTo('/profile?tab=collection')}
+          className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center space-x-3"
+        >
+          <LayoutGrid className="text-brand-accent" />
+          <span>My Collection</span>
         </button>
       </div>
 
@@ -159,7 +166,7 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           onClick={logout}
           className="w-full px-4 py-2 text-left hover:bg-white/5 transition-colors flex items-center space-x-3"
         >
-          <FaSignOutAlt className="text-red-400" />
+          <LogOut className="text-red-400" />
           <span className="text-red-400">Disconnect</span>
         </button>
       </div>

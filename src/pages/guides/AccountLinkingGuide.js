@@ -1,5 +1,5 @@
 import React from "react";
-import { FaLink } from "react-icons/fa";
+import { Link as LinkIcon } from "lucide-react";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function AccountLinkingGuide() {
@@ -10,7 +10,7 @@ function AccountLinkingGuide() {
     canonicalUrl: "https://vaultopolis.com/guides/account-linking",
     ogTitle: "Account Linking | Dapper Wallet Guides",
     ogDescription: "Learn how to link your Dapper account with external wallets for enhanced NFT functionality.",
-    icon: FaLink,
+    icon: LinkIcon,
     difficulty: "Intermediate",
     estimatedTime: "2-3 minutes",
     lastUpdated: "August 19, 2025",

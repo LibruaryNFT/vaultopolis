@@ -1,5 +1,5 @@
 import React from "react";
-import { FaExchangeAlt } from "react-icons/fa";
+import { ArrowLeftRight } from "lucide-react";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function TransferGuide() {
@@ -10,7 +10,7 @@ function TransferGuide() {
     canonicalUrl: "https://vaultopolis.com/guides/transfer",
     ogTitle: "Transfer NFTs - Bulk Transfer Guide | Vaultopolis",
     ogDescription: "Complete guide to transferring NBA Top Shot Moments between Flow accounts or bridging to Flow EVM. Support for bulk transfers up to 280 NFTs.",
-    icon: FaExchangeAlt,
+    icon: ArrowLeftRight,
     difficulty: "Intermediate",
     estimatedTime: "5-10 minutes",
     lastUpdated: "January 2025",

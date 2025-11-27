@@ -1,11 +1,13 @@
-import React, { useEffect, useState, useContext } from "react";
-import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
+import React, { useEffect, useState, useContext, useRef } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import MomentCard from "./MomentCard";
 import { UserDataContext } from "../context/UserContext";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
 import FilterPopover from "./FilterPopover";
 import MultiSelectFilterPopover from "./MultiSelectFilterPopover";
+import PageInput from "./PageInput";
+import MomentCardSkeleton from "./MomentCardSkeleton";
 import { X } from "lucide-react";
 
 /* ---------- constants ---------- */
@@ -32,60 +34,6 @@ const Stat = ({ label, value }) => (
 /* ---------- reusable dropdown - deprecated, use FilterDropdown instead ---------- */
 
 /* ---------- main component ---------- */
-const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
-  const [inputValue, setInputValue] = useState("");
-
-  const handleChange = (e) => {
-    const value = e.target.value;
-    if (value === "" || /^\d+$/.test(value)) {
-      setInputValue(value);
-    }
-  };
-
-  const handleSubmit = () => {
-    const newPage = parseInt(inputValue, 10);
-    if (
-      newPage &&
-      newPage >= 1 &&
-      newPage <= maxPages &&
-      newPage !== currentPage
-    ) {
-      onPageChange(newPage);
-    }
-    setInputValue("");
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="relative">
-        <input
-          type="text"
-          value={inputValue}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Page #"
-          className="w-16 px-2 py-1 rounded bg-brand-primary text-brand-text/80 text-sm"
-          disabled={disabled}
-        />
-      </div>
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={disabled}
-        className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm"
-      >
-        Go
-      </button>
-    </div>
-  );
-};
 
 function TSHOTVault({ onSummaryUpdate }) {
   const { flowPricePerNFT } = useContext(UserDataContext);
@@ -156,13 +104,60 @@ function TSHOTVault({ onSummaryUpdate }) {
     fetchOptions();
   }, []);
 
+  // Track previous page to detect page changes (not filter changes)
+  const prevPageRef = useRef(page);
+  const prevFiltersRef = useRef(JSON.stringify({
+    selectedTiers,
+    selectedSeries,
+    selectedLeague,
+    selectedSet,
+    selectedTeam,
+    selectedPlayer,
+    selectedSubedition,
+    onlySpecial,
+  }));
+  
   // Fetch the moments themselves whenever a filter changes
   useEffect(() => {
     if (selectedSeries.length === 0) {
       setVaultData([]);
       setQueryTotal(0);
+      prevPageRef.current = page;
+      prevFiltersRef.current = JSON.stringify({
+        selectedTiers,
+        selectedSeries,
+        selectedLeague,
+        selectedSet,
+        selectedTeam,
+        selectedPlayer,
+        selectedSubedition,
+        onlySpecial,
+      });
       return;
     }
+    
+    // Check if this is a page change (not a filter change)
+    const currentFilters = JSON.stringify({
+      selectedTiers,
+      selectedSeries,
+      selectedLeague,
+      selectedSet,
+      selectedTeam,
+      selectedPlayer,
+      selectedSubedition,
+      onlySpecial,
+    });
+    const isPageChange = prevPageRef.current !== page && prevFiltersRef.current === currentFilters;
+    
+    // If page changed (not filter change), set loading immediately
+    // We keep the old vaultData so the grid stays the same size, and show skeletons in place
+    if (isPageChange) {
+      setLoading((prev) => ({ ...prev, moments: true }));
+      // Don't clear vaultData - keep it so grid size stays consistent
+    }
+    
+    prevPageRef.current = page;
+    prevFiltersRef.current = currentFilters;
     fetchPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -291,7 +286,7 @@ function TSHOTVault({ onSummaryUpdate }) {
         </div>
       )}
 
-      <div className="bg-brand-primary text-brand-text rounded-lg w-full space-y-2">
+      <div className="bg-brand-primary text-brand-text rounded-lg w-full p-2 space-y-2">
         {/* Filter Sections */}
         <div className="space-y-2">
             {/* Row 1: Safety Filters */}
@@ -307,11 +302,12 @@ function TSHOTVault({ onSummaryUpdate }) {
                 }}
                 disabled={loading.moments}
                 className={`
-                  px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
-                  transition-all duration-200 whitespace-normal shadow-sm h-[28px]
+                  inline-flex items-center gap-1.5 rounded-md border text-xs sm:text-sm px-3 py-1.5
+                  transition-all shadow-sm whitespace-nowrap flex-shrink-0
+                  bg-brand-secondary text-brand-text hover:border-opolis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis
                   ${onlySpecial
-                    ? 'bg-brand-secondary border-2 border-opolis text-opolis'
-                    : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-opolis hover:opacity-90'
+                    ? 'border-2 border-opolis'
+                    : 'border border-brand-border'
                   }
                   disabled:opacity-50 disabled:cursor-not-allowed
                 `}
@@ -430,68 +426,64 @@ function TSHOTVault({ onSummaryUpdate }) {
                   getCount={() => vaultData.length}
                   disabled={loading.moments}
                 />
+                {/* Reset Filters - on same row as filters */}
+                <button
+                  onClick={() => {
+                    setSelectedSeries(ALL_SERIES_OPTIONS);
+                    setSelectedTiers(TIER_OPTIONS.map(t => t.value));
+                    setSelectedLeague(["NBA", "WNBA"]);
+                    setSelectedSet("All");
+                    setSelectedTeam("All");
+                    setSelectedPlayer("All");
+                    setSelectedSubedition("All");
+                    setOnlySpecial(false);
+                    setPage(1);
+                  }}
+                  disabled={loading.moments}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-brand-border text-xs sm:text-sm px-3 py-1.5 transition-all shadow-sm whitespace-nowrap flex-shrink-0 bg-brand-secondary text-brand-text hover:border-opolis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <X size={13} />
+                  Reset Filters
+                </button>
               </div>
             </div>
-
-            {/* Reset Filters */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-brand-border/30">
-              <button
-                onClick={() => {
-                  setSelectedSeries(ALL_SERIES_OPTIONS);
-                  setSelectedTiers(TIER_OPTIONS.map(t => t.value));
-                  setSelectedLeague(["NBA", "WNBA"]);
-                  setSelectedSet("All");
-                  setSelectedTeam("All");
-                  setSelectedPlayer("All");
-                  setSelectedSubedition("All");
-                  setOnlySpecial(false);
-                  setPage(1);
-                }}
-                disabled={loading.moments}
-                className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px] disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <X size={13} />
-                Reset Filters
-              </button>
-            </div>
           </div>
         </div>
 
-      {!anyLoading && vaultData.length > 0 && (
-        <div className="flex justify-between items-center text-sm text-brand-text/70">
-          <p>
-            Showing {vaultData.length} of{" "}
-            {queryTotal > 0 ? queryTotal.toLocaleString() : "..."} items
-          </p>
-          {maxPages > 1 && (
-            <p>
-              Page {page} of {maxPages}
+      {/* Top pagination - "Showing X of Y" on same row as controls */}
+      {maxPages > 1 && (
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+          {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+          {queryTotal > 0 && (
+            <p className="text-sm text-brand-text/70 whitespace-nowrap">
+              <span className="hidden sm:inline">Showing </span>
+              {vaultData.length > 0 ? vaultData.length : PAGE_SIZE} of {queryTotal.toLocaleString()}<span className="hidden sm:inline"> items</span>
             </p>
           )}
-        </div>
-      )}
-
-      {loading.moments ? (
-        <div className="flex flex-col items-center justify-center py-8 sm:py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-brand-text/70 mb-4" />
-          <p className="text-sm text-brand-text/70">
-            {vaultData.length === 0 ? "Loading vault data…" : "Loading moments…"}
-          </p>
-        </div>
-      ) : vaultData.length > 0 ? (
-        <>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-            {vaultData.map((nft) => (
-              <MomentCard
-                key={nft.id || nft._id}
-                nft={nft}
-                isVault
-                disableHover
-                flowPricePerNFT={flowPricePerNFT}
-              />
-            ))}
+          
+          {/* Mobile: Simple Prev/Next with compact indicator */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1 || anyLoading}
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+            >
+              Prev
+            </button>
+            <span className="text-xs text-brand-text/70 px-2">
+              {page}/{maxPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page === maxPages || anyLoading}
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+            >
+              Next
+            </button>
           </div>
-          <div className="flex justify-center items-center gap-3 mt-2 sm:mt-4">
+
+          {/* Desktop: Full pagination with PageInput */}
+          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setPage((p) => p - 1)}
@@ -519,7 +511,36 @@ function TSHOTVault({ onSummaryUpdate }) {
               disabled={anyLoading}
             />
           </div>
-        </>
+        </div>
+      )}
+
+      {/* Show skeletons in place of cards during loading to prevent layout shift */}
+      {loading.moments && vaultData.length > 0 ? (
+        // Show skeletons in same positions as existing cards
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+          {vaultData.map((_, i) => (
+            <MomentCardSkeleton key={`skeleton-${i}`} />
+          ))}
+        </div>
+      ) : loading.moments && vaultData.length === 0 ? (
+        // Initial load - show standard skeleton count
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+          {[...Array(20)].map((_, i) => (
+            <MomentCardSkeleton key={`skeleton-${i}`} />
+          ))}
+        </div>
+      ) : vaultData.length > 0 ? (
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+          {vaultData.map((nft) => (
+            <MomentCard
+              key={nft.id || nft._id}
+              nft={nft}
+              isVault
+              disableHover
+              flowPricePerNFT={flowPricePerNFT}
+            />
+          ))}
+        </div>
       ) : !anyLoading ? (
         <p className="text-sm text-brand-text/70">
           {selectedSeries.length > 0
@@ -527,6 +548,70 @@ function TSHOTVault({ onSummaryUpdate }) {
             : "Please select at least one series."}
         </p>
       ) : null}
+
+      {/* Bottom pagination - "Showing X of Y" on same row as controls */}
+      {maxPages > 1 && (
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
+          {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+          {queryTotal > 0 && (
+            <p className="text-sm text-brand-text/70 whitespace-nowrap">
+              <span className="hidden sm:inline">Showing </span>
+              {vaultData.length > 0 ? vaultData.length : PAGE_SIZE} of {queryTotal.toLocaleString()}<span className="hidden sm:inline"> items</span>
+            </p>
+          )}
+          
+          {/* Mobile: Simple Prev/Next with compact indicator */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 1 || anyLoading}
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+            >
+              Prev
+            </button>
+            <span className="text-xs text-brand-text/70 px-2">
+              {page}/{maxPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page === maxPages || anyLoading}
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+            >
+              Next
+            </button>
+          </div>
+
+          {/* Desktop: Full pagination with PageInput */}
+          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 1 || anyLoading}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                Page {page} of {maxPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page === maxPages || anyLoading}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="h-[1px] w-8 bg-brand-primary/30" />
+            <PageInput
+              maxPages={maxPages}
+              currentPage={page}
+              onPageChange={setPage}
+              disabled={anyLoading}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 

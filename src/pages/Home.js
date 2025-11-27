@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import {
-  FaExchangeAlt,
-  FaCubes,
-  FaUsers,
-  FaShieldAlt
-} from 'react-icons/fa';
+  ArrowLeftRight,
+  Box,
+  Users,
+  Shield
+} from 'lucide-react';
 import { ArrowRight } from 'lucide-react';
 import Button from '../components/Button';
 
@@ -95,7 +95,7 @@ const Home = () => {
             {/* Stats Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto">
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 text-center">
-                <FaCubes className="mx-auto text-opolis mb-2" size={24} />
+                <Box className="mx-auto text-opolis mb-2" size={24} />
                 <div className="text-xl sm:text-2xl font-bold text-opolis mb-1">
                   {loading ? "..." : vaultSummary?.total ? vaultSummary.total.toLocaleString() : "..."}
                 </div>
@@ -103,7 +103,7 @@ const Home = () => {
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 text-center">
-                <FaExchangeAlt className="mx-auto text-opolis mb-2" size={24} />
+                <ArrowLeftRight className="mx-auto text-opolis mb-2" size={24} />
                 <div className="text-xl sm:text-2xl font-bold text-opolis mb-1">
                   {loading ? "..." : analyticsData?.totalMomentsExchanged ? analyticsData.totalMomentsExchanged.toLocaleString() : "..."}
                 </div>
@@ -111,13 +111,13 @@ const Home = () => {
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 text-center">
-                <FaUsers className="mx-auto text-opolis mb-2" size={24} />
+                <Users className="mx-auto text-opolis mb-2" size={24} />
                 <div className="text-xl sm:text-2xl font-bold text-opolis mb-1">500+</div>
                 <div className="text-white/80 text-xs sm:text-sm">Active Users</div>
               </div>
               
               <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 text-center">
-                <FaShieldAlt className="mx-auto text-opolis mb-2" size={24} />
+                <Shield className="mx-auto text-opolis mb-2" size={24} />
                 <div className="text-xl sm:text-2xl font-bold text-opolis mb-1">1:1</div>
                 <div className="text-white/80 text-xs sm:text-sm">Backed</div>
               </div>

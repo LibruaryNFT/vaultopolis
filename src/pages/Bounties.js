@@ -1,6 +1,6 @@
 // Migrate implementation from Offers.js: import and re-export default
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { UserDataContext } from "../context/UserContext";
 import { useAllDayContext } from "../context/AllDayContext";
 import { useTransactionCenter } from "../context/TransactionCenterContext";
@@ -13,13 +13,12 @@ import { acceptAllDayOffer_child } from "../flow/offers/acceptAllDayOffer_child"
 import { getAllOfferDetails } from "../flow/offers/getAllOfferDetails";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
 import AccountSelection from "../components/AccountSelection";
+import PageInput from "../components/PageInput";
 import { tierStyles } from "../components/MomentCard";
 import { convertFlowToUSD, convertFlowToUSDSync, formatUSD, getFlowPrice } from "../utils/flowPrice";
-import { FaLock } from "react-icons/fa";
+import { Lock, Trophy } from "lucide-react";
 
 export default function Bounties({ collectionType = 'topshot' }) {
-  const navigate = useNavigate();
-  
   const {
     accountData,
     selectedAccount,
@@ -154,17 +153,15 @@ export default function Bounties({ collectionType = 'topshot' }) {
     return (
       <div className="flex flex-col items-center">
         <div
-          className="w-[140px] sm:w-40 rounded overflow-hidden flex flex-col pt-2 px-1 border border-brand-text/40 bg-black text-brand-text select-none"
-          style={{ height: '320px' }}
+          className="w-[140px] sm:w-40 h-80 rounded overflow-hidden flex flex-col pt-2 px-1 border border-brand-text/40 bg-black text-brand-text select-none"
         >
-          <div className="relative overflow-hidden rounded mx-auto mb-2 flex-shrink-0 p-1" style={{ height: '140px', width: '100%' }}>
+          <div className="relative overflow-hidden rounded mx-auto mb-2 flex-shrink-0 p-1 h-[140px] w-full">
             <img
               src={imageUrl}
               alt={`${player} moment`}
               loading="lazy"
               decoding="async"
-              className="object-cover w-full h-full transform scale-[1.4]"
-              style={{ objectPosition: "center 20%" }}
+              className="object-cover w-full h-full transform scale-[1.4] object-[center_20%]"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'flex';
@@ -685,12 +682,12 @@ export default function Bounties({ collectionType = 'topshot' }) {
   }, [txStatus, smartRefreshUserData, fetchOffers]);
 
   return (
-    <div className="w-full space-y-2">
+    <div className="w-full space-y-2 pt-4">
       {/* Page Header with Description */}
       <div className="bg-brand-primary p-4 sm:p-6 rounded-lg mb-4 border border-brand-border">
-        <div className="max-w-6xl mx-auto px-2 sm:px-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4">
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-4xl sm:text-5xl" aria-hidden="true">🏛️</span>
+            <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-brand-text" />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-brand-text">
                 Grail Bounties
@@ -705,17 +702,20 @@ export default function Bounties({ collectionType = 'topshot' }) {
             We place on-chain offers for specific moments, and when accepted, those moments are added to our 
             treasury vault for future innovative products and community initiatives.
           </p>
-          <div className="flex flex-wrap items-center gap-3">
+
+          {/* View acquired moments */}
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-brand-text/70">View acquired moments:</span>
-            <Link 
-              to="/vaults/topshotgrails" 
-              className="inline-flex items-center justify-center px-4 py-2 bg-brand-secondary hover:bg-brand-secondary/80 rounded-lg text-sm font-medium text-brand-text transition-colors border border-brand-border"
+            <Link
+              to="/vaults/topshotgrails"
+              className="text-sm text-brand-text/80 hover:text-brand-text hover:underline transition-colors"
             >
               TopShot Grails Vault
             </Link>
-            <Link 
-              to="/vaults/alldaygrails" 
-              className="inline-flex items-center justify-center px-4 py-2 bg-brand-secondary hover:bg-brand-secondary/80 rounded-lg text-sm font-medium text-brand-text transition-colors border border-brand-border"
+            <span className="text-sm text-brand-text/50">•</span>
+            <Link
+              to="/vaults/alldaygrails"
+              className="text-sm text-brand-text/80 hover:text-brand-text hover:underline transition-colors"
             >
               AllDay Grails Vault
             </Link>
@@ -723,40 +723,11 @@ export default function Bounties({ collectionType = 'topshot' }) {
         </div>
       </div>
 
-      {/* Project Tabs */}
-      <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 border border-brand-border">
-        <div className="max-w-6xl mx-auto px-2 sm:px-4">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-brand-text/70">View Bounties:</span>
-            <div className="flex items-center gap-2" role="tablist" aria-label="Project sections">
-              <button
-                onClick={() => navigate('/bounties/topshot')}
-                className={`inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
-                  collectionType === 'topshot'
-                    ? 'border-brand-accent text-brand-accent bg-brand-secondary shadow-sm'
-                    : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50'
-                }`}
-              >
-                <span className="text-sm sm:text-base">Top Shot</span>
-              </button>
-              <button
-                onClick={() => navigate('/bounties/allday')}
-                className={`inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
-                  collectionType === 'allday'
-                    ? 'border-brand-accent text-brand-accent bg-brand-secondary shadow-sm'
-                    : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50'
-                }`}
-              >
-                <span className="text-sm sm:text-base">AllDay</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Overview + Stats */}
 
       {!loading && !error && displayedOffers.length > 0 && (
         <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 border border-brand-border">
-          <div className="max-w-6xl mx-auto px-2 sm:px-4">
+          <div className="max-w-6xl mx-auto px-3 sm:px-4">
             <div className="mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-3">
                 Overview
@@ -825,7 +796,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
 
       {/* Active Grail Bounties Section */}
       <section className="bg-brand-primary p-4 rounded-lg mb-4 border border-brand-border">
-        <div className="max-w-6xl mx-auto px-2 sm:px-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4">
           <div className="mb-4">
             <h2 className="text-xl font-bold text-brand-text mb-2">
               Active Grail Bounties
@@ -883,7 +854,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
       {/* Matching Moments Section */}
       {accountData && accountData.parentAddress && (
         <section className="bg-brand-primary p-4 rounded-lg mb-4 border border-brand-border">
-          <div className="max-w-6xl mx-auto px-2 sm:px-4">
+          <div className="max-w-6xl mx-auto px-3 sm:px-4">
             <div className="mb-4">
               {(() => {
               const parentAddr = accountData?.parentAddress?.toLowerCase?.();
@@ -891,8 +862,8 @@ export default function Bounties({ collectionType = 'topshot' }) {
               const childAddrs = Array.isArray(accountData?.childrenAddresses) ? accountData.childrenAddresses.map((a) => a?.toLowerCase?.()).filter(Boolean) : [];
               const childrenTotal = childAddrs.reduce((sum, a) => sum + (matchCounts[a] || 0), 0);
               const total = parentCount + childrenTotal;
-              return (
-                <>
+  return (
+    <>
                   <h2 className="text-xl font-bold text-brand-text mb-2">
                     Your Matching Moments ({total})
                   </h2>
@@ -991,7 +962,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
                   
                   return (
                     <div key={index} className={`group relative flex flex-col items-center transition-all duration-200 ease-in-out ${isLocked ? '' : 'hover:shadow-xl hover:shadow-black/60 hover:-translate-y-1'}`}>
-                      <div className={`w-[140px] sm:w-40 rounded overflow-hidden flex flex-col pt-2 px-1 border text-brand-text select-none transition-all duration-200 ${isLocked ? 'border-brand-text/40 bg-black' : 'border-brand-text/40 bg-black hover:shadow-lg hover:shadow-black/40 hover:border-brand-accent/60'}`} style={{ height: '280px' }}>
+                      <div className={`w-[140px] sm:w-40 h-[280px] rounded overflow-hidden flex flex-col pt-2 px-1 border text-brand-text select-none transition-all duration-200 ${isLocked ? 'border-brand-text/40 bg-black' : 'border-brand-text/40 bg-black hover:shadow-lg hover:shadow-black/40 hover:border-brand-accent/60'}`}>
                         <div className="relative overflow-hidden rounded mx-auto w-full aspect-square">
                           <img
                             src={imageUrl}
@@ -1011,7 +982,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
                           {/* Lock icon overlay for locked moments */}
                           {isLocked && (
                             <div className="absolute top-1 right-1 bg-red-600 rounded-full p-1.5 shadow-lg border border-red-400">
-                              <FaLock size={10} className="text-white" />
+                              <Lock size={10} className="text-white" />
                             </div>
                           )}
                         </div>
@@ -1060,10 +1031,24 @@ export default function Bounties({ collectionType = 'topshot' }) {
                 })}
               </div>
               {matchesPageCount > 1 && (
-                <div className="flex justify-center items-center gap-3 mt-3">
-                  <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Prev</button>
-                  <span className="text-sm text-brand-text/70 min-w-[100px] text-center">Page {matchesPage} of {matchesPageCount}</span>
-                  <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50">Next</button>
+                <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-3">
+                  {/* Mobile: Simple Prev/Next */}
+                  <div className="flex sm:hidden items-center gap-2">
+                    <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Prev</button>
+                    <span className="text-xs text-brand-text/70 px-2">{matchesPage}/{matchesPageCount}</span>
+                    <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Next</button>
+                  </div>
+
+                  {/* Desktop: Full pagination with PageInput */}
+                  <div className="hidden sm:flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Prev</button>
+                      <span className="text-sm text-brand-text/70 min-w-[100px] text-center">Page {matchesPage} of {matchesPageCount}</span>
+                      <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Next</button>
+                    </div>
+                    <div className="h-[1px] w-8 bg-brand-primary/30" />
+                    <PageInput maxPages={matchesPageCount} currentPage={matchesPage} onPageChange={setMatchesPage} disabled={false} />
+                  </div>
                 </div>
               )}
             </div>

@@ -44,6 +44,15 @@ code {
    Guide Title Styling Fixes
    ============================== */
 
+/* Hide scrollbar for horizontal scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
 /* Prevent unwanted text selection highlighting */
 .guide-title {
   -webkit-user-select: none;

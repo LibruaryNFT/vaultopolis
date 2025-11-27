@@ -6,9 +6,10 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-import { Settings as SettingsIcon, RefreshCw, X } from "lucide-react";
+import { Settings as SettingsIcon, RefreshCw, X, Loader2 } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import MomentCard from "./MomentCard";
+import MomentCardSkeleton from "./MomentCardSkeleton";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
@@ -209,6 +210,7 @@ export default function MomentSelection(props) {
     isRefreshing,
     selectedAccount,
     selectedAccountType,
+    collectionLoadStatus,
     // eslint-disable-next-line no-unused-vars
     loadChildData,
     refreshUserData,
@@ -335,26 +337,45 @@ export default function MomentSelection(props) {
   if (!user?.loggedIn)
     return <p className="text-brand-text/70 px-2">Please log in.</p>;
 
-  // Display loading or error based on collectionLoadStatus from UserContext
-  // This part can be enhanced based on how you want to use `collectionLoadStatus`
-  // For now, just checking hasCollection after initial load attempts.
+  // Check if we're in initial loading state (no collection yet, but loading)
+  const isInitialLoading = (collectionLoadStatus === 'loading_full' || collectionLoadStatus === 'loading_snapshot') && !accountData.hasCollection;
 
-  if (
-    !accountData.hasCollection &&
-    !isRefreshing &&
-    accountData.parentAddress
-  ) {
-    // Check parentAddress to ensure some load attempt happened
+  // Show error state if collection failed to load
+  if (collectionLoadStatus === 'error' && !accountData.hasCollection && accountData.parentAddress) {
     return (
-      <div className="bg-brand-primary p-2 rounded-lg">
-        <p className="text-brand-text/80 text-sm">
-          This account does not have a Top Shot collection, or it's still
-          loading.
+      <div className="bg-brand-primary p-4 rounded-lg border border-red-500/30">
+        <p className="text-brand-text/80 text-sm mb-3">
+          Failed to load collection. Please try refreshing.
         </p>
         <button
           onClick={handleRefresh}
           disabled={isRefreshing || cooldown}
-          className="mt-2 p-1 px-2 text-xs bg-flow-button-dark rounded hover:opacity-80 disabled:opacity-40"
+          className="px-3 py-1.5 text-sm bg-brand-accent hover:bg-brand-accent/90 text-white rounded disabled:opacity-50"
+        >
+          {isRefreshing ? "Refreshing..." : "Try Again"}
+        </button>
+      </div>
+    );
+  }
+
+  // Show "no collection" message only if we're sure there's no collection (not loading)
+  if (
+    !accountData.hasCollection &&
+    !isRefreshing &&
+    !isInitialLoading &&
+    accountData.parentAddress &&
+    collectionLoadStatus !== 'loading_full' &&
+    collectionLoadStatus !== 'loading_snapshot'
+  ) {
+    return (
+      <div className="bg-brand-primary p-4 rounded-lg">
+        <p className="text-brand-text/80 text-sm mb-3">
+          This account does not have a Top Shot collection.
+        </p>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing || cooldown}
+          className="px-3 py-1.5 text-sm bg-brand-accent hover:bg-brand-accent/90 text-white rounded disabled:opacity-50"
         >
           {isRefreshing ? "Refreshing..." : "Try Refresh"}
         </button>
@@ -364,7 +385,14 @@ export default function MomentSelection(props) {
 
   /* ───────── render ───────── */
   return (
-    <div className="bg-brand-primary text-brand-text p-3 rounded-lg w-full space-y-3">
+    <div className="bg-brand-primary text-brand-text p-3 rounded-lg w-full space-y-3 relative">
+      {/* Refresh indicator overlay */}
+      {isRefreshing && accountData.hasCollection && (
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2 text-xs text-brand-text/70 bg-brand-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-brand-border shadow-md">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      )}
       {/* Filter Sections */}
       <div className="space-y-3">
         {/* Row 1: Safety Filters */}
@@ -610,9 +638,6 @@ export default function MomentSelection(props) {
             />
         </div>
       </div>
-        </div>
-      )}
-      {/* End of collapsible filter section */}
 
       {/* Selection limit warning */}
       {selectedNFTs.length >= 200 && (
@@ -624,39 +649,15 @@ export default function MomentSelection(props) {
       {/* Divider between filters and results */}
       <div className="border-t border-brand-border/30 my-3" />
 
-      {/* grid */}
+      {/* Top pagination - "Showing X of Y" on same row as controls */}
       {pageCount > 1 && (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 mb-2 text-xs sm:text-sm text-brand-text/70">
-          <p>
-            Showing {pageSlice.length} of{" "}
-            {eligibleMoments.length.toLocaleString()} items
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+          {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+          <p className="text-sm text-brand-text/70 whitespace-nowrap">
+            <span className="hidden sm:inline">Showing </span>
+            {pageSlice.length} of {eligibleMoments.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
           </p>
-          <p className="sm:hidden">
-            Page {filter.currentPage} of {pageCount}
-          </p>
-        </div>
-      )}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-        {pageSlice.map((n) => (
-          <MomentCard
-            key={n.id}
-            nft={n}
-            handleNFTSelection={(id) => {
-              // Prevent selecting more than 200 for NFT→TSHOT swaps
-              const MAX_SELECTION = 200;
-              if (!selectedNFTs.includes(id) && selectedNFTs.length >= MAX_SELECTION) {
-                return; // Do nothing if already at limit
-              }
-              appDispatch({ type: "SET_SELECTED_NFTS", payload: id });
-            }}
-            isSelected={selectedNFTs.includes(n.id)}
-          />
-        ))}
-      </div>
-
-      {/* pagination */}
-      {pageCount > 1 && (
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4">
+          
           {/* Mobile: Simple Prev/Next with compact indicator */}
           <div className="flex items-center gap-2 sm:hidden">
             <button
@@ -677,8 +678,9 @@ export default function MomentSelection(props) {
               Next
             </button>
           </div>
+
           {/* Desktop: Full pagination with PageInput */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => goPage(filter.currentPage - 1)}
@@ -708,6 +710,98 @@ export default function MomentSelection(props) {
           </div>
         </div>
       )}
+
+      {/* Show skeletons during initial load */}
+      {isInitialLoading ? (
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+          {[...Array(20)].map((_, i) => (
+            <MomentCardSkeleton key={`skeleton-${i}`} />
+          ))}
+        </div>
+      ) : (
+        <div className={`grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center ${isRefreshing && accountData.hasCollection ? 'opacity-60' : ''}`}>
+          {pageSlice.map((n) => (
+            <MomentCard
+              key={n.id}
+              nft={n}
+              handleNFTSelection={(id) => {
+                // Prevent selecting more than 200 for NFT→TSHOT swaps
+                const MAX_SELECTION = 200;
+                if (!selectedNFTs.includes(id) && selectedNFTs.length >= MAX_SELECTION) {
+                  return; // Do nothing if already at limit
+                }
+                appDispatch({ type: "SET_SELECTED_NFTS", payload: id });
+              }}
+              isSelected={selectedNFTs.includes(n.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Bottom pagination - "Showing X of Y" on same row as controls */}
+      {pageCount > 1 && (
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
+          {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+          <p className="text-sm text-brand-text/70 whitespace-nowrap">
+            <span className="hidden sm:inline">Showing </span>
+            {pageSlice.length} of {eligibleMoments.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
+          </p>
+          
+          {/* Mobile: Simple Prev/Next with compact indicator */}
+          <div className="flex items-center gap-2 sm:hidden">
+            <button
+              onClick={() => goPage(filter.currentPage - 1)}
+              disabled={filter.currentPage === 1}
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+            >
+              Prev
+            </button>
+            <span className="text-xs text-brand-text/70 px-2">
+              {filter.currentPage}/{pageCount}
+            </span>
+            <button
+              onClick={() => goPage(filter.currentPage + 1)}
+              disabled={filter.currentPage === pageCount}
+              className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+            >
+              Next
+            </button>
+          </div>
+
+          {/* Desktop: Full pagination with PageInput */}
+          <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goPage(filter.currentPage - 1)}
+                disabled={filter.currentPage === 1}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Prev
+              </button>
+              <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                Page {filter.currentPage} of {pageCount}
+              </span>
+              <button
+                onClick={() => goPage(filter.currentPage + 1)}
+                disabled={filter.currentPage === pageCount}
+                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="h-[1px] w-8 bg-brand-primary/30" />
+            <PageInput
+              maxPages={pageCount}
+              currentPage={filter.currentPage}
+              onPageChange={goPage}
+              disabled={false}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Close filter sections container */}
+      </div>
 
       {/* prefs modal */}
       {showPrefs && (

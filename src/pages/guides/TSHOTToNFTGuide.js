@@ -1,5 +1,5 @@
 import React from "react";
-import { FaExchangeAlt, FaWallet } from "react-icons/fa";
+import { ArrowLeftRight, Wallet } from "lucide-react";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function TSHOTToNFTGuide() {
@@ -10,22 +10,22 @@ function TSHOTToNFTGuide() {
     canonicalUrl: "https://vaultopolis.com/guides/tshot-to-nft",
     ogTitle: "Swap TSHOT for NFT - Complete Vaultopolis Redemption Guide",
     ogDescription: "Learn how to swap your TSHOT tokens back into NBA Top Shot Moments using Vaultopolis. Complete step-by-step guide with vault mechanics explained.",
-    icon: FaExchangeAlt,
+    icon: ArrowLeftRight,
     difficulty: "Beginner",
     estimatedTime: "3-5 minutes",
     lastUpdated: "August 19, 2025",
     prerequisites: (
       <div className="space-y-3">
         <div className="flex items-center gap-3">
-          <FaWallet className="text-brand-accent" size={20} />
+          <Wallet className="text-brand-accent" size={20} />
           <span className="text-brand-text/80">Flow Wallet Setup - Required for all swaps</span>
         </div>
         <div className="flex items-center gap-3">
-          <FaWallet className="text-brand-accent" size={20} />
+          <Wallet className="text-brand-accent" size={20} />
           <span className="text-brand-text/80">Account Linking - Optional, but recommended</span>
         </div>
         <div className="flex items-center gap-3">
-          <FaWallet className="text-brand-accent" size={20} />
+          <Wallet className="text-brand-accent" size={20} />
           <span className="text-brand-text/80">TSHOT Tokens in your wallet</span>
         </div>
       </div>

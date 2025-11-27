@@ -1,7 +1,7 @@
 // src/components/MomentCard.jsx
 
 import React, { useEffect, useState, useCallback } from "react";
-import { FaLock } from "react-icons/fa";
+import { Lock } from "lucide-react";
 import { getAllDayImageUrlConsistent } from "../utils/allDayImages";
 import { getSeriesDisplayText } from "../utils/seriesNames";
 
@@ -209,7 +209,7 @@ const MomentCard = ({
           {/* Lock icon overlay for locked moments */}
           {nft?.isLocked && (
             <div className="absolute top-1 right-1 bg-red-600 rounded-full p-1.5 shadow-lg border border-red-400">
-              <FaLock size={10} className="text-white" />
+              <Lock size={10} className="text-white" />
             </div>
           )}
         </div>

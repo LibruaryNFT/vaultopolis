@@ -1,5 +1,5 @@
 import React from "react";
-import { FaTrophy } from "react-icons/fa";
+import { Trophy } from "lucide-react";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function BountiesGuide() {
@@ -10,7 +10,7 @@ function BountiesGuide() {
     canonicalUrl: "https://vaultopolis.com/guides/bounties",
     ogTitle: "Grail Bounties - Complete Guide | Vaultopolis",
     ogDescription: "Complete guide to participating in Vaultopolis Grail Bounties. Learn how to accept offers for high-end NBA Top Shot Moments.",
-    icon: FaTrophy,
+    icon: Trophy,
     difficulty: "Beginner",
     estimatedTime: "5-10 minutes",
     lastUpdated: "January 2025",

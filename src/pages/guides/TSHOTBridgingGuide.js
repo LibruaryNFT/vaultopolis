@@ -1,7 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
-import { FaBookOpen, FaWallet } from "react-icons/fa";
+import { BookOpen, Wallet } from "lucide-react";
 import PageWrapper from "../../components/PageWrapper";
 import ContentPanel from "../../components/ContentPanel";
 import Card from "../../components/Card";
@@ -33,7 +33,7 @@ function TSHOTBridgingGuide() {
             <ol className="flex items-center space-x-2 text-sm text-white/70">
               <li>
                 <Link to="/guides" className="hover:text-opolis transition-colors flex items-center">
-                  <FaBookOpen className="mr-1" size={14} />
+                  <BookOpen className="mr-1" size={14} />
                   Guides
                 </Link>
               </li>
@@ -57,7 +57,7 @@ function TSHOTBridgingGuide() {
                 <h3 className="text-lg font-semibold text-brand-text mb-4">Prerequisites</h3>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
-                    <FaWallet className="text-brand-accent" size={20} />
+                    <Wallet className="text-brand-accent" size={20} />
                     <span className="text-brand-text/80">Flow wallet with TSHOT tokens</span>
                   </div>
                 </div>

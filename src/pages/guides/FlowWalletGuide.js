@@ -1,5 +1,5 @@
 import React from "react";
-import { FaWallet } from "react-icons/fa";
+import { Wallet } from "lucide-react";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function FlowWalletGuide() {
@@ -10,7 +10,7 @@ function FlowWalletGuide() {
     canonicalUrl: "https://vaultopolis.com/guides/flow-wallet",
     ogTitle: "Create a Flow Wallet | Flow Blockchain Guides",
     ogDescription: "Learn how to create a secure Flow Wallet with step-by-step instructions for iOS, Android, and Chrome extension.",
-    icon: FaWallet,
+    icon: Wallet,
          difficulty: "Beginner",
     estimatedTime: "3-5 minutes",
     lastUpdated: "August 19, 2025",

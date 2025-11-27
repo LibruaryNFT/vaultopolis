@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import * as fcl from "@onflow/fcl";
 import AllDayMomentCard from "./AllDayMomentCard";
+import MomentCardSkeleton from "./MomentCardSkeleton";
+import PageInput from "./PageInput";
 import { getAllDayCollectionBatched } from "../flow/getAllDayCollectionBatched";
 import { useAllDayContext } from "../context/AllDayContext";
 
@@ -148,35 +150,151 @@ function AllDayGrailsVault() {
           {error && (
             <p className="text-sm text-red-400 mb-2">{error}</p>
           )}
-          {!loadingIds && momentIds.length === 0 && !error && (
+          {/* Top pagination - "Showing X of Y" on same row as controls */}
+          {maxPages > 1 && (
+            <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+              {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+              {momentIds.length > 0 && (
+                <p className="text-sm text-brand-text/70 whitespace-nowrap">
+                  <span className="hidden sm:inline">Showing </span>
+                  {items.length > 0 ? items.length : PAGE_SIZE} of {momentIds.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
+                </p>
+              )}
+              
+              {/* Mobile: Simple Prev/Next with compact indicator */}
+              <div className="flex items-center gap-2 sm:hidden">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || loadingIds || loadingDetails}
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-brand-text/70 px-2">
+                  {page}/{maxPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(maxPages, p + 1))}
+                  disabled={page === maxPages || loadingIds || loadingDetails}
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                >
+                  Next
+                </button>
+              </div>
+
+              {/* Desktop: Full pagination with PageInput */}
+              <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1 || loadingIds || loadingDetails}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                    Page {page} of {maxPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(maxPages, p + 1))}
+                    disabled={page === maxPages || loadingIds || loadingDetails}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="h-[1px] w-8 bg-brand-primary/30" />
+                <PageInput
+                  maxPages={maxPages}
+                  currentPage={page}
+                  onPageChange={setPage}
+                  disabled={loadingIds || loadingDetails}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Show skeletons during loading */}
+          {(loadingIds || loadingDetails) && items.length === 0 ? (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+              {[...Array(20)].map((_, i) => (
+                <MomentCardSkeleton key={`skeleton-${i}`} />
+              ))}
+            </div>
+          ) : !loadingIds && momentIds.length === 0 && !error ? (
             <div className="text-center py-8">
               <p className="text-sm text-brand-text/70 mb-2">No moments acquired yet through Grail Bounties.</p>
               <p className="text-xs text-brand-text/50">Moments will appear here once they are acquired by the program.</p>
             </div>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+              {items.map((nft) => (
+                <AllDayMomentCard key={nft.id} nft={nft} disableHover />
+              ))}
+            </div>
           )}
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-            {items.map((nft) => (
-              <AllDayMomentCard key={nft.id} nft={nft} disableHover />
-            ))}
-          </div>
 
+          {/* Bottom pagination - "Showing X of Y" on same row as controls */}
           {maxPages > 1 && (
-            <div className="flex justify-center items-center gap-3 mt-3 text-sm">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1 || loadingIds || loadingDetails}
-                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-              >
-                Prev
-              </button>
-              <span className="text-brand-text/70 min-w-[100px] text-center">Page {page} of {maxPages}</span>
-              <button
-                onClick={() => setPage((p) => Math.min(maxPages, p + 1))}
-                disabled={page === maxPages || loadingIds || loadingDetails}
-                className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
-              >
-                Next
-              </button>
+            <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
+              {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+              {momentIds.length > 0 && (
+                <p className="text-sm text-brand-text/70 whitespace-nowrap">
+                  <span className="hidden sm:inline">Showing </span>
+                  {items.length > 0 ? items.length : PAGE_SIZE} of {momentIds.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
+                </p>
+              )}
+              
+              {/* Mobile: Simple Prev/Next with compact indicator */}
+              <div className="flex items-center gap-2 sm:hidden">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1 || loadingIds || loadingDetails}
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-brand-text/70 px-2">
+                  {page}/{maxPages}
+                </span>
+                <button
+                  onClick={() => setPage((p) => Math.min(maxPages, p + 1))}
+                  disabled={page === maxPages || loadingIds || loadingDetails}
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                >
+                  Next
+                </button>
+              </div>
+
+              {/* Desktop: Full pagination with PageInput */}
+              <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1 || loadingIds || loadingDetails}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                    Page {page} of {maxPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(maxPages, p + 1))}
+                    disabled={page === maxPages || loadingIds || loadingDetails}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="h-[1px] w-8 bg-brand-primary/30" />
+                <PageInput
+                  maxPages={maxPages}
+                  currentPage={page}
+                  onPageChange={setPage}
+                  disabled={loadingIds || loadingDetails}
+                />
+              </div>
             </div>
           )}
         </div>

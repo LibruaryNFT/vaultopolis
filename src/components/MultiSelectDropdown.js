@@ -1,6 +1,6 @@
 // src/components/MultiSelectDropdown.jsx
 import React, { useState, useRef, useEffect } from "react";
-import { FaCheck } from "react-icons/fa";
+import { Check } from "lucide-react";
 
 /**
  * MultiSelectDropdown Component
@@ -175,7 +175,7 @@ export default function MultiSelectDropdown({
                 border border-brand-border rounded
                 ${allSelected ? 'bg-brand-accent border-brand-accent' : 'bg-transparent'}
               `}>
-                {allSelected && <FaCheck className="w-3 h-3 text-white" />}
+                {allSelected && <Check className="w-3 h-3 text-white" />}
               </div>
               <span>All</span>
             </div>
@@ -208,7 +208,7 @@ export default function MultiSelectDropdown({
                   border border-brand-border rounded flex-shrink-0
                   ${isSelected ? 'bg-brand-accent border-brand-accent' : 'bg-transparent'}
                 `}>
-                  {isSelected && <FaCheck className="w-3 h-3 text-white" />}
+                  {isSelected && <Check className="w-3 h-3 text-white" />}
                 </div>
                 <span className="flex-1 truncate min-w-0 text-left">{typeof label === 'string' ? label : String(label)}</span>
                 {count !== null && (

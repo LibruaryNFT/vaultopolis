@@ -1,5 +1,5 @@
 import React from "react";
-import { FaWallet } from "react-icons/fa";
+import { Wallet } from "lucide-react";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function DapperWalletGuide() {
@@ -10,7 +10,7 @@ function DapperWalletGuide() {
     canonicalUrl: "https://vaultopolis.com/guides/dapper-wallet",
     ogTitle: "NBA Top Shot Account & Dapper Wallet Setup | Flow Blockchain Guides",
     ogDescription: "Learn how to create an NBA Top Shot account and automatically get a Dapper Wallet. Step-by-step guide to getting started with Flow blockchain.",
-    icon: FaWallet,
+    icon: Wallet,
     difficulty: "Beginner",
     estimatedTime: "2-3 minutes",
     lastUpdated: "August 19, 2025",

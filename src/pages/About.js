@@ -1,9 +1,9 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import {
-  FaTwitter, FaMedium,
-  FaRocket, FaAward
-} from 'react-icons/fa';
+  Rocket,
+  Award
+} from 'lucide-react';
 
 // --- Main Page Component ---
 
@@ -105,7 +105,7 @@ const About = () => {
 
           {/* Our Vision */}
           <section className="bg-brand-primary rounded-lg p-8 text-center mb-8">
-            <FaRocket className="text-brand-accent mx-auto mb-4" size={32} />
+            <Rocket className="text-brand-accent mx-auto mb-4" size={32} />
             <h2 className="text-3xl font-bold text-brand-text mb-4">Our Vision</h2>
             <p className="text-lg text-brand-text/80 max-w-2xl mx-auto leading-relaxed">
               We're building toward a future where digital collectibles have deep, programmable liquidity — giving collectors new ways to engage with and derive value from what they own.
@@ -122,22 +122,22 @@ const About = () => {
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-brand-primary p-6 rounded-lg text-center">
-                <FaAward className="mx-auto text-brand-accent mb-3" size={32} />
+                <Award className="mx-auto text-brand-accent mb-3" size={32} />
                 <h4 className="text-lg font-bold text-brand-text mb-2">Permissionless Hackathon</h4>
                 <p className="text-brand-text/70 text-sm">First place in NYC (June 2025)</p>
               </div>
               <div className="bg-brand-primary p-6 rounded-lg text-center">
-                <FaAward className="mx-auto text-brand-accent mb-3" size={32} />
+                <Award className="mx-auto text-brand-accent mb-3" size={32} />
                 <h4 className="text-lg font-bold text-brand-text mb-2">PL Genesis Modular Worlds</h4>
                 <p className="text-brand-text/70 text-sm">'Flow Most Killer App' (July 2025)</p>
               </div>
               <div className="bg-brand-primary p-6 rounded-lg text-center">
-                <FaAward className="mx-auto text-brand-accent mb-3" size={32} />
+                <Award className="mx-auto text-brand-accent mb-3" size={32} />
                 <h4 className="text-lg font-bold text-brand-text mb-2">Founders Forge</h4>
                 <p className="text-brand-text/70 text-sm">Accelerator program (July 2025)</p>
               </div>
               <div className="bg-brand-primary p-6 rounded-lg text-center">
-                <FaAward className="mx-auto text-brand-accent mb-3" size={32} />
+                <Award className="mx-auto text-brand-accent mb-3" size={32} />
                 <h4 className="text-lg font-bold text-brand-text mb-2">Flow GrantDAO</h4>
                 <p className="text-brand-text/70 text-sm">First place, 27.1% of all votes (August 2025)</p>
               </div>
@@ -174,7 +174,7 @@ const About = () => {
                         rel="noopener noreferrer"
                         className="inline-flex items-center space-x-2 bg-brand-accent/10 text-brand-accent px-6 py-3 rounded-lg font-semibold hover:bg-brand-accent/20 transition-colors"
                       >
-                        <FaTwitter />
+                        <span className="text-xl">𝕏</span>
                         <span>Follow Justin on X</span>
                       </a>
                       <a
@@ -183,7 +183,7 @@ const About = () => {
                         rel="noopener noreferrer"
                         className="inline-flex items-center space-x-2 bg-brand-accent/10 text-brand-accent px-6 py-3 rounded-lg font-semibold hover:bg-brand-accent/20 transition-colors"
                       >
-                        <FaMedium />
+                        <span className="text-xl font-bold">M</span>
                         <span>Read the Founder's Story</span>
                       </a>
                     </div>

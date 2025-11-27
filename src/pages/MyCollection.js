@@ -1,10 +1,11 @@
 import React, { useContext, useMemo, useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { FaSyncAlt } from "react-icons/fa";
+import { RefreshCw, Loader2 } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
 import { useAllDayContext } from "../context/AllDayContext";
 import MomentCard from "../components/MomentCard";
 import AllDayMomentCard from "../components/AllDayMomentCard";
+import MomentCardSkeleton from "../components/MomentCardSkeleton";
 import AccountSelection from "../components/AccountSelection";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 import PageWrapper from "../components/PageWrapper";
@@ -12,12 +13,17 @@ import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
 import FilterPopover from "../components/FilterPopover";
 import MultiSelectFilterPopover from "../components/MultiSelectFilterPopover";
+import PageInput from "../components/PageInput";
 import { X } from "lucide-react";
  
 
 
 
-export default function MyCollection() {
+export default function MyCollection({
+  isOwnProfile = true,
+  source = "topshot",
+  onSourceChange,
+}) {
   const {
     user,
     accountData,
@@ -40,7 +46,17 @@ export default function MyCollection() {
   } = useAllDayContext();
 
   // Collection type state (Top Shot vs All Day)
-  const [collectionType, setCollectionType] = useState('topshot');
+  const normalizeSource = (value) => (value === 'allday' ? 'allday' : 'topshot');
+  const [collectionType, setCollectionType] = useState(normalizeSource(source));
+  useEffect(() => {
+    setCollectionType(normalizeSource(source));
+  }, [source]);
+
+  const handleSelectCollectionSource = (next) => {
+    const normalized = normalizeSource(next);
+    setCollectionType(normalized);
+    onSourceChange?.(normalized);
+  };
 
   // Show metadata toggle state
   const [showMetadata, setShowMetadata] = useState(false);
@@ -332,7 +348,7 @@ export default function MyCollection() {
   }
 
   return (
-    <>
+    <PageWrapper maxWidth="lg" padding="none">
       <Helmet>
         <title>Vaultopolis - My Collection</title>
         <meta name="description" content="View and manage your NBA Top Shot collection with advanced filtering and sorting options." />
@@ -357,38 +373,99 @@ export default function MyCollection() {
         </script>
       </Helmet>
 
-      <div className="w-full pt-4">
-          {/* Collection Type Tabs */}
-          <div className="mb-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 bg-brand-primary rounded-lg p-2" role="tablist" aria-label="Collection sections">
+      <div className="w-full pt-0 sm:pt-1 space-y-3">
+          {/* Context + Header */}
+          <div className="flex flex-col gap-2 sm:gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h1 className="text-lg sm:text-2xl font-semibold text-brand-text">
+                  My Collection
+                </h1>
+              </div>
+              {/* Desktop source toggle */}
+              <div
+                className="hidden sm:inline-flex items-center gap-1 bg-brand-primary rounded-lg p-0.5 border border-brand-border/60"
+                role="tablist"
+                aria-label="Collection source"
+              >
                 <button
-                  onClick={() => setCollectionType('topshot')}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
+                  onClick={() => handleSelectCollectionSource('topshot')}
+                  role="tab"
+                  aria-selected={collectionType === 'topshot'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                     collectionType === 'topshot'
-                      ? 'border-brand-accent text-brand-accent bg-brand-secondary'
-                      : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
+                      ? 'bg-brand-secondary text-brand-accent border border-brand-accent shadow-sm'
+                      : 'text-brand-text/80 border border-transparent hover:bg-brand-secondary/60'
                   }`}
                 >
-                  <span className="text-sm sm:text-base">Top Shot</span>
+                  Top Shot
                 </button>
-                
                 <button
-                  onClick={() => setCollectionType('allday')}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
+                  onClick={() => handleSelectCollectionSource('allday')}
+                  role="tab"
+                  aria-selected={collectionType === 'allday'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                     collectionType === 'allday'
-                      ? 'border-brand-accent text-brand-accent bg-brand-secondary'
-                      : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
+                      ? 'bg-brand-secondary text-brand-accent border border-brand-accent shadow-sm'
+                      : 'text-brand-text/80 border border-transparent hover:bg-brand-secondary/60'
                   }`}
                 >
-                  <span className="text-sm sm:text-base">All Day</span>
+                  All Day
                 </button>
               </div>
             </div>
+
+            {/* Mobile source toggle */}
+            <div className="sm:hidden flex items-center justify-between gap-2">
+              <div
+                className="inline-flex items-center gap-1 bg-brand-primary rounded-lg p-0.5 border border-brand-border/60"
+                role="tablist"
+                aria-label="Collection source"
+              >
+                <button
+                  onClick={() => handleSelectCollectionSource('topshot')}
+                  role="tab"
+                  aria-selected={collectionType === 'topshot'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                    collectionType === 'topshot'
+                      ? 'bg-brand-secondary text-brand-accent border border-brand-accent shadow-sm'
+                      : 'text-brand-text/80 border border-transparent hover:bg-brand-secondary/60'
+                  }`}
+                >
+                  TS
+                </button>
+                <button
+                  onClick={() => handleSelectCollectionSource('allday')}
+                  role="tab"
+                  aria-selected={collectionType === 'allday'}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                    collectionType === 'allday'
+                      ? 'bg-brand-secondary text-brand-accent border border-brand-accent shadow-sm'
+                      : 'text-brand-text/80 border border-transparent hover:bg-brand-secondary/60'
+                  }`}
+                >
+                  AD
+                </button>
+              </div>
+            </div>
+
           </div>
 
+          {/* Privacy note */}
+          {isOwnProfile && (
+            <div className="mt-1 mb-3 rounded-lg border border-brand-accent/40 bg-brand-primary/85 px-3 py-2 flex items-start gap-3 shadow-inner shadow-black/20">
+              <span className="text-xl leading-none pt-0.5">🔒</span>
+              <div>
+                <p className="text-sm font-semibold text-brand-text m-0">Private collection view</p>
+                <p className="text-xs text-brand-text/70 m-0">
+                  Only you can see this inventory when you’re logged in. Switch tabs to share public portfolio stats instead.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Account Selection */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-5">
             <AccountSelection
               parentAccount={{ 
                 addr: accountData?.parentAddress, 
@@ -408,14 +485,14 @@ export default function MyCollection() {
 
 
           {/* Filter Panel */}
-          <div className="bg-brand-primary text-brand-text p-2 rounded-lg mb-6 w-full space-y-3">
+          <div className="bg-brand-primary text-brand-text p-2 rounded-lg mb-4 w-full space-y-3">
             {/* Filter Sections */}
             <div className="space-y-3">
-                {/* Filter Controls - Only show for TopShot */}
-                {collectionType === 'topshot' && (
-                  <div>
-                    {/* Unified filter row */}
-                    <div className="pt-3 border-t border-brand-border/30">
+              {/* Filter Controls - Only show for TopShot */}
+              {collectionType === 'topshot' && (
+                <div>
+                  {/* Unified filter row */}
+                  <div className="pt-3 border-t border-brand-border/30">
                       <div className="flex flex-wrap items-center gap-2">
                         <MultiSelectFilterPopover
                           label="Series"
@@ -562,140 +639,11 @@ export default function MyCollection() {
                       </div>
                     </div>
                   </div>
-                )}
+              )}
 
 
-                {/* AllDay Filters */}
-                {collectionType === 'allday' && (
-                  <div>
-                    {/* Series */}
-                    <div className="pt-3 border-t border-brand-border/30">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-xs sm:text-sm mr-1">Series:</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const allSeries = allDayFilterOptions.seriesOptions || [];
-                            setAllDayFilter({ ...allDayFilter, selectedSeries: [...allSeries], currentPage: 1 });
-                          }}
-                          className={`
-                            px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                            transition-all duration-200 shadow-sm h-[28px]
-                            ${allDayFilter.selectedSeries.length === (allDayFilterOptions.seriesOptions || []).length && (allDayFilterOptions.seriesOptions || []).length > 0
-                              ? 'bg-brand-secondary border-2 border-opolis text-opolis'
-                              : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-opolis hover:opacity-90'
-                            }
-                          `}
-                        >
-                          All
-                        </button>
-                        {(allDayFilterOptions.seriesOptions || []).map((series) => {
-                          const isSelected = allDayFilter.selectedSeries.includes(series);
-                          return (
-                            <button
-                              key={series}
-                              type="button"
-                              onClick={() => {
-                                const newSelection = isSelected
-                                  ? allDayFilter.selectedSeries.filter((s) => s !== series)
-                                  : [...allDayFilter.selectedSeries, series];
-                                setAllDayFilter({ ...allDayFilter, selectedSeries: newSelection, currentPage: 1 });
-                              }}
-                              className={`
-                                px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                                transition-all duration-200 shadow-sm h-[28px]
-                                ${isSelected
-                                  ? 'bg-brand-secondary border-2 border-opolis text-opolis'
-                                  : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-opolis hover:opacity-90'
-                                }
-                              `}
-                            >
-                              {getSeriesFilterLabel(series, 'allday')}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Tiers */}
-                    <div className="mt-3 pt-3 border-t border-brand-border/30">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-xs sm:text-sm mr-1">Tiers:</span>
-                        {(allDayFilterOptions.tierOptions || []).map((tier) => {
-                          const isSelected = allDayFilter.selectedTiers.includes(tier);
-                          return (
-                            <button
-                              key={tier}
-                              type="button"
-                              onClick={() => {
-                                const newSelection = isSelected
-                                  ? allDayFilter.selectedTiers.filter((t) => t !== tier)
-                                  : [...allDayFilter.selectedTiers, tier];
-                                // Prevent empty selection - if would be empty, keep at least first tier
-                                if (newSelection.length === 0 && (allDayFilterOptions.tierOptions || []).length > 0) {
-                                  setAllDayFilter({ ...allDayFilter, selectedTiers: [(allDayFilterOptions.tierOptions || [])[0]], currentPage: 1 });
-                                } else {
-                                  setAllDayFilter({ ...allDayFilter, selectedTiers: newSelection, currentPage: 1 });
-                                }
-                              }}
-                              className={`
-                                px-2.5 py-1.5 rounded-md text-xs sm:text-sm font-medium
-                                transition-all duration-200 shadow-sm h-[28px]
-                                ${isSelected
-                                  ? 'bg-brand-secondary border-2 border-opolis text-opolis'
-                                  : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-opolis hover:opacity-90'
-                                }
-                              `}
-                            >
-                              {tier[0].toUpperCase() + tier.slice(1)}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* AllDay Other Filters */}
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-2 gap-y-3 sm:gap-x-3 mt-3 pt-3 border-t border-brand-border/30">
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Team:</span>
-                        <select
-                          value={allDayFilter.selectedTeam}
-                          onChange={(e) =>
-                            setAllDayFilter({ ...allDayFilter, selectedTeam: e.target.value, currentPage: 1 })
-                          }
-                          className="w-full bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-xs"
-                        >
-                          <option value="All">All</option>
-                          {(allDayFilterOptions.teamOptions || []).map((team) => (
-                            <option key={team} value={team}>
-                              {team}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-center gap-1 sm:gap-2">
-                        <span className="font-semibold text-xs sm:text-sm min-w-[45px] sm:min-w-[50px]">Player:</span>
-                        <select
-                          value={allDayFilter.selectedPlayer}
-                          onChange={(e) =>
-                            setAllDayFilter({ ...allDayFilter, selectedPlayer: e.target.value, currentPage: 1 })
-                          }
-                          className="w-full bg-brand-primary text-brand-text rounded px-1 py-0.5 disabled:opacity-40 text-xs"
-                        >
-                          <option value="All">All</option>
-                          {(allDayFilterOptions.playerOptions || []).map((player) => (
-                            <option key={player} value={player}>
-                              {player}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show Metadata Toggle */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3 border-t border-brand-border/30">
+              {/* Show Metadata Toggle */}
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3 border-t border-brand-border/30">
                   <label className="flex items-center gap-1 text-base">
                     <input
                       type="checkbox"
@@ -707,151 +655,269 @@ export default function MyCollection() {
                   </label>
                 </div>
 
-                {/* Bottom section with sort, refresh, and reset */}
-                <div className="flex flex-col gap-2 pt-3 border-t border-brand-border/30">
-                  <div className="flex items-center justify-between">
+              {/* Bottom section with sort, refresh, and reset */}
+              <div className="flex flex-col gap-2 pt-3 border-t border-brand-border/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-brand-text/70">Sort:</span>
-                        <select
-                          value={collectionType === 'topshot' ? filter.sortBy : allDayFilter.sortBy}
-                          onChange={(e) => {
-                            if (collectionType === 'topshot') {
-                              setFilter({ ...filter, sortBy: e.target.value, currentPage: 1 });
-                            } else {
-                              setAllDayFilter({ ...allDayFilter, sortBy: e.target.value, currentPage: 1 });
-                            }
-                          }}
-                          className="bg-brand-primary text-brand-text rounded px-1 py-0.5 text-xs border border-brand-border focus:outline-none focus:ring-2 focus:ring-opolis"
-                        >
-                          {sortOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
+                      <span className="text-xs text-brand-text/70">Sort:</span>
+                      <select
+                        value={collectionType === 'topshot' ? filter.sortBy : allDayFilter.sortBy}
+                        onChange={(e) => {
                           if (collectionType === 'topshot') {
-                            refreshUserData();
-                          } else if (collectionType === 'allday') {
-                            refreshAllDayData();
-                          }
-                        }}
-                        disabled={collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-40 select-none h-[28px]"
-                        title={`Refresh ${collectionType === 'topshot' ? 'TopShot' : 'AllDay'} data`}
-                      >
-                        <FaSyncAlt size={14} className={`${(collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay) ? "animate-spin" : ""} text-opolis`} />
-                        <span>Refresh</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (collectionType === 'topshot') {
-                            setFilter({
-                              selectedTiers: tierOptions,
-                              selectedSeries: seriesOptions,
-                              selectedSetName: "All",
-                              selectedLeague: leagueOptions,
-                              selectedTeam: "All",
-                              selectedPlayer: "All",
-                              selectedSubedition: "All",
-                              lockedStatus: "All",
-                              sortBy: "lowest-serial",
-                              currentPage: 1,
-                            });
+                            setFilter({ ...filter, sortBy: e.target.value, currentPage: 1 });
                           } else {
-                            setAllDayFilter({
-                              selectedTiers: [],
-                              selectedSeries: [],
-                              selectedTeam: "All",
-                              selectedPlayer: "All",
-                              lockedStatus: "All",
-                              sortBy: "lowest-serial",
-                              currentPage: 1,
-                            });
+                            setAllDayFilter({ ...allDayFilter, sortBy: e.target.value, currentPage: 1 });
                           }
-                          setShowMetadata(false);
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+                        className="bg-brand-primary text-brand-text rounded px-1 py-0.5 text-xs border border-brand-border focus:outline-none focus:ring-2 focus:ring-opolis"
                       >
-                        <X size={13} />
-                        Reset Filters
-                      </button>
+                        {sortOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        if (collectionType === 'topshot') {
+                          refreshUserData();
+                        } else if (collectionType === 'allday') {
+                          refreshAllDayData();
+                        }
+                      }}
+                      disabled={collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-40 select-none h-[28px]"
+                      title={`Refresh ${collectionType === 'topshot' ? 'TopShot' : 'AllDay'} data`}
+                    >
+                      <RefreshCw size={14} className={`${(collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay) ? "animate-spin" : ""} text-opolis`} />
+                      <span>Refresh</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (collectionType === 'topshot') {
+                          setFilter({
+                            selectedTiers: tierOptions,
+                            selectedSeries: seriesOptions,
+                            selectedSetName: "All",
+                            selectedLeague: leagueOptions,
+                            selectedTeam: "All",
+                            selectedPlayer: "All",
+                            selectedSubedition: "All",
+                            lockedStatus: "All",
+                            sortBy: "lowest-serial",
+                            currentPage: 1,
+                          });
+                        } else {
+                          setAllDayFilter({
+                            selectedTiers: [],
+                            selectedSeries: [],
+                            selectedTeam: "All",
+                            selectedPlayer: "All",
+                            lockedStatus: "All",
+                            sortBy: "lowest-serial",
+                            currentPage: 1,
+                          });
+                        }
+                        setShowMetadata(false);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+                    >
+                      <X size={13} />
+                      Reset Filters
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-          {pageCount > 1 && (
-            <div className="flex justify-between items-center mb-2 text-sm text-brand-text/70">
-              <p>
-                Showing {pageSlice.length} of {eligibleMoments.length.toLocaleString()} items
-              </p>
-              <p>
-                Page {currentPage} of {pageCount}
-              </p>
-            </div>
-          )}
-
-          {/* Moments Display */}
-          <div className="bg-brand-primary text-brand-text p-2 rounded w-full">
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-            {pageSlice.map((moment) => {
-              if (collectionType === 'allday') {
-                return (
-                  <AllDayMomentCard
-                    key={moment.id || moment.editionID}
-                    nft={moment}
-                    handleNFTSelection={() => {}} // No selection needed for collection view
-                    isSelected={false}
-                    disableHover={true} // Disable hover states for collection view
-                    showMetadata={showMetadata}
-                  />
-                );
-              } else {
-                return (
-                  <MomentCard
-                    key={moment.id}
-                    nft={moment}
-                    handleNFTSelection={() => {}} // No selection needed for collection view
-                    isSelected={false}
-                    disableHover={true} // Disable hover states for collection view
-                    collectionType={collectionType} // Pass collection type to MomentCard
-                    showMetadata={showMetadata}
-                  />
-                );
-              }
-            })}
-          </div>
           </div>
 
-          {/* Pagination */}
+          {/* Top pagination - "Showing X of Y" on same row as controls */}
           {pageCount > 1 && (
-            <div className="flex justify-center items-center gap-3 mt-6">
-              <button
+            <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+              {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+              <p className="text-sm text-brand-text/70 whitespace-nowrap">
+                <span className="hidden sm:inline">Showing </span>
+                {pageSlice.length} of {eligibleMoments.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
+              </p>
+              
+              {/* Mobile: Simple Prev/Next with compact indicator */}
+              <div className="flex items-center gap-2 sm:hidden">
+                <button
                   onClick={() => goPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-4 py-2 bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 rounded-lg font-semibold transition-colors"
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
                 >
-                  Previous
+                  Prev
                 </button>
-                <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
-                  Page {currentPage} of {pageCount}
+                <span className="text-xs text-brand-text/70 px-2">
+                  {currentPage}/{pageCount}
                 </span>
                 <button
                   onClick={() => goPage(currentPage + 1)}
                   disabled={currentPage === pageCount}
-                  className="px-4 py-2 bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 rounded-lg font-semibold transition-colors"
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
                 >
                   Next
                 </button>
+              </div>
+
+              {/* Desktop: Full pagination with PageInput */}
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => goPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                    Page {currentPage} of {pageCount}
+                  </span>
+                  <button
+                    onClick={() => goPage(currentPage + 1)}
+                    disabled={currentPage === pageCount}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="h-[1px] w-8 bg-brand-primary/30" />
+                <PageInput
+                  maxPages={pageCount}
+                  currentPage={currentPage}
+                  onPageChange={goPage}
+                  disabled={false}
+                />
+              </div>
             </div>
           )}
-      </div>
-    </>
+
+          {/* Moments Display */}
+          <div className="bg-brand-primary text-brand-text p-2 rounded w-full relative">
+            {/* Refresh indicator overlay */}
+            {((collectionType === 'topshot' && isRefreshing) || (collectionType === 'allday' && isRefreshingAllDay)) && eligibleMoments.length > 0 && (
+              <div className="absolute top-4 right-4 z-10 flex items-center gap-2 text-xs text-brand-text/70 bg-brand-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-brand-border shadow-md">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Loading...</span>
+              </div>
+            )}
+            {/* Show skeletons during initial load or refresh when no data */}
+            {((collectionType === 'topshot' && isRefreshing && eligibleMoments.length === 0) || 
+              (collectionType === 'allday' && isRefreshingAllDay && eligibleMoments.length === 0)) ? (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+                {[...Array(20)].map((_, i) => (
+                  <MomentCardSkeleton key={`skeleton-${i}`} />
+                ))}
+              </div>
+            ) : (
+              <div className={`grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center ${((collectionType === 'topshot' && isRefreshing) || (collectionType === 'allday' && isRefreshingAllDay)) && eligibleMoments.length > 0 ? 'opacity-60' : ''}`}>
+                {pageSlice.map((moment) => {
+                  if (collectionType === 'allday') {
+                    return (
+                      <AllDayMomentCard
+                        key={moment.id || moment.editionID}
+                        nft={moment}
+                        handleNFTSelection={() => {}} // No selection needed for collection view
+                        isSelected={false}
+                        disableHover={true} // Disable hover states for collection view
+                        showMetadata={showMetadata}
+                      />
+                    );
+                  } else {
+                    return (
+                      <MomentCard
+                        key={moment.id}
+                        nft={moment}
+                        handleNFTSelection={() => {}} // No selection needed for collection view
+                        isSelected={false}
+                        disableHover={true} // Disable hover states for collection view
+                        collectionType={collectionType} // Pass collection type to MomentCard
+                        showMetadata={showMetadata}
+                      />
+                    );
+                  }
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Pagination (modern style, matches MomentSelection) */}
+          {pageCount > 1 && (
+            <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
+              {/* "Showing X of Y items" text - hide "Showing" on mobile */}
+              <p className="text-sm text-brand-text/70 whitespace-nowrap">
+                <span className="hidden sm:inline">Showing </span>
+                {pageSlice.length} of {eligibleMoments.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
+              </p>
+              
+              {/* Mobile: Simple Prev/Next with compact indicator */}
+              <div className="flex items-center gap-2 sm:hidden">
+                <button
+                  onClick={() => goPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                >
+                  Prev
+                </button>
+                <span className="text-xs text-brand-text/70 px-2">
+                  {currentPage}/{pageCount}
+                </span>
+                <button
+                  onClick={() => goPage(currentPage + 1)}
+                  disabled={currentPage === pageCount}
+                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                >
+                  Next
+                </button>
+              </div>
+
+              {/* Desktop: Full pagination with PageInput */}
+              <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => goPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Prev
+                  </button>
+                  <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                    Page {currentPage} of {pageCount}
+                  </span>
+                  <button
+                    onClick={() => goPage(currentPage + 1)}
+                    disabled={currentPage === pageCount}
+                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="h-[1px] w-8 bg-brand-primary/30" />
+                {/* Simple inline page input for quick jumps */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={pageCount}
+                    value={currentPage}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      if (!Number.isNaN(val) && val >= 1 && val <= pageCount) {
+                        goPage(val);
+                      }
+                    }}
+                    className="w-16 px-2 py-1 rounded bg-brand-primary text-brand-text/80 text-sm border border-brand-border focus:outline-none focus:ring-2 focus:ring-opolis"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+    </PageWrapper>
   );
 }

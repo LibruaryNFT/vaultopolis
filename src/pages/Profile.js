@@ -10,6 +10,7 @@ import React, { useEffect, useMemo, useState, useContext } from "react";
 import { useParams, Navigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import * as fcl from "@onflow/fcl";
+import { BarChart3, Layers, Lock } from "lucide-react";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
@@ -232,9 +233,12 @@ function Profile() {
 
   const [viewer, setViewer] = useState(null);
   const [viewerReady, setViewerReady] = useState(false);
+  const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
   
   // Tab state from URL
   const activeTab = searchParams.get('tab') || 'portfolio';
+  const sourceParam = searchParams.get('source');
+  const collectionSource = sourceParam === 'allday' ? 'allday' : 'topshot';
   
   // Check if viewing own profile
   const walletAddr = paramAddr ? paramAddr.toLowerCase() : null;
@@ -275,6 +279,35 @@ function Profile() {
       }
     })();
   }, [walletAddr]);
+
+  // Prevent locked tab from activating in URL when not owner
+  useEffect(() => {
+    if (!isOwnProfile && activeTab === "collection") {
+      setLockedInfoOpen(true);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.set("tab", "portfolio");
+      setSearchParams(newParams);
+    }
+    if (activeTab === "portfolio") {
+      setLockedInfoOpen(false);
+    }
+  }, [activeTab, isOwnProfile, searchParams, setSearchParams]);
+
+  const handleTabSwitch = (target) => {
+    if (target === "collection" && !isOwnProfile) {
+      setLockedInfoOpen(true);
+      return;
+    }
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("tab", target);
+    setSearchParams(newParams);
+  };
+
+  const handleCollectionSourceChange = (nextSource) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('source', nextSource === 'allday' ? 'allday' : 'topshot');
+    setSearchParams(newParams);
+  };
 
   // Load AllDay collection data for all accounts (parent + children)
   useEffect(() => {
@@ -500,57 +533,79 @@ function Profile() {
         {walletAddr && (
           <>
             {/* Tabs - Only show Collection tab when viewing own profile */}
-            <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 mt-4">
-              <div className="max-w-6xl mx-auto mx-2 sm:mx-4">
-                <div className="flex items-center gap-2" role="tablist" aria-label="Profile sections">
-                  <button
-                    onClick={() => {
-                      const newParams = new URLSearchParams(searchParams);
-                      newParams.set('tab', 'portfolio');
-                      setSearchParams(newParams);
-                    }}
-                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 ${
-                      activeTab === 'portfolio'
-                        ? 'border-brand-accent text-brand-accent bg-brand-secondary'
-                        : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
-                    }`}
-                  >
-                    <span className="text-sm sm:text-base">Portfolio</span>
-                  </button>
-                  {isOwnProfile && (
-                    <button
-                      onClick={() => {
-                        const newParams = new URLSearchParams(searchParams);
-                        newParams.set('tab', 'collection');
-                        setSearchParams(newParams);
-                      }}
-                      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border-2 transition-all duration-200 relative ${
-                        activeTab === 'collection'
-                          ? 'border-brand-accent text-brand-accent bg-brand-secondary'
-                          : 'border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-blue'
-                      }`}
-                      title="Private - Only visible when viewing your own profile"
-                    >
-                      <span className="text-sm sm:text-base">My Collection</span>
-                      <span className="text-xs bg-brand-accent/30 text-brand-accent px-2 py-0.5 rounded border border-brand-accent/50 font-semibold" title="Private view only">
-                        🔒 Private
-                      </span>
-                    </button>
+            <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 mt-3">
+            <div className="max-w-6xl mx-auto px-3 sm:px-4">
+              <div className="inline-flex items-center gap-1 bg-brand-primary/80 rounded-full p-0.5 border border-brand-border/60 shadow-sm" role="tablist" aria-label="Profile sections">
+                <button
+                  onClick={() => handleTabSwitch("portfolio")}
+                  role="tab"
+                  aria-selected={activeTab === "portfolio"}
+                  className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.75 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 ${
+                    activeTab === "portfolio"
+                      ? "bg-brand-secondary text-brand-accent border border-brand-accent shadow-md"
+                      : "text-brand-text/80 border border-transparent hover:bg-brand-secondary/60"
+                  }`}
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Portfolio</span>
+                </button>
+                <button
+                  onClick={() => handleTabSwitch("collection")}
+                  role="tab"
+                  aria-selected={activeTab === "collection"}
+                  aria-disabled={!isOwnProfile}
+                  tabIndex={isOwnProfile ? 0 : -1}
+                  className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.75 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 relative ${
+                    activeTab === "collection"
+                      ? "bg-brand-secondary text-brand-accent border border-brand-accent shadow-md"
+                      : "text-brand-text/80 border border-transparent hover:bg-brand-secondary/60"
+                  } ${!isOwnProfile ? "opacity-60 cursor-not-allowed" : ""}`}
+                  title={
+                    isOwnProfile
+                      ? "Browse your personal collection"
+                      : "Private - Only visible when viewing your own profile"
+                  }
+                >
+                  {isOwnProfile ? (
+                    <Layers className="w-3.5 h-3.5" />
+                  ) : (
+                    <Lock className="w-3.5 h-3.5" />
                   )}
-                </div>
-                {!isOwnProfile && walletAddr && (
-                  <div className="mt-2 p-2 bg-brand-secondary/50 border border-brand-border/50 rounded">
-                    <p className="text-xs text-brand-text/70 text-center m-0">
-                      <span className="font-semibold">🔒 Private View:</span> Collection browsing is only available when viewing your own profile. Connect your wallet to see your collection.
-                    </p>
+                  <span>My Collection</span>
+                </button>
+              </div>
+              {!isOwnProfile && (
+                <p className="mt-2 text-[11px] sm:text-xs text-brand-text/65 text-center">
+                  🔒 My Collection is private to this wallet’s owner.
+                </p>
+              )}
+              {lockedInfoOpen && !isOwnProfile && (
+                <div className="mt-3 rounded-lg border border-brand-accent/50 bg-brand-secondary/20 p-3 shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="text-xl text-brand-accent">🔒</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-brand-text m-0">
+                        Private Collection View
+                      </p>
+                      <p className="text-xs text-brand-text/70 mt-1 mb-2">
+                        To browse a collection you must be logged in and viewing your own profile.
+                      </p>
+                      <button
+                        onClick={() => setLockedInfoOpen(false)}
+                        className="text-xs font-semibold text-brand-accent hover:text-brand-accent/80 transition-colors"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
-                )}
+                </div>
+              )}
               </div>
             </div>
 
             {/* Tab Content */}
             {activeTab === 'portfolio' && (
-              <>
+              <div className="max-w-6xl mx-auto px-3 sm:px-4">
             {/* Portfolio Summary Table */}
             <div className="rounded-lg shadow border border-brand-primary mb-6">
               <div className="">
@@ -568,6 +623,11 @@ function Profile() {
                       <span className="text-brand-text/80 font-mono break-all select-none">
                         {walletAddr || '--'}
                       </span>
+                      {isOwnProfile && (
+                        <span className="ml-1 px-1.5 py-0.5 text-[10px] uppercase tracking-wide font-semibold text-brand-accent border border-brand-accent/60 rounded">
+                          You
+                        </span>
+                      )}
                     </div>
                     {/* Plus Sign and Child Account - only show for own profile */}
                     {accountData?.parentAddress?.toLowerCase() === walletAddr?.toLowerCase() && userDataCtx?.accountData?.childrenData?.length > 0 && (
@@ -858,39 +918,46 @@ function Profile() {
                   </table>
                       </div>
                   {totalPagesHistory > 1 && (
-                    <div className="flex justify-center mt-4 gap-1">
-                      {Array.from(
-                        { length: totalPagesHistory },
-                        (_, i) => i + 1
-                      )
-                        .filter((p) => {
-                          if (totalPagesHistory <= 7) return true;
-                          if (currentPageHistory <= 4)
-                            return p <= 5 || p === totalPagesHistory;
-                          if (currentPageHistory >= totalPagesHistory - 3)
-                            return p >= totalPagesHistory - 4 || p === 1;
-                          return [
-                            1,
-                            totalPagesHistory,
-                            currentPageHistory - 1,
-                            currentPageHistory,
-                            currentPageHistory + 1,
-                          ].includes(p);
-                        })
-                        .map((p) => (
-                          <button
-                            key={p}
-                            disabled={p === currentPageHistory}
-                            onClick={() => setCurrentPageHistory(p)}
-                            className={`px-3 py-1 rounded select-none ${
-                              p === currentPageHistory
-                                ? "bg-flow-dark text-white"
-                                : "bg-brand-secondary hover:opacity-80"
-                            }`}
-                          >
-                            {p}
-                          </button>
-                        ))}
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setCurrentPageHistory((p) => Math.max(1, p - 1))}
+                          disabled={currentPageHistory === 1}
+                          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                        >
+                          Prev
+                        </button>
+                        <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                          Page {currentPageHistory} of {totalPagesHistory}
+                        </span>
+                        <button
+                          onClick={() =>
+                            setCurrentPageHistory((p) =>
+                              Math.min(totalPagesHistory, p + 1)
+                            )
+                          }
+                          disabled={currentPageHistory === totalPagesHistory}
+                          className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                        >
+                          Next
+                        </button>
+                      </div>
+                      <div className="h-[1px] w-8 bg-brand-primary/30" />
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={totalPagesHistory}
+                          value={currentPageHistory}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            if (!Number.isNaN(val) && val >= 1 && val <= totalPagesHistory) {
+                              setCurrentPageHistory(val);
+                            }
+                          }}
+                          className="w-16 px-2 py-1 rounded bg-brand-primary text-brand-text/80 text-sm border border-brand-border focus:outline-none focus:ring-2 focus:ring-opolis"
+                        />
+                      </div>
                     </div>
                   )}
                 </> 
@@ -899,46 +966,19 @@ function Profile() {
               </div>
               </div>
             </div>
-              </>
+              </div>
             )}
 
             {/* Collection Tab Content - Only shown when viewing own profile */}
             {activeTab === 'collection' && isOwnProfile && (
-              <MyCollection />
+              <MyCollection
+                isOwnProfile={isOwnProfile}
+                source={collectionSource}
+                onSourceChange={handleCollectionSourceChange}
+              />
             )}
 
             {/* Show message if trying to access collection tab but not own profile */}
-            {activeTab === 'collection' && !isOwnProfile && (
-              <div className="rounded-lg shadow border-2 border-brand-accent/50 mb-6 mt-4 bg-brand-secondary/30">
-                <div className="bg-brand-secondary px-3 py-2 rounded-t-lg border-b border-brand-accent/30">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🔒</span>
-                    <h3 className="text-sm font-semibold m-0 text-brand-text">Private Collection View</h3>
-                  </div>
-                </div>
-                <div className="bg-brand-primary rounded-b-lg p-6">
-                  <div className="max-w-2xl mx-auto text-center space-y-3">
-                    <p className="text-base text-brand-text font-semibold m-0">
-                      This is a private view only available when viewing your own profile.
-                    </p>
-                    <p className="text-sm text-brand-text/70 m-0">
-                      Collection browsing is only accessible when you are logged in and viewing your own wallet address. 
-                      Connect your wallet and navigate to your profile to view your collection.
-                    </p>
-                    <button
-                      onClick={() => {
-                        const newParams = new URLSearchParams(searchParams);
-                        newParams.set('tab', 'portfolio');
-                        setSearchParams(newParams);
-                      }}
-                      className="mt-4 px-4 py-2 bg-brand-accent text-white rounded-lg hover:bg-brand-accent/80 transition-colors text-sm font-semibold"
-                    >
-                      View Portfolio Instead
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

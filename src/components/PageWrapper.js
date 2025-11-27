@@ -34,7 +34,7 @@ const PageWrapper = ({
   `.trim();
 
   return (
-    <div className={`${maxWidthClasses[maxWidth]} mx-auto px-2 sm:px-4 ${classes}`}>
+    <div className={`${maxWidthClasses[maxWidth]} mx-auto px-3 sm:px-4 ${classes}`}>
       {children}
     </div>
   );

@@ -1,6 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
+import { Trophy } from "lucide-react";
 import GrailBountiesVault from "../../components/GrailBountiesVault";
 
 function TopShotGrailsVaultPage() {
@@ -40,45 +41,13 @@ function TopShotGrailsVaultPage() {
         </script>
       </Helmet>
 
-      {/* Vault Navigation */}
-      <div className="w-full mt-4 mb-4">
-        <div className="max-w-6xl mx-auto px-2 sm:px-4">
-          <div className="bg-brand-primary rounded-lg p-4 border border-brand-border">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              <span className="text-sm font-medium text-brand-text/70 whitespace-nowrap">View Vault:</span>
-              <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="Vault sections">
-                <Link
-                  to="/vaults/tshot"
-                  className="inline-flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50 transition-all duration-200"
-                >
-                  <img src="https://storage.googleapis.com/vaultopolis/TSHOT.png" alt="TSHOT" className="w-4 h-4 sm:w-5 sm:h-5" />
-                  <span className="text-xs sm:text-sm">TSHOT</span>
-                </Link>
-                <Link
-                  to="/vaults/topshotgrails"
-                  className="inline-flex items-center justify-center px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold border-2 border-brand-accent text-brand-accent bg-brand-secondary hover:bg-brand-secondary/80 transition-all duration-200 shadow-sm"
-                >
-                  <span className="text-xs sm:text-sm">TopShot Grails</span>
-                </Link>
-                <Link
-                  to="/vaults/alldaygrails"
-                  className="inline-flex items-center justify-center px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-semibold border-2 border-brand-border text-brand-text/90 bg-brand-secondary hover:bg-brand-secondary/80 hover:border-brand-accent/50 transition-all duration-200"
-                >
-                  <span className="text-xs sm:text-sm">AllDay Grails</span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* TopShot Grail Bounties Vault Contents */}
-      <div className="w-full">
+      <div className="w-full pt-4">
         <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden mb-4">
           <div className="p-4 sm:p-6 border-b border-brand-border">
-            <div className="max-w-6xl mx-auto">
+            <div className="max-w-6xl mx-auto px-3 sm:px-4">
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-4xl sm:text-5xl" aria-hidden="true">🏛️</span>
+                <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-opolis" />
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-brand-text">
                     TopShot Grail Bounties Vault Contents
@@ -104,7 +73,9 @@ function TopShotGrailsVaultPage() {
           </div>
           
           <div className="p-3 sm:p-4">
-            <GrailBountiesVault />
+            <div className="max-w-6xl mx-auto px-3 sm:px-4">
+              <GrailBountiesVault />
+            </div>
           </div>
         </div>
       </div>

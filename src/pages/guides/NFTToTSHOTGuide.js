@@ -1,5 +1,5 @@
 import React from "react";
-import { FaExchangeAlt } from "react-icons/fa";
+import { ArrowLeftRight } from "lucide-react";
 import GuideTemplate from "../../components/GuideTemplate";
 
 function NFTToTSHOTGuide() {
@@ -10,7 +10,7 @@ function NFTToTSHOTGuide() {
     canonicalUrl: "https://vaultopolis.com/guides/nft-to-tshot",
     ogTitle: "Swap NFT for TSHOT - Complete Vaultopolis Guide | NBA Top Shot Tokenization",
     ogDescription: "Learn how to swap your NBA Top Shot Moments for TSHOT tokens using Vaultopolis. Complete step-by-step guide with troubleshooting tips.",
-    icon: FaExchangeAlt,
+    icon: ArrowLeftRight,
     difficulty: "Beginner",
     estimatedTime: "3-5 minutes",
     lastUpdated: "August 19, 2025",

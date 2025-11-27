@@ -1,13 +1,7 @@
 // src/components/TransactionModal.jsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { AiOutlineLoading3Quarters as Spinner } from "react-icons/ai";
-import {
-  FaCheckCircle,
-  FaTimesCircle,
-  FaWallet,
-  FaTimes,
-} from "react-icons/fa";
+import { Loader2, CheckCircle2, XCircle, Wallet, X } from "lucide-react";
 import MomentCard from "./MomentCard";
 import { getAllDayImageUrlConsistent } from "../utils/allDayImages";
 
@@ -185,20 +179,20 @@ const TransactionModal = ({
             animate={{ scale: [1, 1.15, 1] }}
             transition={{ duration: 1, repeat: Infinity }}
           >
-            <FaWallet className="text-2xl sm:text-3xl text-yellow-400" />
+            <Wallet className="text-2xl sm:text-3xl text-yellow-400" />
           </motion.div>
         );
       case "Pending":
-        return <Spinner className="text-2xl sm:text-3xl animate-spin text-blue-500" />;
+        return <Loader2 className="text-2xl sm:text-3xl animate-spin text-blue-500" />;
       case "Sealed":
-        return <FaCheckCircle className="text-2xl sm:text-3xl text-green-500" />;
+        return <CheckCircle2 className="text-2xl sm:text-3xl text-green-500" />;
       case "Expired":
       case "Error":
-        return <FaTimesCircle className="text-2xl sm:text-3xl text-red-500" />;
+        return <XCircle className="text-2xl sm:text-3xl text-red-500" />;
       case "Declined":
-        return <FaTimesCircle className="text-2xl sm:text-3xl text-orange-400" />;
+        return <XCircle className="text-2xl sm:text-3xl text-orange-400" />;
       default:
-        return <Spinner className="text-2xl sm:text-3xl animate-spin text-blue-500" />;
+        return <Loader2 className="text-2xl sm:text-3xl animate-spin text-blue-500" />;
     }
   })();
 
@@ -245,7 +239,7 @@ const TransactionModal = ({
             "
             aria-label="Close"
           >
-            <FaTimes size={18} className="sm:w-5 sm:h-5" />
+            <X size={18} className="sm:w-5 sm:h-5" />
           </button>
         </div>
 
