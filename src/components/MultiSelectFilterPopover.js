@@ -83,19 +83,6 @@ export default function MultiSelectFilterPopover({
     };
   }, [selectedValues, optionMap, normalizedOptions]);
   
-  // Calculate visible options separately to avoid circular dependency
-  const visibleOptions = useMemo(() => {
-    if (!getCount) return normalizedOptions;
-    return normalizedOptions.filter(({ key, value }) => {
-      // Always show "All" option if includeAllOption is true
-      if (includeAllOption && value === "All") return true;
-      const count = getCount(value);
-      const isSelected = normalizedSelected.items.includes(key);
-      // Include if count > 0 or already selected
-      return count > 0 || isSelected;
-    });
-  }, [normalizedOptions, getCount, includeAllOption, normalizedSelected.items]);
-  
   // Show "All" as selected if:
   // 1. All options (including hidden) are selected - user explicitly selected everything, OR
   // 2. Empty array with emptyMeansAll=true (empty means "All" for filters like Set/Team/Player/Parallel)
