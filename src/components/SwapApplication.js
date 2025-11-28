@@ -38,7 +38,10 @@ const SwapApplication = ({
   setAccountCollections,
   dispatch,
   maxTSHOTAmount,
-  onMaxClick
+  onMaxClick,
+  syncFiltersWithURL = false,
+  searchParams = null,
+  setSearchParams = null,
 }) => {
   return (
     <div className="w-full text-white space-y-2 mb-2">
@@ -237,9 +240,9 @@ const SwapApplication = ({
         {/* Moment selection and account management - Only for logged-in users */}
         {fromAsset === "TopShot Common / Fandom" &&
           accountData?.parentAddress && (
-            <div className="w-full p-0 space-y-2 mb-2">
+            <div className="w-full p-0 space-y-1.5 mb-2">
               {/* Account Selection (left-aligned, not full width) */}
-              <div className="bg-brand-primary shadow-md px-1 py-1 rounded flex flex-wrap gap-2 w-full">
+              <div className="px-1 py-0.5 pt-2 border-t border-brand-border/30 flex flex-wrap gap-2 w-full">
                 <AccountSelection
                   parentAccount={{
                     addr: accountData?.parentAddress,
@@ -251,6 +254,7 @@ const SwapApplication = ({
                   onSelectAccount={handleSelectAccount}
                   isLoadingChildren={isLoadingChildren}
                   requireCollection={true}
+                  labelText="Collection:"
                   onSetupTopShotCollection={async (address) => {
                     try {
                       const txId = await fcl.mutate({
@@ -316,10 +320,13 @@ const SwapApplication = ({
               </div>
 
               {/* Moment Selection (full width) */}
-              <div className="bg-brand-primary shadow-md rounded-lg w-full">
+              <div className="w-full">
                 <MomentSelection
                   excludeIds={excludedNftIds}
                   restrictToCommonFandom={true}
+                  syncFiltersWithURL={syncFiltersWithURL}
+                  searchParams={searchParams}
+                  setSearchParams={setSearchParams}
                 />
               </div>
 

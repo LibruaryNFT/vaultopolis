@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import { SUBEDITIONS as SUB_META_BASE } from "../utils/subeditions";
+import { searchParamsToFilters, filtersToSearchParams } from "../utils/urlFilters";
 
 /* ───────── helpers ───────── */
 const safeStringify = (o) =>
@@ -49,11 +50,11 @@ export const SUB_META = SUB_META_BASE;
 const FILTER_SCHEMA = {
   selectedTiers: { def: BASE_TIERS },
   selectedSeries: { def: [] },
-  selectedSetName: { def: "All" },
+  selectedSetName: { def: [] }, // Multi-select: array of sets (empty = "All")
   selectedLeague: { def: ["NBA", "WNBA"] }, // Multi-select: array of leagues
-  selectedTeam: { def: "All" },
-  selectedPlayer: { def: "All" },
-  selectedSubedition: { def: "All" }, // id (string) | "All"
+  selectedTeam: { def: [] }, // Multi-select: array of teams (empty = "All")
+  selectedPlayer: { def: [] }, // Multi-select: array of players (empty = "All")
+  selectedSubedition: { def: [] }, // Multi-select: array of subedition IDs (empty = "All")
   excludeSpecialSerials: { def: true },
   excludeLowSerials: { def: true },
   lockedStatus: { def: "All" }, // "All", "Locked", "Unlocked"
@@ -68,6 +69,15 @@ export const DEFAULT_FILTER = Object.fromEntries(
 
 /* guarantee "All" & uniqueness (string-compare) */
 const ensureInOpts = (val, arr) => {
+  // Handle arrays (multi-select filters)
+  if (Array.isArray(val)) {
+    const missing = val.filter((v) => {
+      const vStr = String(v);
+      return vStr !== "All" && vStr !== "" && !arr.some((x) => String(x) === vStr);
+    });
+    return missing.length > 0 ? [...arr, ...missing] : arr;
+  }
+  // Handle single values (legacy format)
   const v = String(val);
   if (v === "All" || v === "") return arr;
   return arr.some((x) => String(x) === v) ? arr : [...arr, val];
@@ -102,6 +112,9 @@ export function useMomentFilters({
   scope = "momentSelection", // Storage scope for isolation
   defaultFilters = {}, // Override default filter values
   safetyOverrides = new Set(), // Set of series numbers that override the safety filter
+  syncWithURL = false, // New: Enable URL query param synchronization
+  searchParams = null, // New: URLSearchParams object from useSearchParams
+  setSearchParams = null, // New: setSearchParams function from useSearchParams
 }) {
   /* ----- tier list ----- */
   // Only include tiers that actually have moments in the user's collection
@@ -151,10 +164,32 @@ export function useMomentFilters({
   // Track previous seriesOptions to detect account switches
   const prevSeriesOptionsRef = useRef([]);
   const hasInitializedRef = useRef(false);
+  const loadedFromURLRef = useRef(false); // Track if we loaded from URL
 
   useEffect(() => {
     const prevSeriesOptions = prevSeriesOptionsRef.current;
     const seriesOptionsChanged = JSON.stringify(prevSeriesOptions) !== JSON.stringify(seriesOptions);
+    
+    // Skip auto-select if we loaded from URL (URL values take precedence)
+    if (loadedFromURLRef.current) {
+      // Only validate that URL-loaded series are still valid
+      if (seriesOptions.length > 0) {
+        const hasInvalidSeries = filter.selectedSeries.some(s => !seriesOptions.includes(s));
+        if (hasInvalidSeries) {
+          // Filter out invalid series, keep valid ones
+          const validSeries = filter.selectedSeries.filter(s => seriesOptions.includes(s));
+          if (validSeries.length > 0) {
+            setFilter({ selectedSeries: validSeries });
+          } else {
+            // If all URL series are invalid, fall back to all available
+            setFilter({ selectedSeries: [...seriesOptions] });
+          }
+        }
+      }
+      prevSeriesOptionsRef.current = [...seriesOptions];
+      hasInitializedRef.current = true;
+      return;
+    }
     
     // Auto-select all series when they become available (first load only)
     if (!hasInitializedRef.current && seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
@@ -282,8 +317,9 @@ export function useMomentFilters({
       (n) =>
         dFilter.selectedSeries.includes(Number(n.series)) &&
         dFilter.selectedTiers.includes((n.tier || "").toLowerCase()) &&
-        (dFilter.selectedSetName === "All" ||
-          n.name === dFilter.selectedSetName) &&
+        (Array.isArray(dFilter.selectedSetName)
+          ? dFilter.selectedSetName.length === 0 || dFilter.selectedSetName.includes(n.name)
+          : dFilter.selectedSetName === "All" || n.name === dFilter.selectedSetName) &&
         (Array.isArray(dFilter.selectedLeague)
           ? dFilter.selectedLeague.length === 0 || dFilter.selectedLeague.some(league => {
               if (league === "WNBA") return WNBA_TEAMS.includes(n.teamAtMoment || "");
@@ -313,13 +349,22 @@ export function useMomentFilters({
     (n, omit = null) => {
       if (excludeIds.includes(String(n.id))) return false;
       
-      const tier = (n.tier || "").toLowerCase();
-      const tierPasses = immediateFilter.selectedTiers.includes(tier);
+      // Filter out locked moments if showLockedMoments is false (for count calculations)
+      // This ensures counts only include unlocked moments when appropriate
+      if (!showLockedMoments && n.isLocked) return false;
       
-      if (!tierPasses) return false;
+      // Series filter - skip if omit === "series"
+      if (omit !== "series") {
+        // If no series selected, show nothing (empty = no matches)
+        if (immediateFilter.selectedSeries.length === 0) return false;
+        if (!immediateFilter.selectedSeries.includes(Number(n.series))) return false;
+      }
       
-      // Apply all restrictive filters for NFT→TSHOT/TSHOT→NFT flows
-      if (!immediateFilter.selectedSeries.includes(Number(n.series))) return false;
+      // Tier filter - skip if omit === "tier"
+      if (omit !== "tier") {
+        const tier = (n.tier || "").toLowerCase();
+        if (!immediateFilter.selectedTiers.includes(tier)) return false;
+      }
 
       if (omit !== "league") {
         if (Array.isArray(immediateFilter.selectedLeague)) {
@@ -336,30 +381,39 @@ export function useMomentFilters({
           if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
         }
       }
-      if (
-        omit !== "set" &&
-        immediateFilter.selectedSetName !== "All" &&
-        n.name !== immediateFilter.selectedSetName
-      )
-        return false;
-      if (
-        omit !== "team" &&
-        immediateFilter.selectedTeam !== "All" &&
-        n.teamAtMoment !== immediateFilter.selectedTeam
-      )
-        return false;
-      if (
-        omit !== "player" &&
-        immediateFilter.selectedPlayer !== "All" &&
-        n.fullName !== immediateFilter.selectedPlayer
-      )
-        return false;
-
-      if (omit !== "subedition" && immediateFilter.selectedSubedition !== "All") {
-        // Treat null/undefined subeditionID as 0 (Standard) for filtering
-        const effectiveSubId = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
-        if (String(immediateFilter.selectedSubedition) !== String(effectiveSubId))
+      if (omit !== "set") {
+        // Handle both array (new) and string (old) formats for backward compatibility
+        if (Array.isArray(immediateFilter.selectedSetName)) {
+          if (immediateFilter.selectedSetName.length > 0 && !immediateFilter.selectedSetName.includes(n.name)) return false;
+        } else if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) {
           return false;
+        }
+      }
+      if (omit !== "team") {
+        // Handle both array (new) and string (old) formats for backward compatibility
+        if (Array.isArray(immediateFilter.selectedTeam)) {
+          if (immediateFilter.selectedTeam.length > 0 && !immediateFilter.selectedTeam.includes(n.teamAtMoment)) return false;
+        } else if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) {
+          return false;
+        }
+      }
+      if (omit !== "player") {
+        // Handle both array (new) and string (old) formats for backward compatibility
+        if (Array.isArray(immediateFilter.selectedPlayer)) {
+          if (immediateFilter.selectedPlayer.length > 0 && !immediateFilter.selectedPlayer.includes(n.fullName)) return false;
+        } else if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) {
+          return false;
+        }
+      }
+
+      if (omit !== "subedition") {
+        // Handle both array (new) and string (old) formats for backward compatibility
+        const effectiveSubId = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
+        if (Array.isArray(immediateFilter.selectedSubedition)) {
+          if (immediateFilter.selectedSubedition.length > 0 && !immediateFilter.selectedSubedition.map(String).includes(String(effectiveSubId))) return false;
+        } else if (immediateFilter.selectedSubedition !== "All" && String(immediateFilter.selectedSubedition) !== String(effectiveSubId)) {
+          return false;
+        }
       }
 
       const sn = Number(n.serialNumber);
@@ -401,7 +455,7 @@ export function useMomentFilters({
       if (selectedNFTs.includes(n.id)) return false;
       return true;
     },
-    [immediateFilter, excludeIds, selectedNFTs, safetyOverrides]
+    [immediateFilter, excludeIds, selectedNFTs, safetyOverrides, showLockedMoments]
   ); /* ---------- sub-edition options ---------- */
 
   const subeditionOptions = ensureInOpts(
@@ -418,7 +472,12 @@ export function useMomentFilters({
         if (immediateFilter.selectedTiers.length > 0 && !immediateFilter.selectedTiers.includes((n.tier || "").toLowerCase())) return;
         // Only filter by series if series are selected
         if (immediateFilter.selectedSeries.length > 0 && !immediateFilter.selectedSeries.includes(Number(n.series))) return;
-        if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) return;
+        // Set filter - handle both array and string formats
+        if (Array.isArray(immediateFilter.selectedSetName)) {
+          if (immediateFilter.selectedSetName.length > 0 && !immediateFilter.selectedSetName.includes(n.name)) return;
+        } else if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) {
+          return;
+        }
         // League filter - handle both array and string formats
         if (Array.isArray(immediateFilter.selectedLeague)) {
           if (immediateFilter.selectedLeague.length === 0) return;
@@ -433,8 +492,18 @@ export function useMomentFilters({
           const isW = WNBA_TEAMS.includes(n.teamAtMoment || "");
           if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return;
         }
-        if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) return;
-        if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) return;
+        // Team filter - handle both array and string formats
+        if (Array.isArray(immediateFilter.selectedTeam)) {
+          if (immediateFilter.selectedTeam.length > 0 && !immediateFilter.selectedTeam.includes(n.teamAtMoment)) return;
+        } else if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) {
+          return;
+        }
+        // Player filter - handle both array and string formats
+        if (Array.isArray(immediateFilter.selectedPlayer)) {
+          if (immediateFilter.selectedPlayer.length > 0 && !immediateFilter.selectedPlayer.includes(n.fullName)) return;
+        } else if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) {
+          return;
+        }
         
         tally[effectiveSubId] = (tally[effectiveSubId] || 0) + 1;
       });
@@ -464,6 +533,8 @@ export function useMomentFilters({
     if (!immediateFilter.selectedTiers.includes(tier)) return false;
     
     // Series filter
+    // If no series selected, show nothing (empty = no matches)
+    if (immediateFilter.selectedSeries.length === 0) return false;
     if (!immediateFilter.selectedSeries.includes(Number(n.series))) return false;
     
     // League filter
@@ -481,20 +552,33 @@ export function useMomentFilters({
       if (immediateFilter.selectedLeague === "WNBA" ? !isW : isW) return false;
     }
     
-    // Set filter
-    if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) return false;
+    // Set filter - handle both array (new) and string (old) formats
+    if (Array.isArray(immediateFilter.selectedSetName)) {
+      if (immediateFilter.selectedSetName.length > 0 && !immediateFilter.selectedSetName.includes(n.name)) return false;
+    } else if (immediateFilter.selectedSetName !== "All" && n.name !== immediateFilter.selectedSetName) {
+      return false;
+    }
     
-    // Team filter
-    if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) return false;
+    // Team filter - handle both array (new) and string (old) formats
+    if (Array.isArray(immediateFilter.selectedTeam)) {
+      if (immediateFilter.selectedTeam.length > 0 && !immediateFilter.selectedTeam.includes(n.teamAtMoment)) return false;
+    } else if (immediateFilter.selectedTeam !== "All" && n.teamAtMoment !== immediateFilter.selectedTeam) {
+      return false;
+    }
     
-    // Player filter
-    if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) return false;
+    // Player filter - handle both array (new) and string (old) formats
+    if (Array.isArray(immediateFilter.selectedPlayer)) {
+      if (immediateFilter.selectedPlayer.length > 0 && !immediateFilter.selectedPlayer.includes(n.fullName)) return false;
+    } else if (immediateFilter.selectedPlayer !== "All" && n.fullName !== immediateFilter.selectedPlayer) {
+      return false;
+    }
     
-    // Subedition/Parallel filter
-    if (immediateFilter.selectedSubedition !== "All") {
-      // Treat null/undefined subeditionID as 0 (Standard) for filtering
-      const effectiveSubId = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
-      if (String(immediateFilter.selectedSubedition) !== String(effectiveSubId)) return false;
+    // Subedition/Parallel filter - handle both array (new) and string (old) formats
+    const effectiveSubId = (n.subeditionID === null || n.subeditionID === undefined) ? 0 : n.subeditionID;
+    if (Array.isArray(immediateFilter.selectedSubedition)) {
+      if (immediateFilter.selectedSubedition.length > 0 && !immediateFilter.selectedSubedition.map(String).includes(String(effectiveSubId))) return false;
+    } else if (immediateFilter.selectedSubedition !== "All" && String(immediateFilter.selectedSubedition) !== String(effectiveSubId)) {
+      return false;
     }
     
     // Locked status filter
@@ -570,6 +654,14 @@ export function useMomentFilters({
     [dDetails, allowAllTiers, myCollectionFilter, nftToTshotFilter, immediateFilter.sortBy, forceSortOrder]
   );
 
+  const baseNoSeries = useMemo(
+    () => dDetails.filter((n) => passes(n, "series")),
+    [dDetails, passes]
+  );
+  const baseNoTier = useMemo(
+    () => dDetails.filter((n) => passes(n, "tier")),
+    [dDetails, passes]
+  );
   const baseNoSub = useMemo(
     () => dDetails.filter((n) => passes(n, "subedition")),
     [dDetails, passes]
@@ -620,7 +712,23 @@ export function useMomentFilters({
     const pref = prefs[key];
     if (!pref) return;
     const data = pref.version === 1 ? pref.data : DEFAULT_FILTER;
-    dispatch({ type: "LOAD", payload: data });
+    
+    // Migrate old string format to array format for Team, Player, Set, and Parallel
+    const migrated = { ...data };
+    if (typeof migrated.selectedTeam === "string") {
+      migrated.selectedTeam = migrated.selectedTeam === "All" ? [] : [migrated.selectedTeam];
+    }
+    if (typeof migrated.selectedPlayer === "string") {
+      migrated.selectedPlayer = migrated.selectedPlayer === "All" ? [] : [migrated.selectedPlayer];
+    }
+    if (typeof migrated.selectedSetName === "string") {
+      migrated.selectedSetName = migrated.selectedSetName === "All" ? [] : [migrated.selectedSetName];
+    }
+    if (typeof migrated.selectedSubedition === "string") {
+      migrated.selectedSubedition = migrated.selectedSubedition === "All" ? [] : [migrated.selectedSubedition];
+    }
+    
+    dispatch({ type: "LOAD", payload: migrated });
     setCurrentPrefKey(key);
   };
 
@@ -644,7 +752,52 @@ export function useMomentFilters({
     }
     const saved = pref.version === 1 ? pref.data : DEFAULT_FILTER;
     if (JSON.stringify(saved) !== JSON.stringify(filter)) setCurrentPrefKey("");
-  }, [filter, prefs, currentPrefKey]); /* ---------- expose ---------- */
+  }, [filter, prefs, currentPrefKey]);
+
+  /* ---------- URL sync ---------- */
+  // Load from URL on mount if URL params exist
+  const hasInitializedFromURL = useRef(false);
+  const lastURLParamsRef = useRef(null);
+  
+  useEffect(() => {
+    if (!syncWithURL || !searchParams || hasInitializedFromURL.current) return;
+    
+    const hasURLParams = Array.from(searchParams.keys()).length > 0;
+    if (hasURLParams) {
+      // URL takes precedence - load from URL
+      const urlFilter = searchParamsToFilters(searchParams, DEFAULT_FILTER);
+      loadedFromURLRef.current = true; // Mark that we loaded from URL
+      dispatch({ type: "LOAD", payload: urlFilter });
+      // Store the URL params we just loaded to prevent re-triggering
+      lastURLParamsRef.current = searchParams.toString();
+    }
+    // Always mark as initialized (even if no URL params) so we can update URL on filter changes
+    hasInitializedFromURL.current = true;
+  }, [syncWithURL, searchParams]); // Only run once on mount
+
+  // Update URL when filter changes (but not on initial load)
+  useEffect(() => {
+    if (!syncWithURL || !setSearchParams || !hasInitializedFromURL.current) return;
+    
+    // Build effective default filter based on current context
+    // For tiers: if allowAllTiers=true, default is all available tiers, otherwise ["common", "fandom"]
+    const effectiveDefaultFilter = {
+      ...DEFAULT_FILTER,
+      selectedTiers: allowAllTiers && tierOptions.length > 0 
+        ? [...tierOptions] // All available tiers when allowAllTiers=true
+        : DEFAULT_FILTER.selectedTiers, // ["common", "fandom"] otherwise
+    };
+    
+    const params = filtersToSearchParams(filter, effectiveDefaultFilter, seriesOptions);
+    const paramsString = params.toString();
+    
+    // Only update URL if it's different from what's currently in the URL
+    // This prevents infinite loops when URL changes trigger filter changes
+    if (paramsString !== lastURLParamsRef.current) {
+      setSearchParams(params, { replace: true }); // replace=true prevents history spam
+      lastURLParamsRef.current = paramsString;
+    }
+  }, [filter, syncWithURL, setSearchParams, seriesOptions, allowAllTiers, tierOptions]); /* ---------- expose ---------- */
 
   return {
     filter,
@@ -659,7 +812,7 @@ export function useMomentFilters({
     subeditionOptions,
 
     eligibleMoments,
-    base: { baseNoSub, baseNoLeague, baseNoSet, baseNoTeam, baseNoPlayer },
+    base: { baseNoSeries, baseNoTier, baseNoSub, baseNoLeague, baseNoSet, baseNoTeam, baseNoPlayer },
 
     subMeta: SUB_META,
 

@@ -28,20 +28,23 @@ const AccountBox = ({
       onClick={handleClick}
       title={isDisabled ? "This account has no TopShot collection." : ""}
       className={`
-        p-1.5 w-32 sm:w-40 rounded-lg border-2 transition-all flex-shrink-0 select-none relative
+        p-1 sm:p-1.5 w-28 sm:w-36 rounded transition-all flex-shrink-0 select-none relative
         ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
-        ${isSelected ? "border-opolis" : "border-brand-border"}
+        ${isSelected 
+          ? "bg-brand-primary border-2 border-opolis" 
+          : "bg-brand-primary border-2 border-transparent hover:opacity-80"
+        }
         ${
           isDisabled
             ? "bg-brand-blue"
-            : "bg-brand-secondary hover:bg-brand-blue"
+            : ""
         }
       `}
     >
       {/* Label on top line */}
       <span
         className={`
-          text-xs font-semibold select-none truncate leading-tight mb-0.5 block
+          text-[10px] sm:text-xs font-semibold select-none truncate leading-tight mb-0.5 block
           ${isSelected ? "text-opolis" : "text-brand-text"}
         `}
         title={primaryText}
@@ -70,7 +73,7 @@ const AccountBox = ({
             </g>
           </svg>
         )}
-        <span className="text-[11px] text-brand-text/80 font-mono truncate leading-tight">{address}</span>
+        <span className="text-[10px] sm:text-[11px] text-brand-text/80 font-mono truncate leading-tight">{address}</span>
       </div>
     </div>
   );
@@ -139,27 +142,27 @@ const AccountSelection = ({
         <div
           key="setup-collection"
           className="
-            p-2 w-32 sm:w-40 rounded-lg border-2 border-brand-border
+            p-1.5 sm:p-2 w-28 sm:w-36 rounded-lg border-2 border-brand-border
             bg-brand-secondary flex flex-col items-center text-center
             flex-shrink-0 select-none
           "
         >
-          <div className="flex items-center justify-center text-sm font-semibold text-brand-text mb-1">
-            <Package className="w-4 h-4 text-flow-light mr-1" />
+          <div className="flex items-center justify-center text-xs sm:text-sm font-semibold text-brand-text mb-0.5 sm:mb-1">
+            <Package className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-flow-light mr-1" />
             Setup Collection
           </div>
-          <p className="text-[11px] leading-snug text-brand-text/70 mb-2">
+          <p className="text-[10px] sm:text-[11px] leading-snug text-brand-text/70 mb-1.5 sm:mb-2">
             This Flow wallet needs a Top Shot collection to proceed.
           </p>
           {setupError && (
-            <p className="text-[11px] text-red-500 mb-1">{setupError}</p>
+            <p className="text-[10px] sm:text-[11px] text-red-500 mb-1">{setupError}</p>
           )}
           <button
             onClick={handleSetupCollection}
             disabled={isSettingUpCollection}
             className={`
-              bg-opolis hover:bg-opolis-dark text-[11px] text-white
-              font-bold px-2 py-0.5 rounded
+              bg-opolis hover:bg-opolis-dark text-[10px] sm:text-[11px] text-white
+              font-bold px-1.5 sm:px-2 py-0.5 rounded
               ${isSettingUpCollection ? "opacity-50 cursor-not-allowed" : ""}
             `}
           >
@@ -180,12 +183,12 @@ const AccountSelection = ({
         <div
           key="loading"
           className="
-            p-2 w-32 sm:w-40 rounded-lg border-2 border-brand-border
+            p-1.5 sm:p-2 w-28 sm:w-36 rounded-lg border-2 border-brand-border
             bg-brand-secondary flex flex-col items-center text-center
             flex-shrink-0 select-none
           "
         >
-          <p className="text-sm text-brand-text">Loading account data...</p>
+          <p className="text-xs sm:text-sm text-brand-text">Loading account data...</p>
         </div>
       );
     }
@@ -195,16 +198,16 @@ const AccountSelection = ({
         <div
           key="dapper-card"
           className="
-            p-2 w-32 sm:w-40 rounded-lg border-2 border-brand-border
+            p-1.5 sm:p-2 w-28 sm:w-36 rounded-lg border-2 border-brand-border
             bg-brand-secondary flex flex-col items-center text-center
             flex-shrink-0 select-none
           "
         >
-          <div className="flex items-center justify-center text-sm font-semibold text-brand-text mb-1">
-            <Repeat className="w-4 h-4 text-flow-light mr-1" />
+          <div className="flex items-center justify-center text-xs sm:text-sm font-semibold text-brand-text mb-0.5 sm:mb-1">
+            <Repeat className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-flow-light mr-1" />
             Dapper Wallet
           </div>
-          <p className="text-[11px] leading-snug text-brand-text/70 mb-2">
+          <p className="text-[10px] sm:text-[11px] leading-snug text-brand-text/70 mb-1.5 sm:mb-2">
             Use your Dapper Wallet Moments on TSHOT
           </p>
           <a
@@ -212,8 +215,8 @@ const AccountSelection = ({
             target="_blank"
             rel="noreferrer"
             className="
-              bg-flow-dark hover:bg-flow-darkest text-[11px] text-white
-              font-bold px-2 py-0.5 rounded
+              bg-flow-dark hover:bg-flow-darkest text-[10px] sm:text-[11px] text-white
+              font-bold px-1.5 sm:px-2 py-0.5 rounded
             "
           >
             Learn More
@@ -260,8 +263,8 @@ const AccountSelection = ({
   /* -------- render -------- */
   return (
     <div className="text-brand-text w-full">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-brand-text text-sm font-semibold whitespace-nowrap">
+      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <span className="text-brand-text text-xs sm:text-sm font-semibold whitespace-nowrap">
           {labelText}
         </span>
         <div className="flex flex-wrap items-center gap-1.5">{allBoxes}</div>

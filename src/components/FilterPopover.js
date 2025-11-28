@@ -88,10 +88,10 @@ export default function FilterPopover({
         <button
           type="button"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md border text-xs sm:text-sm px-3 py-1.5 transition-all shadow-sm",
-            "bg-brand-secondary text-brand-text hover:border-opolis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis",
+            "inline-flex items-center gap-1.5 rounded border text-xs sm:text-sm px-3 py-1.5 transition-all",
+            "bg-brand-primary text-brand-text/80 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis",
             "flex-shrink-0 whitespace-nowrap",
-            isAllSelected ? "border-2 border-opolis" : (normalizedSelected !== "All" ? "border-2 border-opolis" : "border border-brand-border"),
+            isAllSelected ? "border-2 border-opolis" : (normalizedSelected !== "All" ? "border-2 border-opolis" : "border-2 border-transparent"),
             disabled && "opacity-50 cursor-not-allowed"
           )}
         >

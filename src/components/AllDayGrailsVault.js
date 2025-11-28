@@ -144,9 +144,8 @@ function AllDayGrailsVault() {
   }, [pageIds, detailsCache, allDayMetadataCache, localMeta]);
 
   return (
-    <div className="text-brand-text">
-      <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden">
-        <div className="p-3 sm:p-4">
+    <div className="text-brand-text w-full">
+      <div className="w-full">
           {error && (
             <p className="text-sm text-red-400 mb-2">{error}</p>
           )}
@@ -297,7 +296,6 @@ function AllDayGrailsVault() {
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   );

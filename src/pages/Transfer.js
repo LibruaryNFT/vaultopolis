@@ -1,5 +1,6 @@
 // src/components/Transfer.js
 import React, { useState, useContext } from "react";
+import { useSearchParams } from "react-router-dom";
 import * as fcl from "@onflow/fcl";
 // IMPORTANT: Accessing these from UserContext as confirmed by your UserContext.js code
 import { UserDataContext } from "../context/UserContext";
@@ -20,6 +21,9 @@ const MAX_FLOW_TRANSFER_COUNT = 280; // Flow → Flow
 const MAX_EVM_BRIDGE_COUNT = 9; // Flow → EVM
 
 const Transfer = () => {
+  /* ───────── URL sync ───────── */
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   /* ───────── context ───────── */
   const {
     user,
@@ -582,9 +586,10 @@ const Transfer = () => {
 
       {/* 2) Main area */}
       <div className="w-full">
-        <div className="space-y-2">
-          <div className="bg-brand-primary shadow-md px-1 py-2 rounded flex flex-wrap gap-2 w-full">
+        <div className="space-y-1.5">
+          <div className="px-1 py-0.5 pt-2 border-t border-brand-border/30 flex flex-wrap gap-2 w-full">
             <AccountSelection
+              labelText="Collection:"
               parentAccount={{
                 addr: accountData?.parentAddress,
                 hasCollection: accountData?.hasCollection,
@@ -617,13 +622,16 @@ const Transfer = () => {
             />
           </div>
 
-          <div className="bg-brand-primary shadow-md rounded-lg w-full">
+          <div className="w-full">
             <MomentSelection
               allowAllTiers={true}
               restrictToCommonFandom={false}
               excludeIds={excludedNftIds}
               forceSortOrder="highest-serial"
               showLockedMoments={false}
+              syncFiltersWithURL={true}
+              searchParams={searchParams}
+              setSearchParams={setSearchParams}
             />
           </div>
 

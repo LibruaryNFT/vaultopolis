@@ -18,9 +18,10 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
 import { cn } from "../lib/utils";
 
-function buildSummary(keys, formatOption) {
+function buildSummary(keys, formatOption, emptyMeansAll = false) {
   const { items, allSelected } = keys;
-  if (!items.length) return "None";
+  // For filters, empty array means "All" (no filter applied)
+  if (!items.length) return emptyMeansAll ? "All" : "None";
   if (allSelected) return "All";
   const [first, second, ...rest] = items;
   if (!second) return formatOption(first);
@@ -40,6 +41,7 @@ export default function MultiSelectFilterPopover({
   disabled = false,
   minSelection = 0,
   includeAllOption = true,
+  emptyMeansAll = true, // New: when true, empty array displays as "All" instead of "None"
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -67,17 +69,43 @@ export default function MultiSelectFilterPopover({
     const unique = Array.from(new Set(keys)).filter(
       (key) => optionMap[key] !== undefined
     );
+    
     // Check if all options are selected (allSelected)
     // Must match exactly - all options in normalizedOptions must be in unique
     const allSelected =
       normalizedOptions.length > 0 &&
       unique.length === normalizedOptions.length &&
       normalizedOptions.every(({ key }) => unique.includes(key));
+    
     return {
       items: unique,
       allSelected,
     };
   }, [selectedValues, optionMap, normalizedOptions]);
+  
+  // Calculate visible options separately to avoid circular dependency
+  const visibleOptions = useMemo(() => {
+    if (!getCount) return normalizedOptions;
+    return normalizedOptions.filter(({ key, value }) => {
+      // Always show "All" option if includeAllOption is true
+      if (includeAllOption && value === "All") return true;
+      const count = getCount(value);
+      const isSelected = normalizedSelected.items.includes(key);
+      // Include if count > 0 or already selected
+      return count > 0 || isSelected;
+    });
+  }, [normalizedOptions, getCount, includeAllOption, normalizedSelected.items]);
+  
+  // Show "All" as selected if:
+  // 1. All options (including hidden) are selected - user explicitly selected everything, OR
+  // 2. Empty array with emptyMeansAll=true (empty means "All" for filters like Set/Team/Player/Parallel)
+  // 
+  // NOTE: We do NOT show "All" when only all visible options are selected, because:
+  // - User may have explicitly selected specific values
+  // - When filters are restrictive, only a few options are visible
+  // - Showing "All" when user selected [2,3,4] is confusing
+  const showAsAllSelected = normalizedSelected.allSelected || 
+    (emptyMeansAll && normalizedSelected.items.length === 0 && normalizedOptions.length > 0);
 
   const filteredOptions = useMemo(() => {
     let opts = normalizedOptions;
@@ -110,7 +138,7 @@ export default function MultiSelectFilterPopover({
     const uniqueKeys = Array.from(new Set(keys));
     const restored = uniqueKeys
       .map((key) => optionMap[key] ?? key)
-      .filter(Boolean);
+      .filter((v) => v !== undefined && v !== null && v !== ""); // Don't use filter(Boolean) as it filters out 0
     if (minSelection > 0 && restored.length < minSelection) {
       return;
     }
@@ -118,7 +146,8 @@ export default function MultiSelectFilterPopover({
   };
 
   const toggleValue = (key) => {
-    const baseItems = normalizedSelected.allSelected
+    // If "All" is effectively selected (all options or all visible options), start from empty
+    const baseItems = showAsAllSelected
       ? []
       : [...normalizedSelected.items];
     const isSelected = baseItems.includes(key);
@@ -131,17 +160,20 @@ export default function MultiSelectFilterPopover({
   };
 
   const handleSelectAll = () => {
+    // Select all options from normalizedOptions (all available options, not just visible ones)
+    // This ensures "All" truly means all series/options, even if some have 0 count
     emit(normalizedOptions.map(({ key }) => key));
   };
 
   const handleToggleAllOption = () => {
     // Always select all options when "All" is clicked
     // If all are already selected, clear selection (unless minSelection prevents it)
-    if (normalizedSelected.allSelected) {
+    if (showAsAllSelected) {
       if (minSelection > 0) return;
       emit([]);
     } else {
-      // Select all available options
+      // Select all options from normalizedOptions (all available options, not just visible ones)
+      // This ensures "All" truly means all series/options, even if some have 0 count
       handleSelectAll();
     }
   };
@@ -151,9 +183,16 @@ export default function MultiSelectFilterPopover({
     emit([]);
   };
 
+  // Use showAsAllSelected for summary display
+  const summarySelected = {
+    items: normalizedSelected.items,
+    allSelected: showAsAllSelected,
+  };
+  
   const summary = buildSummary(
-    normalizedSelected,
-    (key) => formatOption(optionMap[key] ?? key)
+    summarySelected,
+    (key) => formatOption(optionMap[key] ?? key),
+    emptyMeansAll
   );
 
   return (
@@ -162,12 +201,12 @@ export default function MultiSelectFilterPopover({
         <button
           type="button"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md border text-xs sm:text-sm px-3 py-1.5 transition-all shadow-sm",
-            "bg-brand-secondary text-brand-text hover:border-opolis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis",
+            "inline-flex items-center gap-1.5 rounded border text-xs sm:text-sm px-3 py-1.5 transition-all",
+            "bg-brand-primary text-brand-text/80 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis",
             "flex-shrink-0 whitespace-nowrap",
-            (normalizedSelected.allSelected || normalizedSelected.items.length > 0)
+            (showAsAllSelected || normalizedSelected.items.length > 0 || (emptyMeansAll && normalizedSelected.items.length === 0))
               ? "border-2 border-opolis"
-              : "border border-brand-border",
+              : "border-2 border-transparent",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -175,7 +214,7 @@ export default function MultiSelectFilterPopover({
           <span
             className={cn(
               "truncate max-w-[140px] sm:max-w-[180px]",
-              (normalizedSelected.allSelected || normalizedSelected.items.length > 0)
+              (showAsAllSelected || normalizedSelected.items.length > 0 || (emptyMeansAll && normalizedSelected.items.length === 0))
                 ? "text-opolis"
                 : "text-brand-text/80"
             )}
@@ -228,7 +267,7 @@ export default function MultiSelectFilterPopover({
                     onSelect={handleToggleAllOption}
                     className="flex items-center"
                   >
-                    <Checkbox checked={normalizedSelected.allSelected} readOnly />
+                    <Checkbox checked={showAsAllSelected} readOnly />
                     <span className="ml-2 flex-1 text-xs">All</span>
                     {getCount && (
                       <span className="text-[11px] text-brand-text/60">
@@ -239,7 +278,7 @@ export default function MultiSelectFilterPopover({
                 )}
                 {filteredOptions.map(({ key, value }) => {
                   const isSelected =
-                    !normalizedSelected.allSelected &&
+                    !showAsAllSelected &&
                     normalizedSelected.items.includes(key);
                   const count = getCount ? getCount(value) : null;
                   const hasZeroCount = count !== null && count === 0;

@@ -255,7 +255,7 @@ function TSHOTVault({ onSummaryUpdate }) {
 
   /* ---------- RENDER ---------- */
   const VaultBlock = () => (
-    <div className="bg-brand-primary text-brand-text rounded w-full space-y-2">
+    <div className="text-brand-text w-full space-y-2">
       {summary && (
         <div className="bg-brand-secondary p-2 sm:p-3 rounded">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
@@ -286,7 +286,7 @@ function TSHOTVault({ onSummaryUpdate }) {
         </div>
       )}
 
-      <div className="bg-brand-primary text-brand-text rounded-lg w-full p-2 space-y-2">
+      <div className="text-brand-text w-full p-2 space-y-2">
         {/* Filter Sections */}
         <div className="space-y-2">
             {/* Row 1: Safety Filters */}

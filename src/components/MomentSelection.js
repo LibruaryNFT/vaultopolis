@@ -13,7 +13,6 @@ import MomentCardSkeleton from "./MomentCardSkeleton";
 import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
-import FilterPopover from "./FilterPopover";
 import MultiSelectFilterPopover from "./MultiSelectFilterPopover";
 
 /* ───── local exclude-set helpers ───── */
@@ -293,6 +292,7 @@ export default function MomentSelection(props) {
     subeditionOptions,
     subMeta,
     eligibleMoments,
+    base,
     prefs,
     currentPrefKey,
     savePref,
@@ -305,6 +305,9 @@ export default function MomentSelection(props) {
     forceSortOrder: props.forceSortOrder || null,
     showLockedMoments: props.showLockedMoments !== undefined ? props.showLockedMoments : false,
     safetyOverrides,
+    syncWithURL: props.syncFiltersWithURL || false,
+    searchParams: props.searchParams,
+    setSearchParams: props.setSearchParams,
   });
 
   /* pagination */
@@ -385,7 +388,7 @@ export default function MomentSelection(props) {
 
   /* ───────── render ───────── */
   return (
-    <div className="bg-brand-primary text-brand-text p-3 rounded-lg w-full space-y-3 relative">
+    <div className="text-brand-text p-2 w-full space-y-2 relative border-t border-brand-border/30 pt-2">
       {/* Refresh indicator overlay */}
       {isRefreshing && accountData.hasCollection && (
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2 text-xs text-brand-text/70 bg-brand-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-brand-border shadow-md">
@@ -394,24 +397,39 @@ export default function MomentSelection(props) {
         </div>
       )}
       {/* Filter Sections */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {/* Row 1: Safety Filters */}
         <div className="flex flex-wrap items-center gap-2">
         <span className="font-semibold text-xs sm:text-sm mr-1 whitespace-nowrap">
-          Safety Exclusions:
+          Exclusions:
         </span>
         <div className="flex flex-wrap items-center gap-2">
+          {/* Permanent Locked Exclusion - always active when showLockedMoments is false */}
+          {!props.showLockedMoments && (
+            <div
+              className={`
+                px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
+                whitespace-normal h-[28px] flex items-center gap-1
+                bg-brand-primary border-2 border-opolis text-opolis opacity-90
+                cursor-not-allowed
+              `}
+              title="Locked moments are permanently excluded and cannot be selected"
+            >
+              <span>🔒</span>
+              <span>Locked</span>
+            </div>
+          )}
           <button
             type="button"
             onClick={() =>
               setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
             }
             className={`
-              px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
+              px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
               transition-all duration-200 whitespace-normal h-[28px]
               ${filter.excludeSpecialSerials
-                ? 'bg-brand-secondary border-2 border-opolis text-opolis shadow-md'
-                : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90 shadow-sm'
+                ? 'bg-brand-primary border-2 border-opolis text-opolis'
+                : 'bg-brand-primary border-2 border-transparent text-brand-text/80 hover:opacity-80'
               }
             `}
           >
@@ -423,11 +441,11 @@ export default function MomentSelection(props) {
               setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
             }
             className={`
-              px-2.5 py-1.5 rounded-md text-[10px] sm:text-xs font-medium leading-tight
-              transition-all duration-200 whitespace-normal shadow-sm h-[28px]
+              px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
+              transition-all duration-200 whitespace-normal h-[28px]
               ${filter.excludeLowSerials
-                ? 'bg-brand-secondary border-2 border-opolis text-opolis'
-                : 'bg-brand-secondary border border-brand-border text-brand-text hover:border-brand-accent hover:opacity-90'
+                ? 'bg-brand-primary border-2 border-opolis text-opolis'
+                : 'bg-brand-primary border-2 border-transparent text-brand-text/80 hover:opacity-80'
               }
             `}
           >
@@ -435,68 +453,9 @@ export default function MomentSelection(props) {
           </button>
         </div>
       </div>
-      {/* Row 2: Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing || cooldown}
-          title={
-            cooldown
-              ? "Please wait a few seconds before refreshing again"
-              : "Refresh snapshots"
-          }
-          className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-40 select-none h-[28px]"
-        >
-          <RefreshCw
-            size={14}
-            className={`${isRefreshing ? "animate-spin" : ""} text-opolis`}
-          />
-          <span>Refresh</span>
-        </button>
-        <span className="text-xs text-brand-text/70 h-[28px] flex items-center">
-          Updated: <span className="text-brand-text ml-1">{elapsed}</span>
-        </span>
-        <button
-          aria-label="Filter settings"
-          onClick={() => setShowPrefs(true)}
-          className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
-        >
-          <span className="text-xs text-brand-text/80">
-            Filter:{" "}
-            <span className="text-brand-text">
-              {currentPrefKey || "None"}
-            </span>
-          </span>
-          <SettingsIcon
-            size={14}
-            strokeWidth={2}
-            className="text-opolis"
-          />
-        </button>
-        <button
-          onClick={() => {
-            setFilter({
-              selectedTiers: tierOptions,
-              selectedSeries: seriesOptions,
-              selectedSetName: "All",
-              selectedLeague: leagueOptions,
-              selectedTeam: "All",
-              selectedPlayer: "All",
-              selectedSubedition: "All",
-              excludeSpecialSerials: true,
-              excludeLowSerials: true,
-              currentPage: 1,
-            });
-          }}
-          className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
-        >
-          <X size={13} />
-          Reset Filters
-        </button>
-      </div>
 
-      {/* Unified filter row */}
-      <div className="pt-3 border-t border-brand-border/30">
+      {/* Regular Filters */}
+      <div className="pt-2 border-t border-brand-border/30">
         <div className="flex flex-wrap items-center gap-2">
             <MultiSelectFilterPopover
               label="Series"
@@ -509,12 +468,19 @@ export default function MomentSelection(props) {
               formatOption={(series) =>
                 getSeriesFilterLabel(Number(series), "topshot")
               }
-              getCount={(series) =>
-                series === "All"
-                  ? eligibleMoments.length
-                  : eligibleMoments.filter((m) => Number(m.series) === Number(series))
-                      .length
-              }
+              getCount={(series) => {
+                if (series === "All") {
+                  return base.baseNoSeries.length;
+                }
+                // Ensure proper comparison for series 0 (which is falsy)
+                const seriesNum = Number(series);
+                return base.baseNoSeries.filter((m) => {
+                  const mSeries = Number(m.series);
+                  // Use strict equality check to handle 0 correctly
+                  return mSeries === seriesNum;
+                }).length;
+              }}
+              emptyMeansAll={false}
             />
             <MultiSelectFilterPopover
               label="Tier"
@@ -533,10 +499,11 @@ export default function MomentSelection(props) {
               }
               getCount={(tier) =>
                 tier === "All"
-                  ? eligibleMoments.length
-                  : eligibleMoments.filter((m) => (m.tier || "").toLowerCase() === tier.toLowerCase()).length
+                  ? base.baseNoTier.length
+                  : base.baseNoTier.filter((m) => (m.tier || "").toLowerCase() === tier.toLowerCase()).length
               }
               minSelection={1}
+              emptyMeansAll={false}
             />
             <MultiSelectFilterPopover
               label="League"
@@ -555,64 +522,89 @@ export default function MomentSelection(props) {
               }}
               getCount={(league) =>
                 league === "All"
-                  ? eligibleMoments.length
-                  : eligibleMoments.filter((m) =>
+                  ? base.baseNoLeague.length
+                  : base.baseNoLeague.filter((m) =>
                       league === "WNBA"
                         ? WNBA_TEAMS.includes(m.teamAtMoment || "")
                         : !WNBA_TEAMS.includes(m.teamAtMoment || "")
                     ).length
               }
               minSelection={1}
+              emptyMeansAll={false}
             />
-            <FilterPopover
+            <MultiSelectFilterPopover
               label="Set"
-              selectedValue={filter.selectedSetName}
+              selectedValues={
+                Array.isArray(filter.selectedSetName)
+                  ? filter.selectedSetName
+                  : filter.selectedSetName === "All"
+                  ? []
+                  : [filter.selectedSetName]
+              }
               options={setNameOptions}
               placeholder="Search sets..."
-              onChange={(value) =>
-                setFilter({ selectedSetName: value, currentPage: 1 })
+              onChange={(values) =>
+                setFilter({ selectedSetName: values, currentPage: 1 })
               }
               getCount={(setName) =>
                 setName === "All"
-                  ? eligibleMoments.length
-                  : eligibleMoments.filter((m) => m.name === setName).length
+                  ? base.baseNoSet.length
+                  : base.baseNoSet.filter((m) => m.name === setName).length
               }
             />
-            <FilterPopover
+            <MultiSelectFilterPopover
               label="Team"
-              selectedValue={filter.selectedTeam}
+              selectedValues={
+                Array.isArray(filter.selectedTeam)
+                  ? filter.selectedTeam
+                  : filter.selectedTeam === "All"
+                  ? []
+                  : [filter.selectedTeam]
+              }
               options={teamOptions}
               placeholder="Search teams..."
-              onChange={(value) =>
-                setFilter({ selectedTeam: value, currentPage: 1 })
+              onChange={(values) =>
+                setFilter({ selectedTeam: values, currentPage: 1 })
               }
               getCount={(team) =>
                 team === "All"
-                  ? eligibleMoments.length
-                  : eligibleMoments.filter((m) => m.teamAtMoment === team).length
+                  ? base.baseNoTeam.length
+                  : base.baseNoTeam.filter((m) => m.teamAtMoment === team).length
               }
             />
-            <FilterPopover
+            <MultiSelectFilterPopover
               label="Player"
-              selectedValue={filter.selectedPlayer}
+              selectedValues={
+                Array.isArray(filter.selectedPlayer)
+                  ? filter.selectedPlayer
+                  : filter.selectedPlayer === "All"
+                  ? []
+                  : [filter.selectedPlayer]
+              }
               options={playerOptions}
               placeholder="Search players..."
-              onChange={(value) =>
-                setFilter({ selectedPlayer: value, currentPage: 1 })
+              onChange={(values) =>
+                setFilter({ selectedPlayer: values, currentPage: 1 })
               }
               getCount={(player) =>
                 player === "All"
-                  ? eligibleMoments.length
-                  : eligibleMoments.filter((m) => m.fullName === player).length
+                  ? base.baseNoPlayer.length
+                  : base.baseNoPlayer.filter((m) => m.fullName === player).length
               }
             />
-            <FilterPopover
+            <MultiSelectFilterPopover
               label="Parallel"
-              selectedValue={filter.selectedSubedition}
+              selectedValues={
+                Array.isArray(filter.selectedSubedition)
+                  ? filter.selectedSubedition.map(String)
+                  : filter.selectedSubedition === "All"
+                  ? []
+                  : [String(filter.selectedSubedition)]
+              }
               options={subeditionOptions}
               placeholder="Search parallels..."
-              onChange={(value) =>
-                setFilter({ selectedSubedition: value, currentPage: 1 })
+              onChange={(values) =>
+                setFilter({ selectedSubedition: values, currentPage: 1 })
               }
               formatOption={(subId) => {
                 const id = Number(subId);
@@ -625,9 +617,9 @@ export default function MomentSelection(props) {
               }}
               getCount={(subId) => {
                 if (subId === "All") {
-                  return eligibleMoments.length;
+                  return base.baseNoSub.length;
                 }
-                return eligibleMoments.filter((m) => {
+                return base.baseNoSub.filter((m) => {
                   const effectiveSubId =
                     m.subeditionID === null || m.subeditionID === undefined
                       ? 0
@@ -636,7 +628,69 @@ export default function MomentSelection(props) {
                 }).length;
               }}
             />
+          </div>
         </div>
+
+      {/* Actions Row - at the end */}
+      <div className="pt-2 border-t border-brand-border/30">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing || cooldown}
+            title={
+              cooldown
+                ? "Please wait a few seconds before refreshing again"
+                : "Refresh snapshots"
+            }
+            className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-50 select-none h-[28px]"
+          >
+            <RefreshCw
+              size={14}
+              className={`${isRefreshing ? "animate-spin" : ""} text-opolis`}
+            />
+            <span className="text-[10px] text-brand-text/60">
+              {elapsed}
+            </span>
+          </button>
+          <button
+            aria-label="Filter settings"
+            onClick={() => setShowPrefs(true)}
+            className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+            title={currentPrefKey ? `Filter: ${currentPrefKey}` : "Filter: None"}
+          >
+            <SettingsIcon
+              size={14}
+              strokeWidth={2}
+              className="text-opolis"
+            />
+            {currentPrefKey && (
+              <span className="text-[10px] text-brand-text/60 truncate max-w-[60px]">
+                {currentPrefKey}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setFilter({
+                selectedTiers: tierOptions,
+                selectedSeries: seriesOptions,
+                selectedSetName: [],
+                selectedLeague: leagueOptions,
+                selectedTeam: [],
+                selectedPlayer: [],
+                selectedSubedition: [],
+                excludeSpecialSerials: true,
+                excludeLowSerials: true,
+                currentPage: 1,
+              });
+            }}
+            className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+          >
+            <X size={13} />
+            Reset
+          </button>
+        </div>
+      </div>
       </div>
 
       {/* Selection limit warning */}
@@ -650,7 +704,7 @@ export default function MomentSelection(props) {
       <div className="border-t border-brand-border/30 my-3" />
 
       {/* Top pagination - "Showing X of Y" on same row as controls */}
-      {pageCount > 1 && (
+      {pageCount >= 1 && eligibleMoments.length > 0 && (
         <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           <p className="text-sm text-brand-text/70 whitespace-nowrap">
@@ -739,7 +793,7 @@ export default function MomentSelection(props) {
       )}
 
       {/* Bottom pagination - "Showing X of Y" on same row as controls */}
-      {pageCount > 1 && (
+      {pageCount >= 1 && eligibleMoments.length > 0 && (
         <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           <p className="text-sm text-brand-text/70 whitespace-nowrap">
@@ -799,9 +853,6 @@ export default function MomentSelection(props) {
           </div>
         </div>
       )}
-
-      {/* Close filter sections container */}
-      </div>
 
       {/* prefs modal */}
       {showPrefs && (

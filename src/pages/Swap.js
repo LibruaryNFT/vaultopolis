@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useSearchParams } from "react-router-dom";
 import { UserDataContext } from "../context/UserContext";
 import { useAnnouncement } from "../context/AnnouncementContext";
 import { useTransactionCenter } from "../context/TransactionCenterContext";
@@ -58,6 +59,8 @@ function getOppositeAsset(asset) {
 }
 
 const Swap = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   const {
     user,
     accountData,
@@ -454,7 +457,7 @@ const Swap = () => {
                   setToInput("");
                 }}
               />
-              <div className="bg-brand-primary shadow-md px-1 py-1 rounded -mt-2">
+              <div className="px-1 py-1 -mt-2">
                 <AccountSelection
                   parentAccount={{
                     addr: accountData?.parentAddress,
@@ -723,6 +726,9 @@ const Swap = () => {
         dispatch={dispatch}
         maxTSHOTAmount={maxTSHOTAmount}
         onMaxClick={handleMaxClick}
+        syncFiltersWithURL={true}
+        searchParams={searchParams}
+        setSearchParams={setSearchParams}
       />
     </>
   );

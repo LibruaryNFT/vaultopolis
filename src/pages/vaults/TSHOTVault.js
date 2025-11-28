@@ -42,44 +42,40 @@ function TSHOTVaultPage() {
 
       {/* TSHOT Vault Contents */}
       <div className="w-full pt-4">
-        <div className="bg-brand-primary rounded-lg border border-brand-border overflow-hidden mb-4">
-          <div className="p-4 sm:p-6 border-b border-brand-border">
-            <div className="max-w-6xl mx-auto px-3 sm:px-4">
-              <div className="flex items-center gap-3 mb-4">
-                <img
-                  src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-                  alt="TSHOT"
-                  className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
-                />
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-brand-text">
-                    TSHOT Vault Contents
-                  </h2>
-                  <p className="text-sm text-brand-text/70 mt-1">
-                    1:1 Backed • Transparent • On-Chain
-                  </p>
-                </div>
+        <div className="px-3 sm:px-4">
+          <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-6 border-b border-brand-border/30 mb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <img
+                src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
+                alt="TSHOT"
+                className="w-12 h-12 sm:w-16 sm:h-16 object-contain"
+              />
+              <div>
+                <h2 className="text-xl sm:text-2xl font-bold text-brand-text">
+                  TSHOT Vault Contents
+                </h2>
+                <p className="text-sm text-brand-text/70 mt-1">
+                  1:1 Backed • Transparent • On-Chain
+                </p>
               </div>
-              <p className="text-sm sm:text-base text-brand-text/80 leading-relaxed mb-3">
-                This vault holds the NBA Top Shot digital collectibles that back TSHOT tokens. 
-                Every TSHOT is 1:1 collateralized by a moment in this vault. Contents update in real time as users mint or redeem TSHOT.
-              </p>
-              <p className="text-sm text-brand-text/70">
-                <Link 
-                  to="/tshot" 
-                  className="inline-flex items-center gap-1 text-brand-accent hover:text-brand-accent/80 underline font-medium transition-colors"
-                >
-                  Learn more about TSHOT →
-                </Link>
-              </p>
             </div>
+            <p className="text-sm sm:text-base text-brand-text/80 leading-relaxed mb-3">
+              This vault holds the NBA Top Shot digital collectibles that back TSHOT tokens. 
+              Every TSHOT is 1:1 collateralized by a moment in this vault. Contents update in real time as users mint or redeem TSHOT.
+            </p>
+            <p className="text-sm text-brand-text/70">
+              <Link 
+                to="/tshot" 
+                className="inline-flex items-center gap-1 text-brand-accent hover:text-brand-accent/80 underline font-medium transition-colors"
+              >
+                Learn more about TSHOT →
+              </Link>
+            </p>
           </div>
-          
-          <div className="p-3 sm:p-4">
-            <div className="max-w-6xl mx-auto px-3 sm:px-4">
-              <TSHOTVault />
-            </div>
-          </div>
+        </div>
+        
+        <div className="w-full px-3 sm:px-4">
+          <TSHOTVault />
         </div>
       </div>
     </>
