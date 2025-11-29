@@ -442,7 +442,7 @@ const Transfer = () => {
       {/* Simple page title */}
       <div className="w-full mb-2">
         <h1 className="text-xl sm:text-2xl font-semibold text-brand-text">
-          Transfer Moments
+          Bulk Transfer
         </h1>
       </div>
 
@@ -585,7 +585,7 @@ const Transfer = () => {
       )}
 
       {/* 2) Main area */}
-      <div className="w-full">
+      <div className="w-full pb-8">
         <div className="space-y-1.5">
           <div className="px-1 py-0.5 pt-2 border-t border-brand-border/30 flex flex-wrap gap-2 w-full">
             <AccountSelection

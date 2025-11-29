@@ -189,7 +189,7 @@ export default function MultiSelectFilterPopover({
           type="button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded border text-xs sm:text-sm px-3 py-1.5 transition-all",
-            "bg-brand-primary text-brand-text/80 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis",
+            "bg-brand-secondary text-brand-text/80 hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis",
             "flex-shrink-0 whitespace-nowrap",
             (showAsAllSelected || normalizedSelected.items.length > 0 || (emptyMeansAll && normalizedSelected.items.length === 0))
               ? "border-2 border-opolis"

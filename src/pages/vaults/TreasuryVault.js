@@ -1,25 +1,30 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import GrailBountiesVault from "../../components/GrailBountiesVault";
 
 function TreasuryVaultPage() {
+  const location = useLocation();
+  const baseUrl = "https://vaultopolis.com";
+  const canonicalUrl = `${baseUrl}${location.pathname}`;
+  const pageTitle = "Vaultopolis - Grail Bounties Vault";
+  
   return (
     <>
       <Helmet>
-        <title>Grail Bounties Vault | Treasury-Held NBA Top Shot Moments | Vaultopolis</title>
+        <title>{pageTitle}</title>
         <meta
           name="description"
           content="Browse the NBA Top Shot Moments held by the Grail Bounties Vault. Explore the collection available for trading and offers."
         />
         <meta name="keywords" content="grail bounties vault, treasury moments, nba top shot treasury, vaultopolis treasury, treasury collection" />
-        <link rel="canonical" href="https://vaultopolis.com/vaults/treasury" />
+        <link rel="canonical" href={canonicalUrl} />
         
         {/* Open Graph Tags */}
         <meta property="og:title" content="Grail Bounties Vault | Treasury-Held NBA Top Shot Moments" />
         <meta property="og:description" content="Browse the NBA Top Shot Moments held by the Grail Bounties Vault." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://vaultopolis.com/vaults/treasury" />
+        <meta property="og:url" content={canonicalUrl} />
         <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/TSHOT.png" />
         
         {/* Twitter Card Tags */}

@@ -1,25 +1,30 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import TSHOTVault from "../../components/TSHOTVault";
 
 function TSHOTVaultPage() {
+  const location = useLocation();
+  const baseUrl = "https://vaultopolis.com";
+  const canonicalUrl = `${baseUrl}${location.pathname}`;
+  const pageTitle = "Vaultopolis - TSHOT Vault";
+  
   return (
     <>
       <Helmet>
-        <title>TSHOT Vault | NBA Top Shot Moments Backing TSHOT | Vaultopolis</title>
+        <title>{pageTitle}</title>
         <meta
           name="description"
           content="Browse the complete collection of NBA Top Shot Moments backing TSHOT tokens. Explore Common and Fandom Moments in the Vaultopolis vault."
         />
         <meta name="keywords" content="tshot vault, nba top shot moments, nft gallery, vaultopolis vault, tshot backing, nft collection" />
-        <link rel="canonical" href="https://vaultopolis.com/vaults/tshot" />
+        <link rel="canonical" href={canonicalUrl} />
         
         {/* Open Graph Tags */}
         <meta property="og:title" content="TSHOT Vault | NBA Top Shot Moments Backing TSHOT" />
         <meta property="og:description" content="Browse the complete collection of NBA Top Shot Moments backing TSHOT tokens." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://vaultopolis.com/vaults/tshot" />
+        <meta property="og:url" content={canonicalUrl} />
         <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/TSHOT.png" />
         
         {/* Twitter Card Tags */}
@@ -74,7 +79,7 @@ function TSHOTVaultPage() {
           </div>
         </div>
         
-        <div className="w-full px-3 sm:px-4">
+        <div className="w-full">
           <TSHOTVault />
         </div>
       </div>

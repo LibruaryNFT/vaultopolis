@@ -10,7 +10,6 @@ import React, { useEffect, useMemo, useState, useContext } from "react";
 import { useParams, Navigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import * as fcl from "@onflow/fcl";
-import { BarChart3, Layers, Lock } from "lucide-react";
 import { getFLOWBalance } from "../flow/getFLOWBalance";
 import { getTSHOTBalance } from "../flow/getTSHOTBalance";
 import { getTopShotCollectionIDs } from "../flow/getTopShotCollectionIDs";
@@ -116,9 +115,6 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => 
         {/* Single line: role badge + wallet icon + address/username */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 flex-1 min-w-0">
-            <span className="px-1.5 py-0.5 text-[10px] rounded bg-brand-primary/60 text-brand-text font-semibold whitespace-nowrap border border-brand-border/50">
-              {isParent ? "PARENT" : "CHILD"}
-            </span>
             <div className="flex items-center space-x-1 min-w-0 flex-1">
               {isParent ? (
                 <img
@@ -146,20 +142,21 @@ const AccountCard = ({ acc, idx, hasCollProp, userContextData, allDayData }) => 
                 />
               ))}
               <div className="min-w-0 flex-1">
-                {displayName && isChild ? (
-                  <div className="flex flex-col">
+                <div className="flex flex-col">
+                  {displayName && isChild ? (
                     <span className="text-[11px] leading-snug text-brand-text font-semibold truncate">
                       {displayName}
                     </span>
-                    <span className="text-[10px] leading-snug text-brand-text/60 font-mono break-all select-none truncate">
-                      {acc.addr}
+                  ) : (
+                    <span className="text-[11px] leading-snug text-brand-text/80 font-semibold truncate opacity-0">
+                      {/* Placeholder to maintain alignment */}
+                      &nbsp;
                     </span>
-                  </div>
-                ) : (
-                  <span className="text-[11px] leading-snug text-brand-text/80 font-mono break-all select-none truncate">
+                  )}
+                  <span className={`text-[10px] leading-snug font-mono break-all select-none truncate ${displayName && isChild ? 'text-brand-text/60' : 'text-brand-text/80'}`}>
                     {acc.addr}
                   </span>
-                )}
+                </div>
               </div>
       </div>
           </div>
@@ -233,7 +230,6 @@ function Profile() {
 
   const [viewer, setViewer] = useState(null);
   const [viewerReady, setViewerReady] = useState(false);
-  const [lockedInfoOpen, setLockedInfoOpen] = useState(false);
   
   // Tab state from URL
   const activeTab = searchParams.get('tab') || 'portfolio';
@@ -283,25 +279,11 @@ function Profile() {
   // Prevent locked tab from activating in URL when not owner
   useEffect(() => {
     if (!isOwnProfile && activeTab === "collection") {
-      setLockedInfoOpen(true);
       const newParams = new URLSearchParams(searchParams);
       newParams.set("tab", "portfolio");
       setSearchParams(newParams);
     }
-    if (activeTab === "portfolio") {
-      setLockedInfoOpen(false);
-    }
   }, [activeTab, isOwnProfile, searchParams, setSearchParams]);
-
-  const handleTabSwitch = (target) => {
-    if (target === "collection" && !isOwnProfile) {
-      setLockedInfoOpen(true);
-      return;
-    }
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("tab", target);
-    setSearchParams(newParams);
-  };
 
   const handleCollectionSourceChange = (nextSource) => {
     const newParams = new URLSearchParams(searchParams);
@@ -532,55 +514,10 @@ function Profile() {
         {/* Always render the main structure if walletAddr is present, sections handle their own loading */}
         {walletAddr && (
           <>
-            {/* Tabs - Only show Collection tab when viewing own profile */}
-            <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 mt-3">
-            <div className="max-w-6xl mx-auto px-3 sm:px-4">
-              <div className="inline-flex items-center gap-1 bg-brand-primary/80 rounded-full p-0.5 border border-brand-border/60 shadow-sm" role="tablist" aria-label="Profile sections">
-                <button
-                  onClick={() => handleTabSwitch("portfolio")}
-                  role="tab"
-                  aria-selected={activeTab === "portfolio"}
-                  className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.75 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 ${
-                    activeTab === "portfolio"
-                      ? "bg-brand-secondary text-brand-accent border border-brand-accent shadow-md"
-                      : "text-brand-text/80 border border-transparent hover:bg-brand-secondary/60"
-                  }`}
-                >
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  <span>Portfolio</span>
-                </button>
-                <button
-                  onClick={() => handleTabSwitch("collection")}
-                  role="tab"
-                  aria-selected={activeTab === "collection"}
-                  aria-disabled={!isOwnProfile}
-                  tabIndex={isOwnProfile ? 0 : -1}
-                  className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.75 rounded-full text-[11px] sm:text-xs font-medium transition-all duration-200 relative ${
-                    activeTab === "collection"
-                      ? "bg-brand-secondary text-brand-accent border border-brand-accent shadow-md"
-                      : "text-brand-text/80 border border-transparent hover:bg-brand-secondary/60"
-                  } ${!isOwnProfile ? "opacity-60 cursor-not-allowed" : ""}`}
-                  title={
-                    isOwnProfile
-                      ? "Browse your personal collection"
-                      : "Private - Only visible when viewing your own profile"
-                  }
-                >
-                  {isOwnProfile ? (
-                    <Layers className="w-3.5 h-3.5" />
-                  ) : (
-                    <Lock className="w-3.5 h-3.5" />
-                  )}
-                  <span>My Collection</span>
-                </button>
-              </div>
-              {!isOwnProfile && (
-                <p className="mt-2 text-[11px] sm:text-xs text-brand-text/65 text-center">
-                  🔒 My Collection is private to this wallet’s owner.
-                </p>
-              )}
-              {lockedInfoOpen && !isOwnProfile && (
-                <div className="mt-3 rounded-lg border border-brand-accent/50 bg-brand-secondary/20 p-3 shadow">
+            {/* Show locked info message if trying to access collection on someone else's profile */}
+            {!isOwnProfile && activeTab === "collection" && (
+              <div className="max-w-6xl mx-auto px-3 sm:px-4 mt-3 mb-4">
+                <div className="rounded-lg border border-brand-accent/50 bg-brand-secondary/20 p-3 shadow">
                   <div className="flex items-start gap-3">
                     <div className="text-xl text-brand-accent">🔒</div>
                     <div className="flex-1">
@@ -590,22 +527,15 @@ function Profile() {
                       <p className="text-xs text-brand-text/70 mt-1 mb-2">
                         To browse a collection you must be logged in and viewing your own profile.
                       </p>
-                      <button
-                        onClick={() => setLockedInfoOpen(false)}
-                        className="text-xs font-semibold text-brand-accent hover:text-brand-accent/80 transition-colors"
-                      >
-                        Dismiss
-                      </button>
                     </div>
                   </div>
                 </div>
-              )}
               </div>
-            </div>
+            )}
 
             {/* Tab Content */}
             {activeTab === 'portfolio' && (
-              <div className="max-w-6xl mx-auto px-3 sm:px-4">
+              <div className="max-w-6xl mx-auto px-1 sm:px-4 mt-4">
             {/* Portfolio Summary Table */}
             <div className="rounded-lg shadow border border-brand-primary mb-6">
               <div className="">
@@ -752,6 +682,7 @@ function Profile() {
               </p>
             )}
             {!isRefreshing && accountData?.parentAddress?.toLowerCase() === walletAddr?.toLowerCase() && (
+              <div className="max-w-6xl mx-auto px-1 sm:px-4">
               <div className="rounded-lg shadow border border-brand-primary mb-6">
                 <div className="">
                 <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
@@ -807,6 +738,7 @@ function Profile() {
                   </div>
                 </div>
               </div>
+              </div>
                 </div>
             )}
             {/* Hide missing data note for public profiles; only show when viewing own profile */}
@@ -830,6 +762,7 @@ function Profile() {
             )}
 
             {/* User Activity: Swap History */}
+            <div className="max-w-6xl mx-auto px-1 sm:px-4">
             <div className="rounded-lg shadow border border-brand-primary mb-6">
               <div className="">
               <div className="bg-brand-secondary px-3 py-2 rounded-t-lg">
@@ -966,7 +899,8 @@ function Profile() {
               </div>
               </div>
             </div>
-              </div>
+            </div>
+            </div>
             )}
 
             {/* Collection Tab Content - Only shown when viewing own profile */}

@@ -1,6 +1,7 @@
 // Migrate implementation from Offers.js: import and re-export default
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { UserDataContext } from "../context/UserContext";
 import { useAllDayContext } from "../context/AllDayContext";
 import { useTransactionCenter } from "../context/TransactionCenterContext";
@@ -19,6 +20,13 @@ import { convertFlowToUSD, convertFlowToUSDSync, formatUSD, getFlowPrice } from 
 import { Lock, Trophy } from "lucide-react";
 
 export default function Bounties({ collectionType = 'topshot' }) {
+  const location = useLocation();
+  const baseUrl = "https://vaultopolis.com";
+  const canonicalUrl = `${baseUrl}${location.pathname}`;
+  const pageTitle = collectionType === 'allday' 
+    ? "Vaultopolis - All Day Bounties"
+    : "Vaultopolis - Top Shot Bounties";
+  
   const {
     accountData,
     selectedAccount,
@@ -682,9 +690,45 @@ export default function Bounties({ collectionType = 'topshot' }) {
   }, [txStatus, smartRefreshUserData, fetchOffers]);
 
   return (
-    <div className="w-full space-y-2 pt-4">
-      {/* Page Header with Description */}
-      <div className="bg-brand-primary p-4 sm:p-6 rounded-lg mb-4 border border-brand-border">
+    <>
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta
+          name="description"
+          content={collectionType === 'allday' 
+            ? "Browse and accept NFL AllDay Grail Bounty offers from the Vaultopolis treasury. Trade your matching moments for premium FLOW rewards."
+            : "Browse and accept NBA Top Shot Grail Bounty offers from the Vaultopolis treasury. Trade your matching moments for premium FLOW rewards."}
+        />
+        <meta name="keywords" content={collectionType === 'allday' 
+          ? "grail bounties, nfl allday bounties, vaultopolis treasury, allday offers, nfl moments"
+          : "grail bounties, nba top shot bounties, vaultopolis treasury, topshot offers, nba moments"} />
+        <link rel="canonical" href={canonicalUrl} />
+        
+        {/* Open Graph Tags */}
+        <meta property="og:title" content={collectionType === 'allday' 
+          ? "All Day Grail Bounties | Vaultopolis Treasury Offers"
+          : "Top Shot Grail Bounties | Vaultopolis Treasury Offers"} />
+        <meta property="og:description" content={collectionType === 'allday' 
+          ? "Browse and accept NFL AllDay Grail Bounty offers from the Vaultopolis treasury."
+          : "Browse and accept NBA Top Shot Grail Bounty offers from the Vaultopolis treasury."} />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/TSHOT.png" />
+        
+        {/* Twitter Card Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={collectionType === 'allday' 
+          ? "All Day Grail Bounties | Vaultopolis Treasury Offers"
+          : "Top Shot Grail Bounties | Vaultopolis Treasury Offers"} />
+        <meta name="twitter:description" content={collectionType === 'allday' 
+          ? "Browse and accept NFL AllDay Grail Bounty offers from the Vaultopolis treasury."
+          : "Browse and accept NBA Top Shot Grail Bounty offers from the Vaultopolis treasury."} />
+        <meta name="twitter:image" content="https://storage.googleapis.com/vaultopolis/TSHOT.png" />
+      </Helmet>
+      
+      <div className="w-full space-y-2 pt-4 pb-8">
+        {/* Page Header with Description */}
+        <div className="mb-4">
         <div className="max-w-6xl mx-auto px-3 sm:px-4">
           <div className="flex items-center gap-3 mb-4">
             <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-brand-text" />
@@ -726,7 +770,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
       {/* Overview + Stats */}
 
       {!loading && !error && displayedOffers.length > 0 && (
-        <div className="bg-brand-primary p-3 sm:p-4 rounded-lg mb-4 border border-brand-border">
+        <div className="mb-4">
           <div className="max-w-6xl mx-auto px-3 sm:px-4">
             <div className="mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-brand-text mb-3">
@@ -795,7 +839,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
       )}
 
       {/* Active Grail Bounties Section */}
-      <section className="bg-brand-primary p-4 rounded-lg mb-4 border border-brand-border">
+      <section className="mb-4 pb-8">
         <div className="max-w-6xl mx-auto px-3 sm:px-4">
           <div className="mb-4">
             <h2 className="text-xl font-bold text-brand-text mb-2">
@@ -851,9 +895,9 @@ export default function Bounties({ collectionType = 'topshot' }) {
         </div>
       </section>
 
-      {/* Matching Moments Section */}
-      {accountData && accountData.parentAddress && (
-        <section className="bg-brand-primary p-4 rounded-lg mb-4 border border-brand-border">
+      {/* Matching Moments Section - Only show if there are active bounties */}
+      {accountData && accountData.parentAddress && displayedOffers.length > 0 && (
+        <section className="mb-4">
           <div className="max-w-6xl mx-auto px-3 sm:px-4">
             <div className="mb-4">
               {(() => {
@@ -1059,6 +1103,7 @@ export default function Bounties({ collectionType = 'topshot' }) {
 
       {/* Transaction Modal is now global - rendered in App.js via TransactionDrawer */}
     </div>
+    </>
   );
 }
 

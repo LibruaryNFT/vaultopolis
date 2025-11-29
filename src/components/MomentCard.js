@@ -133,6 +133,9 @@ const MomentCard = ({
 
   const playerName = getDisplayedName(nft);
   const seriesText = getSeriesDisplayText(nft?.series, collectionType);
+  
+  // For parallel moments (subeditionID exists), use subeditionMaxMint
+  // For standard moments, use momentCount
   const finalMintCount = nft?.subeditionID
     ? nft?.subeditionMaxMint
     : nft?.momentCount;
@@ -141,8 +144,9 @@ const MomentCard = ({
   const serialNumber = formatNumber(nft?.serialNumber, false);
   const mintCount = formatNumber(finalMintCount, true);
   
-  // Show subeditionMaxMint if it's 4 digits or less (≤9999)
-  const showSubeditionMint = nft?.subeditionMaxMint && Number(nft.subeditionMaxMint) <= 9999;
+  // Don't show subeditionMintDisplay for parallel moments because mintCount already uses subeditionMaxMint
+  // Only show it for standard moments that have a subeditionMaxMint value (edge case)
+  const showSubeditionMint = !nft?.subeditionID && nft?.subeditionMaxMint && Number(nft.subeditionMaxMint) <= 9999;
   const subeditionMintDisplay = showSubeditionMint ? ` /${nft.subeditionMaxMint}` : "";
 
   // Tier color classes from tierStyles, fallback "text-gray-400"

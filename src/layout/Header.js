@@ -1,6 +1,6 @@
 import React, { useContext, useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { UserCircle, Menu, X, Trophy, ArrowRightLeft, Layers } from "lucide-react";
+import { UserCircle, Menu, X, Trophy, ArrowRightLeft, Layers, Send } from "lucide-react";
 import * as fcl from "@onflow/fcl";
 
 import { UserDataContext } from "../context/UserContext";
@@ -28,6 +28,7 @@ const Header = () => {
   // Determine if we should show sub-navigation
   const isVaultsPage = location.pathname.startsWith("/vaults/") || location.pathname === "/vault-contents";
   const isBountiesPage = location.pathname.startsWith("/bounties");
+  const isProfilePage = location.pathname.startsWith("/profile");
   
   // Determine active sub-item
   const activeVaultSubItem = location.pathname.includes("topshotgrails") 
@@ -37,6 +38,10 @@ const Header = () => {
     : "tshot";
   
   const activeBountySubItem = location.pathname.includes("/allday") ? "allday" : "topshot";
+  
+  // Determine active Profile sub-item from URL search params
+  const profileTab = new URLSearchParams(location.search).get('tab') || 'portfolio';
+  const activeProfileSubItem = profileTab === 'collection' ? 'collection' : 'portfolio';
 
   const toggleMenu = () => setIsMenuOpen((p) => !p);
   const connectWallet = () => fcl.authenticate();
@@ -122,6 +127,16 @@ const Header = () => {
             <span>Grail Bounties</span>
           </NavLink>
 
+          <div className="w-px h-6 bg-white/20" />
+
+          <NavLink 
+            to="/transfer" 
+            isActive={location.pathname === "/transfer"}
+          >
+            <Send className="w-4 h-4 sm:w-4 sm:h-4" />
+            <span>Bulk Transfer</span>
+          </NavLink>
+
         </nav>
 
         {/* ── Right: notifications + connect / account ── */}
@@ -154,7 +169,7 @@ const Header = () => {
       </div>
 
       {/* ── Sub-Navigation Bar ── */}
-      {(isVaultsPage || isBountiesPage) && (
+      {(isVaultsPage || isBountiesPage || isProfilePage) && (
         <div className="border-b border-brand-border bg-brand-primary relative z-40">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 pb-0">
             <nav className="flex flex-wrap items-center gap-2 sm:gap-6">
@@ -204,6 +219,35 @@ const Header = () => {
                   </SubNavButton>
                 </>
               )}
+              {isProfilePage && (
+                <>
+                  <SubNavButton
+                    onClick={() => {
+                      const currentPath = location.pathname;
+                      const newParams = new URLSearchParams(location.search);
+                      newParams.set('tab', 'portfolio');
+                      navigate(`${currentPath}?${newParams.toString()}`);
+                    }}
+                    isActive={activeProfileSubItem === "portfolio"}
+                  >
+                    <UserCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span>Portfolio</span>
+                  </SubNavButton>
+                  <div className="w-px h-3 sm:h-4 bg-white/20 flex-shrink-0" />
+                  <SubNavButton
+                    onClick={() => {
+                      const currentPath = location.pathname;
+                      const newParams = new URLSearchParams(location.search);
+                      newParams.set('tab', 'collection');
+                      navigate(`${currentPath}?${newParams.toString()}`);
+                    }}
+                    isActive={activeProfileSubItem === "collection"}
+                  >
+                    <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span>My Collection</span>
+                  </SubNavButton>
+                </>
+              )}
             </nav>
           </div>
         </div>
@@ -232,6 +276,11 @@ const Header = () => {
                 <Trophy className="w-4 h-4 sm:w-4 sm:h-4" />
                 <span>Grail Bounties</span>
               </MobileNavLink>
+              <div className="w-full h-px bg-white/20" />
+              <MobileNavLink to="/transfer" isActive={location.pathname === "/transfer"} onClick={closeMobileMenu}>
+                <Send className="w-4 h-4 sm:w-4 sm:h-4" />
+                <span>Bulk Transfer</span>
+              </MobileNavLink>
             </div>
           </div>
         </>
@@ -245,30 +294,30 @@ const Header = () => {
 const NavLink = ({ to, isActive, children, className = "" }) => (
   <Link
     to={to}
-    className={`py-1 px-2.5 whitespace-nowrap select-none font-semibold text-base text-brand-text flex items-center justify-center gap-1.5 relative ${isActive ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"} transition-opacity duration-200 ${className}`}
+    className={`py-1 px-2.5 whitespace-nowrap select-none font-semibold text-base flex items-center justify-center gap-1.5 relative ${isActive ? "opacity-100 font-bold text-opolis" : "opacity-70 hover:opacity-100 text-brand-text"} transition-opacity duration-200 ${className}`}
   >
     {children}
-    {isActive && <div className="absolute left-0 right-0 h-1.5 bg-opolis" style={{ bottom: '-10px' }} />}
+    {isActive && <div className="absolute left-1/2 -translate-x-1/2 w-[150%] h-1.5 bg-opolis" style={{ bottom: '-10px' }} />}
   </Link>
 );
 
 const SubNavLink = ({ to, isActive, children, className = "" }) => (
   <Link
     to={to}
-    className={`inline-flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-1.5 sm:px-2.5 whitespace-nowrap select-none font-semibold text-xs sm:text-base text-brand-text relative flex-shrink-0 ${isActive ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"} transition-opacity duration-200 ${className}`}
+    className={`inline-flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-1.5 sm:px-2.5 whitespace-nowrap select-none font-semibold text-xs sm:text-base relative flex-shrink-0 ${isActive ? "opacity-100 font-bold text-opolis" : "opacity-70 hover:opacity-100 text-brand-text"} transition-opacity duration-200 ${className}`}
   >
     {children}
-    {isActive && <div className="absolute left-0 right-0 h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
+    {isActive && <div className="absolute left-1/2 -translate-x-1/2 w-[calc(100%+0.5rem)] h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
   </Link>
 );
 
 const SubNavButton = ({ onClick, isActive, children, className = "" }) => (
   <button
     onClick={onClick}
-    className={`inline-flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-1.5 sm:px-2.5 whitespace-nowrap select-none font-semibold text-xs sm:text-base text-brand-text relative flex-shrink-0 ${isActive ? "opacity-100 font-bold" : "opacity-70 hover:opacity-100"} transition-opacity duration-200 ${className}`}
+    className={`inline-flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-1.5 sm:px-2.5 whitespace-nowrap select-none font-semibold text-xs sm:text-base relative flex-shrink-0 ${isActive ? "opacity-100 font-bold text-opolis" : "opacity-70 hover:opacity-100 text-brand-text"} transition-opacity duration-200 ${className}`}
   >
     {children}
-    {isActive && <div className="absolute left-0 right-0 h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
+    {isActive && <div className="absolute left-1/2 -translate-x-1/2 w-[calc(100%+0.5rem)] h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
   </button>
 );
 
@@ -276,7 +325,7 @@ const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
   <Link
     to={to}
     onClick={onClick}
-    className={`w-full py-4 hover:opacity-80 select-none text-sm text-brand-text flex items-center justify-center gap-1.5 ${isActive ? "font-bold border-t-2 border-b-2 border-opolis" : ""} ${className}`}
+    className={`w-full py-4 hover:opacity-80 select-none text-sm flex items-center justify-center gap-1.5 ${isActive ? "font-bold border-t-2 border-b-2 border-opolis text-opolis" : "text-brand-text"} ${className}`}
   >
     {children}
   </Link>

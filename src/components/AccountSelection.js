@@ -31,8 +31,8 @@ const AccountBox = ({
         p-1 sm:p-1.5 w-28 sm:w-36 rounded transition-all flex-shrink-0 select-none relative
         ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
         ${isSelected 
-          ? "bg-brand-primary border-2 border-opolis" 
-          : "bg-brand-primary border-2 border-transparent hover:opacity-80"
+          ? "bg-brand-secondary border-2 border-opolis" 
+          : "bg-brand-secondary border-2 border-transparent hover:opacity-80"
         }
         ${
           isDisabled

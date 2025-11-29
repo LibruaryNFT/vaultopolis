@@ -388,7 +388,7 @@ export default function MomentSelection(props) {
 
   /* ───────── render ───────── */
   return (
-    <div className="text-brand-text p-2 w-full space-y-2 relative border-t border-brand-border/30 pt-2">
+    <div className="text-brand-text p-1.5 pl-3 w-full space-y-1.5 relative">
       {/* Refresh indicator overlay */}
       {isRefreshing && accountData.hasCollection && (
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2 text-xs text-brand-text/70 bg-brand-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-brand-border shadow-md">
@@ -397,65 +397,67 @@ export default function MomentSelection(props) {
         </div>
       )}
       {/* Filter Sections */}
-      <div className="space-y-2">
-        {/* Row 1: Safety Filters */}
-        <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold text-xs sm:text-sm mr-1 whitespace-nowrap">
-          Exclusions:
-        </span>
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Permanent Locked Exclusion - always active when showLockedMoments is false */}
-          {!props.showLockedMoments && (
-            <div
-              className={`
-                px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
-                whitespace-normal h-[28px] flex items-center gap-1
-                bg-brand-primary border-2 border-opolis text-opolis opacity-90
-                cursor-not-allowed
-              `}
-              title="Locked moments are permanently excluded and cannot be selected"
-            >
-              <span>🔒</span>
-              <span>Locked</span>
+      <div className="space-y-1.5 -mx-2 -mt-2">
+        {/* Exclusions Section */}
+        <div className="py-1 pl-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-xs sm:text-sm mr-1 whitespace-nowrap">
+              Exclusions:
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Permanent Locked Exclusion - always active when showLockedMoments is false */}
+              {!props.showLockedMoments && (
+                <div
+                  className={`
+                    px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
+                    whitespace-normal h-[28px] flex items-center gap-1
+                    bg-brand-secondary border-2 border-opolis text-opolis opacity-90
+                    cursor-not-allowed
+                  `}
+                  title="Locked moments are permanently excluded and cannot be selected"
+                >
+                  <span>🔒</span>
+                  <span>Locked</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
+                }
+                className={`
+                  px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
+                  transition-all duration-200 whitespace-normal h-[28px]
+                  ${filter.excludeSpecialSerials
+                    ? 'bg-brand-secondary border-2 border-opolis text-opolis'
+                    : 'bg-brand-secondary border-2 border-transparent text-brand-text/80 hover:opacity-80'
+                  }
+                `}
+              >
+                #1 / Jersey / Last Mint
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
+                }
+                className={`
+                  px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
+                  transition-all duration-200 whitespace-normal h-[28px]
+                  ${filter.excludeLowSerials
+                    ? 'bg-brand-secondary border-2 border-opolis text-opolis'
+                    : 'bg-brand-secondary border-2 border-transparent text-brand-text/80 hover:opacity-80'
+                  }
+                `}
+              >
+                Serial ≤ 4000
+              </button>
             </div>
-          )}
-          <button
-            type="button"
-            onClick={() =>
-              setFilter({ excludeSpecialSerials: !filter.excludeSpecialSerials, currentPage: 1 })
-            }
-            className={`
-              px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
-              transition-all duration-200 whitespace-normal h-[28px]
-              ${filter.excludeSpecialSerials
-                ? 'bg-brand-primary border-2 border-opolis text-opolis'
-                : 'bg-brand-primary border-2 border-transparent text-brand-text/80 hover:opacity-80'
-              }
-            `}
-          >
-            #1 / Jersey / Last Mint
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              setFilter({ excludeLowSerials: !filter.excludeLowSerials, currentPage: 1 })
-            }
-            className={`
-              px-2.5 py-1.5 rounded text-[10px] sm:text-xs font-medium leading-tight
-              transition-all duration-200 whitespace-normal h-[28px]
-              ${filter.excludeLowSerials
-                ? 'bg-brand-primary border-2 border-opolis text-opolis'
-                : 'bg-brand-primary border-2 border-transparent text-brand-text/80 hover:opacity-80'
-              }
-            `}
-          >
-            Serial ≤ 4000
-          </button>
+          </div>
         </div>
-      </div>
 
       {/* Regular Filters */}
-      <div className="pt-2 border-t border-brand-border/30">
+      <div className="py-1 pl-2">
         <div className="flex flex-wrap items-center gap-2">
             <MultiSelectFilterPopover
               label="Series"
@@ -632,7 +634,7 @@ export default function MomentSelection(props) {
         </div>
 
       {/* Actions Row - at the end */}
-      <div className="pt-2 border-t border-brand-border/30">
+      <div className="py-1 pl-2">
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleRefresh}
@@ -642,7 +644,7 @@ export default function MomentSelection(props) {
                 ? "Please wait a few seconds before refreshing again"
                 : "Refresh snapshots"
             }
-            className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-50 select-none h-[28px]"
+            className="inline-flex items-center gap-1 rounded bg-brand-secondary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-50 select-none h-[28px]"
           >
             <RefreshCw
               size={14}
@@ -655,7 +657,7 @@ export default function MomentSelection(props) {
           <button
             aria-label="Filter settings"
             onClick={() => setShowPrefs(true)}
-            className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+            className="inline-flex items-center gap-1 rounded bg-brand-secondary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
             title={currentPrefKey ? `Filter: ${currentPrefKey}` : "Filter: None"}
           >
             <SettingsIcon
@@ -684,7 +686,7 @@ export default function MomentSelection(props) {
                 currentPage: 1,
               });
             }}
-            className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+            className="inline-flex items-center gap-1 rounded bg-brand-secondary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
           >
             <X size={13} />
             Reset
@@ -700,12 +702,11 @@ export default function MomentSelection(props) {
         </div>
       )}
 
-      {/* Divider between filters and results */}
-      <div className="border-t border-brand-border/30 my-3" />
-
-      {/* Top pagination - "Showing X of Y" on same row as controls */}
-      {pageCount >= 1 && eligibleMoments.length > 0 && (
-        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+      {/* Pagination and Moment Cards Section - Different background - Full width, no rounded corners, starts at left edge */}
+      <div className="bg-brand-secondary py-2 -ml-3 w-[calc(100%+0.75rem)]">
+        {/* Top pagination - "Showing X of Y" on same row as controls */}
+        {pageCount >= 1 && eligibleMoments.length > 0 && (
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4 px-3">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           <p className="text-sm text-brand-text/70 whitespace-nowrap">
             <span className="hidden sm:inline">Showing </span>
@@ -767,13 +768,13 @@ export default function MomentSelection(props) {
 
       {/* Show skeletons during initial load */}
       {isInitialLoading ? (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 px-3">
           {[...Array(20)].map((_, i) => (
             <MomentCardSkeleton key={`skeleton-${i}`} />
           ))}
         </div>
       ) : (
-        <div className={`grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center ${isRefreshing && accountData.hasCollection ? 'opacity-60' : ''}`}>
+        <div className={`grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 px-3 ${isRefreshing && accountData.hasCollection ? 'opacity-60' : ''}`}>
           {pageSlice.map((n) => (
             <MomentCard
               key={n.id}
@@ -792,9 +793,9 @@ export default function MomentSelection(props) {
         </div>
       )}
 
-      {/* Bottom pagination - "Showing X of Y" on same row as controls */}
-      {pageCount >= 1 && eligibleMoments.length > 0 && (
-        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
+        {/* Bottom pagination - "Showing X of Y" on same row as controls */}
+        {pageCount >= 1 && eligibleMoments.length > 0 && (
+          <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4 px-3">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           <p className="text-sm text-brand-text/70 whitespace-nowrap">
             <span className="hidden sm:inline">Showing </span>
@@ -852,7 +853,8 @@ export default function MomentSelection(props) {
             />
           </div>
         </div>
-      )}
+        )}
+      </div>
 
       {/* prefs modal */}
       {showPrefs && (

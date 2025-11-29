@@ -1,26 +1,31 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Trophy } from "lucide-react";
 import AllDayGrailsVault from "../../components/AllDayGrailsVault";
 
 function AllDayGrailsVaultPage() {
+  const location = useLocation();
+  const baseUrl = "https://vaultopolis.com";
+  const canonicalUrl = `${baseUrl}${location.pathname}`;
+  const pageTitle = "Vaultopolis - AllDay Grail Bounties Vault";
+  
   return (
     <>
       <Helmet>
-        <title>AllDay Grail Bounties Vault | Treasury-Held NFL AllDay Moments | Vaultopolis</title>
+        <title>{pageTitle}</title>
         <meta
           name="description"
           content="Browse the NFL AllDay Moments held by the Grail Bounties Vault. Explore the collection available for trading and offers."
         />
         <meta name="keywords" content="grail bounties vault, treasury moments, nfl allday treasury, vaultopolis treasury, allday grails" />
-        <link rel="canonical" href="https://vaultopolis.com/vaults/alldaygrails" />
+        <link rel="canonical" href={canonicalUrl} />
         
         {/* Open Graph Tags */}
         <meta property="og:title" content="AllDay Grail Bounties Vault | Treasury-Held NFL AllDay Moments" />
         <meta property="og:description" content="Browse the NFL AllDay Moments held by the Grail Bounties Vault." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://vaultopolis.com/vaults/alldaygrails" />
+        <meta property="og:url" content={canonicalUrl} />
         <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/TSHOT.png" />
         
         {/* Twitter Card Tags */}
@@ -70,7 +75,7 @@ function AllDayGrailsVaultPage() {
           </div>
         </div>
         
-        <div className="w-full px-3 sm:px-4">
+        <div className="w-full">
           <AllDayGrailsVault />
         </div>
       </div>

@@ -240,36 +240,64 @@ const SwapApplication = ({
         {/* Moment selection and account management - Only for logged-in users */}
         {fromAsset === "TopShot Common / Fandom" &&
           accountData?.parentAddress && (
-            <div className="w-full p-0 space-y-1.5 mb-2">
-              {/* Account Selection (left-aligned, not full width) */}
-              <div className="px-1 py-0.5 pt-2 border-t border-brand-border/30 flex flex-wrap gap-2 w-full">
-                <AccountSelection
-                  parentAccount={{
-                    addr: accountData?.parentAddress,
-                    hasCollection: accountCollections[accountData?.parentAddress],
-                  }}
-                  childrenAddresses={childAddresses}
-                  childrenAccounts={accountData?.childrenData || []}
-                  selectedAccount={selectedAccount}
-                  onSelectAccount={handleSelectAccount}
-                  isLoadingChildren={isLoadingChildren}
-                  requireCollection={true}
-                  labelText="Collection:"
-                  onSetupTopShotCollection={async (address) => {
-                    try {
-                      const txId = await fcl.mutate({
-                        cadence: setupTopShotCollection,
-                        args: (arg, t) => [],
-                        proposer: fcl.authz,
-                        payer: fcl.authz,
-                        authorizations: [fcl.authz],
-                        limit: 9999,
-                      });
+            <div className="w-full p-0 space-y-1 mb-1.5">
+              {/* Filter Section - Single background for Collection + all filters */}
+              <div className="bg-brand-primary rounded py-2 px-1 -mx-1">
+                {/* Account Selection (left-aligned, not full width) */}
+                <div className="px-2 py-1 pt-1.5 flex flex-wrap gap-2 w-full">
+                  <AccountSelection
+                    parentAccount={{
+                      addr: accountData?.parentAddress,
+                      hasCollection: accountCollections[accountData?.parentAddress],
+                    }}
+                    childrenAddresses={childAddresses}
+                    childrenAccounts={accountData?.childrenData || []}
+                    selectedAccount={selectedAccount}
+                    onSelectAccount={handleSelectAccount}
+                    isLoadingChildren={isLoadingChildren}
+                    requireCollection={true}
+                    labelText="Collection:"
+                    onSetupTopShotCollection={async (address) => {
+                      try {
+                        const txId = await fcl.mutate({
+                          cadence: setupTopShotCollection,
+                          args: (arg, t) => [],
+                          proposer: fcl.authz,
+                          payer: fcl.authz,
+                          authorizations: [fcl.authz],
+                          limit: 9999,
+                        });
 
-                      // Wait for transaction to be sealed
-                      await fcl.tx(txId).onceSealed();
+                        // Wait for transaction to be sealed
+                        await fcl.tx(txId).onceSealed();
 
-                      // After successful setup, refresh the account data
+                        // After successful setup, refresh the account data
+                        if (accountData?.parentAddress) {
+                          try {
+                            const hasCollection = await fcl.query({
+                              cadence: verifyTopShotCollection,
+                              args: (arg, t) => [
+                                arg(accountData.parentAddress, t.Address),
+                              ],
+                            });
+                            setAccountCollections((prev) => ({
+                              ...prev,
+                              [accountData.parentAddress]: hasCollection,
+                            }));
+                          } catch (error) {
+                            console.error(
+                              "Error refreshing collection status:",
+                              error
+                            );
+                          }
+                        }
+                      } catch (error) {
+                        console.error("Failed to setup TopShot collection:", error);
+                        throw error; // Re-throw to be handled by AccountSelection
+                      }
+                    }}
+                    onRefreshParentAccount={async () => {
+                      // Refresh the account collections
                       if (accountData?.parentAddress) {
                         try {
                           const hasCollection = await fcl.query({
@@ -289,45 +317,20 @@ const SwapApplication = ({
                           );
                         }
                       }
-                    } catch (error) {
-                      console.error("Failed to setup TopShot collection:", error);
-                      throw error; // Re-throw to be handled by AccountSelection
-                    }
-                  }}
-                  onRefreshParentAccount={async () => {
-                    // Refresh the account collections
-                    if (accountData?.parentAddress) {
-                      try {
-                        const hasCollection = await fcl.query({
-                          cadence: verifyTopShotCollection,
-                          args: (arg, t) => [
-                            arg(accountData.parentAddress, t.Address),
-                          ],
-                        });
-                        setAccountCollections((prev) => ({
-                          ...prev,
-                          [accountData.parentAddress]: hasCollection,
-                        }));
-                      } catch (error) {
-                        console.error(
-                          "Error refreshing collection status:",
-                          error
-                        );
-                      }
-                    }
-                  }}
-                />
-              </div>
+                    }}
+                  />
+                </div>
 
-              {/* Moment Selection (full width) */}
-              <div className="w-full">
-                <MomentSelection
-                  excludeIds={excludedNftIds}
-                  restrictToCommonFandom={true}
-                  syncFiltersWithURL={syncFiltersWithURL}
-                  searchParams={searchParams}
-                  setSearchParams={setSearchParams}
-                />
+                {/* Moment Selection (full width) - filter sections only */}
+                <div className="w-full">
+                  <MomentSelection
+                    excludeIds={excludedNftIds}
+                    restrictToCommonFandom={true}
+                    syncFiltersWithURL={syncFiltersWithURL}
+                    searchParams={searchParams}
+                    setSearchParams={setSearchParams}
+                  />
+                </div>
               </div>
 
               {/* Selected Moments - Collapsible */}

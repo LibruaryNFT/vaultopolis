@@ -4,7 +4,6 @@ import MomentCard from "./MomentCard";
 import { UserDataContext } from "../context/UserContext";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS, getParallelIconUrl } from "../utils/subeditions";
-import FilterPopover from "./FilterPopover";
 import MultiSelectFilterPopover from "./MultiSelectFilterPopover";
 import PageInput from "./PageInput";
 import MomentCardSkeleton from "./MomentCardSkeleton";
@@ -58,10 +57,10 @@ function TSHOTVault({ onSummaryUpdate }) {
     () => ALL_SERIES_OPTIONS
   );
   const [selectedLeague, setSelectedLeague] = useState(["NBA", "WNBA"]);
-  const [selectedSet, setSelectedSet] = useState("All");
-  const [selectedTeam, setSelectedTeam] = useState("All");
-  const [selectedPlayer, setSelectedPlayer] = useState("All");
-  const [selectedSubedition, setSelectedSubedition] = useState("All");
+  const [selectedSet, setSelectedSet] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState([]);
+  const [selectedSubedition, setSelectedSubedition] = useState([]);
   const [onlySpecial, setOnlySpecial] = useState(false);
 
   // State to hold all possible filter options, fetched once from the backend
@@ -184,17 +183,33 @@ function TSHOTVault({ onSummaryUpdate }) {
       params.set("tier", selectedTiers.join(","));
       params.set("series", selectedSeries.join(","));
 
-      // Add all other filters to the query if they are not "All"
+      // Add all other filters to the query if they are not empty (empty = "All")
       if (Array.isArray(selectedLeague) && selectedLeague.length > 0 && selectedLeague.length < 2) {
         // If only one league selected, send it as a string
         params.set("league", selectedLeague[0]);
       } else if (!Array.isArray(selectedLeague) && selectedLeague !== "All") {
         params.set("league", selectedLeague);
       }
-      if (selectedSet !== "All") params.set("setName", selectedSet);
-      if (selectedTeam !== "All") params.set("team", selectedTeam);
-      if (selectedPlayer !== "All") params.set("player", selectedPlayer);
-      if (selectedSubedition !== "All") params.set("subedition", selectedSubedition);
+      if (Array.isArray(selectedSet) && selectedSet.length > 0) {
+        params.set("setName", selectedSet.join(","));
+      } else if (!Array.isArray(selectedSet) && selectedSet !== "All") {
+        params.set("setName", selectedSet);
+      }
+      if (Array.isArray(selectedTeam) && selectedTeam.length > 0) {
+        params.set("team", selectedTeam.join(","));
+      } else if (!Array.isArray(selectedTeam) && selectedTeam !== "All") {
+        params.set("team", selectedTeam);
+      }
+      if (Array.isArray(selectedPlayer) && selectedPlayer.length > 0) {
+        params.set("player", selectedPlayer.join(","));
+      } else if (!Array.isArray(selectedPlayer) && selectedPlayer !== "All") {
+        params.set("player", selectedPlayer);
+      }
+      if (Array.isArray(selectedSubedition) && selectedSubedition.length > 0) {
+        params.set("subedition", selectedSubedition.join(","));
+      } else if (!Array.isArray(selectedSubedition) && selectedSubedition !== "All") {
+        params.set("subedition", selectedSubedition);
+      }
       if (onlySpecial) {
         params.set("specialSerials", "true");
       }
@@ -257,7 +272,7 @@ function TSHOTVault({ onSummaryUpdate }) {
   const VaultBlock = () => (
     <div className="text-brand-text w-full space-y-2">
       {summary && (
-        <div className="bg-brand-secondary p-2 sm:p-3 rounded">
+        <div className="bg-brand-secondary p-2 sm:p-3 rounded px-3 sm:px-4">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-1">
             <Stat label="Total in vault" value={summary.totalInVault} />
             <Stat label="Common" value={summary.totalCommon} />
@@ -317,7 +332,7 @@ function TSHOTVault({ onSummaryUpdate }) {
             </div>
 
             {/* Unified filter row */}
-            <div className="pt-2 border-t border-brand-border/30">
+            <div className="pt-2">
               <div className="flex flex-wrap items-center gap-2">
                 <MultiSelectFilterPopover
                   label="Series"
@@ -372,46 +387,64 @@ function TSHOTVault({ onSummaryUpdate }) {
                   minSelection={1}
                   disabled={loading.moments}
                 />
-                <FilterPopover
+                <MultiSelectFilterPopover
                   label="Set"
-                  selectedValue={selectedSet}
+                  selectedValues={Array.isArray(selectedSet) ? selectedSet : selectedSet === "All" ? [] : [selectedSet]}
                   options={filterOptions?.allSets || []}
                   placeholder="Search sets..."
-                  onChange={(value) =>
-                    handleFilterChange(setSelectedSet, value)
+                  onChange={(values) =>
+                    handleFilterChange(setSelectedSet, values)
                   }
-                  getCount={() => vaultData.length}
+                  formatOption={(setName) => setName}
+                  getCount={(setName) =>
+                    setName === "All"
+                      ? vaultData.length
+                      : vaultData.filter((m) => m.name === setName).length
+                  }
+                  emptyMeansAll={true}
                   disabled={loading.moments || !filterOptions?.allSets}
                 />
-                <FilterPopover
+                <MultiSelectFilterPopover
                   label="Team"
-                  selectedValue={selectedTeam}
+                  selectedValues={Array.isArray(selectedTeam) ? selectedTeam : selectedTeam === "All" ? [] : [selectedTeam]}
                   options={filterOptions?.allTeams || []}
                   placeholder="Search teams..."
-                  onChange={(value) =>
-                    handleFilterChange(setSelectedTeam, value)
+                  onChange={(values) =>
+                    handleFilterChange(setSelectedTeam, values)
                   }
-                  getCount={() => vaultData.length}
+                  formatOption={(team) => team}
+                  getCount={(team) =>
+                    team === "All"
+                      ? vaultData.length
+                      : vaultData.filter((m) => m.teamAtMoment === team).length
+                  }
+                  emptyMeansAll={true}
                   disabled={loading.moments || !filterOptions?.allTeams}
                 />
-                <FilterPopover
+                <MultiSelectFilterPopover
                   label="Player"
-                  selectedValue={selectedPlayer}
+                  selectedValues={Array.isArray(selectedPlayer) ? selectedPlayer : selectedPlayer === "All" ? [] : [selectedPlayer]}
                   options={filterOptions?.allPlayers || []}
                   placeholder="Search players..."
-                  onChange={(value) =>
-                    handleFilterChange(setSelectedPlayer, value)
+                  onChange={(values) =>
+                    handleFilterChange(setSelectedPlayer, values)
                   }
-                  getCount={() => vaultData.length}
+                  formatOption={(player) => player}
+                  getCount={(player) =>
+                    player === "All"
+                      ? vaultData.length
+                      : vaultData.filter((m) => m.fullName === player).length
+                  }
+                  emptyMeansAll={true}
                   disabled={loading.moments || !filterOptions?.allPlayers}
                 />
-                <FilterPopover
+                <MultiSelectFilterPopover
                   label="Parallel"
-                  selectedValue={selectedSubedition}
+                  selectedValues={Array.isArray(selectedSubedition) ? selectedSubedition.map(String) : selectedSubedition === "All" ? [] : [String(selectedSubedition)]}
                   options={subeditionOptions}
                   placeholder="Search parallels..."
-                  onChange={(value) =>
-                    handleFilterChange(setSelectedSubedition, value)
+                  onChange={(values) =>
+                    handleFilterChange(setSelectedSubedition, values)
                   }
                   formatOption={(subId) => {
                     if (subId === "All") return "All";
@@ -423,7 +456,14 @@ function TSHOTVault({ onSummaryUpdate }) {
                     const minted = sub.minted || 0;
                     return `${sub.name} /${minted}`;
                   }}
-                  getCount={() => vaultData.length}
+                  getCount={(subId) => {
+                    if (subId === "All") return vaultData.length;
+                    return vaultData.filter((m) => {
+                      const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
+                      return String(effectiveSubId) === String(subId);
+                    }).length;
+                  }}
+                  emptyMeansAll={true}
                   disabled={loading.moments}
                 />
                 {/* Reset Filters - on same row as filters */}
@@ -432,27 +472,30 @@ function TSHOTVault({ onSummaryUpdate }) {
                     setSelectedSeries(ALL_SERIES_OPTIONS);
                     setSelectedTiers(TIER_OPTIONS.map(t => t.value));
                     setSelectedLeague(["NBA", "WNBA"]);
-                    setSelectedSet("All");
-                    setSelectedTeam("All");
-                    setSelectedPlayer("All");
-                    setSelectedSubedition("All");
+                    setSelectedSet([]);
+                    setSelectedTeam([]);
+                    setSelectedPlayer([]);
+                    setSelectedSubedition([]);
                     setOnlySpecial(false);
                     setPage(1);
                   }}
                   disabled={loading.moments}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-brand-border text-xs sm:text-sm px-3 py-1.5 transition-all shadow-sm whitespace-nowrap flex-shrink-0 bg-brand-secondary text-brand-text hover:border-opolis focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center gap-1 rounded bg-brand-primary px-2 py-1.5 text-xs font-medium text-brand-text/80 hover:opacity-80 focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <X size={13} />
-                  Reset Filters
+                  Reset
                 </button>
               </div>
             </div>
           </div>
         </div>
 
+      {/* Divider between filters and results */}
+      <div className="border-t border-brand-border/30 my-3 -mx-2 w-[calc(100%+1rem)]" />
+
       {/* Top pagination - "Showing X of Y" on same row as controls */}
       {maxPages > 1 && (
-        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4 px-1">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           {queryTotal > 0 && (
             <p className="text-sm text-brand-text/70 whitespace-nowrap">
@@ -515,22 +558,23 @@ function TSHOTVault({ onSummaryUpdate }) {
       )}
 
       {/* Show skeletons in place of cards during loading to prevent layout shift */}
-      {loading.moments && vaultData.length > 0 ? (
-        // Show skeletons in same positions as existing cards
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-          {vaultData.map((_, i) => (
-            <MomentCardSkeleton key={`skeleton-${i}`} />
-          ))}
-        </div>
-      ) : loading.moments && vaultData.length === 0 ? (
-        // Initial load - show standard skeleton count
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-          {[...Array(20)].map((_, i) => (
-            <MomentCardSkeleton key={`skeleton-${i}`} />
-          ))}
-        </div>
-      ) : vaultData.length > 0 ? (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+      <div className="px-3 sm:px-4">
+        {loading.moments && vaultData.length > 0 ? (
+          // Show skeletons in same positions as existing cards
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+            {vaultData.map((_, i) => (
+              <MomentCardSkeleton key={`skeleton-${i}`} />
+            ))}
+          </div>
+        ) : loading.moments && vaultData.length === 0 ? (
+          // Initial load - show standard skeleton count
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+            {[...Array(20)].map((_, i) => (
+              <MomentCardSkeleton key={`skeleton-${i}`} />
+            ))}
+          </div>
+        ) : vaultData.length > 0 ? (
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
           {vaultData.map((nft) => (
             <MomentCard
               key={nft.id || nft._id}
@@ -548,10 +592,11 @@ function TSHOTVault({ onSummaryUpdate }) {
             : "Please select at least one series."}
         </p>
       ) : null}
+      </div>
 
       {/* Bottom pagination - "Showing X of Y" on same row as controls */}
       {maxPages > 1 && (
-        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4 px-1">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           {queryTotal > 0 && (
             <p className="text-sm text-brand-text/70 whitespace-nowrap">
@@ -616,7 +661,7 @@ function TSHOTVault({ onSummaryUpdate }) {
   );
 
   return (
-    <div className="text-brand-text">
+    <div className="text-brand-text pb-8">
       <Section>
         <VaultBlock />
       </Section>

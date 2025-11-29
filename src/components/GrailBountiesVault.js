@@ -150,7 +150,7 @@ function GrailBountiesVault() {
   }, [pageIds, detailsCache, metadataCache, localMeta]);
 
   return (
-    <div className="text-brand-text w-full">
+    <div className="text-brand-text w-full pb-8">
       <div className="w-full">
           {error && (
             <p className="text-sm text-red-400 mb-2">{error}</p>
@@ -220,24 +220,26 @@ function GrailBountiesVault() {
           )}
 
           {/* Show skeletons during loading */}
-          {(loadingIds || loadingDetails) && items.length === 0 ? (
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-              {[...Array(20)].map((_, i) => (
-                <MomentCardSkeleton key={`skeleton-${i}`} />
-              ))}
-            </div>
-          ) : !loadingIds && momentIds.length === 0 && !error ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-brand-text/70 mb-2">No moments acquired yet through Grail Bounties.</p>
-              <p className="text-xs text-brand-text/50">Moments will appear here once they are acquired by the program.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
-              {items.map((nft) => (
-                <MomentCard key={nft.id} nft={nft} disableHover />
-              ))}
-            </div>
-          )}
+          <div className="px-3 sm:px-4">
+            {(loadingIds || loadingDetails) && items.length === 0 ? (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+                {[...Array(20)].map((_, i) => (
+                  <MomentCardSkeleton key={`skeleton-${i}`} />
+                ))}
+              </div>
+            ) : !loadingIds && momentIds.length === 0 && !error ? (
+              <div className="text-center py-8">
+                <p className="text-sm text-brand-text/70 mb-2">No moments acquired yet through Grail Bounties.</p>
+                <p className="text-xs text-brand-text/50">Moments will appear here once they are acquired by the program.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
+                {items.map((nft) => (
+                  <MomentCard key={nft.id} nft={nft} disableHover />
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Bottom pagination - "Showing X of Y" on same row as controls */}
           {maxPages > 1 && (

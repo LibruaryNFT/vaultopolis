@@ -11,7 +11,6 @@ import { useMomentFilters, WNBA_TEAMS } from "../hooks/useMomentFilters";
 import PageWrapper from "../components/PageWrapper";
 import { getSeriesFilterLabel } from "../utils/seriesNames";
 import { SUBEDITIONS } from "../utils/subeditions";
-import FilterPopover from "../components/FilterPopover";
 import MultiSelectFilterPopover from "../components/MultiSelectFilterPopover";
 import PageInput from "../components/PageInput";
 import { X } from "lucide-react";
@@ -213,6 +212,7 @@ export default function MyCollection({
     subeditionOptions,
     subMeta,
     eligibleMoments: topShotEligibleMoments,
+    base,
   } = useMomentFilters({
     nftDetails: collectionType === 'topshot' ? moments : [], // Only use TopShot moments for TopShot filtering
     selectedNFTs: [], // No selection needed for collection view
@@ -348,7 +348,7 @@ export default function MyCollection({
   }
 
   return (
-    <PageWrapper maxWidth="lg" padding="none">
+    <>
       <Helmet>
         <title>Vaultopolis - My Collection</title>
         <meta name="description" content="View and manage your NBA Top Shot collection with advanced filtering and sorting options." />
@@ -373,18 +373,53 @@ export default function MyCollection({
         </script>
       </Helmet>
 
-      <div className="w-full pt-0 sm:pt-1 space-y-3">
-          {/* Context + Header */}
-          <div className="flex flex-col gap-2 sm:gap-3">
-            <div className="flex items-center justify-between gap-2">
+      <div className="w-full text-white space-y-2 mb-2">
+        <div className="w-full p-0 space-y-1.5">
+          {/* Header */}
+          <div className="px-1 pt-2">
+            <h1 className="text-lg sm:text-2xl font-semibold text-brand-text">
+              My Collection
+            </h1>
+          </div>
+
+          {/* Privacy note */}
+          {isOwnProfile && (
+            <div className="px-1 mt-1 mb-3 py-2 flex items-start gap-3">
+              <span className="text-xl leading-none pt-0.5">🔒</span>
               <div>
-                <h1 className="text-lg sm:text-2xl font-semibold text-brand-text">
-                  My Collection
-                </h1>
+                <p className="text-sm font-semibold text-brand-text m-0">Private collection view</p>
+                <p className="text-xs text-brand-text/70 m-0">
+                  Only you can see this inventory when you're logged in. Switch tabs to share public portfolio stats instead.
+                </p>
               </div>
-              {/* Desktop source toggle */}
+            </div>
+          )}
+
+          {/* Account Selection */}
+          <div className="px-1 py-0.5 pt-2 border-t border-brand-border/30 flex flex-wrap gap-2 w-full">
+            <AccountSelection
+              parentAccount={{ 
+                addr: accountData?.parentAddress, 
+                hasCollection: accountData?.hasCollection, 
+                ...accountData 
+              }}
+              childrenAddresses={accountData?.childrenAddresses}
+              childrenAccounts={accountData?.childrenData}
+              selectedAccount={selectedAccount}
+              onSelectAccount={(addr) => {
+                const isChild = accountData?.childrenAddresses?.includes(addr);
+                dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
+              }}
+              isLoadingChildren={false}
+            />
+          </div>
+
+          {/* Collection Selection */}
+          <div className="px-1 py-0.5 pt-2 flex flex-wrap gap-2 w-full">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-semibold text-brand-text whitespace-nowrap">Select Collection:</span>
               <div
-                className="hidden sm:inline-flex items-center gap-1 bg-brand-primary rounded-lg p-0.5 border border-brand-border/60"
+                className="inline-flex items-center gap-1 bg-brand-primary rounded-lg p-0.5 border border-brand-border/60"
                 role="tablist"
                 aria-label="Collection source"
               >
@@ -414,85 +449,17 @@ export default function MyCollection({
                 </button>
               </div>
             </div>
-
-            {/* Mobile source toggle */}
-            <div className="sm:hidden flex items-center justify-between gap-2">
-              <div
-                className="inline-flex items-center gap-1 bg-brand-primary rounded-lg p-0.5 border border-brand-border/60"
-                role="tablist"
-                aria-label="Collection source"
-              >
-                <button
-                  onClick={() => handleSelectCollectionSource('topshot')}
-                  role="tab"
-                  aria-selected={collectionType === 'topshot'}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                    collectionType === 'topshot'
-                      ? 'bg-brand-secondary text-brand-accent border border-brand-accent shadow-sm'
-                      : 'text-brand-text/80 border border-transparent hover:bg-brand-secondary/60'
-                  }`}
-                >
-                  TS
-                </button>
-                <button
-                  onClick={() => handleSelectCollectionSource('allday')}
-                  role="tab"
-                  aria-selected={collectionType === 'allday'}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                    collectionType === 'allday'
-                      ? 'bg-brand-secondary text-brand-accent border border-brand-accent shadow-sm'
-                      : 'text-brand-text/80 border border-transparent hover:bg-brand-secondary/60'
-                  }`}
-                >
-                  AD
-                </button>
-              </div>
-            </div>
-
           </div>
-
-          {/* Privacy note */}
-          {isOwnProfile && (
-            <div className="mt-1 mb-3 rounded-lg border border-brand-accent/40 bg-brand-primary/85 px-3 py-2 flex items-start gap-3 shadow-inner shadow-black/20">
-              <span className="text-xl leading-none pt-0.5">🔒</span>
-              <div>
-                <p className="text-sm font-semibold text-brand-text m-0">Private collection view</p>
-                <p className="text-xs text-brand-text/70 m-0">
-                  Only you can see this inventory when you’re logged in. Switch tabs to share public portfolio stats instead.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Account Selection */}
-          <div className="mb-4 sm:mb-5">
-            <AccountSelection
-              parentAccount={{ 
-                addr: accountData?.parentAddress, 
-                hasCollection: accountData?.hasCollection, 
-                ...accountData 
-              }}
-              childrenAddresses={accountData?.childrenAddresses}
-              childrenAccounts={accountData?.childrenData}
-              selectedAccount={selectedAccount}
-              onSelectAccount={(addr) => {
-                const isChild = accountData?.childrenAddresses?.includes(addr);
-                dispatch({ type: "SET_SELECTED_ACCOUNT", payload: { address: addr, type: isChild ? "child" : "parent" } });
-              }}
-              isLoadingChildren={false}
-            />
-          </div>
-
 
           {/* Filter Panel */}
-          <div className="bg-brand-primary text-brand-text p-2 rounded-lg mb-4 w-full space-y-3">
+          <div className="text-brand-text w-full">
             {/* Filter Sections */}
             <div className="space-y-3">
               {/* Filter Controls - Only show for TopShot */}
               {collectionType === 'topshot' && (
                 <div>
                   {/* Unified filter row */}
-                  <div className="pt-3 border-t border-brand-border/30">
+                  <div className="px-1 pt-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <MultiSelectFilterPopover
                           label="Series"
@@ -560,81 +527,88 @@ export default function MyCollection({
                           }
                           minSelection={1}
                         />
-                        <FilterPopover
+                        <MultiSelectFilterPopover
                           label="Set"
-                          selectedValue={filter.selectedSetName}
+                          selectedValues={Array.isArray(filter.selectedSetName) ? filter.selectedSetName : filter.selectedSetName === "All" ? [] : [filter.selectedSetName]}
                           options={setNameOptions}
                           placeholder="Search sets..."
-                          onChange={(value) =>
-                            setFilter({ selectedSetName: value, currentPage: 1 })
+                          onChange={(values) =>
+                            setFilter({ selectedSetName: values, currentPage: 1 })
                           }
+                          formatOption={(setName) => setName}
                           getCount={(setName) =>
                             setName === "All"
-                              ? topShotEligibleMoments.length
-                              : topShotEligibleMoments.filter((m) => m.name === setName).length
+                              ? base?.baseNoSet?.length || 0
+                              : base?.baseNoSet?.filter((m) => m.name === setName).length || 0
                           }
+                          emptyMeansAll={true}
                         />
-                        <FilterPopover
+                        <MultiSelectFilterPopover
                           label="Team"
-                          selectedValue={filter.selectedTeam}
+                          selectedValues={Array.isArray(filter.selectedTeam) ? filter.selectedTeam : filter.selectedTeam === "All" ? [] : [filter.selectedTeam]}
                           options={teamOptions}
                           placeholder="Search teams..."
-                          onChange={(value) =>
-                            setFilter({ selectedTeam: value, currentPage: 1 })
+                          onChange={(values) =>
+                            setFilter({ selectedTeam: values, currentPage: 1 })
                           }
+                          formatOption={(team) => team}
                           getCount={(team) =>
                             team === "All"
-                              ? topShotEligibleMoments.length
-                              : topShotEligibleMoments.filter((m) => m.teamAtMoment === team).length
+                              ? base?.baseNoTeam?.length || 0
+                              : base?.baseNoTeam?.filter((m) => m.teamAtMoment === team).length || 0
                           }
+                          emptyMeansAll={true}
                         />
-                        <FilterPopover
+                        <MultiSelectFilterPopover
                           label="Player"
-                          selectedValue={filter.selectedPlayer}
+                          selectedValues={Array.isArray(filter.selectedPlayer) ? filter.selectedPlayer : filter.selectedPlayer === "All" ? [] : [filter.selectedPlayer]}
                           options={playerOptions}
                           placeholder="Search players..."
-                          onChange={(value) =>
-                            setFilter({ selectedPlayer: value, currentPage: 1 })
+                          onChange={(values) =>
+                            setFilter({ selectedPlayer: values, currentPage: 1 })
                           }
+                          formatOption={(player) => player}
                           getCount={(player) =>
                             player === "All"
-                              ? topShotEligibleMoments.length
-                              : topShotEligibleMoments.filter((m) => m.fullName === player).length
+                              ? base?.baseNoPlayer?.length || 0
+                              : base?.baseNoPlayer?.filter((m) => m.fullName === player).length || 0
                           }
+                          emptyMeansAll={true}
                         />
-                        <FilterPopover
+                        <MultiSelectFilterPopover
                           label="Parallel"
-                          selectedValue={filter.selectedSubedition}
+                          selectedValues={Array.isArray(filter.selectedSubedition) ? filter.selectedSubedition.map(String) : filter.selectedSubedition === "All" ? [] : [String(filter.selectedSubedition)]}
                           options={subeditionOptions}
                           placeholder="Search parallels..."
-                          onChange={(value) =>
-                            setFilter({ selectedSubedition: value, currentPage: 1 })
+                          onChange={(values) =>
+                            setFilter({ selectedSubedition: values, currentPage: 1 })
                           }
                           formatOption={(subId) => {
                             if (subId === "All") return "All";
                             const id = Number(subId);
                             const sub = subMeta[id] || SUBEDITIONS[id];
                             if (!sub) {
-                              const count = topShotEligibleMoments.filter((m) => {
+                              const count = base?.baseNoSub?.filter((m) => {
                                 const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
                                 return String(effectiveSubId) === String(subId);
-                              }).length;
+                              }).length || 0;
                               return `Subedition ${id} (${count})`;
                             }
                             const minted = sub.minted || 0;
-                            const count = topShotEligibleMoments.filter((m) => {
+                            const count = base?.baseNoSub?.filter((m) => {
                               const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
                               return String(effectiveSubId) === String(subId);
-                            }).length;
+                            }).length || 0;
                             return `${sub.name} /${minted} (${count})`;
                           }}
                           getCount={(subId) => {
-                            if (subId === "All") return topShotEligibleMoments.length;
-                            return topShotEligibleMoments.filter((m) => {
+                            if (subId === "All") return base?.baseNoSub?.length || 0;
+                            return base?.baseNoSub?.filter((m) => {
                               const effectiveSubId = (m.subeditionID === null || m.subeditionID === undefined) ? 0 : m.subeditionID;
                               return String(effectiveSubId) === String(subId);
-                            }).length;
+                            }).length || 0;
                           }}
+                          emptyMeansAll={true}
                         />
                       </div>
                     </div>
@@ -643,7 +617,7 @@ export default function MyCollection({
 
 
               {/* Show Metadata Toggle */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-3 border-t border-brand-border/30">
+              <div className="px-1 flex flex-wrap items-center gap-x-4 gap-y-2 pt-2">
                   <label className="flex items-center gap-1 text-base">
                     <input
                       type="checkbox"
@@ -656,7 +630,7 @@ export default function MyCollection({
                 </div>
 
               {/* Bottom section with sort, refresh, and reset */}
-              <div className="flex flex-col gap-2 pt-3 border-t border-brand-border/30">
+              <div className="px-1 flex flex-col gap-2 pt-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2">
@@ -735,9 +709,12 @@ export default function MyCollection({
             </div>
           </div>
 
+          {/* Divider below sort section */}
+          <div className="border-t border-brand-border/30 my-3 -mx-1 w-[calc(100%+0.5rem)]" />
+
           {/* Top pagination - "Showing X of Y" on same row as controls */}
           {pageCount > 1 && (
-            <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+            <div className="px-1 flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
               {/* "Showing X of Y items" text - hide "Showing" on mobile */}
               <p className="text-sm text-brand-text/70 whitespace-nowrap">
                 <span className="hidden sm:inline">Showing </span>
@@ -798,7 +775,7 @@ export default function MyCollection({
           )}
 
           {/* Moments Display */}
-          <div className="bg-brand-primary text-brand-text p-2 rounded w-full relative">
+          <div className="text-brand-text w-full relative px-1">
             {/* Refresh indicator overlay */}
             {((collectionType === 'topshot' && isRefreshing) || (collectionType === 'allday' && isRefreshingAllDay)) && eligibleMoments.length > 0 && (
               <div className="absolute top-4 right-4 z-10 flex items-center gap-2 text-xs text-brand-text/70 bg-brand-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-brand-border shadow-md">
@@ -848,7 +825,7 @@ export default function MyCollection({
 
           {/* Pagination (modern style, matches MomentSelection) */}
           {pageCount > 1 && (
-            <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
+            <div className="px-1 flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4">
               {/* "Showing X of Y items" text - hide "Showing" on mobile */}
               <p className="text-sm text-brand-text/70 whitespace-nowrap">
                 <span className="hidden sm:inline">Showing </span>
@@ -918,6 +895,7 @@ export default function MyCollection({
             </div>
           )}
         </div>
-    </PageWrapper>
+      </div>
+    </>
   );
 }
