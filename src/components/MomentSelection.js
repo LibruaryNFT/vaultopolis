@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
 } from "react";
 import { Settings as SettingsIcon, RefreshCw, X, Loader2 } from "lucide-react";
 import { UserDataContext } from "../context/UserContext";
@@ -312,8 +313,15 @@ export default function MomentSelection(props) {
 
   /* pagination */
   const PER_PAGE = 30;
-  const pageCount = Math.ceil(eligibleMoments.length / PER_PAGE);
-  const pageSlice = eligibleMoments.slice(
+
+  // For UI pagination, hide already-selected moments so counts reflect what's actually selectable
+  const visibleMoments = useMemo(
+    () => eligibleMoments.filter((n) => !selectedNFTs.includes(n.id)),
+    [eligibleMoments, selectedNFTs]
+  );
+
+  const pageCount = Math.ceil(visibleMoments.length / PER_PAGE);
+  const pageSlice = visibleMoments.slice(
     (filter.currentPage - 1) * PER_PAGE,
     filter.currentPage * PER_PAGE
   );
@@ -388,7 +396,7 @@ export default function MomentSelection(props) {
 
   /* ───────── render ───────── */
   return (
-    <div className="text-brand-text p-1.5 pl-3 w-full space-y-1.5 relative">
+    <div className="text-brand-text pt-2 pl-3 pr-3 w-full space-y-1.5 relative">
       {/* Refresh indicator overlay */}
       {isRefreshing && accountData.hasCollection && (
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2 text-xs text-brand-text/70 bg-brand-primary/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-brand-border shadow-md">
@@ -397,9 +405,9 @@ export default function MomentSelection(props) {
         </div>
       )}
       {/* Filter Sections */}
-      <div className="space-y-1.5 -mx-2 -mt-2">
+      <div className="space-y-1">
         {/* Exclusions Section */}
-        <div className="py-1 pl-2">
+        <div className="py-0.5 pl-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-xs sm:text-sm mr-1 whitespace-nowrap">
               Exclusions:
@@ -457,7 +465,7 @@ export default function MomentSelection(props) {
         </div>
 
       {/* Regular Filters */}
-      <div className="py-1 pl-2">
+      <div className="py-0.5 pl-2">
         <div className="flex flex-wrap items-center gap-2">
             <MultiSelectFilterPopover
               label="Series"
@@ -634,7 +642,7 @@ export default function MomentSelection(props) {
         </div>
 
       {/* Actions Row - at the end */}
-      <div className="py-1 pl-2">
+      <div className="py-0.5 pl-2">
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleRefresh}
@@ -697,20 +705,21 @@ export default function MomentSelection(props) {
 
       {/* Selection limit warning */}
       {selectedNFTs.length >= 200 && (
-        <div className="mb-2 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded text-sm text-yellow-300 text-center">
+        <div className="mb-1.5 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded text-sm text-yellow-300 text-center">
           Max 200 NFTs selected. Deselect some to add more.
         </div>
       )}
 
-      {/* Pagination and Moment Cards Section - Different background - Full width, no rounded corners, starts at left edge */}
-      <div className="bg-brand-secondary py-2 -ml-3 w-[calc(100%+0.75rem)]">
+      {/* Pagination and Moment Cards Section - Different background - full width */}
+      <div className="bg-brand-secondary pt-1.5 pb-1.5 -mx-3">
         {/* Top pagination - "Showing X of Y" on same row as controls */}
         {pageCount >= 1 && eligibleMoments.length > 0 && (
-        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4 px-3">
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mb-1.5 px-3">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           <p className="text-sm text-brand-text/70 whitespace-nowrap">
             <span className="hidden sm:inline">Showing </span>
-            {pageSlice.length} of {eligibleMoments.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
+            {pageSlice.length} of {visibleMoments.length.toLocaleString()}
+            <span className="hidden sm:inline"> items</span>
           </p>
           
           {/* Mobile: Simple Prev/Next with compact indicator */}
@@ -774,7 +783,11 @@ export default function MomentSelection(props) {
           ))}
         </div>
       ) : (
-        <div className={`grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 px-3 ${isRefreshing && accountData.hasCollection ? 'opacity-60' : ''}`}>
+        <div
+          className={`grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 px-3 ${
+            isRefreshing && accountData.hasCollection ? "opacity-60" : ""
+          }`}
+        >
           {pageSlice.map((n) => (
             <MomentCard
               key={n.id}
@@ -782,7 +795,10 @@ export default function MomentSelection(props) {
               handleNFTSelection={(id) => {
                 // Prevent selecting more than 200 for NFT→TSHOT swaps
                 const MAX_SELECTION = 200;
-                if (!selectedNFTs.includes(id) && selectedNFTs.length >= MAX_SELECTION) {
+                if (
+                  !selectedNFTs.includes(id) &&
+                  selectedNFTs.length >= MAX_SELECTION
+                ) {
                   return; // Do nothing if already at limit
                 }
                 appDispatch({ type: "SET_SELECTED_NFTS", payload: id });
@@ -793,13 +809,14 @@ export default function MomentSelection(props) {
         </div>
       )}
 
-        {/* Bottom pagination - "Showing X of Y" on same row as controls */}
-        {pageCount >= 1 && eligibleMoments.length > 0 && (
-          <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-4 px-3">
+      {/* Bottom pagination - mirror top, same 1.5 spacing */}
+      {pageCount >= 1 && eligibleMoments.length > 0 && (
+        <div className="flex flex-row justify-between items-center gap-2 sm:gap-3 mt-1.5 px-3">
           {/* "Showing X of Y items" text - hide "Showing" on mobile */}
           <p className="text-sm text-brand-text/70 whitespace-nowrap">
             <span className="hidden sm:inline">Showing </span>
-            {pageSlice.length} of {eligibleMoments.length.toLocaleString()}<span className="hidden sm:inline"> items</span>
+            {pageSlice.length} of {visibleMoments.length.toLocaleString()}
+            <span className="hidden sm:inline"> items</span>
           </p>
           
           {/* Mobile: Simple Prev/Next with compact indicator */}
@@ -853,7 +870,10 @@ export default function MomentSelection(props) {
             />
           </div>
         </div>
-        )}
+      )}
+
+      {/* Light-grey spacer before Selected Moments so the gap is not dark */}
+      <div className="h-2" />
       </div>
 
       {/* prefs modal */}

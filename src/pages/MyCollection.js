@@ -454,12 +454,12 @@ export default function MyCollection({
           {/* Filter Panel */}
           <div className="text-brand-text w-full">
             {/* Filter Sections */}
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               {/* Filter Controls - Only show for TopShot */}
               {collectionType === 'topshot' && (
                 <div>
                   {/* Unified filter row */}
-                  <div className="px-1 pt-2">
+                  <div className="px-1 pt-1.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <MultiSelectFilterPopover
                           label="Series"
@@ -714,7 +714,7 @@ export default function MyCollection({
 
           {/* Top pagination - "Showing X of Y" on same row as controls */}
           {pageCount > 1 && (
-            <div className="px-1 flex flex-row justify-between items-center gap-2 sm:gap-3 mb-4">
+            <div className="px-1 flex flex-row justify-between items-center gap-2 sm:gap-3 mb-1.5">
               {/* "Showing X of Y items" text - hide "Showing" on mobile */}
               <p className="text-sm text-brand-text/70 whitespace-nowrap">
                 <span className="hidden sm:inline">Showing </span>

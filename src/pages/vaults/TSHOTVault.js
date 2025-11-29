@@ -48,7 +48,7 @@ function TSHOTVaultPage() {
       {/* TSHOT Vault Contents */}
       <div className="w-full pt-4">
         <div className="px-3 sm:px-4">
-          <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-6 border-b border-brand-border/30 mb-4">
+          <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-6 mb-4">
             <div className="flex items-center gap-3 mb-4">
               <img
                 src="https://storage.googleapis.com/vaultopolis/TSHOT.png"

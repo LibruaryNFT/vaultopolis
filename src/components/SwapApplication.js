@@ -44,8 +44,8 @@ const SwapApplication = ({
   setSearchParams = null,
 }) => {
   return (
-    <div className="w-full text-white space-y-2 mb-2">
-      <div className="space-y-2">
+    <div className="w-full text-white space-y-1.5 mb-2">
+      <div className="space-y-1.5">
         {/* Swap Panel */}
         <div className="max-w-md mx-auto mt-2 space-y-2 w-full md:w-[400px]">
           {/* Outer container => brand-primary with shadow */}
@@ -240,9 +240,9 @@ const SwapApplication = ({
         {/* Moment selection and account management - Only for logged-in users */}
         {fromAsset === "TopShot Common / Fandom" &&
           accountData?.parentAddress && (
-            <div className="w-full p-0 space-y-1 mb-1.5">
+          <div className="w-full p-0 space-y-0 mb-1.5">
               {/* Filter Section - Single background for Collection + all filters */}
-              <div className="bg-brand-primary rounded py-2 px-1 -mx-1">
+              <div className="bg-brand-primary rounded pt-1.5 pb-0 px-1 -mx-1">
                 {/* Account Selection (left-aligned, not full width) */}
                 <div className="px-2 py-1 pt-1.5 flex flex-wrap gap-2 w-full">
                   <AccountSelection
@@ -324,7 +324,11 @@ const SwapApplication = ({
                 {/* Moment Selection (full width) - filter sections only */}
                 <div className="w-full">
                   <MomentSelection
-                    excludeIds={excludedNftIds}
+                    // Exclude both manually excluded IDs and currently selected NFTs
+                    excludeIds={[
+                      ...excludedNftIds,
+                      ...selectedNFTs.map((id) => String(id)),
+                    ]}
                     restrictToCommonFandom={true}
                     syncFiltersWithURL={syncFiltersWithURL}
                     searchParams={searchParams}
@@ -335,7 +339,7 @@ const SwapApplication = ({
 
               {/* Selected Moments - Collapsible */}
               <div
-                className={`bg-brand-primary shadow-md rounded w-full transition-all duration-300 overflow-hidden ${
+                className={`bg-brand-primary shadow-md w-full transition-all duration-300 overflow-hidden ${
                   selectedNFTs.length === 0 ? "h-14 border border-transparent" : "h-[280px] border-2 border-opolis"
                 }`}
               >
@@ -389,7 +393,7 @@ const SwapApplication = ({
               </div>
 
               {/* ========== DUPLICATE SWAP ACTION PANEL ========== */}
-              <div className="max-w-md mx-auto w-full md:w-[400px]">
+              <div className="max-w-md mx-auto w-full md:w-[400px] mt-4 pt-2">
                 <div>{renderSwapPanel()}</div>
               </div>
             </div>

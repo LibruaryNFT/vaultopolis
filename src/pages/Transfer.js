@@ -350,10 +350,10 @@ const Transfer = () => {
 
   const renderSelectedMoments = () => (
     <div
-      className={`bg-brand-primary shadow-md rounded w-full transition-all duration-300 overflow-hidden border ${
+      className={`bg-brand-primary shadow-md w-full transition-all duration-300 overflow-hidden ${
         currentSelectionCount === 0
-          ? "h-14 border-brand-border/30" // Collapsed: ~56px with subtle border
-          : "h-[280px] border-brand-border/50" // Expanded: fixed height for proper scrolling
+          ? "h-14 border border-transparent" // Collapsed: invisible border, like Swap
+          : "h-[280px] border-2 border-opolis" // Expanded: highlighted like Swap
       }`}
     >
       <div className="p-2 h-full flex flex-col">
@@ -379,7 +379,7 @@ const Transfer = () => {
         ) : (
           // Populated state - scrollable grid
           <div className="flex-1 overflow-y-auto pr-1 min-h-0">
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-2 justify-items-center">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
               {selectedNftsInAccount.map((id) => {
                 const nft = (activeAccountData.nftDetails || []).find(
                   (item) => Number(item.id) === Number(id)
@@ -584,59 +584,67 @@ const Transfer = () => {
         </div>
       )}
 
-      {/* 2) Main area */}
+      {/* 2) Main area - align styling with Swap */}
       <div className="w-full pb-8">
         <div className="space-y-1.5">
-          <div className="px-1 py-0.5 pt-2 border-t border-brand-border/30 flex flex-wrap gap-2 w-full">
-            <AccountSelection
-              labelText="Collection:"
-              parentAccount={{
-                addr: accountData?.parentAddress,
-                hasCollection: accountData?.hasCollection,
-                ...accountData,
-              }}
-              childrenAddresses={accountData?.childrenAddresses}
-              childrenAccounts={accountData?.childrenData}
-              selectedAccount={selectedAccount}
-              onSelectAccount={(addr) => {
-                const isChild = accountData?.childrenAddresses?.includes(addr);
-                dispatch({
-                  type: "SET_SELECTED_ACCOUNT",
-                  payload: {
-                    address: addr,
-                    type: isChild ? "child" : "parent",
-                  },
-                });
-                dispatch({ type: "RESET_SELECTED_NFTS" });
-                setExcludedNftIds([]);
-              }}
-              onRefresh={() =>
-                parentAddr &&
-                loadAllUserData(parentAddr, {
-                  forceCollectionRefresh: true,
-                  forceGlobalMetaRefresh: true,
-                })
-              }
-              isRefreshing={isRefreshing}
-              isLoadingChildren={isLoadingChildren}
-            />
-          </div>
+          {/* Collection + filters + moments in a single dark panel, like Swap */}
+          <div className="w-full p-0 space-y-0 mb-1.5">
+            <div className="bg-brand-primary rounded pt-1.5 pb-0 px-1 -mx-1">
+              {/* Account Selection (left-aligned) */}
+              <div className="px-2 py-1 pt-1.5 flex flex-wrap gap-2 w-full">
+                <AccountSelection
+                  labelText="Collection:"
+                  parentAccount={{
+                    addr: accountData?.parentAddress,
+                    hasCollection: accountData?.hasCollection,
+                    ...accountData,
+                  }}
+                  childrenAddresses={accountData?.childrenAddresses}
+                  childrenAccounts={accountData?.childrenData}
+                  selectedAccount={selectedAccount}
+                  onSelectAccount={(addr) => {
+                    const isChild =
+                      accountData?.childrenAddresses?.includes(addr);
+                    dispatch({
+                      type: "SET_SELECTED_ACCOUNT",
+                      payload: {
+                        address: addr,
+                        type: isChild ? "child" : "parent",
+                      },
+                    });
+                    dispatch({ type: "RESET_SELECTED_NFTS" });
+                    setExcludedNftIds([]);
+                  }}
+                  onRefresh={() =>
+                    parentAddr &&
+                    loadAllUserData(parentAddr, {
+                      forceCollectionRefresh: true,
+                      forceGlobalMetaRefresh: true,
+                    })
+                  }
+                  isRefreshing={isRefreshing}
+                  isLoadingChildren={isLoadingChildren}
+                />
+              </div>
 
-          <div className="w-full">
-            <MomentSelection
-              allowAllTiers={true}
-              restrictToCommonFandom={false}
-              excludeIds={excludedNftIds}
-              forceSortOrder="highest-serial"
-              showLockedMoments={false}
-              syncFiltersWithURL={true}
-              searchParams={searchParams}
-              setSearchParams={setSearchParams}
-            />
-          </div>
+              {/* Moment Selection - shares styling with Swap via MomentSelection */}
+              <div className="w-full">
+                <MomentSelection
+                  allowAllTiers={true}
+                  restrictToCommonFandom={false}
+                  excludeIds={excludedNftIds}
+                  forceSortOrder="highest-serial"
+                  showLockedMoments={false}
+                  syncFiltersWithURL={true}
+                  searchParams={searchParams}
+                  setSearchParams={setSearchParams}
+                />
+              </div>
+            </div>
 
-          {/* Selected moments at the bottom, like NFT→TSHOT */}
-          {renderSelectedMoments()}
+            {/* Selected moments at the bottom, like NFT→TSHOT */}
+            {renderSelectedMoments()}
+          </div>
         </div>
       </div>
 
