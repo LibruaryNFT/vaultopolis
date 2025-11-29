@@ -14,7 +14,7 @@ import MomentSelection from "../components/MomentSelection";
 import TransactionModal from "../components/TransactionModal";
 import { Helmet } from "react-helmet-async";
 import MomentCard from "../components/MomentCard";
-import { Info } from "lucide-react"; // Re-add for info modal
+import { Info, Send } from "lucide-react"; // Icons
 import Button from "../components/Button";
 
 const MAX_FLOW_TRANSFER_COUNT = 280; // Flow → Flow
@@ -439,11 +439,19 @@ const Transfer = () => {
         </script>
       </Helmet>
 
-      {/* Simple page title */}
-      <div className="w-full mb-2">
-        <h1 className="text-xl sm:text-2xl font-semibold text-brand-text">
-          Bulk Transfer
-        </h1>
+      {/* Page title with icon - aligned to header "Bulk Transfer" nav */}
+      <div className="w-full mb-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <Send className="w-5 h-5 sm:w-6 sm:h-6 text-opolis" />
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-brand-text leading-tight">
+              Bulk Transfer
+            </h1>
+            <p className="text-xs sm:text-sm text-brand-text/70 mt-0.5">
+              Move or bridge multiple Moments in a single flow.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* 1) Top panel */}
