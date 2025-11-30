@@ -6,11 +6,16 @@
 @tailwind utilities;
 
 /* Global reset/typography */
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 code {
@@ -43,6 +48,17 @@ code {
 /* ==============================
    Guide Title Styling Fixes
    ============================== */
+
+/* Hide React Flow watermark/attribution */
+.react-flow__attribution,
+.react-flow__watermark,
+.react-flow__attribution a,
+[class*="react-flow"][class*="attribution"],
+[class*="react-flow"][class*="watermark"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
 
 /* Hide scrollbar for horizontal scrolling */
 .scrollbar-hide {

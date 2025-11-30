@@ -31,23 +31,22 @@ const Button = ({
   // Color variants
   const variantClasses = {
     primary: `
-      bg-brand-accent text-white hover:bg-brand-accent/90
+      bg-opolis/20 border-2 border-opolis/40 text-white hover:bg-opolis/30 hover:border-opolis
       shadow-md hover:shadow-lg
     `,
     secondary: `
       bg-brand-secondary text-brand-text border border-brand-border
-      hover:bg-brand-primary hover:border-brand-accent
+      hover:bg-brand-primary hover:border-opolis/60
       disabled:bg-brand-primary disabled:text-brand-text/80 disabled:border-brand-border/60
     `,
     outline: `
-      bg-transparent text-brand-accent border-2 border-brand-accent
-      hover:bg-brand-accent hover:text-white
+      bg-opolis/20 border-2 border-opolis/40 text-white hover:bg-opolis/30 hover:border-opolis
     `,
     ghost: `
       bg-transparent text-brand-text hover:bg-brand-primary
     `,
     opolis: `
-      bg-opolis text-white hover:bg-opolis-dark
+      bg-opolis/20 border-2 border-opolis/40 text-white hover:bg-opolis/30 hover:border-opolis
       shadow-md hover:shadow-lg
     `
   };

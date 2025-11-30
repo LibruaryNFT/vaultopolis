@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Link, useLocation } from "react-router-dom";
 import * as fcl from "@onflow/fcl";
@@ -12,13 +12,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Button from "../components/Button";
+import { useHomepageStats } from "../hooks/useHomepageStats";
 
 function TSHOT() {
   const location = useLocation();
-  const [vaultSummary, setVaultSummary] = useState(null);
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { vaultSummary, analyticsData, loading, error } = useHomepageStats();
 
   // Wallet connection function
   const handleConnectWallet = async () => {
@@ -30,53 +28,6 @@ function TSHOT() {
       console.error("Failed to connect wallet:", err);
     }
   };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [vaultResponse, analyticsResponse] = await Promise.all([
-          fetch("https://api.vaultopolis.com/tshot-vault"),
-          fetch("https://api.vaultopolis.com/wallet-leaderboard?limit=3000")
-        ]);
-        
-        if (!vaultResponse.ok) {
-          throw new Error(`Vault API error! status: ${vaultResponse.status}`);
-        }
-        if (!analyticsResponse.ok) {
-          throw new Error(`Analytics API error! status: ${analyticsResponse.status}`);
-        }
-        
-        const vaultData = await vaultResponse.json();
-        const leaderboardData = await analyticsResponse.json();
-        
-        // Process analytics data
-        const items = leaderboardData.items || [];
-        
-        const totalDeposits = items.reduce((sum, user) => sum + (user.NFTToTSHOTSwapCompleted || 0), 0);
-        const totalWithdrawals = items.reduce((sum, user) => sum + (user.TSHOTToNFTSwapCompleted || 0), 0);
-        const totalMomentsExchanged = totalDeposits + totalWithdrawals;
-        const totalUniqueWallets = items.length;
-        
-        const processedAnalyticsData = {
-          totalMomentsExchanged,
-          totalUniqueWallets,
-          totalDeposits,
-          totalWithdrawals
-        };
-        
-        setVaultSummary(vaultData);
-        setAnalyticsData(processedAnalyticsData);
-      } catch (err) {
-        console.error("Failed to fetch data:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
 
   // Handle scroll parameter after navigation
   useEffect(() => {

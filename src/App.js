@@ -24,8 +24,8 @@ function App() {
       <AllDayProvider>
         <AnnouncementProvider>
           <TransactionCenterProvider>
-            <div className="w-full min-h-screen bg-brand-secondary text-brand-text">
-              <div className="relative min-h-screen">
+            <div className="w-full min-h-screen bg-brand-secondary text-brand-text overflow-x-hidden">
+              <div className="relative min-h-screen overflow-x-hidden">
                 <RouterProvider router={router} />
                 {/* Global Transaction Drawer */}
                 <TransactionDrawer />

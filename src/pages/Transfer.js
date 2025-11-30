@@ -653,6 +653,19 @@ const Transfer = () => {
             {/* Selected moments at the bottom, like NFT→TSHOT */}
             {renderSelectedMoments()}
           </div>
+
+          {/* ========== DUPLICATE TRANSFER ACTION BUTTON ========== */}
+          <div className="max-w-md mx-auto w-full md:w-[400px] mt-4 pt-2">
+            <Button
+              onClick={handleTransfer}
+              disabled={transferDisabled}
+              variant={transferDisabled ? "secondary" : "opolis"}
+              size="lg"
+              className="w-full"
+            >
+              {transferButtonLabel}
+            </Button>
+          </div>
         </div>
       </div>
 
