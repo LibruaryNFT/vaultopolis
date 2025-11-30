@@ -457,7 +457,7 @@ const Swap = () => {
                   setToInput("");
                 }}
               />
-              <div className="px-1 py-1 -mt-2">
+              <div className="px-1 py-1 -mt-2 bg-brand-primary rounded-lg">
                 <AccountSelection
                   parentAccount={{
                     addr: accountData?.parentAddress,

@@ -80,7 +80,13 @@ const Header = () => {
         <div className="absolute bottom-0 left-0 right-0 h-px bg-brand-border" />
         {/* ── Left: logo + hamburger ── */}
         <div className="flex items-center">
-          <button onClick={toggleMobileMenu} className="lg:hidden">
+          <button 
+            onClick={toggleMobileMenu} 
+            className="lg:hidden"
+            aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-menu"
+          >
             {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           <Link to="/" className="ml-2 flex items-center">
@@ -98,7 +104,12 @@ const Header = () => {
         </div>
 
         {/* ── Desktop nav ── */}
-        <nav className="hidden lg:flex items-end space-x-0 flex-grow justify-center gap-6 relative" style={{ alignSelf: 'stretch' }}>
+        <nav 
+          className="hidden lg:flex items-end space-x-0 flex-grow justify-center gap-6 relative" 
+          style={{ alignSelf: 'stretch' }}
+          role="navigation"
+          aria-label="Main navigation"
+        >
           <NavLink 
             to="/swap" 
             isActive={location.pathname === "/swap"}
@@ -149,6 +160,8 @@ const Header = () => {
                 ref={buttonRef}
                 onClick={toggleMenu}
                 activeAddress={userButtonAddr}
+                aria-expanded={isMenuOpen}
+                aria-haspopup="true"
               />
               {isMenuOpen && (
                 <DropdownMenu
@@ -161,6 +174,7 @@ const Header = () => {
             <button
               onClick={connectWallet}
               className="px-4 py-2 rounded bg-brand-accent text-white hover:opacity-80"
+              aria-label="Connect Flow wallet"
             >
               Connect
             </button>
@@ -259,7 +273,10 @@ const Header = () => {
           <div className="fixed top-[60px] inset-x-0 bottom-0 bg-black/40 z-[70]" />
           <div
             ref={mobileMenuRef}
+            id="mobile-menu"
             className="absolute top-[60px] left-0 w-full lg:hidden bg-brand-secondary text-brand-text shadow-md shadow-black/50 z-[70]"
+            role="navigation"
+            aria-label="Main navigation"
           >
             <div className="flex flex-col">
               <MobileNavLink to="/swap" isActive={location.pathname === "/swap"} onClick={closeMobileMenu}>
@@ -332,15 +349,16 @@ const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
 );
 
 
-const UserButton = React.forwardRef(({ onClick, activeAddress }, ref) => (
+const UserButton = React.forwardRef(({ onClick, activeAddress, ...props }, ref) => (
   <button
     ref={ref}
     onClick={onClick}
     className="flex items-center px-3 py-2 rounded bg-brand-secondary text-brand-text text-sm shadow-md shadow-black/30 hover:shadow-lg hover:shadow-black/50"
     title={activeAddress || "Profile"}
-    aria-label="Open profile menu"
+    aria-label={`Open profile menu for ${activeAddress || "your account"}`}
+    {...props}
   >
-    <UserCircle size={18} className="mr-2" />
+    <UserCircle size={18} className="mr-2" aria-hidden="true" />
     <span>Profile</span>
   </button>
 ));
