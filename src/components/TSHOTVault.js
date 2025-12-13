@@ -69,10 +69,13 @@ function TSHOTVault({ onSummaryUpdate }) {
   // Get all possible subedition options (all known parallels, not just from current page)
   const subeditionOptions = React.useMemo(() => {
     // Return all known subedition IDs from SUBEDITIONS
-    return Object.keys(SUBEDITIONS)
+    const allIds = Object.keys(SUBEDITIONS)
       .map(Number)
-      .sort((a, b) => (SUBEDITIONS[b]?.minted ?? 0) - (SUBEDITIONS[a]?.minted ?? 0))
-      .map(String);
+      .filter(id => id !== 0) // Remove Standard (0) from the list
+      .sort((a, b) => (SUBEDITIONS[b]?.minted ?? 0) - (SUBEDITIONS[a]?.minted ?? 0));
+    
+    // Put Standard (0) first, then the rest sorted by minted count
+    return ["0", ...allIds.map(String)];
   }, []);
 
   /* ---------- DATA FETCHING ---------- */
@@ -348,7 +351,6 @@ function TSHOTVault({ onSummaryUpdate }) {
                     formatOption={(series) =>
                       getSeriesFilterLabel(Number(series), "topshot")
                     }
-                    getCount={() => vaultData.length}
                     disabled={loading.moments}
                   />
                   <MultiSelectFilterPopover
@@ -370,7 +372,6 @@ function TSHOTVault({ onSummaryUpdate }) {
                       );
                       return tierObj ? tierObj.label : tier;
                     }}
-                    getCount={() => vaultData.length}
                     minSelection={1}
                     disabled={loading.moments}
                   />
@@ -389,7 +390,6 @@ function TSHOTVault({ onSummaryUpdate }) {
                       const sanitized = values.length ? values : ["NBA", "WNBA"];
                       handleFilterChange(setSelectedLeague, sanitized);
                     }}
-                    getCount={() => vaultData.length}
                     minSelection={1}
                     disabled={loading.moments}
                   />
@@ -408,11 +408,6 @@ function TSHOTVault({ onSummaryUpdate }) {
                       handleFilterChange(setSelectedSet, values)
                     }
                     formatOption={(setName) => setName}
-                    getCount={(setName) =>
-                      setName === "All"
-                        ? vaultData.length
-                        : vaultData.filter((m) => m.name === setName).length
-                    }
                     emptyMeansAll={true}
                     disabled={loading.moments || !filterOptions?.allSets}
                   />
@@ -431,13 +426,6 @@ function TSHOTVault({ onSummaryUpdate }) {
                       handleFilterChange(setSelectedTeam, values)
                     }
                     formatOption={(team) => team}
-                    getCount={(team) =>
-                      team === "All"
-                        ? vaultData.length
-                        : vaultData.filter(
-                            (m) => m.teamAtMoment === team
-                          ).length
-                    }
                     emptyMeansAll={true}
                     disabled={loading.moments || !filterOptions?.allTeams}
                   />
@@ -450,19 +438,24 @@ function TSHOTVault({ onSummaryUpdate }) {
                         ? []
                         : [selectedPlayer]
                     }
-                    options={filterOptions?.allPlayers || []}
+                    options={React.useMemo(() => {
+                      const players = filterOptions?.allPlayers || [];
+                      // Sort alphabetically by formatted name (so "Invalid Value" sorts correctly)
+                      return [...players].sort((a, b) => {
+                        const formatA = a === "<invalid Value>" ? "Invalid Value" : a;
+                        const formatB = b === "<invalid Value>" ? "Invalid Value" : b;
+                        return formatA.localeCompare(formatB, undefined, { numeric: true, sensitivity: 'base' });
+                      });
+                      // eslint-disable-next-line react-hooks/exhaustive-deps
+                    }, [filterOptions])}
                     placeholder="Search players..."
                     onChange={(values) =>
                       handleFilterChange(setSelectedPlayer, values)
                     }
-                    formatOption={(player) => player}
-                    getCount={(player) =>
-                      player === "All"
-                        ? vaultData.length
-                        : vaultData.filter(
-                            (m) => m.fullName === player
-                          ).length
-                    }
+                    formatOption={(player) => {
+                      if (player === "<invalid Value>") return "Invalid Value";
+                      return player;
+                    }}
                     emptyMeansAll={true}
                     disabled={loading.moments || !filterOptions?.allPlayers}
                   />
@@ -487,19 +480,12 @@ function TSHOTVault({ onSummaryUpdate }) {
                       if (!sub) {
                         return `Subedition ${id}`;
                       }
+                      // For Standard (id 0), use space prefix to ensure it sorts first (spaces sort before letters)
+                      if (id === 0) {
+                        return ` ${sub.name}`; // Leading space ensures it sorts first
+                      }
                       const minted = sub.minted || 0;
                       return `${sub.name} /${minted}`;
-                    }}
-                    getCount={(subId) => {
-                      if (subId === "All") return vaultData.length;
-                      return vaultData.filter((m) => {
-                        const effectiveSubId =
-                          m.subeditionID === null ||
-                          m.subeditionID === undefined
-                            ? 0
-                            : m.subeditionID;
-                        return String(effectiveSubId) === String(subId);
-                      }).length;
                     }}
                     emptyMeansAll={true}
                     disabled={loading.moments}
