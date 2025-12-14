@@ -135,69 +135,6 @@ export default function NotificationCenter() {
                                   <span>•</span>
                                   <span>{new Date(ann.date).toLocaleDateString()}</span>
                                 </div>
-                                
-                                  {/* Action Buttons - shown if actions exist */}
-                                  {ann.actions && ann.actions.length > 0 && (
-                                    <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                                      {ann.actions.map((action, idx) => {
-                                        const isExternal = action.href.startsWith('http://') || action.href.startsWith('https://');
-                                        const isPrimary = action.variant === 'primary';
-                                        const buttonClasses = `
-                                          font-semibold rounded-md transition-all duration-200 select-none
-                                          focus:outline-none focus:ring-2 focus:ring-brand-accent/50
-                                          px-3 py-1.5 text-xs
-                                          ${isPrimary 
-                                            ? 'bg-opolis text-white hover:bg-opolis/90 focus-visible:ring-2 focus-visible:ring-opolis/50' 
-                                            : 'bg-brand-primary text-brand-text border border-brand-border hover:bg-brand-primary/80'
-                                          }
-                                        `.trim();
-                                        
-                                        if (isExternal) {
-                                          return (
-                                            <a
-                                              key={idx}
-                                              href={action.href}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                markNotificationAsRead(ann.id);
-                                                setIsOpen(false);
-                                              }}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                  e.stopPropagation();
-                                                }
-                                              }}
-                                              className={buttonClasses}
-                                            >
-                                              {action.label}
-                                            </a>
-                                          );
-                                        }
-                                        
-                                        return (
-                                          <Link
-                                            key={idx}
-                                            to={action.href}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              markNotificationAsRead(ann.id);
-                                              setIsOpen(false);
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter' || e.key === ' ') {
-                                                e.stopPropagation();
-                                              }
-                                            }}
-                                            className={buttonClasses}
-                                          >
-                                            {action.label}
-                                          </Link>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
                               </div>
                             </div>
                           </a>

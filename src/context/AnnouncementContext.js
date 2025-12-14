@@ -60,6 +60,7 @@ export const AnnouncementProvider = ({ children }) => {
       date: new Date('2025-11-15'),
       featured: false,
       category: 'Launch',
+      showInNotificationCenter: false, // Archive: don't show in notification bell, but keep on /updates page
       body: (
         <>
           <p className="mb-4 text-brand-text/90">
@@ -157,19 +158,25 @@ export const AnnouncementProvider = ({ children }) => {
   };
 
   // Get visible announcements (not dismissed)
-  const getVisibleAnnouncements = () => {
-    return announcements.filter(ann => !dismissedNotifications.includes(ann.id));
+  const getVisibleAnnouncements = (includeArchived = false) => {
+    return announcements.filter(ann => {
+      // Filter out dismissed announcements
+      if (dismissedNotifications.includes(ann.id)) return false;
+      // Filter out archived announcements (unless explicitly including them)
+      if (!includeArchived && ann.showInNotificationCenter === false) return false;
+      return true;
+    });
   };
 
-  // Check if there are unread announcements
+  // Check if there are unread announcements (excludes archived)
   const hasUnreadAnnouncements = () => {
-    const visible = getVisibleAnnouncements();
+    const visible = getVisibleAnnouncements(false); // Exclude archived
     return visible.some(ann => !readNotifications.includes(ann.id));
   };
 
-  // Get unread count
+  // Get unread count (excludes archived)
   const getUnreadCount = () => {
-    const visible = getVisibleAnnouncements();
+    const visible = getVisibleAnnouncements(false); // Exclude archived
     return visible.filter(ann => !readNotifications.includes(ann.id)).length;
   };
 
