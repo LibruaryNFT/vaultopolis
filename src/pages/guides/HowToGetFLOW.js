@@ -15,7 +15,7 @@ function HowToGetFLOW() {
   return (
     <>
       <Helmet>
-        <title>How to Get $FLOW - Your Gas for Transactions | Vaultopolis</title>
+        <title>Vaultopolis - How to Get $FLOW: Your Gas for Transactions</title>
         <meta name="description" content="Learn how to get $FLOW token for transaction fees on Flow blockchain. Buy FLOW directly in wallets or on exchanges to pay for swaps and rewards." />
         <meta name="keywords" content="get FLOW, buy FLOW, Flow token, gas fees, transaction fees, Flow wallet, how to buy FLOW" />
         

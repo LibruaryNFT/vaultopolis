@@ -437,8 +437,8 @@ function Profile() {
     ? `https://vaultopolis.com/profile/${walletAddr}`
     : "https://vaultopolis.com/profile";
   const metaTitle = walletAddr
-    ? `Vaultopolis | Profile ${walletAddr}`
-    : "Vaultopolis | Profile";
+    ? `Vaultopolis - Profile ${walletAddr}`
+    : "Vaultopolis - Profile";
   const metaDesc = walletAddr
     ? `View Flow, TSHOT and NBA Top Shot holdings plus swap history for wallet ${walletAddr}.`
     : "Connect your Flow wallet to view any Vaultopolis NFT profile.";

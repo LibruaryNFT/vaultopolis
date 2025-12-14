@@ -10,7 +10,7 @@ function TSHOTBridgingGuide() {
   return (
     <>
       <Helmet>
-        <title>Bridge TSHOT from Cadence to EVM - Complete Guide | Vaultopolis</title>
+        <title>Vaultopolis - Bridge TSHOT from Cadence to EVM: Complete Guide</title>
         <meta name="description" content="Learn how to bridge TSHOT tokens from Cadence (Flow) to EVM networks. Step-by-step guide for transferring TSHOT between blockchains." />
         <meta name="keywords" content="tshot bridge, cadence to evm, flow to evm, tshot transfer, cross-chain bridge, tshot guide" />
         

@@ -5,20 +5,20 @@ const PrivacyPolicy = () => {
   return (
     <>
       <Helmet>
-        <title>Privacy Policy | Vaultopolis</title>
+        <title>Vaultopolis - Privacy Policy</title>
         <meta name="description" content="Vaultopolis Privacy Policy. Learn about what information we collect and how we protect your privacy." />
         <meta name="keywords" content="vaultopolis privacy policy, data protection, privacy" />
         <link rel="canonical" href="https://vaultopolis.com/privacy-policy" />
         
         {/* Open Graph Tags */}
-        <meta property="og:title" content="Privacy Policy | Vaultopolis" />
+        <meta property="og:title" content="Vaultopolis - Privacy Policy" />
         <meta property="og:description" content="Vaultopolis Privacy Policy for our website and services." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://vaultopolis.com/privacy-policy" />
         
         {/* Twitter Card Tags */}
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Privacy Policy | Vaultopolis" />
+        <meta name="twitter:title" content="Vaultopolis - Privacy Policy" />
         <meta name="twitter:description" content="Vaultopolis Privacy Policy." />
         
         {/* Structured Data */}

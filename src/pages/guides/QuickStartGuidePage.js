@@ -11,13 +11,13 @@ function QuickStartGuidePage() {
   return (
     <>
       <Helmet>
-        <title>Quick Start: From Zero to TSHOT - Vaultopolis</title>
-        <meta name="description" content="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and earn rewards." />
+        <title>Vaultopolis - Quick Start: From Zero to TSHOT</title>
+        <meta name="description" content="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and participate in rewards programs." />
         <meta name="keywords" content="tshot quick start, vaultopolis guide, flow wallet setup, dapper wallet, nba top shot, tshot token guide" />
         
         {/* Open Graph */}
         <meta property="og:title" content="Quick Start: From Zero to TSHOT - Vaultopolis" />
-        <meta property="og:description" content="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and earn rewards." />
+        <meta property="og:description" content="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and participate in rewards programs." />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="https://vaultopolis.com/guides/quick-start" />
         
@@ -50,7 +50,7 @@ function QuickStartGuidePage() {
         <PageWrapper padding="md">
           <ContentPanel 
             title="Quick Start: From Zero to TSHOT" 
-            subtitle="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and earn rewards."
+            subtitle="Get your first TSHOT tokens in 7 simple steps. Start with Flow wallet setup, get $FLOW for fees, then optionally integrate Top Shot, use TSHOT, and participate in rewards programs."
           >
             <div className="space-y-6">
               {/* Intro Card */}
@@ -259,21 +259,31 @@ function QuickStartGuidePage() {
                     <div className="flex-1">
                       <h3 className="font-semibold text-brand-text mb-2 flex items-center gap-2">
                         <Zap className="h-4 w-4 text-opolis" />
-                        Earn Rewards by Holding TSHOT
+                        Rewards Program for Holding TSHOT
                       </h3>
                       <p className="text-sm text-brand-text/80 mb-3 leading-relaxed">
-                        Earn weekly $FLOW rewards by holding TSHOT on Flow EVM. Bridge your TSHOT to Flow EVM and hold to participate in the rewards program. No staking required—just hold and earn.
+                        Limited-time rewards program for holding TSHOT on Flow EVM. Bridge your TSHOT to Flow EVM and hold to participate. No staking required—just hold to be eligible.
                       </p>
                       <div className="flex flex-wrap gap-2">
-                        <Button 
-                          variant="primary"
-                          size="sm"
-                          onClick={() => window.location.href = '/guides/tshot-rewards'}
-                          className="inline-flex items-center gap-2"
-                        >
-                          <BookOpen className="w-4 h-4" />
-                          Follow the guide: TSHOT Rewards Program
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button 
+                            variant="primary"
+                            size="sm"
+                            onClick={() => window.location.href = '/rewards/tshot'}
+                            className="inline-flex items-center gap-2"
+                          >
+                            View Program Details
+                          </Button>
+                          <Button 
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => window.location.href = '/guides/tshot-rewards'}
+                            className="inline-flex items-center gap-2"
+                          >
+                            <BookOpen className="w-4 h-4" />
+                            How to Participate
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>

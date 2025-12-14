@@ -3,7 +3,7 @@
    Central route tree – pure data, NO browser APIs.
    -------------------------------------------------------------------- */
 import React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import Layout           from "./layout/Layout";
 import Home             from "./pages/Home";
 import Swap             from "./pages/Swap";
@@ -19,6 +19,7 @@ import MyCollectionRedirect from "./pages/MyCollectionRedirect";
 import BountiesTopShot from "./pages/BountiesTopShot";
 import BountiesAllDay from "./pages/BountiesAllDay";
 import Announcements from "./pages/Announcements";
+import AnnouncementDetail from "./pages/AnnouncementDetail";
 import TermsAndPrivacy  from "./pages/TermsAndPrivacy";
 import TermsOfUse       from "./pages/TermsOfUse";
 import PrivacyPolicy    from "./pages/PrivacyPolicy";
@@ -39,7 +40,13 @@ import TransferGuide from "./pages/guides/TransferGuide";
 import BountiesGuide from "./pages/guides/BountiesGuide";
 import DeFiBasicsGuide from "./pages/guides/DeFiBasicsGuide";
 import FAQ from "./pages/guides/FAQ";
+import Rewards from "./pages/Rewards";
 
+// Legacy redirect component for /news/:id -> /updates/:id
+const NewsRedirect = () => {
+  const { id } = useParams();
+  return <Navigate to={`/updates/${id}`} replace />;
+};
 
 /** Export the route object array (React Router v6 friendly) */
 const routes = [
@@ -68,7 +75,14 @@ const routes = [
   { path: "/guides/transfer", element: <Layout><TransferGuide /></Layout> },
   { path: "/guides/bounties", element: <Layout><BountiesGuide /></Layout> },
   { path: "/guides/defi-basics", element: <Layout><DeFiBasicsGuide /></Layout> },
-  { path: "/news", element: <Layout><Announcements /></Layout> },
+  { path: "/updates", element: <Layout><Announcements /></Layout> },
+  { path: "/updates/:id", element: <Layout><AnnouncementDetail /></Layout> },
+  // Legacy redirect for old /news URLs
+  { path: "/news", element: <Navigate to="/updates" replace /> },
+  { 
+    path: "/news/:id", 
+    element: <Layout><NewsRedirect /></Layout>
+  },
 
   { path: "/guides/dapper-wallet", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/flow-wallet", element: <Layout><FlowWalletGuide /></Layout> },
@@ -81,6 +95,7 @@ const routes = [
   { path: "/guides/bridging-to-fevm", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/guides/bridging-from-fevm", element: <Layout><DapperWalletGuide /></Layout> },
   { path: "/about",       element: <Layout><About /></Layout> },
+  { path: "/rewards/tshot", element: <Layout><Rewards /></Layout> },
   { path: "/terms",       element: <Layout><TermsAndPrivacy /></Layout> },
   { path: "/terms-of-use", element: <Layout><TermsOfUse /></Layout> },
   { path: "/privacy-policy", element: <Layout><PrivacyPolicy /></Layout> },

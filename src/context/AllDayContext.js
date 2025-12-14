@@ -1,5 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import * as fcl from '@onflow/fcl';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getAllDayCollectionIDs } from '../flow/getAllDayCollectionIDs';
 import { getAllDayCollectionBatched } from '../flow/getAllDayCollectionBatched';
 import { fclQueryWithRetry } from '../utils/fclUtils';
@@ -88,20 +87,57 @@ export const AllDayProvider = ({ children }) => {
   };
 
   // AllDay treasury functions
+  const treasuryFetchInProgressRef = useRef(false);
+  const treasuryCacheRef = useRef(null);
+  const treasuryCacheTimestampRef = useRef(0);
+  const TREASURY_CACHE_TTL = 60000; // Cache for 60 seconds
 
-  const fetchAllDayTreasury = async () => {
+  const fetchAllDayTreasury = useCallback(async () => {
     const TREASURY_ADDRESS = "0xd69b6ce48815d4ad"; // Same address as TopShot
+    
+    // Return cached data if still valid
+    const now = Date.now();
+    if (treasuryCacheRef.current && (now - treasuryCacheTimestampRef.current) < TREASURY_CACHE_TTL) {
+      return treasuryCacheRef.current;
+    }
+    
+    // Prevent concurrent fetches
+    if (treasuryFetchInProgressRef.current) {
+      // Wait for the in-progress fetch to complete
+      while (treasuryFetchInProgressRef.current) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      // Return cached result after waiting
+      if (treasuryCacheRef.current) {
+        return treasuryCacheRef.current;
+      }
+    }
+    
+    treasuryFetchInProgressRef.current = true;
     try {
-      const ids = await fcl.query({
+      const ids = await fclQueryWithRetry({
         cadence: getAllDayCollectionIDs,
         args: (arg, t) => [arg(TREASURY_ADDRESS, t.Address)],
-      });
-      return Array.isArray(ids) ? ids.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [];
+      }, 3, 2000); // 3 retries, 2 second initial delay
+      
+      const result = Array.isArray(ids) ? ids.map((x) => Number(x)).filter((n) => Number.isFinite(n)) : [];
+      
+      // Cache the result
+      treasuryCacheRef.current = result;
+      treasuryCacheTimestampRef.current = Date.now();
+      
+      return result;
     } catch (error) {
       console.error('Failed to fetch AllDay treasury:', error);
+      // Return cached data if available, even if expired
+      if (treasuryCacheRef.current) {
+        return treasuryCacheRef.current;
+      }
       return [];
+    } finally {
+      treasuryFetchInProgressRef.current = false;
     }
-  };
+  }, []); // Empty deps - function doesn't depend on any state/props
 
   // AllDay collection fetching (exact same pattern as TopShot)
   const fetchAllDayCollection = async (address) => {

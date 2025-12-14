@@ -7,20 +7,20 @@ const TermsAndPrivacy = () => {
   return (
     <>
       <Helmet>
-        <title>Terms of Service | Vaultopolis</title>
+        <title>Vaultopolis - Terms of Service</title>
         <meta name="description" content="Vaultopolis Terms of Service. Learn about our smart-contract platform for exchanging digital collectibles and TSHOT tokens on Flow blockchain." />
         <meta name="keywords" content="vaultopolis terms, terms of service, flow blockchain terms, nft terms, digital collectibles terms" />
         <link rel="canonical" href="https://vaultopolis.com/terms" />
         
         {/* Open Graph Tags */}
-        <meta property="og:title" content="Terms of Service | Vaultopolis" />
+        <meta property="og:title" content="Vaultopolis - Terms of Service" />
         <meta property="og:description" content="Vaultopolis Terms of Service for our smart-contract platform." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://vaultopolis.com/terms" />
         
         {/* Twitter Card Tags */}
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Terms of Service | Vaultopolis" />
+        <meta name="twitter:title" content="Vaultopolis - Terms of Service" />
         <meta name="twitter:description" content="Vaultopolis Terms of Service." />
         
         {/* Structured Data */}

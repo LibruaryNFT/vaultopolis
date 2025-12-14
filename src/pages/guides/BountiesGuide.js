@@ -5,7 +5,7 @@ import GuideTemplate from "../../components/GuideTemplate";
 function BountiesGuide() {
   const guideData = {
     title: "Grail Bounties - Complete Guide",
-    description: "Learn how to participate in Vaultopolis Grail Bounties. Accept offers for high-end NBA Top Shot Moments and earn rewards. Complete guide to matching moments and claiming bounties.",
+    description: "Learn how to participate in Vaultopolis Grail Bounties. Accept offers for high-end NBA Top Shot Moments and collect FLOW rewards. Complete guide to matching moments and claiming bounties.",
     keywords: "grail bounties, nba top shot bounties, accept offers, high-end moments, vaultopolis bounties",
     canonicalUrl: "https://vaultopolis.com/guides/bounties",
     ogTitle: "Grail Bounties - Complete Guide | Vaultopolis",

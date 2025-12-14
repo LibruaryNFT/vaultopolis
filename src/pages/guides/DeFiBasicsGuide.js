@@ -124,7 +124,7 @@ function DeFiBasicsGuide() {
               <strong>Flow EVM (Ethereum Virtual Machine):</strong> The EVM-compatible side
               <ul className="text-brand-text/70 mt-2 space-y-1 list-disc list-inside ml-4">
                 <li>Uses the same programming model as Ethereum (EVM-compatible)</li>
-                <li>Where you can trade TSHOT on DEXs and earn rewards</li>
+                <li>Where you can trade TSHOT on DEXs and participate in rewards programs</li>
                 <li>Works with MetaMask and other EVM wallets</li>
                 <li>Separate blockchain from Ethereum, but uses familiar tools</li>
               </ul>
@@ -172,7 +172,7 @@ function DeFiBasicsGuide() {
   return (
     <>
       <Helmet>
-        <title>DeFi Basics - Understanding Blockchain & Crypto | Vaultopolis</title>
+        <title>Vaultopolis - DeFi Basics: Understanding Blockchain & Crypto</title>
         <meta name="description" content="Blockchain basics, wallets, NFTs, tokens, and gas fees explained. Understand Flow blockchain and how Vaultopolis works." />
         <meta name="keywords" content="blockchain basics, crypto basics, what is nft, what is token, what is wallet, gas fees, flow blockchain, defi basics" />
         

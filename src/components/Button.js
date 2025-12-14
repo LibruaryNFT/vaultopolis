@@ -23,6 +23,7 @@ const Button = ({
 
   // Size variants
   const sizeClasses = {
+    xs: "px-3 py-1.5 text-xs rounded-md",
     sm: "px-3 py-2 text-sm",
     md: "px-4 py-3 text-base", 
     lg: "px-6 py-4 text-lg"
@@ -31,12 +32,12 @@ const Button = ({
   // Color variants
   const variantClasses = {
     primary: `
-      bg-opolis/20 border-2 border-opolis/40 text-white hover:bg-opolis/30 hover:border-opolis
-      shadow-md hover:shadow-lg
+      bg-opolis text-white hover:bg-opolis/90
+      focus-visible:ring-2 focus-visible:ring-opolis/50
     `,
     secondary: `
-      bg-brand-secondary text-brand-text border border-brand-border
-      hover:bg-brand-primary hover:border-opolis/60
+      bg-brand-primary text-brand-text border border-brand-border
+      hover:bg-brand-primary/80
       disabled:bg-brand-primary disabled:text-brand-text/80 disabled:border-brand-border/60
     `,
     outline: `

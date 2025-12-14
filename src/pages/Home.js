@@ -50,7 +50,7 @@ const HeroMosaicBackground = ({ loadingVaultMoments, vaultMoments }) => (
               ))
             : vaultMoments.slice(0, 120).map((moment, i) => (
                 <img
-                  key={moment.id || i}
+                  key={`mosaic-${i}`}
                   src={moment.imageUrl}
                   alt=""
                   className="w-full h-full object-cover rounded-sm"
@@ -423,14 +423,14 @@ const Home = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.5 }}
               >
-                <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'hidden' }}>
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none" style={{ overflow: 'visible' }}>
                   <defs>
                     <marker id="arrowhead-loop" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
                       <polygon points="0 0, 10 3, 0 6" fill="#00D9FF" />
                     </marker>
                   </defs>
                   <motion.path
-                    d="M 85% 10 Q 50% 50, 15% 10"
+                    d="M 85 10 Q 50 35, 15 10"
                     stroke="#00D9FF"
                     strokeWidth="2"
                     fill="none"

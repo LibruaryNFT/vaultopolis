@@ -621,9 +621,9 @@ const Swap = () => {
                   <li className="flex items-start">
                     <span className="text-brand mr-1">•</span>
                     <div className="space-y-1">
-                      <strong>Earn Rewards</strong>
+                      <strong>Liquidity Provision</strong>
                       <p className="text-brand-text/80">
-                        Provide liquidity to earn trading fees on&nbsp;
+                        Provide liquidity to collect trading fees on&nbsp;
                         <a
                           href="https://app.increment.fi/liquidity/add"
                           target="_blank"
@@ -653,10 +653,10 @@ const Swap = () => {
                     More Info →
                   </a>
                   <a
-                    href="/tshot#rewards"
+                    href="/rewards/tshot"
                     className="flex-1 text-sm text-yellow-500 hover:text-yellow-400 text-center font-medium bg-yellow-500/10 hover:bg-yellow-500/20 py-2 px-4 rounded border border-yellow-500/30 transition-colors"
                   >
-                    💰 Rewards
+                    Program Details
                   </a>
                 </div>
               </div>

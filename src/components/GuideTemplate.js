@@ -198,7 +198,7 @@ function GuideTemplate({
     <>
       {/* ─── SEO ─── */}
       <Helmet>
-        <title>{title} | Vaultopolis Guides</title>
+        <title>Vaultopolis - {title}</title>
         <meta name="description" content={description} />
         <meta name="keywords" content={keywords} />
         <link rel="canonical" href={canonicalUrl} />

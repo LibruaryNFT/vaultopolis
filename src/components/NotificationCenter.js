@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAnnouncement } from '../context/AnnouncementContext';
+import Button from './Button';
 
 export default function NotificationCenter() {
   const { announcements, hasUnreadAnnouncements, getUnreadCount, markAsRead, markNotificationAsRead, isNotificationRead, dismissNotification } = useAnnouncement();
@@ -50,13 +51,13 @@ export default function NotificationCenter() {
         <div className="fixed top-[68px] right-0 sm:right-4 w-80 max-w-[calc(100vw-0.5rem)] sm:max-w-[calc(100vw-2rem)] bg-brand-secondary border border-brand-border rounded-lg shadow-xl z-50 max-h-[calc(100vh-80px)] overflow-hidden flex flex-col">
           {/* Header */}
           <div className="p-4 border-b border-brand-border">
-            <h3 className="text-lg font-semibold text-brand-text">News & Updates</h3>
-            <p className="text-sm text-brand-text/70">Recent announcements</p>
+            <h3 className="text-lg font-semibold text-brand-text">Updates</h3>
+            <p className="text-sm text-brand-text/70">Product announcements</p>
           </div>
 
           {/* List */}
           <div className="overflow-y-auto flex-1">
-            {announcements.length === 0 ? (
+            {!Array.isArray(announcements) || announcements.length === 0 ? (
               <div className="p-4 text-center text-brand-text/70 text-sm">
                 No announcements
               </div>
@@ -69,15 +70,141 @@ export default function NotificationCenter() {
                       key={ann.id}
                       className="group relative"
                     >
+                      {/* Determine click target */}
+                        {(() => {
+                          // Derive detailPath from id (one source of truth)
+                          const detailPath = `/updates/${ann.id}`;
+                          let clickTarget;
+                          if (ann.actions?.length && ann.actions[0]?.href) {
+                            // If actions exist, row click goes to detailPath (if body) or first action
+                            clickTarget = (ann.body ? detailPath : null) || ann.actions[0].href;
+                          } else if (ann.body) {
+                            // If body exists, go to detail page
+                            clickTarget = detailPath;
+                          } else if (ann.externalLink) {
+                            // If external link, go there
+                            clickTarget = ann.externalLink;
+                          } else {
+                            // Fallback
+                            clickTarget = detailPath;
+                          }
+
+                        const isExternalTarget = clickTarget?.startsWith('http://') || clickTarget?.startsWith('https://');
+                        
+                        const linkProps = {
+                          onClick: (e) => {
+                            markNotificationAsRead(ann.id);
+                            setIsOpen(false);
+                          },
+                          onKeyDown: (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              // Allow default behavior
+                            }
+                          },
+                          className: `block p-4 hover:bg-brand-primary/60 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-opolis ${
+                            !isRead ? 'border-l-2 border-opolis/60' : 'border-l-2 border-transparent'
+                          }`
+                        };
+                        
+                        return isExternalTarget ? (
                       <a
-                        href={ann.link}
-                        onClick={(e) => {
-                          markNotificationAsRead(ann.id);
-                          setIsOpen(false);
-                        }}
-                        className={`block p-4 hover:bg-brand-primary transition-colors ${
-                          isRead ? 'opacity-60' : ''
-                        }`}
+                            href={clickTarget}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            {...linkProps}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  {!isRead && (
+                                    <span className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
+                                  )}
+                                  <div className={`text-sm font-medium mb-1 ${
+                                    isRead ? 'text-brand-text/80' : 'text-brand-text'
+                                  }`}>
+                                    {ann.title}
+                                  </div>
+                                </div>
+                                <p className={`text-sm line-clamp-2 ${
+                                  isRead ? 'text-brand-text/60' : 'text-brand-text/80'
+                                }`}>
+                                  {ann.snippet}
+                                </p>
+                                <div className="mt-2 flex items-center gap-2 text-xs text-brand-text/60">
+                                  <span>{ann.category}</span>
+                                  <span>•</span>
+                                  <span>{new Date(ann.date).toLocaleDateString()}</span>
+                                </div>
+                                
+                                  {/* Action Buttons - shown if actions exist */}
+                                  {ann.actions && ann.actions.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                                      {ann.actions.map((action, idx) => {
+                                        const isExternal = action.href.startsWith('http://') || action.href.startsWith('https://');
+                                        const isPrimary = action.variant === 'primary';
+                                        const buttonClasses = `
+                                          font-semibold rounded-md transition-all duration-200 select-none
+                                          focus:outline-none focus:ring-2 focus:ring-brand-accent/50
+                                          px-3 py-1.5 text-xs
+                                          ${isPrimary 
+                                            ? 'bg-opolis text-white hover:bg-opolis/90 focus-visible:ring-2 focus-visible:ring-opolis/50' 
+                                            : 'bg-brand-primary text-brand-text border border-brand-border hover:bg-brand-primary/80'
+                                          }
+                                        `.trim();
+                                        
+                                        if (isExternal) {
+                                          return (
+                                            <a
+                                              key={idx}
+                                              href={action.href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                markNotificationAsRead(ann.id);
+                                                setIsOpen(false);
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                  e.stopPropagation();
+                                                }
+                                              }}
+                                              className={buttonClasses}
+                                            >
+                                              {action.label}
+                                            </a>
+                                          );
+                                        }
+                                        
+                                        return (
+                                          <Link
+                                            key={idx}
+                                            to={action.href}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              markNotificationAsRead(ann.id);
+                                              setIsOpen(false);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter' || e.key === ' ') {
+                                                e.stopPropagation();
+                                              }
+                                            }}
+                                            className={buttonClasses}
+                                          >
+                                            {action.label}
+                                          </Link>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                              </div>
+                            </div>
+                          </a>
+                        ) : (
+                          <Link
+                            to={clickTarget}
+                            {...linkProps}
                       >
                         <div className="flex items-start gap-3">
                           <div className="flex-1">
@@ -86,13 +213,13 @@ export default function NotificationCenter() {
                                 <span className="h-2 w-2 bg-blue-500 rounded-full flex-shrink-0" />
                               )}
                               <div className={`text-sm font-medium mb-1 ${
-                                isRead ? 'text-brand-text/70' : 'text-brand-text'
+                                    isRead ? 'text-brand-text/80' : 'text-brand-text'
                               }`}>
                                 {ann.title}
                               </div>
                             </div>
                             <p className={`text-sm line-clamp-2 ${
-                              isRead ? 'text-brand-text/50' : 'text-brand-text/70'
+                                  isRead ? 'text-brand-text/60' : 'text-brand-text/80'
                             }`}>
                               {ann.snippet}
                             </p>
@@ -101,9 +228,72 @@ export default function NotificationCenter() {
                               <span>•</span>
                               <span>{new Date(ann.date).toLocaleDateString()}</span>
                             </div>
+                                
+                                  {/* Action Buttons - shown if actions exist */}
+                                  {ann.actions && ann.actions.length > 0 && (
+                                    <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                                      {ann.actions.map((action, idx) => {
+                                        const isExternal = action.href.startsWith('http://') || action.href.startsWith('https://');
+                                        
+                                        if (isExternal) {
+                                          return (
+                                            <a
+                                              key={idx}
+                                              href={action.href}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                markNotificationAsRead(ann.id);
+                                                setIsOpen(false);
+                                              }}
+                                              onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                  e.stopPropagation();
+                                                }
+                                              }}
+                                            >
+                                              <Button
+                                                variant={action.variant === 'primary' ? 'primary' : 'secondary'}
+                                                size="xs"
+                                              >
+                                                {action.label}
+                                              </Button>
+                                            </a>
+                                          );
+                                        }
+                                        
+                                        return (
+                                          <Link
+                                            key={idx}
+                                            to={action.href}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              markNotificationAsRead(ann.id);
+                                              setIsOpen(false);
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter' || e.key === ' ') {
+                                                e.stopPropagation();
+                                              }
+                                            }}
+                                          >
+                                            <Button
+                                              variant={action.variant === 'primary' ? 'primary' : 'secondary'}
+                                              size="xs"
+                                            >
+                                              {action.label}
+                                            </Button>
+                                          </Link>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                           </div>
                         </div>
-                      </a>
+                          </Link>
+                        );
+                      })()}
                       {/* Dismiss Button - Shows on Hover */}
                       <button
                         onClick={(e) => {
@@ -124,17 +314,15 @@ export default function NotificationCenter() {
           </div>
 
           {/* Footer */}
-          {(announcements.length > 0 || announcements.length === 0) && (
             <div className="p-3 border-t border-brand-border bg-brand-primary/20">
               <Link
-                to="/news"
+              to="/updates"
                 className="text-sm text-brand-accent hover:text-brand-blue text-center block"
                 onClick={() => setIsOpen(false)}
               >
-                View All News →
+              View All Updates →
               </Link>
             </div>
-          )}
         </div>
       )}
     </div>

@@ -82,7 +82,7 @@ function Guides() {
     {
       id: "tshot-rewards",
       title: "TSHOT Rewards Program",
-      description: "Earn weekly $FLOW rewards by holding TSHOT on Flow EVM. Learn how to participate in the Merkl campaign.",
+      description: "Limited-time rewards program for holding TSHOT on Flow EVM. Learn how to participate in the Merkl campaign.",
       icon: <FaExchangeAlt className="text-3xl text-brand-accent" />,
       path: "/guides/tshot-rewards"
     },

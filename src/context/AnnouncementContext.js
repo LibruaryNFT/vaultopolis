@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { currentCampaign } from '../config/rewardsCampaign';
 
 const AnnouncementContext = createContext();
 
@@ -14,22 +15,81 @@ export const AnnouncementProvider = ({ children }) => {
   // Announcements list - this would typically come from an API or config file
   const [announcements] = useState([
     {
-      id: 'tshot-rewards-oct25',
-      title: '🎁 12-Week TSHOT Rewards Program',
-      snippet: 'Earn massive weekly rewards for holding $TSHOT on Flow EVM. 22,500 FLOW distributed over 12 weeks.',
-      link: '/tshot?scroll=rewards',
-      date: new Date('2025-10-21'),
-      featured: false, // Notification center only
-      category: 'Campaign'
+      id: currentCampaign.id,
+      title: 'TSHOT Incentives Program (Limited Time)',
+      snippet: 'Optional program with discretionary distributions; eligibility and terms apply.',
+      date: new Date(currentCampaign.startDateISO),
+      featured: false,
+      category: 'Campaign',
+      // Content
+      body: (
+        <>
+          <p className="mb-4 text-brand-text/90">
+            Vaultopolis is running a limited-time incentives program for holders of $TSHOT on Flow EVM. 
+            The program may include discretionary distributions subject to eligibility criteria.
+          </p>
+          <p className="mb-4 text-brand-text/90">
+            <strong>Program Summary:</strong> {currentCampaign.totalRewards.toLocaleString()} FLOW distributed over {currentCampaign.durationWeeks} weeks 
+            ({currentCampaign.startDate} – {currentCampaign.endDate}). Weekly distributions are typically {currentCampaign.baseWeeklyAmount.toLocaleString()} FLOW, 
+            with {currentCampaign.superchargedAmount.toLocaleString()} FLOW on supercharged weeks.
+          </p>
+          <p className="mb-4 text-brand-text/90">
+            <strong>Eligibility:</strong> Hold $TSHOT on Flow EVM (no staking required). Certain addresses (including team/treasury/LP or other program-excluded wallets) may be ineligible. 
+            Eligibility calculations and distribution mechanics may be administered via third-party infrastructure (e.g., Merkl).
+          </p>
+          <p className="mb-4 text-brand-text/90">
+            <strong>Important:</strong> This program is optional, may change or end at any time, and is not a guarantee of future distributions. 
+            Nothing on this site constitutes an offer or solicitation to buy or sell any asset. This is not investment advice, and this program is not "yield", "interest", or an "APY".
+          </p>
+        </>
+      ),
+      // Navigation
+      canonicalPath: '/rewards/tshot', // For compliance-heavy programs (program-level canonical)
+      // detailPath is derived from id: `/updates/${id}` (not stored to avoid drift)
+      externalLink: null,
+      // Actions
+      actions: [
+        { label: 'View Disclosures', href: '/rewards/tshot', variant: 'primary' },
+        { label: 'How to Participate', href: '/guides/tshot-rewards', variant: 'secondary' },
+      ],
     },
     {
       id: 'allday-grail-bounties-launch',
       title: '🏈 NFL AllDay Grail Bounties Now Live',
       snippet: 'We\'ve launched Grail Bounties for NFL AllDay moments! Browse and accept offers for high-end AllDay moments from the vault.',
-      link: '/bounties/allday',
       date: new Date('2025-11-15'),
-      featured: false, // Disabled banner - shows in notification center only
-      category: 'Launch'
+      featured: false,
+      category: 'Launch',
+      body: (
+        <>
+          <p className="mb-4 text-brand-text/90">
+            We're excited to announce that Grail Bounties are now available for NFL AllDay moments! 
+            This expands our bounty program to include premium NFL AllDay moments from the Vaultopolis treasury.
+          </p>
+          <p className="mb-4 text-brand-text/90">
+            <strong>What are Grail Bounties?</strong> Grail Bounties are premium offers from the Vaultopolis treasury 
+            for high-end moments. When you accept a bounty, you trade your matching moment for FLOW tokens at a premium price.
+          </p>
+          <p className="mb-4 text-brand-text/90">
+            <strong>How it works:</strong>
+          </p>
+          <ul className="mb-4 text-brand-text/90 space-y-2 list-disc list-inside ml-4">
+            <li>Browse available Grail Bounties for NFL AllDay moments</li>
+            <li>Check if you own any matching moments in your collection</li>
+            <li>Accept the bounty to trade your moment for FLOW at the offered price</li>
+            <li>Complete the transaction on-chain</li>
+          </ul>
+          <p className="mb-4 text-brand-text/90">
+            Head to the Bounties page to see all available offers and start trading!
+          </p>
+        </>
+      ),
+      // Navigation
+      // detailPath is derived from id: `/updates/${id}` (not stored)
+      externalLink: null,
+      actions: [
+        { label: 'Browse AllDay Bounties', href: '/bounties/allday', variant: 'primary' },
+      ],
     }
     // Add more announcements here as needed
   ]);
@@ -44,11 +104,20 @@ export const AnnouncementProvider = ({ children }) => {
   });
 
   // Track individually read notifications
+  // Pre-mark certain announcements as read (e.g., older announcements that shouldn't show as "new")
   const [readNotifications, setReadNotifications] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('readNotifications') || '[]');
+      const stored = JSON.parse(localStorage.getItem('readNotifications') || '[]');
+      // Pre-mark the AllDay Grail Bounties launch as read (it's an older announcement)
+      const preReadIds = ['allday-grail-bounties-launch'];
+      const combined = [...new Set([...stored, ...preReadIds])];
+      // Only update localStorage if we added new IDs
+      if (combined.length > stored.length) {
+        localStorage.setItem('readNotifications', JSON.stringify(combined));
+      }
+      return combined;
     } catch {
-      return [];
+      return ['allday-grail-bounties-launch']; // Default to marking it as read
     }
   });
 
@@ -129,9 +198,15 @@ export const AnnouncementProvider = ({ children }) => {
     }
   };
 
+  // Helper to get announcement by ID
+  const getAnnouncementById = (id) => {
+    return announcements.find(ann => ann.id === id) || null;
+  };
+
   const value = {
     announcements: getVisibleAnnouncements(), // Filtered for notification center
     allAnnouncements: announcements, // All announcements for the full page
+    getAnnouncementById, // Get single announcement by ID
     featuredAnnouncement: getFeaturedAnnouncement(),
     shouldShowFeaturedBanner: shouldShowFeaturedBanner(),
     dismissBanner,

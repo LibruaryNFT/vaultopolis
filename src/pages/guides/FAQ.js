@@ -10,7 +10,7 @@ function FAQ() {
   return (
     <>
       <Helmet>
-        <title>Frequently Asked Questions - TSHOT & Vaultopolis | NBA Top Shot Tokenization</title>
+        <title>Vaultopolis - Frequently Asked Questions: TSHOT & NBA Top Shot Tokenization</title>
         <meta name="description" content="Find quick answers to common questions about TSHOT, Vaultopolis, and NBA Top Shot tokenization. Comprehensive FAQ covering wallet setup, trading, and vault operations." />
         <meta name="keywords" content="TSHOT FAQ, Vaultopolis questions, NBA Top Shot help, Flow wallet setup, Dapper integration, TSHOT trading, vault operations" />
         

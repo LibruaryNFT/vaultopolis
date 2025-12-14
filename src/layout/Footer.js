@@ -127,6 +127,11 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/rewards/tshot" className="text-xs sm:text-sm text-brand-text/70 hover:text-brand-text transition-colors">
+                  Rewards Disclosure
+                </Link>
+              </li>
+              <li>
                 <a
                   href="https://x.com/vaultopolis"
                   target="_blank"

@@ -5,20 +5,20 @@ const TermsOfUse = () => {
   return (
     <>
       <Helmet>
-        <title>Terms of Use | Vaultopolis</title>
+        <title>Vaultopolis - Terms of Use</title>
         <meta name="description" content="Vaultopolis Terms of Use. Learn about the terms governing your use of the Vaultopolis website and user interface." />
         <meta name="keywords" content="vaultopolis terms of use, website terms, user interface terms" />
         <link rel="canonical" href="https://vaultopolis.com/terms-of-use" />
         
         {/* Open Graph Tags */}
-        <meta property="og:title" content="Terms of Use | Vaultopolis" />
+        <meta property="og:title" content="Vaultopolis - Terms of Use" />
         <meta property="og:description" content="Vaultopolis Terms of Use for our website and user interface." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://vaultopolis.com/terms-of-use" />
         
         {/* Twitter Card Tags */}
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Terms of Use | Vaultopolis" />
+        <meta name="twitter:title" content="Vaultopolis - Terms of Use" />
         <meta name="twitter:description" content="Vaultopolis Terms of Use." />
         
         {/* Structured Data */}
