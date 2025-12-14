@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAnnouncement } from '../context/AnnouncementContext';
-import Button from './Button';
 
 export default function NotificationCenter() {
   const { announcements, hasUnreadAnnouncements, getUnreadCount, markAsRead, markNotificationAsRead, isNotificationRead, dismissNotification } = useAnnouncement();
@@ -165,67 +164,6 @@ export default function NotificationCenter() {
                               <span>•</span>
                               <span>{new Date(ann.date).toLocaleDateString()}</span>
                             </div>
-                                
-                                  {/* Action Buttons - shown if actions exist */}
-                                  {ann.actions && ann.actions.length > 0 && (
-                                    <div className="mt-3 flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                                      {ann.actions.map((action, idx) => {
-                                        const isExternal = action.href.startsWith('http://') || action.href.startsWith('https://');
-                                        
-                                        if (isExternal) {
-                                          return (
-                                            <a
-                                              key={idx}
-                                              href={action.href}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                markNotificationAsRead(ann.id);
-                                                setIsOpen(false);
-                                              }}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                  e.stopPropagation();
-                                                }
-                                              }}
-                                            >
-                                              <Button
-                                                variant={action.variant === 'primary' ? 'primary' : 'secondary'}
-                                                size="xs"
-                                              >
-                                                {action.label}
-                                              </Button>
-                                            </a>
-                                          );
-                                        }
-                                        
-                                        return (
-                                          <Link
-                                            key={idx}
-                                            to={action.href}
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              markNotificationAsRead(ann.id);
-                                              setIsOpen(false);
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter' || e.key === ' ') {
-                                                e.stopPropagation();
-                                              }
-                                            }}
-                                          >
-                                            <Button
-                                              variant={action.variant === 'primary' ? 'primary' : 'secondary'}
-                                              size="xs"
-                                            >
-                                              {action.label}
-                                            </Button>
-                                          </Link>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
                           </div>
                         </div>
                           </Link>
