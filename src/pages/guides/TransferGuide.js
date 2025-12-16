@@ -5,11 +5,11 @@ import GuideTemplate from "../../components/GuideTemplate";
 function TransferGuide() {
   const guideData = {
     title: "Transfer NFTs - Bulk Transfer Guide",
-    description: "Learn how to transfer NBA Top Shot Moments between Flow accounts or bridge them to Flow EVM. Step-by-step instructions for bulk transfers up to 280 NFTs.",
+    description: "Learn how to transfer NBA Top Shot Moments between Flow accounts or bridge them to Flow EVM. Step-by-step instructions for bulk transfers up to 200 NFTs.",
     keywords: "transfer nfts, bulk transfer, flow wallet transfer, nba top shot transfer, bridge nfts to evm, flow blockchain transfer",
     canonicalUrl: "https://vaultopolis.com/guides/transfer",
     ogTitle: "Transfer NFTs - Bulk Transfer Guide | Vaultopolis",
-    ogDescription: "Complete guide to transferring NBA Top Shot Moments between Flow accounts or bridging to Flow EVM. Support for bulk transfers up to 280 NFTs.",
+    ogDescription: "Complete guide to transferring NBA Top Shot Moments between Flow accounts or bridging to Flow EVM. Support for bulk transfers up to 200 NFTs.",
     icon: ArrowLeftRight,
     difficulty: "Intermediate",
     estimatedTime: "5-10 minutes",
@@ -60,7 +60,7 @@ function TransferGuide() {
             <div className="bg-brand-secondary p-3 rounded border border-brand-border">
               <h4 className="font-semibold text-brand-accent mb-2">💡 Transfer Limits:</h4>
               <ul className="text-sm text-brand-text/70 space-y-1 list-disc list-inside">
-                <li>Flow → Flow: Up to 280 NFTs per transaction</li>
+                <li>Flow → Flow: Up to 200 NFTs per transaction</li>
                 <li>Flow → Flow EVM: Up to 9 NFTs per transaction</li>
               </ul>
             </div>
@@ -106,7 +106,7 @@ function TransferGuide() {
               Select your transfer type:
             </p>
             <ul className="text-brand-text/80 space-y-2 list-disc list-inside ml-4">
-              <li><strong>Flow → Flow:</strong> Enter the recipient's Flow address (starts with 0x). You can transfer up to 280 NFTs in a single transaction.</li>
+                <li><strong>Flow → Flow:</strong> Enter the recipient's Flow address (starts with 0x). You can transfer up to 200 NFTs in a single transaction.</li>
               <li><strong>Flow → Flow EVM:</strong> Your NFTs will be bridged to Flow EVM. Limited to 9 NFTs per transaction due to bridge constraints.</li>
             </ul>
             <div className="bg-brand-secondary p-3 rounded border border-brand-border">

@@ -219,6 +219,9 @@ export default function MomentSelection(props) {
 
   // Allow parent to control if only common/fandom are shown (default: false)
   const restrictToCommonFandom = props.restrictToCommonFandom || false;
+  
+  // Allow parent to control max selection limit (default: 200 for NFT→TSHOT swaps)
+  const maxSelection = props.maxSelection || 200;
 
   /* live "x min ago" label */
   const [elapsed, setElapsed] = useState(formatElapsed(lastSuccessfulUpdate));
@@ -361,7 +364,7 @@ export default function MomentSelection(props) {
         <button
           onClick={handleRefresh}
           disabled={isRefreshing || cooldown}
-          className="px-3 py-1.5 text-sm bg-brand-accent hover:bg-brand-accent/90 text-white rounded disabled:opacity-50"
+          className="px-3 py-1.5 text-sm bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-white font-bold rounded-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           {isRefreshing ? "Refreshing..." : "Try Again"}
         </button>
@@ -386,7 +389,7 @@ export default function MomentSelection(props) {
         <button
           onClick={handleRefresh}
           disabled={isRefreshing || cooldown}
-          className="px-3 py-1.5 text-sm bg-brand-accent hover:bg-brand-accent/90 text-white rounded disabled:opacity-50"
+          className="px-3 py-1.5 text-sm bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-white font-bold rounded-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           {isRefreshing ? "Refreshing..." : "Try Refresh"}
         </button>
@@ -704,9 +707,9 @@ export default function MomentSelection(props) {
       </div>
 
       {/* Selection limit warning */}
-      {selectedNFTs.length >= 200 && (
+      {selectedNFTs.length >= maxSelection && (
         <div className="mb-1.5 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded text-sm text-yellow-300 text-center">
-          Max 200 NFTs selected. Deselect some to add more.
+          Max {maxSelection} NFTs selected. Deselect some to add more.
         </div>
       )}
 
@@ -793,11 +796,10 @@ export default function MomentSelection(props) {
               key={n.id}
               nft={n}
               handleNFTSelection={(id) => {
-                // Prevent selecting more than 200 for NFT→TSHOT swaps
-                const MAX_SELECTION = 200;
+                // Prevent selecting more than maxSelection
                 if (
                   !selectedNFTs.includes(id) &&
-                  selectedNFTs.length >= MAX_SELECTION
+                  selectedNFTs.length >= maxSelection
                 ) {
                   return; // Do nothing if already at limit
                 }

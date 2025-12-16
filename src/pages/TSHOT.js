@@ -68,7 +68,7 @@ function TSHOT() {
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-8">
           <button
             onClick={handleConnectWallet}
-            className="bg-opolis hover:bg-opolis-dark text-white px-6 py-3 rounded-xl text-lg font-semibold transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center gap-3"
+            className="bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-white px-6 py-3 rounded-lg text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 inline-flex items-center gap-3"
           >
             <img
               src="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png"

@@ -101,7 +101,7 @@ const Admin = () => {
         className={`w-full p-3 mb-3 text-lg rounded-lg font-bold select-none ${
           selectedIDs.length
             ? "bg-red-500 hover:bg-red-600"
-            : "bg-gray-500 cursor-not-allowed"
+            : "bg-brand-primary/60 border border-brand-border/60 cursor-not-allowed opacity-60"
         } text-white transition-colors duration-300`}
       >
         {loading ? "Processing..." : "Destroy Selected Moments"}
@@ -123,7 +123,7 @@ const Admin = () => {
           </button>
           <button
             onClick={handleDeselectAll}
-            className="px-4 py-2 bg-gray-500 text-white rounded select-none"
+            className="px-4 py-2 bg-brand-primary/60 border border-brand-border/60 text-white rounded-lg select-none opacity-60"
           >
             Deselect All
           </button>

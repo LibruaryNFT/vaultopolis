@@ -170,10 +170,43 @@ export function useMomentFilters({
     const prevSeriesOptions = prevSeriesOptionsRef.current;
     const seriesOptionsChanged = JSON.stringify(prevSeriesOptions) !== JSON.stringify(seriesOptions);
     
-    // Skip auto-select if we loaded from URL (URL values take precedence)
+    // If we loaded from URL, validate and handle empty series selection
     if (loadedFromURLRef.current) {
+      // If series is empty (not specified in URL), auto-select all available series
+      // This handles both initial load and when seriesOptions becomes available after URL load
+      if (seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
+        setFilter({ selectedSeries: [...seriesOptions] });
+        prevSeriesOptionsRef.current = [...seriesOptions];
+        hasInitializedRef.current = true;
+        return;
+      }
+      
+      // Check if seriesOptions expanded (new series discovered after URL load)
+      const seriesExpanded = seriesOptions.length > prevSeriesOptions.length &&
+        prevSeriesOptions.length > 0 &&
+        prevSeriesOptions.every(s => seriesOptions.includes(s));
+      
+      // If we had all selected and series expanded, update to include new series
+      // This handles the case where more data loads after initial URL load
+      if (seriesExpanded && filter.selectedSeries.length === prevSeriesOptions.length &&
+          filter.selectedSeries.every(s => prevSeriesOptions.includes(s))) {
+        setFilter({ selectedSeries: [...seriesOptions] });
+        prevSeriesOptionsRef.current = [...seriesOptions];
+        hasInitializedRef.current = true;
+        return;
+      }
+      
+      // If seriesOptions just became available (was empty, now has values) and selectedSeries is empty
+      // This handles the case where URL load happened before seriesOptions was populated
+      if (prevSeriesOptions.length === 0 && seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
+        setFilter({ selectedSeries: [...seriesOptions] });
+        prevSeriesOptionsRef.current = [...seriesOptions];
+        hasInitializedRef.current = true;
+        return;
+      }
+      
       // Only validate that URL-loaded series are still valid
-      if (seriesOptions.length > 0) {
+      if (seriesOptions.length > 0 && filter.selectedSeries.length > 0) {
         const hasInvalidSeries = filter.selectedSeries.some(s => !seriesOptions.includes(s));
         if (hasInvalidSeries) {
           // Filter out invalid series, keep valid ones
@@ -192,6 +225,7 @@ export function useMomentFilters({
     }
     
     // Auto-select all series when they become available (first load only)
+    // Also handle case where seriesOptions becomes available after initial mount
     if (!hasInitializedRef.current && seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
       setFilter({ selectedSeries: [...seriesOptions] });
       prevSeriesOptionsRef.current = [...seriesOptions];
@@ -199,26 +233,68 @@ export function useMomentFilters({
       return;
     }
     
-    // When seriesOptions changes (e.g., switching accounts), reset to all available series
-    // This ensures consistency when switching between parent/child accounts
+    // If seriesOptions just became available (was empty, now has values) and selectedSeries is empty
+    // This handles the case where initialization happened before seriesOptions was populated
+    if (prevSeriesOptions.length === 0 && seriesOptions.length > 0 && filter.selectedSeries.length === 0) {
+      setFilter({ selectedSeries: [...seriesOptions] });
+      prevSeriesOptionsRef.current = [...seriesOptions];
+      hasInitializedRef.current = true;
+      return;
+    }
+    
+    // When seriesOptions changes (e.g., switching accounts or more data loads), handle selection
+    // This ensures consistency when switching between parent/child accounts or when new series are discovered
     if (seriesOptionsChanged && seriesOptions.length > 0) {
       // Check if we had "all selected" before (selectedSeries matched previous options length)
       const hadAllSelected = prevSeriesOptions.length > 0 && 
         filter.selectedSeries.length === prevSeriesOptions.length &&
         filter.selectedSeries.every(s => prevSeriesOptions.includes(s));
       
-      // If we had all selected, or if current selection has invalid series, reset to all
-      const hasInvalidSeries = filter.selectedSeries.some(s => !seriesOptions.includes(s));
+      // Check if seriesOptions expanded (new series discovered)
+      const seriesExpanded = seriesOptions.length > prevSeriesOptions.length &&
+        prevSeriesOptions.every(s => seriesOptions.includes(s));
       
-      // Only auto-select if we had all selected before or have invalid series
-      // Don't auto-select if user intentionally cleared (hadAllSelected will be false)
-      if (hadAllSelected || hasInvalidSeries) {
+      // If we had all selected and series expanded, update to include new series
+      if (hadAllSelected && seriesExpanded) {
         setFilter({ selectedSeries: [...seriesOptions] });
+        prevSeriesOptionsRef.current = [...seriesOptions];
+        hasInitializedRef.current = true;
+        return;
+      }
+      
+      // If we had all selected but series changed in other ways, reset to all
+      if (hadAllSelected) {
+        setFilter({ selectedSeries: [...seriesOptions] });
+        prevSeriesOptionsRef.current = [...seriesOptions];
+        hasInitializedRef.current = true;
+        return;
+      }
+      
+      // If current selection has invalid series, filter them out or reset to all
+      const hasInvalidSeries = filter.selectedSeries.some(s => !seriesOptions.includes(s));
+      if (hasInvalidSeries) {
+        // Filter out invalid series, keep valid ones
+        const validSeries = filter.selectedSeries.filter(s => seriesOptions.includes(s));
+        if (validSeries.length > 0) {
+          setFilter({ selectedSeries: validSeries });
+        } else {
+          // If all series are invalid, fall back to all available
+          setFilter({ selectedSeries: [...seriesOptions] });
+        }
       }
     }
     
+    // Only mark as initialized if we've handled series selection OR if seriesOptions is available
+    // Don't mark as initialized if seriesOptions is empty and selectedSeries is empty (still waiting for data)
+    const shouldMarkInitialized = 
+      filter.selectedSeries.length > 0 || // We have a selection
+      seriesOptions.length > 0 || // We have options available (even if none selected)
+      (seriesOptions.length === 0 && prevSeriesOptions.length === 0); // No series in collection (stable state)
+    
     prevSeriesOptionsRef.current = [...seriesOptions];
-    hasInitializedRef.current = true;
+    if (shouldMarkInitialized) {
+      hasInitializedRef.current = true;
+    }
   }, [seriesOptions, filter.selectedSeries]);
 
   useEffect(() => {

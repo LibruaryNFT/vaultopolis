@@ -2,6 +2,7 @@ export const getTopShotBatched = `
 
 import TopShot from 0x0b2a3299cc857e29
 import TopShotTiers from 0xb1788d64d512026d
+import TopShotLocking from 0x0b2a3299cc857e29
 
 access(all) struct NFTDetails {
     access(all) let id: UInt64
@@ -10,6 +11,9 @@ access(all) struct NFTDetails {
     access(all) let serialNumber: UInt32
     access(all) let tier: String
     access(all) let series: UInt32
+    access(all) let isLocked: Bool
+    // Just the subedition ID (optional)
+    access(all) let subeditionID: UInt32?
 
     init(
         id: UInt64,
@@ -17,7 +21,9 @@ access(all) struct NFTDetails {
         playID: UInt32,
         serialNumber: UInt32,
         tier: String,
-        series: UInt32
+        series: UInt32,
+        isLocked: Bool,
+        subeditionID: UInt32?
     ) {
         self.id = id
         self.setID = setID
@@ -25,6 +31,8 @@ access(all) struct NFTDetails {
         self.serialNumber = serialNumber
         self.tier = tier
         self.series = series
+        self.isLocked = isLocked
+        self.subeditionID = subeditionID
     }
 }
 
@@ -64,13 +72,20 @@ access(all) fun main(address: Address, targetIDs: [UInt64]): [NFTDetails] {
             ?? panic("Could not determine the series for setID: "
                 .concat(data.setID.toString()))
 
+        let isLocked = TopShotLocking.isLocked(nftRef: nft)
+
+        // The subedition ID is safe to read. It returns UInt32? (nil if none).
+        let subID = TopShot.getMomentsSubedition(nftID: id)
+
         let details = NFTDetails(
             id: nft.id,
             setID: data.setID,
             playID: data.playID,
             serialNumber: data.serialNumber,
             tier: tierString,
-            series: series
+            series: series,
+            isLocked: isLocked,
+            subeditionID: subID // store optional as-is
         )
         results.append(details)
     }

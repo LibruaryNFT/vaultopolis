@@ -161,8 +161,9 @@ const AccountSelection = ({
             onClick={handleSetupCollection}
             disabled={isSettingUpCollection}
             className={`
-              bg-opolis hover:bg-opolis-dark text-[10px] sm:text-[11px] text-white
-              font-bold px-1.5 sm:px-2 py-0.5 rounded
+              bg-opolis/20 border border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-[10px] sm:text-[11px] text-white
+              font-bold px-1.5 sm:px-2 py-0.5 rounded-lg
+              shadow-sm hover:shadow-md transition-all duration-200
               ${isSettingUpCollection ? "opacity-50 cursor-not-allowed" : ""}
             `}
           >

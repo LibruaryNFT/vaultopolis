@@ -23,7 +23,7 @@ const QuickStartGuide = ({ variant = "full" }) => {
           {guideLink && (
             <a
               href={guideLink}
-              className="inline-flex items-center gap-2 bg-brand-accent hover:bg-brand-accent/80 text-white px-3 py-1.5 rounded-lg transition-colors text-sm font-medium"
+              className="inline-flex items-center gap-2 bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-white px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-sm font-bold"
             >
               <BookOpen className="w-4 h-4" />
               {guideText}
@@ -141,7 +141,7 @@ const QuickStartGuide = ({ variant = "full" }) => {
         <div className="mt-4 text-center">
           <a
             href="/guides"
-            className="inline-flex items-center gap-2 bg-brand-accent hover:bg-brand-accent/80 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+            className="inline-flex items-center gap-2 bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-white px-4 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 text-sm font-bold"
           >
             View Full Quick Start Guide
             <ArrowRight className="w-4 h-4" />

@@ -14,10 +14,10 @@ import MomentSelection from "../components/MomentSelection";
 import TransactionModal from "../components/TransactionModal";
 import { Helmet } from "react-helmet-async";
 import MomentCard from "../components/MomentCard";
-import { Info, Send } from "lucide-react"; // Icons
+import { Send } from "lucide-react"; // Icons
 import Button from "../components/Button";
 
-const MAX_FLOW_TRANSFER_COUNT = 280; // Flow → Flow
+const MAX_FLOW_TRANSFER_COUNT = 200; // Flow → Flow
 const MAX_EVM_BRIDGE_COUNT = 9; // Flow → EVM
 
 const Transfer = () => {
@@ -47,7 +47,6 @@ const Transfer = () => {
   const [txStatus, setTxStatus] = useState(""); // Status for TransactionModal
   const [txMsg, setTxMsg] = useState(""); // Message for TransactionModal
   const [txHash, setTxHash] = useState(""); // Transaction hash for TransactionModal
-  const [showInfoModal, setShowInfoModal] = useState(false); // For the EVM bridge info modal
   const [excludedNftIds, setExcludedNftIds] = useState([]); // IDs of NFTs successfully sent, to hide immediately
   const [txInitiatedNftCount, setTxInitiatedNftCount] = useState(0); // Store count for TransactionModal's nftCount prop
 
@@ -56,14 +55,118 @@ const Transfer = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="w-full max-w-md mx-auto mt-8">
-        <button
-          onClick={() => fcl.authenticate()}
-          className="w-full p-4 text-lg font-bold rounded-lg bg-opolis text-white hover:bg-opolis-dark"
-        >
-          Connect Wallet
-        </button>
-      </div>
+      <>
+        <Helmet>
+          <title>Vaultopolis - Transfer</title>
+          <meta name="description" content="Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM. Bulk transfer functionality for efficient NFT management and cross-chain bridging." />
+          <meta name="keywords" content="bulk transfer, nba top shot transfer, flow nft transfer, evm bridge, flow blockchain transfer, nft bridge, cross-chain transfer" />
+          <link rel="canonical" href="https://vaultopolis.com/transfer" />
+          
+          {/* Open Graph Tags */}
+          <meta property="og:title" content="Bulk Transfer NBA Top Shot Moments | Vaultopolis" />
+          <meta property="og:description" content="Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM. Efficient bulk transfer functionality." />
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content="https://vaultopolis.com/transfer" />
+          <meta property="og:image" content="https://storage.googleapis.com/vaultopolis/VaultopolisIcon.png" />
+          
+          {/* Twitter Card Tags */}
+          <meta name="twitter:card" content="summary" />
+          <meta name="twitter:title" content="Bulk Transfer NBA Top Shot Moments" />
+          <meta name="twitter:description" content="Transfer multiple NBA Top Shot Moments between Flow accounts or bridge to Flow EVM." />
+        </Helmet>
+
+        {/* Page title with icon */}
+        <div className="w-full mb-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <Send className="w-5 h-5 sm:w-6 sm:h-6 text-opolis" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-brand-text leading-tight">
+                Bulk Transfer
+              </h1>
+              <p className="text-xs sm:text-sm text-brand-text/70 mt-0.5">
+                Move or bridge multiple Moments in a single flow.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Preview of the tool (disabled) */}
+        <div className="w-full max-w-md mx-auto mt-2 mb-4">
+          <div className="bg-brand-primary shadow-md shadow-black/30 rounded-lg p-3 min-h-[180px] opacity-60 pointer-events-none">
+            <label className="block mb-1 text-brand font-semibold">
+              Select Tool:
+            </label>
+            <div
+              className="inline-flex items-center gap-2 bg-brand-primary rounded-full p-0.5 border border-brand-border/60 shadow-sm"
+              role="tablist"
+            >
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-brand-secondary text-brand-accent border border-brand-accent shadow-sm"
+              >
+                Bulk Transfer
+              </button>
+              <button
+                type="button"
+                disabled
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium text-brand-text/80 border border-transparent"
+              >
+                EVM Bridge
+              </button>
+            </div>
+
+            <p className="text-xs mt-1 text-gray-400">
+              You can transfer up to {MAX_FLOW_TRANSFER_COUNT} Moments per transaction.
+            </p>
+
+            <div className="mt-3">
+              <label className="block mb-1 text-brand">
+                Recipient Address (Cadence)
+              </label>
+              <input
+                type="text"
+                placeholder="0xRecipient"
+                className="w-full p-2 rounded text-black"
+                disabled
+                value=""
+              />
+            </div>
+          </div>
+
+          {/* Login prompt */}
+          <div className="mt-4 p-4 bg-brand-secondary rounded-lg border border-brand-border">
+            <p className="text-sm text-brand-text mb-3 text-center">
+              Connect your wallet to use the Bulk Transfer tool
+            </p>
+            <button
+              onClick={() => fcl.authenticate()}
+              className="w-full px-4 py-2 rounded-lg bg-opolis/20 border-2 border-opolis/40 text-white font-bold shadow-xl hover:shadow-2xl hover:bg-opolis/30 hover:border-opolis transition-all duration-300"
+              aria-label="Connect Flow wallet"
+            >
+              Connect Wallet
+            </button>
+          </div>
+        </div>
+
+        {/* Disabled preview of collection area */}
+        <div className="w-full pb-8">
+          <div className="space-y-1.5">
+            <div className="w-full p-0 space-y-0 mb-1.5 opacity-60 pointer-events-none">
+              <div className="bg-brand-primary rounded pt-1.5 pb-0 px-1 -mx-1">
+                <div className="px-2 py-1 pt-1.5 flex flex-wrap gap-2 w-full">
+                  <div className="text-sm text-brand-text/70">
+                    Collection: <span className="text-brand-text/50">Connect wallet to view</span>
+                  </div>
+                </div>
+                <div className="w-full p-4 text-center text-brand-text/50 text-sm">
+                  Moment selection will appear here after connecting your wallet
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -531,13 +634,6 @@ const Transfer = () => {
                     this wallet.
                   </p>
                 </div>
-                <button
-                  onClick={() => setShowInfoModal(true)}
-                  className="p-1 hover:bg-brand-primary rounded-full transition-colors"
-                  aria-label="Learn more about TSHOT"
-                >
-                  <Info size={18} className="text-brand-text/70" />
-                </button>
               </div>
             </div>
           )}
@@ -556,41 +652,6 @@ const Transfer = () => {
           </Button>
         </div>
       </div>
-
-      {/* Info Modal - only show for EVM bridge, now correctly linked */}
-      {showInfoModal && destinationType === "evm" && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-brand-primary p-6 rounded-lg w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold mb-4">About TSHOT</h3>
-            <div className="space-y-3 text-sm">
-              <p>
-                TSHOT (Top Shot) is a token that represents ownership of Top
-                Shot Moments on the Flow EVM network.
-              </p>
-              <p>When you bridge your Moments to Flow EVM:</p>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>
-                  Your Moments are deposited into the Flow EVM COA (Collection
-                  of Assets)
-                </li>
-                <li>You receive TSHOT tokens representing your Moments</li>
-                <li>You can trade these tokens on Flow EVM DEXs</li>
-                <li>You can bridge back to Flow Mainnet at any time</li>
-              </ul>
-              <p className="text-xs text-brand-text/70 mt-4">
-                Note: A maximum of {MAX_EVM_BRIDGE_COUNT} Moments can be bridged
-                per transaction for gas efficiency.
-              </p>
-            </div>
-            <button
-              onClick={() => setShowInfoModal(false)}
-              className="mt-6 w-full bg-opolis text-white py-2 rounded-lg hover:bg-opolis-dark transition-colors"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* 2) Main area - align styling with Swap */}
       <div className="w-full pb-8">
@@ -646,6 +707,7 @@ const Transfer = () => {
                   syncFiltersWithURL={true}
                   searchParams={searchParams}
                   setSearchParams={setSearchParams}
+                  maxSelection={MAX_FLOW_TRANSFER_COUNT}
                 />
               </div>
             </div>

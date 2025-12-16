@@ -337,7 +337,7 @@ export default function MyCollection({
             <button
               onClick={() => dispatch({ type: "REFRESH_USER_DATA" })}
               disabled={isRefreshing}
-              className="px-4 py-2 bg-brand-accent hover:bg-brand-accent/90 text-white rounded-lg font-semibold transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isRefreshing ? "Refreshing..." : "Try Refresh"}
             </button>
@@ -454,7 +454,8 @@ export default function MyCollection({
           {/* Filter Panel */}
           <div className="text-brand-text w-full">
             {/* Filter Sections */}
-            <div className="space-y-1.5">
+            <div className="bg-brand-primary rounded-lg pt-1.5 pb-0 px-1 -mx-1">
+              <div className="space-y-1.5">
               {/* Filter Controls - Only show for TopShot */}
               {collectionType === 'topshot' && (
                 <div>
@@ -644,7 +645,7 @@ export default function MyCollection({
                             setAllDayFilter({ ...allDayFilter, sortBy: e.target.value, currentPage: 1 });
                           }
                         }}
-                        className="bg-brand-primary text-brand-text rounded px-1 py-0.5 text-xs border border-brand-border focus:outline-none focus:ring-2 focus:ring-opolis"
+                        className="bg-brand-secondary text-brand-text rounded px-1 py-0.5 text-xs border border-brand-border focus:outline-none focus:ring-2 focus:ring-opolis"
                       >
                         {sortOptions.map((option) => (
                           <option key={option.value} value={option.value}>
@@ -664,7 +665,7 @@ export default function MyCollection({
                         }
                       }}
                       disabled={collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-40 select-none h-[28px]"
+                      className="inline-flex items-center gap-1.5 rounded-lg border-2 border-brand-border bg-brand-secondary px-2.5 py-1.5 text-xs font-medium text-brand-text hover:border-opolis hover:bg-brand-primary focus-visible:ring-2 focus-visible:ring-opolis disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none select-none h-[28px] shadow-sm hover:shadow-md transition-all duration-200"
                       title={`Refresh ${collectionType === 'topshot' ? 'TopShot' : 'AllDay'} data`}
                     >
                       <RefreshCw size={14} className={`${(collectionType === 'topshot' ? isRefreshing : isRefreshingAllDay) ? "animate-spin" : ""} text-opolis`} />
@@ -698,13 +699,14 @@ export default function MyCollection({
                         }
                         setShowMetadata(false);
                       }}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis focus-visible:ring-2 focus-visible:ring-opolis transition h-[28px]"
+                      className="inline-flex items-center gap-1.5 rounded-lg border-2 border-brand-border bg-brand-secondary px-3 py-1.5 text-xs sm:text-sm font-medium text-brand-text hover:border-opolis hover:bg-brand-primary focus-visible:ring-2 focus-visible:ring-opolis transition-all duration-200 h-[28px] shadow-sm hover:shadow-md"
                     >
                       <X size={13} />
                       Reset Filters
                     </button>
                   </div>
                 </div>
+              </div>
               </div>
             </div>
           </div>
@@ -726,17 +728,20 @@ export default function MyCollection({
                 <button
                   onClick={() => goPage(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                  className="px-3 py-1.5 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none"
                 >
                   Prev
                 </button>
-                <span className="text-xs text-brand-text/70 px-2">
+                <span 
+                  className="text-xs text-opolis font-semibold px-2"
+                  aria-current="page"
+                >
                   {currentPage}/{pageCount}
                 </span>
                 <button
                   onClick={() => goPage(currentPage + 1)}
                   disabled={currentPage === pageCount}
-                  className="px-3 py-1.5 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm font-medium"
+                  className="px-3 py-1.5 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none"
                 >
                   Next
                 </button>
@@ -748,17 +753,20 @@ export default function MyCollection({
                   <button
                     onClick={() => goPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                    className="px-3 py-1 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none"
                   >
                     Prev
                   </button>
-                  <span className="text-sm text-brand-text/70 min-w-[100px] text-center">
+                  <span 
+                    className="text-sm text-opolis font-semibold min-w-[100px] text-center"
+                    aria-current="page"
+                  >
                     Page {currentPage} of {pageCount}
                   </span>
                   <button
                     onClick={() => goPage(currentPage + 1)}
                     disabled={currentPage === pageCount}
-                    className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50"
+                    className="px-3 py-1 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none"
                   >
                     Next
                   </button>

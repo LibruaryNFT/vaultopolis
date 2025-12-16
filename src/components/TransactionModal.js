@@ -290,9 +290,9 @@ const TransactionModal = ({
                   <button
                     onClick={revealAll}
                     className="
-                      bg-brand-accent text-white text-xs px-3 py-1.5 rounded font-semibold
-                      hover:opacity-90 active:opacity-75 select-none
-                      transition-opacity
+                      bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis text-white text-xs px-3 py-1.5 rounded-lg font-bold
+                      shadow-md hover:shadow-lg select-none
+                      transition-all duration-200
                     "
                   >
                     Reveal All

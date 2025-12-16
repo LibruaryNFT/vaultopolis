@@ -71,11 +71,18 @@ export default function MultiSelectFilterPopover({
     );
     
     // Check if all options are selected (allSelected)
-    // Must match exactly - all options in normalizedOptions must be in unique
-    const allSelected =
-      normalizedOptions.length > 0 &&
-      unique.length === normalizedOptions.length &&
-      normalizedOptions.every(({ key }) => unique.includes(key));
+    // Simple check: if every option value is in selectedValues, then all are selected
+    // This handles type mismatches and ensures all options are covered
+    const allSelected = normalizedOptions.length > 0 &&
+      normalizedOptions.every(({ value }) => {
+        // Check if this option value exists in selectedValues
+        // Handle both direct match and type conversions
+        return selectedValues.some(sv => {
+          const svNum = Number(sv);
+          const valNum = Number(value);
+          return sv === value || svNum === valNum || String(sv) === String(value);
+        });
+      });
     
     return {
       items: unique,

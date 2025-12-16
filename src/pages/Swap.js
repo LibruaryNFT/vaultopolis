@@ -12,7 +12,6 @@ import AccountSelection from "../components/AccountSelection";
 
 import { Helmet } from "react-helmet-async";
 import { X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import SwapApplication from "../components/SwapApplication";
 
 /** Utility to get total TSHOT balance across parent + child. */
@@ -101,8 +100,6 @@ const Swap = () => {
       }
     };
   }, [openDrawerTimeout]);
-
-  const [showInfoModal, setShowInfoModal] = useState(false);
 
   const [childAddresses, setChildAddresses] = useState([]);
   const [accountCollections, setAccountCollections] = useState({});
@@ -262,15 +259,16 @@ const Swap = () => {
       const totalTSHOT = getTotalTSHOTBalance(accountData);
       return (
         <div className="text-xs text-brand-text/70 mt-1">
-          Balance: {Math.floor(totalTSHOT)} TSHOT
+          Balance: {Math.floor(totalTSHOT)}
         </div>
       );
     }
     if (isNFTMode) {
       const { common, fandom } = getTotalNFTCounts(accountData);
+      const total = common + fandom;
       return (
         <div className="text-xs text-brand-text/70 mt-1">
-          Balance: {common} Common / {fandom} Fandom
+          Balance: {total}
         </div>
       );
     }
@@ -283,15 +281,16 @@ const Swap = () => {
       const totalTSHOT = getTotalTSHOTBalance(accountData);
       return (
         <div className="text-xs text-brand-text/70 mt-1">
-          Balance: {Math.floor(totalTSHOT)} TSHOT
+          Balance: {Math.floor(totalTSHOT)}
         </div>
       );
     }
     if (toAsset === "TopShot Common / Fandom") {
       const { common, fandom } = getTotalNFTCounts(accountData);
+      const total = common + fandom;
       return (
         <div className="text-xs text-brand-text/70 mt-1">
-          Balance: {common} Common / {fandom} Fandom
+          Balance: {total}
         </div>
       );
     }
@@ -539,132 +538,6 @@ const Swap = () => {
 
       {/* Transaction Modal is now global - rendered in App.js via TransactionDrawer */}
 
-      {/* TSHOT Info Modal */}
-      <AnimatePresence>
-        {showInfoModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={() => setShowInfoModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-brand-primary rounded-lg p-4 max-w-md w-full shadow-xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <img
-                    src="https://storage.googleapis.com/vaultopolis/TSHOT.png"
-                    alt="TSHOT"
-                    width="24"
-                    height="24"
-                    className="w-5 h-5"
-                  />
-                  <h3 className="text-lg font-semibold text-brand-text">
-                    TSHOT Info
-                  </h3>
-                </div>
-                <button
-                  onClick={() => setShowInfoModal(false)}
-                  className="p-1 hover:bg-brand-secondary rounded-full transition-colors"
-                  aria-label="Close"
-                >
-                  <X size={20} className="text-brand-text/70" />
-                </button>
-              </div>
-              <div className="text-sm text-brand-text/90 space-y-3">
-                <p className="text-brand-text/90">
-                  TSHOT is a fungible token backed 1-for-1 by NBA Top Shot
-                  Moments.
-                </p>
-                <ul className="space-y-3">
-                  <li className="flex items-start">
-                    <span className="text-brand mr-1">•</span>
-                    <div className="space-y-1">
-                      <strong>Trade Anywhere</strong>
-                      <p className="text-brand-text/80">
-                        Swap TSHOT ↔ FLOW instantly on&nbsp;
-                        <a
-                          href="https://app.increment.fi/swap?in=A.05b67ba314000b2d.TSHOT&out=A.1654653399040a61.FlowToken"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline hover:text-flow-light"
-                        >
-                          Increment.fi
-                        </a>
-                        &nbsp;or&nbsp;
-                        <a
-                          href="https://swap.kittypunch.xyz/?tokens=0xc618a7356fcf601f694c51578cd94144deaee690-0xd3bf53dac106a0290b0483ecbc89d40fcc961f3e"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline hover:text-flow-light"
-                        >
-                          PunchSwap
-                        </a>
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-brand mr-1">•</span>
-                    <div className="space-y-1">
-                      <strong>Bulk Trading</strong>
-                      <p className="text-brand-text/80">
-                        Convert multiple Moments to TSHOT in one transaction
-                      </p>
-                    </div>
-                  </li>
-                  <li className="flex items-start">
-                    <span className="text-brand mr-1">•</span>
-                    <div className="space-y-1">
-                      <strong>Liquidity Provision</strong>
-                      <p className="text-brand-text/80">
-                        Provide liquidity to collect trading fees on&nbsp;
-                        <a
-                          href="https://app.increment.fi/liquidity/add"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline hover:text-flow-light"
-                        >
-                          Increment.fi
-                        </a>
-                        &nbsp;or&nbsp;
-                        <a
-                          href="https://swap.kittypunch.xyz/?tab=liquidity&mode=add&token0=0xC618a7356FcF601f694C51578CD94144Deaee690&token1=0xd3bF53DAC106A0290B0483EcBC89d40FcC961f3e"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline hover:text-flow-light"
-                        >
-                          PunchSwap
-                        </a>
-                      </p>
-                    </div>
-                  </li>
-                </ul>
-                <div className="flex gap-3 mt-4">
-                  <a
-                    href="/tshot"
-                    className="flex-1 text-sm text-brand hover:text-flow-light text-center font-medium bg-brand-secondary py-2 px-4 rounded hover:bg-opolis hover:text-white transition-colors"
-                  >
-                    More Info →
-                  </a>
-                  <a
-                    href="/rewards/tshot"
-                    className="flex-1 text-sm text-yellow-500 hover:text-yellow-400 text-center font-medium bg-yellow-500/10 hover:bg-yellow-500/20 py-2 px-4 rounded border border-yellow-500/30 transition-colors"
-                  >
-                    Program Details
-                  </a>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Featured Announcement Banner */}
       {shouldShowFeaturedBanner && featuredAnnouncement && (
         <div className="w-full bg-gradient-to-r from-brand-accent to-brand-blue text-white py-3 px-4 relative">
@@ -705,7 +578,6 @@ const Swap = () => {
         isNFTMode={isNFTMode}
         dashboardMode={dashboardMode}
         setFromAsset={setFromAsset}
-        setShowInfoModal={setShowInfoModal}
         handleFromKeyDown={handleFromKeyDown}
         handleFromInputChange={handleFromInputChange}
         toggleAssets={toggleAssets}

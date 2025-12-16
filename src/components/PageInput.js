@@ -43,7 +43,7 @@ const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
           onChange={handleChange}
           onKeyDown={handleKeyDown}
           placeholder="Page #"
-          className="w-16 px-2 py-1 rounded bg-brand-primary text-brand-text/80 text-sm border border-brand-border"
+          className="w-16 px-2 py-1 rounded-lg bg-brand-primary text-brand-text/80 text-sm border border-brand-border focus:outline-none focus:ring-2 focus:ring-opolis/50"
           disabled={disabled}
         />
       </div>
@@ -51,7 +51,7 @@ const PageInput = ({ maxPages, currentPage, onPageChange, disabled }) => {
         type="button"
         onClick={handleSubmit}
         disabled={disabled}
-        className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm border border-brand-border"
+        className="px-3 py-1 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none"
       >
         Go
       </button>

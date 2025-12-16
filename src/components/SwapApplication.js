@@ -1,6 +1,5 @@
 import React from "react";
 import Dropdown, { FROM_OPTIONS } from "./Dropdown";
-import { Info } from "lucide-react";
 import * as fcl from "@onflow/fcl";
 import { verifyTopShotCollection } from "../flow/verifyTopShotCollection";
 import { setupTopShotCollection } from "../flow/setupTopShotCollection";
@@ -18,7 +17,6 @@ const SwapApplication = ({
   isNFTMode,
   dashboardMode,
   setFromAsset,
-  setShowInfoModal,
   handleFromKeyDown,
   handleFromInputChange,
   toggleAssets,
@@ -76,15 +74,6 @@ const SwapApplication = ({
                       excludeSelected={true}
                     />
                   </div>
-                  {fromAsset === "TSHOT" && (
-                    <button
-                      onClick={() => setShowInfoModal(true)}
-                      className="ml-2 p-1 hover:bg-brand-primary rounded-full transition-colors"
-                      aria-label="Learn more about TSHOT"
-                    >
-                      <Info size={18} className="text-brand-text/70" />
-                    </button>
-                  )}
                 </div>
                 {renderFromBalance()}
               </div>
@@ -111,7 +100,7 @@ const SwapApplication = ({
                   <button
                     onClick={onMaxClick}
                     disabled={maxTSHOTAmount <= 0}
-                    className="text-xs bg-brand-accent hover:bg-brand-accent/80 disabled:bg-brand-accent/30 disabled:cursor-not-allowed disabled:opacity-50 text-white px-2 py-1 rounded mt-1 text-center transition-colors"
+                    className="text-xs bg-opolis/20 border border-opolis/40 hover:bg-opolis/30 hover:border-opolis disabled:bg-opolis/10 disabled:border-opolis/20 disabled:cursor-not-allowed disabled:opacity-50 text-white font-semibold px-2 py-1 rounded-lg mt-1 text-center transition-all duration-200"
                   >
                     Max
                   </button>
@@ -199,15 +188,6 @@ const SwapApplication = ({
                       </div>
                     )}
                   </div>
-                  {toAsset === "TSHOT" && (
-                    <button
-                      onClick={() => setShowInfoModal(true)}
-                      className="ml-2 p-1 hover:bg-brand-primary rounded-full transition-colors"
-                      aria-label="Learn more about TSHOT"
-                    >
-                      <Info size={18} className="text-brand-text/70" />
-                    </button>
-                  )}
                 </div>
                 {renderToBalance()}
               </div>

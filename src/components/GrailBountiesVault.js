@@ -149,6 +149,25 @@ function GrailBountiesVault() {
     });
   }, [pageIds, detailsCache, metadataCache, localMeta]);
 
+  // Check if current page items have complete data (details + metadata)
+  const hasIncompleteItems = useMemo(() => {
+    const metaSource = (metadataCache && Object.keys(metadataCache).length > 0)
+      ? metadataCache
+      : (localMeta || {});
+    
+    return pageIds.some((id) => {
+      const details = detailsCache[id];
+      // Must have details with setID and playID
+      if (!details || details.setID === undefined || details.playID === undefined) {
+        return true;
+      }
+      // Must have metadata for this setID-playID combination
+      const metaKey = `${details.setID}-${details.playID}`;
+      const meta = metaSource[metaKey];
+      return !meta;
+    });
+  }, [pageIds, detailsCache, metadataCache, localMeta]);
+
   return (
     <div className="text-brand-text w-full pb-8">
       <div className="w-full">
@@ -226,7 +245,7 @@ function GrailBountiesVault() {
 
             {/* Show skeletons during loading + grid */}
             <div className="px-3 sm:px-4">
-              {(loadingIds || loadingDetails) && items.length === 0 ? (
+              {(loadingIds || (loadingDetails && hasIncompleteItems) || (loadingDetails && items.length === 0)) ? (
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
                   {[...Array(20)].map((_, i) => (
                     <MomentCardSkeleton key={`skeleton-${i}`} />

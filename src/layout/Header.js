@@ -173,7 +173,15 @@ const Header = () => {
           ) : (
             <button
               onClick={connectWallet}
-              className="px-4 py-2 rounded bg-brand-accent text-white hover:opacity-80"
+              className="
+                inline-flex items-center justify-center gap-2
+                rounded-lg px-6 py-2
+                bg-opolis/20 border-2 border-opolis/40
+                text-white font-bold
+                shadow-md hover:shadow-lg
+                hover:bg-opolis/30 hover:border-opolis
+                transition-all duration-200
+              "
               aria-label="Connect Flow wallet"
             >
               Connect
@@ -186,7 +194,7 @@ const Header = () => {
       {(isVaultsPage || isBountiesPage || isProfilePage) && (
         <div className="border-b border-brand-border bg-brand-primary relative z-40">
           <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 pb-0">
-            <nav className="flex flex-wrap items-center gap-2 sm:gap-6">
+            <nav className="flex items-center gap-2 sm:gap-6 overflow-x-auto pb-2 sm:pb-0 sm:flex-wrap scrollbar-hide">
               {isVaultsPage && (
                 <>
                   <SubNavLink
@@ -314,7 +322,7 @@ const NavLink = ({ to, isActive, children, className = "" }) => (
     className={`py-1 px-2.5 whitespace-nowrap select-none font-semibold text-base flex items-center justify-center gap-1.5 relative ${isActive ? "opacity-100 font-bold text-opolis" : "opacity-70 hover:opacity-100 text-brand-text"} transition-opacity duration-200 ${className}`}
   >
     {children}
-    {isActive && <div className="absolute left-1/2 -translate-x-1/2 w-[150%] h-1.5 bg-opolis" style={{ bottom: '-10px' }} />}
+    {isActive && <div className="absolute left-0 right-0 h-1.5 bg-opolis" style={{ bottom: '-10px' }} />}
   </Link>
 );
 
@@ -324,7 +332,7 @@ const SubNavLink = ({ to, isActive, children, className = "" }) => (
     className={`inline-flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-1.5 sm:px-2.5 whitespace-nowrap select-none font-semibold text-xs sm:text-base relative flex-shrink-0 ${isActive ? "opacity-100 font-bold text-opolis" : "opacity-70 hover:opacity-100 text-brand-text"} transition-opacity duration-200 ${className}`}
   >
     {children}
-    {isActive && <div className="absolute left-1/2 -translate-x-1/2 w-[calc(100%+0.5rem)] h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
+    {isActive && <div className="absolute left-0 right-0 h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
   </Link>
 );
 
@@ -334,7 +342,7 @@ const SubNavButton = ({ onClick, isActive, children, className = "" }) => (
     className={`inline-flex items-center gap-1 sm:gap-1.5 py-1 sm:py-1.5 px-1.5 sm:px-2.5 whitespace-nowrap select-none font-semibold text-xs sm:text-base relative flex-shrink-0 ${isActive ? "opacity-100 font-bold text-opolis" : "opacity-70 hover:opacity-100 text-brand-text"} transition-opacity duration-200 ${className}`}
   >
     {children}
-    {isActive && <div className="absolute left-1/2 -translate-x-1/2 w-[calc(100%+0.5rem)] h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
+    {isActive && <div className="absolute left-0 right-0 h-1 sm:h-1.5 bg-opolis" style={{ bottom: 0 }} />}
   </button>
 );
 
@@ -342,9 +350,10 @@ const MobileNavLink = ({ to, isActive, children, onClick, className = "" }) => (
   <Link
     to={to}
     onClick={onClick}
-    className={`w-full py-4 hover:opacity-80 select-none text-sm flex items-center justify-center gap-1.5 ${isActive ? "font-bold border-t-2 border-b-2 border-opolis text-opolis" : "text-brand-text"} ${className}`}
+    className={`w-full py-4 hover:opacity-80 select-none text-sm flex items-center justify-center gap-1.5 relative ${isActive ? "font-bold text-opolis" : "text-brand-text"} ${className}`}
   >
     {children}
+    {isActive && <div className="absolute left-0 right-0 bottom-0 h-1 bg-opolis" />}
   </Link>
 );
 

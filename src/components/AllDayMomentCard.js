@@ -156,7 +156,7 @@ const AllDayMomentCard = ({
   const hoverClasses = disableHover
     ? ""
     : `cursor-pointer transition-colors duration-200 hover:border-2 hover:border-opalis ${
-        isSelected ? "border-2 border-green-500" : ""
+        isSelected ? "border-2 border-opolis" : ""
       }`;
 
   const cardClasses = `${baseCardClasses} ${hoverClasses}`;

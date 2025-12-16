@@ -143,6 +143,24 @@ function AllDayGrailsVault() {
     });
   }, [pageIds, detailsCache, allDayMetadataCache, localMeta]);
 
+  // Check if current page items have complete data (details + metadata)
+  const hasIncompleteItems = useMemo(() => {
+    const metaSource = (allDayMetadataCache && Object.keys(allDayMetadataCache).length > 0)
+      ? allDayMetadataCache
+      : (localMeta || {});
+    
+    return pageIds.some((id) => {
+      const details = detailsCache[id];
+      // Must have details with editionID
+      if (!details || details.editionID === undefined) {
+        return true;
+      }
+      // Must have metadata for this editionID
+      const meta = metaSource[details.editionID];
+      return !meta;
+    });
+  }, [pageIds, detailsCache, allDayMetadataCache, localMeta]);
+
   return (
     <div className="text-brand-text w-full pb-8">
       <div className="w-full">
@@ -220,7 +238,7 @@ function AllDayGrailsVault() {
 
             {/* Show skeletons during loading + grid */}
             <div className="px-3 sm:px-4">
-              {(loadingIds || loadingDetails) && items.length === 0 ? (
+              {(loadingIds || (loadingDetails && hasIncompleteItems) || (loadingDetails && items.length === 0)) ? (
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(80px,80px))] sm:grid-cols-[repeat(auto-fit,minmax(112px,112px))] gap-1.5 justify-items-center">
                   {[...Array(20)].map((_, i) => (
                     <MomentCardSkeleton key={`skeleton-${i}`} />

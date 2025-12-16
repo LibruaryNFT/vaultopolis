@@ -182,7 +182,7 @@ const MomentCard = ({
   const hoverClasses = disableHover
     ? ""
     : `cursor-pointer transition-colors duration-200 hover:border-2 hover:border-opolis ${
-        isSelected ? "border-2 border-green-500" : ""
+        isSelected ? "border-2 border-opolis" : ""
       }`;
 
   const cardClasses = `${baseCardClasses} ${hoverClasses}`;

@@ -209,8 +209,8 @@ export default function Bounties({ collectionType = 'topshot' }) {
               </p>
             </div>
             <div>
-              <div className="bg-green-500/10 border border-green-500/30 rounded px-2 py-1 mb-2">
-                <p className="text-center text-[11px] sm:text-xs font-bold text-green-400 truncate leading-tight mb-0">
+              <div className="bg-opolis/10 border border-opolis/30 rounded px-2 py-1 mb-2">
+                <p className="text-center text-[11px] sm:text-xs font-bold text-opolis truncate leading-tight mb-0">
                 {parseFloat(offer.offerAmount).toFixed(2)} {String(offer.currency || 'FLOW').toUpperCase()}
               </p>
               {usdAmounts[offer.offerId] && (
@@ -1056,8 +1056,8 @@ export default function Bounties({ collectionType = 'topshot' }) {
                       <button 
                         className={`w-[140px] sm:w-40 text-white text-xs rounded-b h-[50px] flex flex-col items-center justify-center text-center leading-tight px-2 transition-all duration-200 ${
                           isLocked 
-                            ? 'bg-gray-500 cursor-not-allowed opacity-60' 
-                            : 'bg-opolis hover:bg-opolis-dark hover:shadow-lg hover:shadow-opolis/30 group-hover:bg-opolis/90 group-hover:scale-105'
+                            ? 'bg-brand-primary/60 border-2 border-brand-border/60 cursor-not-allowed opacity-60' 
+                            : 'bg-opolis/20 border-2 border-opolis/40 hover:bg-opolis/30 hover:border-opolis hover:shadow-lg hover:shadow-opolis/30 font-bold'
                         } -mt-px`}
                         aria-label={isLocked ? `Locked Moment #${match.moment.id} - Cannot accept offer` : `Accept offer for Moment #${match.moment.id} (Set ${match.moment.setID}, Play ${match.moment.playID})`}
                         title={isLocked ? `Locked Moment - Cannot accept offer` : `Accept offer for Moment #${match.moment.id}`}
@@ -1078,17 +1078,27 @@ export default function Bounties({ collectionType = 'topshot' }) {
                 <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mt-3">
                   {/* Mobile: Simple Prev/Next */}
                   <div className="flex sm:hidden items-center gap-2">
-                    <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Prev</button>
-                    <span className="text-xs text-brand-text/70 px-2">{matchesPage}/{matchesPageCount}</span>
-                    <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Next</button>
+                    <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-sm font-semibold transition-all duration-200">Prev</button>
+                    <span 
+                      className="text-xs text-opolis font-semibold px-2"
+                      aria-current="page"
+                    >
+                      {matchesPage}/{matchesPageCount}
+                    </span>
+                    <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none">Next</button>
                   </div>
 
                   {/* Desktop: Full pagination with PageInput */}
                   <div className="hidden sm:flex items-center gap-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Prev</button>
-                      <span className="text-sm text-brand-text/70 min-w-[100px] text-center">Page {matchesPage} of {matchesPageCount}</span>
-                      <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded bg-brand-primary text-brand-text/80 hover:opacity-80 disabled:opacity-50 text-sm">Next</button>
+                      <button onClick={() => setMatchesPage(Math.max(1, matchesPage - 1))} disabled={matchesPage === 1} className="px-3 py-1 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none">Prev</button>
+                      <span 
+                        className="text-sm text-opolis font-semibold min-w-[100px] text-center"
+                        aria-current="page"
+                      >
+                        Page {matchesPage} of {matchesPageCount}
+                      </span>
+                      <button onClick={() => setMatchesPage(Math.min(matchesPageCount, matchesPage + 1))} disabled={matchesPage === matchesPageCount} className="px-3 py-1 rounded-lg bg-brand-primary text-brand-text/80 border border-brand-border hover:bg-brand-primary/80 hover:border-opolis/60 disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none text-sm font-semibold transition-all duration-200 focus-visible:ring-2 focus-visible:ring-opolis/50 focus-visible:outline-none">Next</button>
                     </div>
                     <div className="h-[1px] w-8 bg-brand-primary/30" />
                     <PageInput maxPages={matchesPageCount} currentPage={matchesPage} onPageChange={setMatchesPage} disabled={false} />

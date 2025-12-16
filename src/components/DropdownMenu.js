@@ -49,17 +49,25 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
 
   /* render --------------------------------------------------------- */
   return (
-    <div
-      ref={popRef}
-      className="
-        fixed top-[68px] left-0 w-screen
-        md:absolute md:top-12 md:right-0 md:left-auto md:w-80
-        mt-0
-        rounded-lg border border-brand-border
-        shadow-xl shadow-black/70
-        bg-brand-secondary text-brand-text z-[60]
-      "
-    >
+    <>
+      {/* Outside-click overlay — ONLY when menu is open */}
+      <div
+        className="fixed inset-0 z-[55]"
+        onClick={closeMenu}
+        aria-hidden="true"
+      />
+      
+      {/* Menu panel — anchored to button */}
+      <div
+        ref={popRef}
+        className="
+          absolute right-0 top-12 w-80
+          mt-2
+          rounded-lg border border-brand-border
+          shadow-xl shadow-black/70
+          bg-brand-secondary text-brand-text z-[60]
+        "
+      >
       {/* Tier 1: Identity & Status Header */}
       <div className="px-4 py-3 bg-brand-primary border-b border-brand-border">
         {/* Parent Account */}
@@ -86,8 +94,8 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
               </button>
             </div>
             <div className="flex items-center space-x-2 mt-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-              <span className="text-xs text-green-400">Connected</span>
+              <div className="w-2 h-2 bg-opolis rounded-full"></div>
+              <span className="text-xs text-opolis">Connected</span>
             </div>
           </div>
         </div>
@@ -131,8 +139,8 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
                 </button>
               </div>
               <div className="flex items-center space-x-2 mt-1">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span className="text-xs text-green-400">Connected</span>
+                <div className="w-2 h-2 bg-opolis rounded-full"></div>
+                <span className="text-xs text-opolis">Connected</span>
               </div>
             </div>
           </div>
@@ -170,7 +178,8 @@ const DropdownMenu = ({ closeMenu, buttonRef }) => {
           <span className="text-red-400">Disconnect</span>
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 

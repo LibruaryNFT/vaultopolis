@@ -89,7 +89,7 @@ function Guides() {
     {
       id: "transfer",
       title: "Transfer NFTs",
-      description: "Learn how to transfer NBA Top Shot Moments between Flow accounts or bridge them to Flow EVM. Bulk transfers up to 280 NFTs.",
+      description: "Learn how to transfer NBA Top Shot Moments between Flow accounts or bridge them to Flow EVM. Bulk transfers up to 200 NFTs.",
       icon: <FaExchangeAlt className="text-3xl text-brand-accent" />,
       path: "/guides/transfer"
     },
